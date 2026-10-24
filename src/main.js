@@ -362,6 +362,103 @@ class GameApp {
         });
       });
     }
+
+    // Round 3: Tournament mode triggers
+    if (this.dom.btnStartTournament) {
+      this.dom.btnStartTournament.addEventListener('click', () => {
+        sound.unlock();
+        this.openTournamentScreen();
+      });
+    }
+
+    if (this.dom.btnOpenLocker) {
+      this.dom.btnOpenLocker.addEventListener('click', () => {
+        sound.unlock();
+        this.openLockerScreen();
+      });
+    }
+
+    if (this.dom.btnTourneyStartMatch) {
+      this.dom.btnTourneyStartMatch.addEventListener('click', () => {
+        sound.unlock();
+        if (!this.tournament.isActive()) {
+          this.openTeamSelectModal();
+          return;
+        }
+        if (this.tournament.isComplete() || this.tournament.isEliminated()) {
+          return;
+        }
+        this.startMatch('TOURNAMENT');
+      });
+    }
+
+    if (this.dom.btnTourneyReset) {
+      this.dom.btnTourneyReset.addEventListener('click', () => {
+        this.showConfirmModal('確定要重置世界盃淘汰賽進度？所有對陣將會重新洗牌。', () => {
+          this.tournament.reset();
+          this.openTournamentScreen();
+        });
+      });
+    }
+
+    if (this.dom.btnTourneyHome) this.dom.btnTourneyHome.addEventListener('click', goHome);
+    if (this.dom.btnLockerBackHome) this.dom.btnLockerBackHome.addEventListener('click', goHome);
+
+    // End screen advance & bracket buttons
+    if (this.dom.btnTourneyAdvance) {
+      this.dom.btnTourneyAdvance.addEventListener('click', () => {
+        if (this.tournament.isComplete()) {
+          this.openTournamentScreen();
+          return;
+        }
+        const ok = this.tournament.advanceRound();
+        if (ok) {
+          this.tournament.save();
+        }
+        this.openTournamentScreen();
+      });
+    }
+
+    if (this.dom.btnTourneyBracketView) {
+      this.dom.btnTourneyBracketView.addEventListener('click', () => {
+        this.openTournamentScreen();
+      });
+    }
+
+    // Share card button
+    if (this.dom.btnShareCard) {
+      this.dom.btnShareCard.addEventListener('click', () => {
+        const stats = this._generateShareStats();
+        this.shareCard.shareMatch(stats);
+      });
+    }
+
+    // Team selection modal buttons
+    if (this.dom.btnConfirmTeam) {
+      this.dom.btnConfirmTeam.addEventListener('click', () => {
+        this.tournament.startTournament(this.selectedTeamForModal);
+        this.tournament.save();
+        if (this.dom.modalTeamSelect) this.dom.modalTeamSelect.classList.remove('active');
+        this.renderTournamentBracket();
+        this.switchScreen('tournament');
+      });
+    }
+
+    if (this.dom.btnCancelTeam) {
+      this.dom.btnCancelTeam.addEventListener('click', () => {
+        if (this.dom.modalTeamSelect) this.dom.modalTeamSelect.classList.remove('active');
+      });
+    }
+
+    // Locker room category tabs
+    if (this.dom.lockerTabs) {
+      this.dom.lockerTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          const target = tab.dataset.tab;
+          if (target) this.switchLockerTab(target);
+        });
+      });
+    }
   }
 
   showConfirmModal(text, onConfirm) {
@@ -393,6 +490,8 @@ class GameApp {
     if (this.dom.screenTitle) this.dom.screenTitle.classList.remove('active');
     if (this.dom.screenMatch) this.dom.screenMatch.classList.remove('active');
     if (this.dom.screenEnd) this.dom.screenEnd.classList.remove('active');
+    if (this.dom.screenTournament) this.dom.screenTournament.classList.remove('active');
+    if (this.dom.screenLocker) this.dom.screenLocker.classList.remove('active');
 
     if (this.dom.btnNavHome) {
       this.dom.btnNavHome.style.display = (screenName === 'title') ? 'none' : 'inline-flex';
@@ -404,6 +503,10 @@ class GameApp {
       this.dom.screenMatch.classList.add('active');
     } else if (screenName === 'end' && this.dom.screenEnd) {
       this.dom.screenEnd.classList.add('active');
+    } else if (screenName === 'tournament' && this.dom.screenTournament) {
+      this.dom.screenTournament.classList.add('active');
+    } else if (screenName === 'locker' && this.dom.screenLocker) {
+      this.dom.screenLocker.classList.add('active');
     }
   }
 
@@ -436,6 +539,356 @@ class GameApp {
     if (this.dom.diffDesc) {
       this.dom.diffDesc.textContent = descs[this.currentDifficulty] || descs.MEDIUM;
     }
+  }
+
+  _updateNavStars() {
+    const stars = this.unlocks.getStars();
+    if (this.dom.navStarCount) this.dom.navStarCount.textContent = stars;
+    if (this.dom.titleStarCount) this.dom.titleStarCount.textContent = stars;
+    if (this.dom.lockerStarsNum) this.dom.lockerStarsNum.textContent = stars;
+  }
+
+  applyCosmetics() {
+    const equipped = this.unlocks.getEquipped();
+    if (this.ball) {
+      this.ball.applySkin(equipped.ball);
+    }
+    if (this.stadium) {
+      this.stadium.applyAtmosphere(equipped.stadium);
+    }
+
+    // Determine kit colors
+    let pKit = { jersey: '#e53935', shorts: '#ffffff', socks: '#e53935', gloves: '#ff1744' };
+    let oppKit = { jersey: '#1e88e5', shorts: '#0d47a1', socks: '#1e88e5', gloves: '#00e5ff' };
+
+    if (this.matchMode === 'TOURNAMENT' && this.tournament.isActive()) {
+      const pTeam = this.tournament.getPlayerTeam();
+      const oppTeam = this.tournament.getOpponentTeam();
+      if (pTeam && pTeam.kitColors) pKit = pTeam.kitColors;
+      if (oppTeam && oppTeam.kitColors) oppKit = oppTeam.kitColors;
+    } else {
+      const kitItem = UNLOCK_CATALOG.kits.find(k => k.id === equipped.kit);
+      if (kitItem && kitItem.colors) {
+        pKit = kitItem.colors;
+      }
+    }
+
+    if (this.stadium) {
+      this.stadium.updateCrowdTeamColors(pKit.jersey, oppKit.jersey);
+    }
+
+    // In player turn (player shooting): Keeper is opponent, Striker is player
+    // In keeper turn (player in goal): Keeper is player, Striker is opponent
+    if (!this.isKeeperTurn) {
+      if (this.keeper) this.keeper.setKitColors(oppKit);
+      if (this.taker) this.taker.setKitColors(pKit);
+    } else {
+      if (this.keeper) this.keeper.setKitColors(pKit);
+      if (this.taker) this.taker.setKitColors(oppKit);
+    }
+  }
+
+  openTournamentScreen() {
+    if (!this.tournament.isActive()) {
+      this.openTeamSelectModal();
+      return;
+    }
+    this.renderTournamentBracket();
+    this.switchScreen('tournament');
+  }
+
+  openTeamSelectModal() {
+    if (!this.dom.modalTeamSelect || !this.dom.teamSelectGrid) return;
+    this.dom.teamSelectGrid.innerHTML = '';
+
+    const teams = Object.values(TEAMS);
+    teams.forEach(team => {
+      const card = document.createElement('div');
+      card.className = `team-pick-item ${team.id === this.selectedTeamForModal ? 'selected' : ''}`;
+      card.dataset.teamId = team.id;
+      card.innerHTML = `
+        <div class="team-pick-flag">${team.flag}</div>
+        <div class="team-pick-name">${team.name}</div>
+        <div class="team-pick-tag">${team.styleTag}</div>
+        <div class="team-pick-intel">
+          <span>🧤 ${team.keeperPersonality.name}</span>
+          <span>⚽ ${team.takerPersonality.name}</span>
+        </div>
+      `;
+      card.addEventListener('click', () => {
+        this.selectedTeamForModal = team.id;
+        const allItems = this.dom.teamSelectGrid.querySelectorAll('.team-pick-item');
+        allItems.forEach(i => i.classList.toggle('selected', i.dataset.teamId === team.id));
+      });
+      this.dom.teamSelectGrid.appendChild(card);
+    });
+
+    this.dom.modalTeamSelect.classList.add('active');
+  }
+
+  renderTournamentBracket() {
+    if (!this.tournament.isActive()) return;
+
+    const round = this.tournament.getRound();
+    const roundName = this.tournament.getRoundName();
+    const pTeam = this.tournament.getPlayerTeam();
+    const oppTeam = this.tournament.getOpponentTeam();
+    const currentMatch = this.tournament.getCurrentMatch();
+    const isElim = this.tournament.isEliminated();
+    const isComp = this.tournament.isComplete();
+
+    if (this.dom.tourneyRoundTitle) {
+      this.dom.tourneyRoundTitle.textContent = `2026 世界盃 · ${roundName}`;
+    }
+    if (this.dom.bracketRoundName) {
+      this.dom.bracketRoundName.textContent = roundName;
+    }
+
+    // Player HUD
+    if (this.dom.tourneyPlayerFlag) this.dom.tourneyPlayerFlag.textContent = pTeam ? pTeam.flag : '🇭🇰';
+    if (this.dom.tourneyPlayerTeamName) this.dom.tourneyPlayerTeamName.textContent = pTeam ? pTeam.name : '香港隊';
+
+    // Status chip
+    if (this.dom.tourneyStatusChip) {
+      if (isComp) {
+        this.dom.tourneyStatusChip.textContent = '🏆 榮獲冠軍';
+        this.dom.tourneyStatusChip.className = 'status-chip win';
+      } else if (isElim) {
+        this.dom.tourneyStatusChip.textContent = '❌ 已出局';
+        this.dom.tourneyStatusChip.className = 'status-chip elim';
+      } else {
+        this.dom.tourneyStatusChip.textContent = '進行中';
+        this.dom.tourneyStatusChip.className = 'status-chip active';
+      }
+    }
+
+    // Opponent Intel Card
+    if (oppTeam) {
+      if (this.dom.tourneyOppFlag) this.dom.tourneyOppFlag.textContent = oppTeam.flag;
+      if (this.dom.tourneyOppName) this.dom.tourneyOppName.textContent = oppTeam.name;
+      if (this.dom.tourneyOppKeeper) this.dom.tourneyOppKeeper.textContent = oppTeam.keeperPersonality.name;
+      if (this.dom.tourneyOppKeeperDesc) this.dom.tourneyOppKeeperDesc.textContent = oppTeam.keeperPersonality.desc;
+      if (this.dom.tourneyOppTaker) this.dom.tourneyOppTaker.textContent = oppTeam.takerPersonality.name;
+      if (this.dom.tourneyOppTakerDesc) this.dom.tourneyOppTakerDesc.textContent = oppTeam.takerPersonality.desc;
+      if (this.dom.tourneyDifficultyBadge && currentMatch) {
+        const diffLabels = { EASY: '簡單 (EASY)', MEDIUM: '標準 (MEDIUM)', HARD: '困難 (HARD)', HELL: '地獄 (HELL)' };
+        this.dom.tourneyDifficultyBadge.textContent = diffLabels[currentMatch.difficulty] || currentMatch.difficulty;
+      }
+    }
+
+    // Bracket Matches List
+    if (this.dom.bracketMatchesList) {
+      this.dom.bracketMatchesList.innerHTML = '';
+      const roundMatches = this.tournament.getMatchesForRound(round);
+      roundMatches.forEach((m) => {
+        const item = document.createElement('div');
+        const isPlayerMatch = (m.id === currentMatch?.id) || (m.teamA?.id === pTeam?.id || m.teamB?.id === pTeam?.id);
+        item.className = `bracket-match-row ${isPlayerMatch ? 'player-match' : ''} ${m.completed ? 'done' : ''}`;
+
+        const scoreA = m.completed ? m.scoreA : '-';
+        const scoreB = m.completed ? m.scoreB : '-';
+        const winA = m.completed && m.winnerId === m.teamA?.id;
+        const winB = m.completed && m.winnerId === m.teamB?.id;
+
+        item.innerHTML = `
+          <div class="bm-team ${winA ? 'winner' : ''}">
+            <span class="bm-flag">${m.teamA?.flag || '🏳️'}</span>
+            <span class="bm-name">${m.teamA?.name || '待定'}</span>
+            <span class="bm-score">${scoreA}</span>
+          </div>
+          <div class="bm-vs">VS</div>
+          <div class="bm-team ${winB ? 'winner' : ''}">
+            <span class="bm-score">${scoreB}</span>
+            <span class="bm-name">${m.teamB?.name || '待定'}</span>
+            <span class="bm-flag">${m.teamB?.flag || '🏳️'}</span>
+          </div>
+        `;
+        this.dom.bracketMatchesList.appendChild(item);
+      });
+    }
+
+    // Start Button Text & Disabled State
+    if (this.dom.btnTourneyStartMatch) {
+      if (isComp) {
+        this.dom.btnTourneyStartMatch.textContent = '🏆 榮獲世界盃冠軍！';
+        this.dom.btnTourneyStartMatch.disabled = true;
+      } else if (isElim) {
+        this.dom.btnTourneyStartMatch.textContent = '❌ 已出局（點擊下方重置）';
+        this.dom.btnTourneyStartMatch.disabled = true;
+      } else if (currentMatch && currentMatch.completed) {
+        this.dom.btnTourneyStartMatch.textContent = `晉級下一輪 (${this.tournament.getNextRoundName()})`;
+        this.dom.btnTourneyStartMatch.disabled = false;
+        this.dom.btnTourneyStartMatch.onclick = () => {
+          this.tournament.advanceRound();
+          this.tournament.save();
+          this.renderTournamentBracket();
+        };
+      } else {
+        this.dom.btnTourneyStartMatch.textContent = `開戰！出戰 ${oppTeam ? oppTeam.name : '對手'}`;
+        this.dom.btnTourneyStartMatch.disabled = false;
+        this.dom.btnTourneyStartMatch.onclick = () => {
+          this.startMatch('TOURNAMENT');
+        };
+      }
+    }
+  }
+
+  openLockerScreen() {
+    this._updateNavStars();
+    this.switchLockerTab('trophies');
+    this.switchScreen('locker');
+  }
+
+  switchLockerTab(tabName) {
+    if (this.dom.lockerTabs) {
+      this.dom.lockerTabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
+    }
+    if (this.dom.lockerPanels) {
+      Object.keys(this.dom.lockerPanels).forEach(key => {
+        if (this.dom.lockerPanels[key]) {
+          this.dom.lockerPanels[key].classList.toggle('active', key === tabName);
+        }
+      });
+    }
+
+    if (tabName === 'trophies') {
+      this.renderLockerTrophies();
+    } else {
+      this.renderLockerCatalog(tabName);
+    }
+  }
+
+  renderLockerTrophies() {
+    if (!this.dom.trophiesGrid) return;
+    this.dom.trophiesGrid.innerHTML = '';
+
+    TROPHIES.forEach(trophy => {
+      const isUnlocked = this.unlocks.hasTrophy(trophy.id);
+      const card = document.createElement('div');
+      card.className = `trophy-card ${isUnlocked ? 'unlocked' : 'locked'}`;
+      card.innerHTML = `
+        <div class="trophy-icon">${trophy.icon}</div>
+        <div class="trophy-name">${trophy.name}</div>
+        <div class="trophy-desc">${trophy.desc}</div>
+        <div class="trophy-status">${isUnlocked ? '✓ 已解鎖' : '🔒 未獲得'}</div>
+      `;
+      this.dom.trophiesGrid.appendChild(card);
+    });
+  }
+
+  renderLockerCatalog(category) {
+    const gridMap = {
+      balls: this.dom.ballsGrid,
+      kits: this.dom.kitsGrid,
+      stadiums: this.dom.stadiumsGrid
+    };
+    const grid = gridMap[category];
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    const items = UNLOCK_CATALOG[category] || [];
+    const equipped = this.unlocks.getEquipped();
+    const equippedId = (category === 'balls') ? equipped.ball : (category === 'kits') ? equipped.kit : equipped.stadium;
+
+    items.forEach(item => {
+      const isUnlocked = this.unlocks.isUnlocked(category, item.id);
+      const isEquipped = (equippedId === item.id);
+
+      const card = document.createElement('div');
+      card.className = `catalog-card ${isUnlocked ? 'unlocked' : 'locked'} ${isEquipped ? 'equipped' : ''}`;
+
+      let previewHtml = '';
+      if (category === 'balls') {
+        previewHtml = `<div class="catalog-preview ball-preview" style="background: radial-gradient(circle, #fff, #888);">${item.icon || '⚽'}</div>`;
+      } else if (category === 'kits') {
+        const jColor = item.colors?.jersey || '#ff0000';
+        previewHtml = `<div class="catalog-preview kit-preview" style="background: ${jColor};">👕</div>`;
+      } else if (category === 'stadiums') {
+        const bg = (item.id === 'stadium_sunset') ? 'linear-gradient(135deg, #ff7e5f, #feb47b)' : (item.id === 'stadium_day') ? 'linear-gradient(135deg, #70e1f5, #ffd194)' : 'linear-gradient(135deg, #0a0e17, #1b2838)';
+        previewHtml = `<div class="catalog-preview stadium-preview" style="background: ${bg};">🏟️</div>`;
+      }
+
+      card.innerHTML = `
+        ${previewHtml}
+        <div class="catalog-info">
+          <div class="catalog-title">${item.name}</div>
+          <div class="catalog-desc">${item.desc}</div>
+        </div>
+        <div class="catalog-action">
+          ${isEquipped ? '<button class="btn-catalog equipped" disabled>裝備中</button>' : isUnlocked ? '<button class="btn-catalog equip">裝備</button>' : `<button class="btn-catalog unlock">⭐ ${item.cost}</button>`}
+        </div>
+      `;
+
+      const btn = card.querySelector('.btn-catalog');
+      if (btn) {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (isEquipped) return;
+          if (isUnlocked) {
+            // Equip
+            if (category === 'balls') this.unlocks.equip('ball', item.id);
+            else if (category === 'kits') this.unlocks.equip('kit', item.id);
+            else if (category === 'stadiums') this.unlocks.equip('stadium', item.id);
+            this.unlocks.save();
+            this.applyCosmetics();
+            this.renderLockerCatalog(category);
+          } else {
+            // Unlock
+            const cost = item.cost;
+            if (this.unlocks.getStars() < cost) {
+              alert(`⭐ 星星不足！需要 ${cost} 粒星星，目前只有 ${this.unlocks.getStars()} 粒。`);
+              return;
+            }
+            const res = this.unlocks.unlockItem(category, item.id);
+            if (res.success) {
+              if (category === 'balls') this.unlocks.equip('ball', item.id);
+              else if (category === 'kits') this.unlocks.equip('kit', item.id);
+              else if (category === 'stadiums') this.unlocks.equip('stadium', item.id);
+              this.unlocks.save();
+              this.applyCosmetics();
+              this._updateNavStars();
+              sound.playWhistle();
+              this.renderLockerCatalog(category);
+            }
+          }
+        });
+      }
+
+      grid.appendChild(card);
+    });
+  }
+
+  _generateShareStats() {
+    const isWin = this.playerScore > this.cpuScore;
+    const isDraw = this.playerScore === this.cpuScore;
+    const pTeam = (this.matchMode === 'TOURNAMENT' && this.tournament.isActive())
+      ? this.tournament.getPlayerTeam()
+      : { id: 'HKG', name: '香港隊', flag: '🇭🇰' };
+    const oppTeam = (this.matchMode === 'TOURNAMENT' && this.tournament.isActive())
+      ? this.tournament.getOpponentTeam()
+      : { id: 'CPU', name: '電腦門將', flag: '🤖' };
+
+    const predScore = this.model ? this.model.getPredictabilityScore() : null;
+    const predRating = this.model ? this.model.getPredictabilityRating(predScore) : { tag: '未知' };
+
+    return {
+      isWin,
+      isDraw,
+      playerScore: this.playerScore,
+      cpuScore: this.cpuScore,
+      isSuddenDeath: this.isSuddenDeath,
+      roundsPlayed: Math.max(this.playerKicks.length, this.cpuKicks.length),
+      predictabilityScore: predScore,
+      predictabilityRating: predRating,
+      playerTeam: pTeam,
+      opponentTeam: oppTeam,
+      starsEarned: this.lastMatchStarResult ? this.lastMatchStarResult.total : 0,
+      totalStars: this.unlocks.getStars(),
+      matchMode: this.matchMode,
+      roundName: (this.matchMode === 'TOURNAMENT' && this.tournament.isActive()) ? this.tournament.getRoundName() : null,
+      heatmapData: this.model ? this.model.getHeatmapData() : null,
+      playerKicks: this.playerKicks
+    };
   }
 
   showTaunt(category, context = null, avatar = '🧤') {
@@ -531,7 +984,8 @@ class GameApp {
   // MATCH MANAGEMENT
   // ==========================================
 
-  startMatch() {
+  startMatch(mode = 'QUICK') {
+    this.matchMode = mode;
     this.round = 1;
     this.playerScore = 0;
     this.cpuScore = 0;
@@ -543,6 +997,22 @@ class GameApp {
     this.activeShot = null;
     this.activeCpuShot = null;
 
+    if (this.matchMode === 'TOURNAMENT') {
+      const currentMatch = this.tournament.getCurrentMatch();
+      if (!currentMatch) {
+        this.openTournamentScreen();
+        return;
+      }
+      this.activePlayerTeam = this.tournament.getPlayerTeam();
+      this.activeOpponentTeam = this.tournament.getOpponentTeam();
+      this.difficultyConfig = getDifficultyConfig(currentMatch.difficulty);
+    } else {
+      this.activePlayerTeam = { id: 'HKG', name: '香港隊', flag: '🇭🇰', kitColors: { jersey: '#e53935', shorts: '#ffffff', socks: '#e53935', gloves: '#ff1744' } };
+      this.activeOpponentTeam = { id: 'CPU', name: '電腦對手', flag: '🤖', kitColors: { jersey: '#1e88e5', shorts: '#0d47a1', socks: '#1e88e5', gloves: '#00e5ff' } };
+      this.difficultyConfig = getDifficultyConfig(this.currentDifficulty);
+    }
+
+    this.applyCosmetics();
     this.switchScreen('match');
     this.updateHUD();
     this.startPlayerTurn();
@@ -557,6 +1027,9 @@ class GameApp {
     this.ballDeflecting = false;
     this.activeShot = null;
     this.activeCpuShot = null;
+
+    // Reset cosmetics for player turn
+    this.applyCosmetics();
 
     // Reset ball, keeper, and hide taker
     this.ball.reset();
@@ -584,8 +1057,10 @@ class GameApp {
     if (this.dom.turnBanner) {
       this.dom.turnBanner.innerHTML = `<span>⚽ 你主射：向球門撥球射門！</span>`;
     }
-    if (this.dom.homeTeamName) this.dom.homeTeamName.textContent = '你 (主射)';
-    if (this.dom.awayTeamName) this.dom.awayTeamName.textContent = '電腦 (門將)';
+    const pName = this.activePlayerTeam ? this.activePlayerTeam.name : '你';
+    const oppName = this.activeOpponentTeam ? this.activeOpponentTeam.name : '電腦';
+    if (this.dom.homeTeamName) this.dom.homeTeamName.textContent = `${pName} (主射)`;
+    if (this.dom.awayTeamName) this.dom.awayTeamName.textContent = `${oppName} (門將)`;
 
     // Check tutorial condition (first 2 kicks of a new player)
     const totalShots = this.model ? (this.model.totalShots || 0) : 0;
@@ -621,7 +1096,18 @@ class GameApp {
 
     // 3. Mental Model Probabilities & Keeper Dive Decision with Difficulty settings
     const modelProbs = this.model ? this.model.getProbabilities() : null;
-    const divePlan = decide(modelProbs, this.difficultyConfig, TUNING);
+    let divePlan = decide(modelProbs, this.difficultyConfig, TUNING);
+
+    // Opponent keeper personality in tournament
+    if (this.matchMode === 'TOURNAMENT' && this.activeOpponentTeam?.keeperPersonality) {
+      const kp = this.activeOpponentTeam.keeperPersonality;
+      if (typeof kp.reactionBonus === 'number') {
+        divePlan.reactTime = Math.max(0.04, divePlan.reactTime + kp.reactionBonus);
+      }
+      if (typeof kp.reachBonus === 'number') {
+        divePlan.reachMultiplier = (divePlan.reachMultiplier || 1.0) * (1.0 + kp.reachBonus);
+      }
+    }
 
     // 4. Save Intersection Check (Deterministic reach volume)
     const saveCheck = checkSave(sim, divePlan, TUNING);
@@ -788,6 +1274,9 @@ class GameApp {
     this.ballDeflecting = false;
     this.activeShot = null;
 
+    // Apply cosmetics for keeper turn (player in goal, opponent striking)
+    this.applyCosmetics();
+
     // Reset ball and goalkeeper
     this.ball.reset();
     this.keeper.reset();
@@ -806,8 +1295,10 @@ class GameApp {
     if (this.dom.turnBanner) {
       this.dom.turnBanner.innerHTML = `<span>🧤 你把關撲救：向目標滑動撲救！</span>`;
     }
-    if (this.dom.homeTeamName) this.dom.homeTeamName.textContent = '你 (門將)';
-    if (this.dom.awayTeamName) this.dom.awayTeamName.textContent = '電腦 (主射)';
+    const pName = this.activePlayerTeam ? this.activePlayerTeam.name : '你';
+    const oppName = this.activeOpponentTeam ? this.activeOpponentTeam.name : '電腦';
+    if (this.dom.homeTeamName) this.dom.homeTeamName.textContent = `${pName} (門將)`;
+    if (this.dom.awayTeamName) this.dom.awayTeamName.textContent = `${oppName} (主射)`;
 
     if (this.dom.tutorialOverlay) {
       this.dom.tutorialOverlay.style.display = 'none';
@@ -933,6 +1424,17 @@ class GameApp {
     // Taker AI decides target (aims away from player habit / punishes early dive)
     const earlyZone = this.keeperTurnState.earlyDive ? this.keeperTurnState.diveZone : null;
     const takerDecision = this.takerAI.decideShot(this.difficultyConfig, earlyZone);
+
+    // Striker personality modifiers in tournament
+    if (this.matchMode === 'TOURNAMENT' && this.activeOpponentTeam?.takerPersonality) {
+      const tp = this.activeOpponentTeam.takerPersonality;
+      if (typeof tp.speedMultiplier === 'number') {
+        takerDecision.speed *= tp.speedMultiplier;
+      }
+      if (typeof tp.curveMultiplier === 'number') {
+        takerDecision.curve *= tp.curveMultiplier;
+      }
+    }
 
     const targetPoint = takerDecision.targetPoint || takerDecision.target;
     const launch = pointToLaunch(targetPoint, takerDecision.speed, takerDecision.curve, TUNING);
@@ -1156,6 +1658,42 @@ class GameApp {
       sound.swellMiss();
     }
 
+    // Stars & Trophies calculation
+    const cleanSheet = (this.cpuScore === 0);
+    const savesCount = this.cpuKicks.filter(k => !k.scored).length;
+    const predScore = this.model ? this.model.getPredictabilityScore() : null;
+    const isTourney = (this.matchMode === 'TOURNAMENT');
+    const isTourneyFinalWin = isTourney && isWin && (this.tournament.getRound() === 'FINAL');
+
+    // Tournament match recording
+    if (isTourney) {
+      this.tournament.recordPlayerMatch(this.playerScore, this.cpuScore);
+      this.tournament.save();
+    }
+
+    // Stars breakdown & award
+    this.lastMatchStarResult = this.unlocks.calculateMatchStars({
+      isWin,
+      cleanSheet,
+      savesCount,
+      predictabilityScore: predScore,
+      isTournamentMatch: isTourney,
+      isTournamentFinalWin: isTourneyFinalWin
+    });
+    this.unlocks.addStars(this.lastMatchStarResult.total);
+
+    // Trophies unlock evaluation
+    this.unlocks.checkTrophies({
+      wonMatch: isWin,
+      tournamentWon: isTourneyFinalWin,
+      cleanSheet,
+      savesInMatch: savesCount,
+      lowPredictability: (predScore !== null && predScore <= 25),
+      suddenDeathWon: (this.isSuddenDeath && isWin)
+    });
+    this.unlocks.save();
+
+    this._updateNavStars();
     this._renderEndScreen();
     this.switchScreen('end');
   }
@@ -1297,6 +1835,53 @@ class GameApp {
     if (this.dom.endKeeperAcc) {
       this.dom.endKeeperAcc.textContent = `${this.model.getKeeperAccuracy()}%`;
     }
+
+    // 4. Stars Breakdown Card
+    if (this.dom.endStarsCard && this.lastMatchStarResult) {
+      this.dom.endStarsCard.style.display = 'block';
+      if (this.dom.endStarsTotal) {
+        this.dom.endStarsTotal.textContent = `+${this.lastMatchStarResult.total} ⭐`;
+      }
+      if (this.dom.endStarsBreakdown) {
+        this.dom.endStarsBreakdown.innerHTML = '';
+        this.lastMatchStarResult.breakdown.forEach(item => {
+          const row = document.createElement('div');
+          row.className = 'star-breakdown-row';
+          row.innerHTML = `<span>${item.desc}</span><span>+${item.stars} ⭐</span>`;
+          this.dom.endStarsBreakdown.appendChild(row);
+        });
+      }
+    }
+
+    // 5. Tournament Navigation Buttons on End Screen
+    if (this.matchMode === 'TOURNAMENT') {
+      if (this.dom.btnPlayAgain) this.dom.btnPlayAgain.style.display = 'none';
+      if (isWin) {
+        if (this.tournament.isComplete()) {
+          if (this.dom.btnTourneyAdvance) {
+            this.dom.btnTourneyAdvance.style.display = 'inline-block';
+            this.dom.btnTourneyAdvance.textContent = '🏆 榮獲世界盃冠軍！';
+          }
+          if (this.dom.btnTourneyBracketView) this.dom.btnTourneyBracketView.style.display = 'inline-block';
+        } else {
+          if (this.dom.btnTourneyAdvance) {
+            this.dom.btnTourneyAdvance.style.display = 'inline-block';
+            this.dom.btnTourneyAdvance.textContent = `晉級 ${this.tournament.getNextRoundName()}`;
+          }
+          if (this.dom.btnTourneyBracketView) this.dom.btnTourneyBracketView.style.display = 'inline-block';
+        }
+      } else {
+        if (this.dom.btnTourneyAdvance) this.dom.btnTourneyAdvance.style.display = 'none';
+        if (this.dom.btnTourneyBracketView) {
+          this.dom.btnTourneyBracketView.style.display = 'inline-block';
+          this.dom.btnTourneyBracketView.textContent = '查看世界盃對陣圖 (已出局)';
+        }
+      }
+    } else {
+      if (this.dom.btnPlayAgain) this.dom.btnPlayAgain.style.display = 'inline-block';
+      if (this.dom.btnTourneyAdvance) this.dom.btnTourneyAdvance.style.display = 'none';
+      if (this.dom.btnTourneyBracketView) this.dom.btnTourneyBracketView.style.display = 'none';
+    }
   }
 
   // ==========================================
@@ -1305,6 +1890,11 @@ class GameApp {
 
   _loop(timestamp) {
     if (!this.isRunning) return;
+
+    if (this.isTabPaused) {
+      requestAnimationFrame((t) => this._loop(t));
+      return;
+    }
 
     const rawDelta = Math.min(0.05, (timestamp - this.lastTime) / 1000);
     this.lastTime = timestamp;
