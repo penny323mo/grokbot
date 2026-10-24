@@ -1,0 +1,7 @@
+You are building a complete, production-quality web app in the current directory. Read SPEC.md carefully first and implement EVERYTHING in it — depth and polish matter; the user explicitly complained last time that the project was too simple/toy-like. Data CSVs are already in raw/. Steps:
+1) Write build_data.py (stdlib only) + update team_names.py with missing names, run `python3 build_data.py` to produce data/data.js, and check its size and contents.
+2) Write js/model.js (pure math, usable in Node via module.exports and in browser via window), plus the backtest engine, then the UI (index.html, css/style.css, js/app.js etc.) exactly per SPEC: 4 tabs, league chips, team pickers via bottom sheet, upcoming fixtures, score heatmap, 1X2/OU/BTTS fair odds, Asian handicap table with quarter-line breakdown, Kelly calculator, line movement + CLV tab, backtest tab with canvas bankroll chart and per-league table, team form tab, settings sheet. All UI text in written Cantonese (Traditional Chinese).
+3) Write tests in tests/*.test.js and run `node --test tests/` until all pass.
+4) Make sure it works at 390px width with no horizontal scrolling and has no JS errors (you may verify with node scripts; puppeteer exists in /workspace/nightly/shotkit/node_modules if you want to load the page headlessly via a local `python3 -m http.server`; kill any server you start).
+5) Write README.md in Cantonese.
+Do not edit SPEC.md or anything in prompts/ or reviews/. Do not git push. When done, print a short summary of files and test results.

@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>盤口實驗室 Odds Lab — 足球模型 × 盤口分析</title>
+  <meta name="description" content="專業足球盤口分析與量化回測工具，包含 Dixon-Coles 預測模型、亞洲讓球盤公平賠率、收市值 (CLV) 走勢及凱利注碼計算。">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚽</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app" class="app-container">
+    <!-- Top App Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="logo-badge">
+          <span class="logo-icon">⚽</span>
+        </div>
+        <div class="header-titles">
+          <h1 class="logo-text">盤口實驗室 <span class="version-tag">PRO</span></h1>
+          <p class="subtitle">足球模型 × 盤口分析</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="data-date-badge" id="headerDataDate" title="數據庫最新比賽日期">數據截至: 2026-10-21</div>
+        <button id="btnOpenSettings" class="icon-btn" aria-label="設定">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- League Selector Chips -->
+    <nav class="league-bar-wrap">
+      <div class="league-chips" id="leagueChips">
+        <button class="chip active" data-league="E0">英超</button>
+        <button class="chip" data-league="SP1">西甲</button>
+        <button class="chip" data-league="I1">意甲</button>
+        <button class="chip" data-league="D1">德甲</button>
+        <button class="chip" data-league="F1">法甲</button>
+      </div>
+    </nav>
+
+    <!-- Main Tab Content Area -->
+    <main class="main-content">
+      <!-- TAB 1: 對賽分析 (Match Lab) -->
+      <section id="tab-match" class="tab-pane active">
+        <!-- Upcoming Fixtures Strip -->
+        <div class="section-card fixtures-strip-card">
+          <div class="card-header-sm">
+            <span class="card-title-sm">⚡ 本週即將開賽</span>
+            <span class="badge-count" id="fixturesCount">0 場</span>
+          </div>
+          <div class="fixtures-scroll" id="fixturesList">
+            <!-- Dynamically populated fixture cards -->
+          </div>
+        </div>
+
+        <!-- Team Matchup Card -->
+        <div class="section-card matchup-card">
+          <div class="matchup-row">
+            <div class="team-box home-box" id="btnPickHome">
+              <span class="team-label">主隊</span>
+              <h2 class="team-name" id="homeTeamName">--</h2>
+              <span class="team-name-en" id="homeTeamEn">--</span>
+              <button class="picker-btn">更換主隊 ▾</button>
+            </div>
+
+            <div class="vs-divider">
+              <button id="btnSwapTeams" class="swap-btn" title="對調主客隊" aria-label="對調主客隊">⇄</button>
+              <span class="vs-text">VS</span>
+            </div>
+
+            <div class="team-box away-box" id="btnPickAway">
+              <span class="team-label">客隊</span>
+              <h2 class="team-name" id="awayTeamName">--</h2>
+              <span class="team-name-en" id="awayTeamEn">--</span>
+              <button class="picker-btn">更換客隊 ▾</button>
+            </div>
+          </div>
+
+          <!-- Expected Goals Gauge -->
+          <div class="xg-bar-container">
+            <div class="xg-header">
+              <span>模型預期入球 (xG)</span>
+              <span id="xgSumText">總計 -- 球</span>
+            </div>
+            <div class="xg-visual-row">
+              <div class="xg-stat-item left">
+                <span class="xg-val" id="homeXgVal">--</span>
+                <span class="xg-sub">主隊 xG</span>
+              </div>
+              <div class="xg-track-wrap">
+                <div class="xg-track">
+                  <div class="xg-fill home" id="homeXgBar" style="width: 50%;"></div>
+                  <div class="xg-fill away" id="awayXgBar" style="width: 50%;"></div>
+                </div>
+              </div>
+              <div class="xg-stat-item right">
+                <span class="xg-val" id="awayXgVal">--</span>
+                <span class="xg-sub">客隊 xG</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 1X2 Probabilities & Fair Odds Card -->
+        <div class="section-card">
+          <div class="card-header">
+            <h3 class="card-title">🏆 獨贏及和局 (1X2) 盤口深度</h3>
+            <span class="card-sub-info">模型概率 vs 莊家開盤</span>
+          </div>
+
+          <div class="market-grid-3" id="market1x2Grid">
+            <!-- Home, Draw, Away blocks dynamically rendered -->
+          </div>
+        </div>
+
+        <!-- Asian Handicap Analysis Card -->
+        <div class="section-card">
+          <div class="card-header">
+            <div class="title-with-info">
+              <h3 class="card-title">⚖️ 亞洲讓球盤 (Asian Handicap)</h3>
+              <button class="info-icon-btn" id="btnAhInfo" aria-label="讓球盤規則說明">ⓘ</button>
+            </div>
+            <span class="badge-accent" id="modelFairAhBadge">模型公平盤: --</span>
+          </div>
+
+          <p class="section-desc">分析各個讓球檔位（四份一盤）嘅勝負拆解概率與零期望值公平賠率：</p>
+
+          <div class="table-container ah-table-wrap">
+            <table class="data-table ah-table" id="ahTable">
+              <thead>
+                <tr>
+                  <th class="th-line">讓球盤口</th>
+                  <th class="th-price">主隊公平價</th>
+                  <th class="th-price">客隊公平價</th>
+                  <th class="th-split">主隊各賽果拆解 (贏 / 贏半 / 走 / 輸半 / 輸)</th>
+                </tr>
+              </thead>
+              <tbody id="ahTableBody">
+                <!-- Rows injected dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Score Heatmap 7x7 -->
+        <div class="section-card">
+          <div class="card-header">
+            <h3 class="card-title">🎯 波膽概率熱力圖 (0 - 6球)</h3>
+            <span class="card-sub-info">點擊比分格查看詳情</span>
+          </div>
+
+          <div class="heatmap-wrapper">
+            <div class="heatmap-axis-label y-label">主隊入球 ↑</div>
+            <div class="heatmap-inner">
+              <div class="heatmap-axis-label x-label">客隊入球 →</div>
+              <div class="heatmap-grid" id="scoreHeatmap">
+                <!-- 7x7 cells rendered dynamically -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Selected Score Detail Pill -->
+          <div class="heatmap-detail-card" id="heatmapDetailCard">
+            <div class="hm-detail-score" id="hmDetailScore">--</div>
+            <div class="hm-detail-stats">
+              <div>概率: <strong id="hmDetailProb">--%</strong></div>
+              <div>公平賠率: <strong id="hmDetailOdds">--</strong></div>
+            </div>
+            <div class="hm-most-likely" id="hmTopScores">
+              <!-- Top scores pills -->
+            </div>
+          </div>
+        </div>
+
+        <!-- O/U & BTTS Markets -->
+        <div class="section-card">
+          <div class="card-header">
+            <h3 class="card-title">⚽ 大細波 (O/U) & 兩隊入球 (BTTS)</h3>
+            <div class="line-selector-chips" id="ouLineChips">
+              <button class="chip-sm" data-line="1.5">1.5</button>
+              <button class="chip-sm active" data-line="2.5">2.5</button>
+              <button class="chip-sm" data-line="3.5">3.5</button>
+            </div>
+          </div>
+
+          <div class="market-grid-2" id="ouMarketGrid">
+            <!-- Over / Under boxes -->
+          </div>
+
+          <div class="btts-row" id="bttsRow">
+            <!-- BTTS boxes -->
+          </div>
+        </div>
+
+        <!-- Kelly Calculator Card -->
+        <div class="section-card kelly-card">
+          <div class="card-header">
+            <h3 class="card-title">🧮 凱利注碼計算機 (Kelly Criterion)</h3>
+            <span class="badge-pill">防過度下注</span>
+          </div>
+
+          <div class="kelly-form">
+            <div class="form-row">
+              <div class="form-group flex-2">
+                <label class="form-label">選擇投注盤口</label>
+                <select id="kellyMarketSelect" class="form-select">
+                  <option value="1x2_home">獨贏: 主勝</option>
+                  <option value="1x2_draw">獨贏: 和局</option>
+                  <option value="1x2_away">獨贏: 客勝</option>
+                  <option value="ou_over">大細波: 大 (Over 2.5)</option>
+                  <option value="ou_under">大細波: 細 (Under 2.5)</option>
+                  <option value="ah_home">亞洲讓球: 主隊</option>
+                  <option value="ah_away">亞洲讓球: 客隊</option>
+                </select>
+              </div>
+
+              <div class="form-group flex-1">
+                <label class="form-label">莊家十進制賠率</label>
+                <input type="number" id="kellyOddsInput" class="form-input" step="0.01" min="1.01" value="2.00">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label class="form-label">總本金 (Bankroll $)</label>
+                <input type="number" id="kellyBankrollInput" class="form-input" step="100" min="100" value="10000">
+              </div>
+
+              <div class="form-group flex-1">
+                <label class="form-label">凱利乘數: <strong id="kellyFractionVal">0.25x</strong></label>
+                <input type="range" id="kellyFractionSlider" class="form-range" min="0.10" max="1.00" step="0.05" value="0.25">
+              </div>
+            </div>
+
+            <!-- Kelly Results Box -->
+            <div class="kelly-result-box" id="kellyResultBox">
+              <div class="kelly-kpi-item">
+                <span class="kpi-label">模型期望值 (EV)</span>
+                <span class="kpi-val" id="kellyEvVal">+0.0%</span>
+              </div>
+              <div class="kelly-kpi-item highlight">
+                <span class="kpi-label">建議注碼 (Stake)</span>
+                <span class="kpi-val highlight" id="kellyStakeVal">$0 (0.0%)</span>
+              </div>
+              <div class="kelly-kpi-item">
+                <span class="kpi-label">全凱利比例 (Full)</span>
+                <span class="kpi-val" id="kellyFullVal">0.0%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: 盤口走勢 (Market Movement & CLV) -->
+      <section id="tab-movement" class="tab-pane">
+        <!-- Team Selector for Movement -->
+        <div class="section-card">
+          <div class="card-header">
+            <h3 class="card-title">📈 盤口水位變化與 CLV 追蹤</h3>
+            <select id="movementTeamSelect" class="form-select inline-select">
+              <!-- Dynamically populated teams -->
+            </select>
+          </div>
+          <p class="section-desc">開市賠率至收市賠率之升跌走勢、模型事後驗證及每場收市值（CLV）：</p>
+
+          <!-- Movement List -->
+          <div class="movement-list" id="movementMatchesList">
+            <!-- Dynamically populated match movement cards -->
+          </div>
+        </div>
+
+        <!-- League-wide Market Efficiency Card -->
+        <div class="section-card">
+          <div class="card-header">
+            <h3 class="card-title">📊 聯賽市場效率與讓球盤異動統計</h3>
+          </div>
+
+          <div class="stats-grid-3">
+            <div class="stat-card">
+              <span class="stat-label">平均收市抽水率</span>
+              <span class="stat-num" id="statOverround">--%</span>
+              <span class="stat-sub">莊家理論抽水</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">讓球盤口跳盤率</span>
+              <span class="stat-num" id="statAhMoveRate">--%</span>
+              <span class="stat-sub">開盤至收盤盤口變動</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">受追捧方贏盤率</span>
+              <span class="stat-num" id="statSteamCoverRate">--%</span>
+              <span class="stat-sub">水位相對下降之一方</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- CLV Educational Card -->
+        <div class="section-card clv-info-card">
+          <div class="card-header">
+            <h3 class="card-title">ⓘ 點解頂尖職業注碼只睇「收市值（CLV）」？</h3>
+          </div>
+          <div class="prose-content">
+            <p><strong>收市值（CLV, Closing Line Value）</strong>＝ 你買入嘅賠率同最終收市公平賠率比較：</p>
+            <div class="math-formula">CLV = ( 買入賠率 ÷ 剔除抽水後嘅收市賠率 ) − 1</div>
+            <p>職業搏彩界無數大數據證實：<strong>收市盤（Closing Line）匯集咗市場上最聰明嘅大額資金同最新球隊陣容資訊，係最接近真實勝率嘅參考點。</strong></p>
+            <p>如果你嘅買入價格長期高於收市公平價格（CLV 為正數），即使短期因足球嘅隨機性經歷逆境波，數學規律長遠必定會為你帶來豐厚回報！</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: 回測 (Walk-forward Backtest) -->
+      <section id="tab-backtest" class="tab-pane">
+        <!-- Backtest Controls Card -->
+        <div class="section-card">
+          <div class="card-header">
+            <h3 class="card-title">🧪 嚴謹步進回測引擎 (Walk-forward)</h3>
+            <span class="badge-pill">無偷睇未來數據</span>
+          </div>
+
+          <div class="backtest-controls-grid">
+            <div class="form-group">
+              <label class="form-label">回測範圍</label>
+              <select id="btLeagueSelect" class="form-select">
+                <option value="CURRENT">當前所選聯賽</option>
+                <option value="ALL">全部五大聯賽 (綜合)</option>
+                <option value="E0">英超 (E0)</option>
+                <option value="SP1">西甲 (SP1)</option>
+                <option value="I1">意甲 (I1)</option>
+                <option value="D1">德甲 (D1)</option>
+                <option value="F1">法甲 (F1)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">回測賽季</label>
+              <select id="btSeasonSelect" class="form-select">
+                <option value="2526">2025-26 完整賽季 (380場)</option>
+                <option value="2627">2026-27 當前賽季 (最新數據)</option>
+                <option value="all">近兩季完整數據 (2526 + 2627)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">投注市場</label>
+              <select id="btMarketSelect" class="form-select">
+                <option value="1x2">獨贏和 (1X2)</option>
+                <option value="ah">亞洲讓球盤 (AH)</option>
+                <option value="ou25">大細波 2.5 (O/U)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">採用賠率</label>
+              <select id="btOddsTypeSelect" class="form-select">
+                <option value="open">開市賠率 (Opening Odds)</option>
+                <option value="close">收市賠率 (Closing Odds)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">注碼策略</label>
+              <select id="btStakingSelect" class="form-select">
+                <option value="flat">平注 (每注 1.0 單位)</option>
+                <option value="kelly">分數凱利 (0.25x Kelly)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">值博門檻: <strong id="btEdgeVal">3.0%</strong></label>
+              <input type="range" id="btEdgeSlider" class="form-range" min="1.0" max="10.0" step="0.5" value="3.0">
+            </div>
+          </div>
+
+          <div class="btn-wrap">
+            <button id="btnRunBacktest" class="primary-btn">⚡ 執行步進模型回測</button>
+          </div>
+        </div>
+
+        <!-- Backtest KPI Results -->
+        <div class="section-card" id="btResultsCard">
+          <div class="card-header">
+            <h3 class="card-title">📈 資金曲線 (Bankroll Evolution)</h3>
+            <span class="badge-accent" id="btSummaryBadge">--</span>
+          </div>
+
+          <!-- Canvas Chart -->
+          <div class="chart-container">
+            <canvas id="bankrollChart" width="700" height="300"></canvas>
+          </div>
+
+          <!-- Metrics Grid -->
+          <div class="metrics-grid">
+            <div class="metric-box">
+              <span class="m-label">總下注數</span>
+              <span class="m-val" id="btTotalBets">0</span>
+            </div>
+            <div class="metric-box">
+              <span class="m-label">勝率 (Hit Rate)</span>
+              <span class="m-val" id="btHitRate">0.0%</span>
+            </div>
+            <div class="metric-box highlight">
+              <span class="m-label">淨利潤 (Profit)</span>
+              <span class="m-val highlight" id="btProfit">+0.0 u</span>
+            </div>
+            <div class="metric-box highlight">
+              <span class="m-label">投資回報率 (ROI)</span>
+              <span class="m-val highlight" id="btRoi">+0.0%</span>
+            </div>
+            <div class="metric-box">
+              <span class="m-label">最大回撤 (Max DD)</span>
+              <span class="m-val" id="btMaxDd">0.0%</span>
+            </div>
+            <div class="metric-box">
+              <span class="m-label">平均 CLV</span>
+              <span class="m-val" id="btAvgClv">+0.0%</span>
+            </div>
+            <div class="metric-box">
+              <span class="m-label">贏收市價比例</span>
+              <span class="m-val" id="btBeatClose">0.0%</span>
+            </div>
+            <div class="metric-box">
+              <span class="m-label">總投入本金</span>
+              <span class="m-val" id="btTotalStaked">0 u</span>
+            </div>
+          </div>
+
+          <!-- Per-League Performance Breakdown -->
+          <div class="league-breakdown-wrap">
+            <h4 class="sub-heading">各聯賽分項表現統計</h4>
+            <div class="table-container">
+              <table class="data-table" id="btLeagueTable">
+                <thead>
+                  <tr>
+                    <th>聯賽</th>
+                    <th>下注數</th>
+                    <th>勝率</th>
+                    <th>淨利潤</th>
+                    <th>ROI</th>
+                    <th>平均CLV</th>
+                  </tr>
+                </thead>
+                <tbody id="btLeagueTableBody">
+                  <!-- League rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="disclaimer-note">
+            ⚠️ <strong>統計提醒：</strong>過往回測表現不代表未來收益保證。足球賽事存在自然隨機波動，請始終遵循資金管理原則，切勿過度投注。
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: 球隊戰力 (Teams & Form) -->
+      <section id="tab-teams" class="tab-pane">
+        <!-- Standings Card -->
+        <div class="section-card">
+          <div class="card-header">
+            <h3 class="card-title">🏆 2026-27 現時積分榜</h3>
+            <span class="card-sub-info">點擊球隊即刻排入對賽分析</span>
+          </div>
+
+          <div class="table-container standings-wrap">
+            <table class="data-table standings-table" id="standingsTable">
+              <thead>
+                <tr>
+                  <th class="th-rank">排名</th>
+                  <th class="th-team">球隊</th>
+                  <th>賽</th>
+                  <th>勝</th>
+                  <th>和</th>
+                  <th>負</th>
+                  <th>得</th>
+                  <th>失</th>
+                  <th>淨</th>
+                  <th class="th-pts">分</th>
+                  <th>近五場</th>
+                </tr>
+              </thead>
+              <tbody id="standingsTableBody">
+                <!-- Dynamically populated standings -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Team Power Ratings Grid -->
+        <div class="section-card">
+          <div class="card-header">
+            <h3 class="card-title">🛡️ 球隊模型攻防戰力榜 (Dixon-Coles)</h3>
+            <span class="card-sub-info">進攻力量 α & 防守系數 β</span>
+          </div>
+
+          <div class="team-cards-grid" id="teamCardsGrid">
+            <!-- Dynamic team strength cards -->
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-nav">
+      <button class="nav-tab active" data-tab="tab-match">
+        <span class="nav-icon">⚽</span>
+        <span class="nav-text">對賽分析</span>
+      </button>
+      <button class="nav-tab" data-tab="tab-movement">
+        <span class="nav-icon">📈</span>
+        <span class="nav-text">盤口走勢</span>
+      </button>
+      <button class="nav-tab" data-tab="tab-backtest">
+        <span class="nav-icon">🧪</span>
+        <span class="nav-text">策略回測</span>
+      </button>
+      <button class="nav-tab" data-tab="tab-teams">
+        <span class="nav-icon">🛡️</span>
+        <span class="nav-text">球隊戰力</span>
+      </button>
+    </nav>
+
+    <!-- Bottom Sheet: Team Picker -->
+    <div class="bottom-sheet-backdrop" id="teamPickerBackdrop">
+      <div class="bottom-sheet" id="teamPickerSheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+          <h3 class="sheet-title" id="teamPickerTitle">選擇球隊</h3>
+          <button class="close-sheet-btn" id="btnCloseTeamPicker">✕</button>
+        </div>
+        <div class="sheet-search-wrap">
+          <input type="text" id="teamSearchInput" class="form-input" placeholder="🔍 搜尋球隊 (中文/英文)...">
+        </div>
+        <div class="sheet-body team-picker-list" id="teamPickerList">
+          <!-- Dynamically populated teams -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Sheet: Settings -->
+    <div class="bottom-sheet-backdrop" id="settingsBackdrop">
+      <div class="bottom-sheet" id="settingsSheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+          <h3 class="sheet-title">⚙️ 偏好與模型設定</h3>
+          <button class="close-sheet-btn" id="btnCloseSettings">✕</button>
+        </div>
+        <div class="sheet-body settings-body">
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-name">值博率門檻 (Edge Threshold)</span>
+              <span class="setting-desc">當模型邊緣大於此數值時顯示「值博」發光標籤</span>
+            </div>
+            <div class="setting-control">
+              <span class="setting-val-display" id="settingEdgeVal">3.0%</span>
+              <input type="range" id="settingEdgeSlider" class="form-range" min="1.0" max="10.0" step="0.5" value="3.0">
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-name">凱利分數 (Kelly Fraction)</span>
+              <span class="setting-desc">注碼保守縮放系數（建議 0.25 即四份一凱利）</span>
+            </div>
+            <div class="setting-control">
+              <span class="setting-val-display" id="settingKellyVal">0.25x</span>
+              <input type="range" id="settingKellySlider" class="form-range" min="0.05" max="0.50" step="0.05" value="0.25">
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-name">時間衰減半衰期 (Half-life Days)</span>
+              <span class="setting-desc">越近賽事權重越高；180天代表半年前賽事權重為50%</span>
+            </div>
+            <div class="setting-control">
+              <span class="setting-val-display" id="settingHalfLifeVal">180日</span>
+              <input type="range" id="settingHalfLifeSlider" class="form-range" min="60" max="360" step="15" value="180">
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-name">抽水剔除演算法 (Margin Removal)</span>
+              <span class="setting-desc">計算真實無抽水概率之數學模型</span>
+            </div>
+            <div class="setting-control">
+              <select id="settingMarginMethod" class="form-select">
+                <option value="proportional">比例均攤法 (Proportional)</option>
+                <option value="power">指數冪次法 (Power Method)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="setting-actions">
+            <button id="btnResetSettings" class="secondary-btn">↺ 重設為預設參數</button>
+            <button id="btnSaveSettings" class="primary-btn">儲存並套用</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Asian Handicap Guide (ⓘ) -->
+    <div class="bottom-sheet-backdrop" id="ahInfoBackdrop">
+      <div class="bottom-sheet" id="ahInfoSheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+          <h3 class="sheet-title">⚖️ 亞洲讓球盤（四份一盤）規則速查</h3>
+          <button class="close-sheet-btn" id="btnCloseAhInfo">✕</button>
+        </div>
+        <div class="sheet-body ah-guide-body">
+          <div class="ah-rule-card">
+            <h4>平手盤 (0)</h4>
+            <p>贏波全贏；打和退本（走盤）；輸波全輸。</p>
+          </div>
+          <div class="ah-rule-card">
+            <h4>平半 (-0.25)</h4>
+            <p><strong>一半注碼落 0，一半落 -0.5</strong><br>
+            贏波全贏；打和<strong>輸半（退回 50% 注碼）</strong>；輸波全輸。</p>
+          </div>
+          <div class="ah-rule-card">
+            <h4>半球 (-0.5)</h4>
+            <p>淨勝 1 球或以上全贏；打和或輸波全輸（無走盤）。</p>
+          </div>
+          <div class="ah-rule-card">
+            <h4>半一 (-0.75)</h4>
+            <p><strong>一半注碼落 -0.5，一半落 -1.0</strong><br>
+            淨勝 2 球或以上全贏；<strong>淨勝剛好 1 球贏半（利潤折半）</strong>；打和或輸波全輸。</p>
+          </div>
+          <div class="ah-rule-card">
+            <h4>一球 (-1.0)</h4>
+            <p>淨勝 2 球或以上全贏；淨勝 1 球退本走盤；打和或輸波全輸。</p>
+          </div>
+          <div class="ah-rule-card">
+            <h4>一球球半 (-1.25)</h4>
+            <p><strong>一半注碼落 -1.0，一半落 -1.5</strong><br>
+            淨勝 2 球或以上全贏；淨勝 1 球<strong>輸半</strong>；打和或輸波全輸。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="data/data.js"></script>
+  <script src="js/model.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
