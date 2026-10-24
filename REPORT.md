@@ -13,3 +13,7 @@ Repo: https://github.com/penny323mo/penalty-mind-game
 - agy 修正後我再驗：門將每球復位 ✅、個波完整見到 ✅、模擬 touch 射門成功 ✅、console 0 error ✅、tests 3+6+14+6 全過。
 - 仲未靚：觀眾只係一格格浮喺半空嘅色塊，冇看台結構；個波喺遠處顯得好細。
 
+## Round 2 — 攻守兩邊 + 讀心
+- agy 完成：龍門模式（射手助跑、撥手指撲）、takerAI 學你撲邊、門將假動作同 20+ 句廣東話寸人、3D 場內讀心熱圖、慢鏡重播、易/中/難/地獄、看台同廣告板。
+- Node tests 全過：difficulty 3、input 3、keeperAI 6、model 14、shot 6、takerAI 4、taunts 22。
+- 截圖 screenshots/v2/r2-*.png。自動比賽期間有一個 JS error（reading 'x'），交咗畀 grok 追。
