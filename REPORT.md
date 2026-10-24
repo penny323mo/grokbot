@@ -29,3 +29,10 @@ Repo: https://github.com/penny323mo/penalty-mind-game
 - The World Cup button opens the team-select modal (r3wc-*).
 - Live site: HTTP 200.
 - Known issues: the team-select cards are narrow, so the text wraps vertically; headless fps is about 12 (swiftshader); not yet tested on a real iPhone; grok hasn't re-reviewed since the r3 fixes (its last verdict was NOT READY).
+
+## Round 4 — easier keeper controls on iPhone
+- agy (b372753): a tap or short swipe (18px or more) picks one of 6 goal zones (a raycast onto the goal plane, with a screen-space fallback); bigger player reach plus save tolerance; a zone bonus for the player only; a difficulty-scaled late reaction window (Easy 450 / Medium 340 / Hard 240 / Hell 180 ms); a Cantonese hint plus 3D target zones during the run-up; a gold highlight as soon as you tap; touch-action:none plus a no-zoom viewport. All constants are in tuning.js.
+- grok (grok-v2-r4.md): NOT READY. The early-dive table was inverted (Easy was the harshest), the late window was dead code, and the zone bonus also helped the CPU keeper; plus taps were mapped in 2D and there was a document touchend handler.
+- agy fixed all of grok's findings: tapping during the run-up commits the dive, and it fires at the strike with no early penalty on Easy/Medium. The team-select cards are now full-width single rows.
+- Verified: 11 suites, 86 PASS lines; headless 390px: the swipe shoots → keeper turn → the hint and zones show → tapping (301,390) highlights 右上 → the keeper dives to the top right; 0 console errors. Screenshots: screenshots/v2/r4-01..04.
+- Note: in headless, the swipe has to be fast (<800ms), because swiftshader runs at about 12 fps and makes slow scripted swipes time out (it's a harness artefact).
