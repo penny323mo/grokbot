@@ -351,4 +351,87 @@ Following the code review in `reviews/grok-v2-r2.md`, all CRITICAL and MAJOR iss
   - `tests/taunts.test.js` (22/22)
   - `tests/match_integration.test.js` (5/5)
 
+---
+
+## v2 Round 3
+
+Implementation of ROUND 3 of `UPGRADE_PLAN.md` ("Reason to come back") — World Cup Tournament, Unlocks, Trophy Cabinet, Share Card, and Performance Optimization:
+
+### 1. 2026 World Cup Tournament System (`src/tournament.js`)
+- **16 National Teams**: Real names in Traditional Chinese (`香港`, `日本`, `巴西`, `阿根廷`, `英格蘭`, `法國`, `德國`, `西班牙`, `意大利`, `葡萄牙`, `荷蘭`, `克羅地亞`, `南韓`, `烏拉圭`, `摩洛哥`, `墨西哥`) with authentic national kit colors and flags.
+- **Knockout Bracket Screen (`#screen-tournament`)**:
+  - Full single-elimination tournament progression: 16強 (R16, 8 matches) → 8強 (QF, 4 matches) → 4強 (SF, 2 matches) → 決賽 (Final, 1 match).
+  - Dynamic simulation of remaining AI matches with realistic shootout scorelines.
+  - Interactive bracket match rows displaying team flags, names, and scores.
+- **Opponent Keeper & Taker Personalities**:
+  - Each national team features distinct goalkeeper and striker traits:
+    - Goalkeepers: 沉著守候 (patient), 神經刀 (early diver), 撲救學徒 (learner), 門線老油條 (bluff master), etc.
+    - Strikers: 重砲爆射 (power blaster), 死角狙擊 (corner sniper), 虛晃大師 (deceptive), etc.
+- **Natural Difficulty Progression**:
+  - Seamless ramping from R16 (`EASY`) → QF (`MEDIUM`) → SF (`HARD`) → Final (`HELL`).
+- **Quick Single Match Coexistence**:
+  - Players can choose between World Cup Tournament and Quick Match directly from the Title Screen.
+
+### 2. Stars per Match, Locker Room Unlocks & Trophy Cabinet (`src/unlocks.js`)
+- **Performance-Based Star Currency**:
+  - Awarded per match based on achievements: win (+1⭐), clean sheet (+2⭐), ≥3 saves (+2⭐), low predictability ≤30% (+2⭐), tournament win (+3⭐), tournament champion (+10⭐).
+- **Locker Room (`#screen-locker`)**:
+  - Category tabs for Balls, Kits, Stadiums, and Trophies.
+  - **4 Procedural Ball Skins (`src/ball.js`)**:
+    - 經典黑白 (Classic) — Default.
+    - 烈焰烈火 (Fire Blast) — Red/orange flame gradient with fiery particle trail (cost: 5⭐).
+    - 數碼生化 (Cyber Neon) — Cyan neon circuitry with glowing trail (cost: 8⭐).
+    - 尊貴純金 (Gold Champions) — 24K gold metallic shine with dual gloss (cost: 15⭐).
+  - **4 Team Kit Styles**:
+    - 經典主場 (Classic Home), 街頭霓虹 (Street Neon), 黑金尊爵 (Black & Gold), 復古條紋 (Retro Stripes).
+  - **3 Stadium Atmospheres (`src/scene.js`)**:
+    - 夜場泛光燈 (Night Floodlights) — Default night lights.
+    - 黃昏日落 (Sunset Dusk) — Warm sunset sky gradient and twilight shadows (cost: 6⭐).
+    - 明媚白晝 (Daylight Pitch) — Bright daylight sun and lush green pitch (cost: 6⭐).
+- **Trophy Cabinet (6 Trophies)**:
+  - 🏆 **世界盃冠軍金盃 (Champion)**: Win the 16-team tournament.
+  - 🥈 **世界盃亞軍銀牌 (Runner-Up)**: Reach the World Cup final.
+  - 🥉 **世界盃季軍銅牌 (Semi-Finalist)**: Reach the World Cup semi-final.
+  - 🧤 **金手套神撲獎 (Golden Glove)**: Make ≥ 3 saves in a single match.
+  - ⚽ **百步穿楊神射王 (Dead Eye)**: Score 100% of all regulation kicks (5/5).
+  - 🧠 **心理戰讀心狂魔 (Mind Master)**: Achieve predictability score < 25%.
+- **Safe Persistence**: Robust `localStorage` serialization with fallback handling for missing or corrupt data.
+
+### 3. Canvas Share Card & Native Web Share (`src/share.js`)
+- **High-Resolution 780×1200 Canvas Generation**:
+  - Renders match results, national team flags, score pill, star bonus, Shannon predictability score gauge with Cantonese rating, and a 2×3 mini goal heatmap.
+  - Dynamic Cantonese CTA quote tailored to outcome (e.g. 「我喺《12碼讀心戰》射爆門將，捧走世界盃！你敢唔敢入嚟挑戰？」).
+- **Multi-Tier Sharing Support**:
+  - Primary: Native `navigator.share` with file payload (direct sharing to WhatsApp, Instagram Stories, AirDrop).
+  - Fallback: Automatic PNG file download and mobile-friendly long-press image modal (`#share-card-modal`).
+
+### 4. Polish, Performance & Speed Pass
+- **Tab Visibility Pause**: Listens to `document.visibilityState` to pause WebGL rendering and suspend WebAudio context when switching tabs or backgrounding on iOS, saving battery and preventing runaway physics delta ticks.
+- **DPR Capped at 2.0**: Prevents 3x Retina displays from rendering 9x pixel fill rates while maintaining razor-sharp visuals.
+- **Accessibility & Motion**: Fully respects `prefers-reduced-motion`, skipping screen shake and hit-stop freeze frames.
+- **Mobile-First Layout Polish**: 44px minimum tap targets on all buttons, safe-area inset margins, and zero horizontal overflow on iPhone Safari 390×844.
+
+### 5. Procedural Humanoid & Atmosphere Upgrades (`ASSETS.md`)
+- **Dynamic Team Kit Coloring**: Goalkeeper and striker procedural humanoids dynamically tint jersey, shorts, socks, and gloves according to active national team kit colors.
+- **Spectator Team Colors**: Pitchside crowd spectators color-shift to match the competing nations.
+- **100% Procedural Guarantee**: Zero external model or texture downloads; all geometries, canvas textures, and audio synthesis are generated offline in-browser. Documented in `ASSETS.md`.
+
+### 6. Test Suites & Verification
+- Total **10 test suites and 75 tests passing** (100% green):
+  - `tests/model.test.js` (14/14)
+  - `tests/shot.test.js` (7/7)
+  - `tests/keeperAI.test.js` (6/6)
+  - `tests/input.test.js` (3/3)
+  - `tests/difficulty.test.js` (4/4)
+  - `tests/takerAI.test.js` (4/4)
+  - `tests/taunts.test.js` (22/22)
+  - `tests/match_integration.test.js` (5/5)
+  - `tests/tournament.test.js` (5/5)
+  - `tests/unlocks.test.js` (5/5)
+- Automated Headless Chrome CDP Verification:
+  - `tests/r3_e2e_test.js`: Verified tournament flow, locker room, match completion, stars, and share card generation with 0 console errors.
+  - `tests/full_match_e2e.js`: Verified complete 5+5 shootout match in real browser with 0 console errors.
+  - `tests/capture_r3_screenshots.js`: Captured 8 reference screenshots at 390×844 resolution in `screenshots/r3-390/`.
+
+
 
