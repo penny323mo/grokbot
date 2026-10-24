@@ -242,3 +242,56 @@ Reviewing `reviews/grok-round-3.md` (which logged a reviewer timeout before find
 - **Did not edit SPEC.md, reviews/, or prompts/**: Strictly adhered to the prompt constraints prohibiting modification of specification and reviewer prompt files.
 - **Retained 15-round shootout limit**: Preserved the 5-round regulation plus 10-round sudden death cap and draw resolution at round 15 as mandated by `SPEC.md`.
 - **Maintained pure vanilla JS zero-dependency build**: Kept code free of external libraries or build steps, preserving instant double-click operability in browsers and mobile Safari.
+
+---
+
+## v2 Round 2
+
+Full implementation of ROUND 2 ("Both sides + mind games") from `UPGRADE_PLAN.md`:
+
+### 1. Keeper Mode by Swipe (`src/taker.js`, `src/takerAI.js`, `src/main.js`)
+- **Alternating Shootout Turns**: Replaced the scripted 75% CPU cut-scene with interactive goalkeeper gameplay. Players now alternate between shooting (striker role) and keeping (goalkeeper role) each round.
+- **Procedural 3D Taker**: Created articulated humanoid striker (`src/taker.js`) in away kit with animated run-up, plant foot placement, high-velocity kick swing snap, follow-through landing, celebration, and disappointment poses.
+- **Timing Window Mechanics**: Timing matters during the taker's run-up.
+  - Early Dive (> 250ms before strike): Taker visibly notices the goalkeeper committing early and immediately punishes by shooting to the open opposite side.
+  - Sweet Spot (±200ms around strike): Full dive reach and reaction speed granted.
+  - Late Dive (> 220ms after strike): Reaction delay penalty and reach reduction.
+- **Taker AI Mind Model (`src/takerAI.js`)**: Pure, fully testable module implementing habit tracking (Markov frequency + bigrams), predicting player dive tendencies, avoiding anticipated dive zones, and punishing early dives.
+
+### 2. Mind-Game Tells and Cantonese Taunts (`src/keeper.js`, `src/taunts.js`)
+- **Visual Pre-Kick Tells**: The goalkeeper leans and shuffles toward a side before the strike (`src/keeper.js`), incorporating genuine cues or deceptive bluffs depending on difficulty.
+- **Eye-line Gaze Hints**: At Hard and Hell difficulties, subtle head and eye gaze orientation towards the target zone is activated.
+- **Cantonese Taunt Speech Bubble**: Integrated in-scene pop-up dialogue bubble with a varied pool of 33 authentic Hong Kong Cantonese lines (`src/taunts.js`) covering habit reads, sequence predictions, glove saves, goals, and early dive punishments for both roles.
+
+### 3. In-Scene 3D Mind-Reading Reveal (`src/fx.js`)
+- **6-Zone Goal Mouth Heat Overlay**: Replaced the single ring with real-time 3D translucent planar overlays across all 6 goal zones (`TL`, `TM`, `TR`, `BL`, `BM`, `BR`) displaying live percentage confidence tags and heatmap coloration (crimson for high probability, purple for medium, cyan for low).
+- **Physical Collision Markers**:
+  - Gold glowing ring + dot marking the exact 3D crossing coordinates where the ball entered/passed the goal frame.
+  - Electric cyan ring marking the goalkeeper's peak reach volume at the time of crossing.
+
+### 4. Slow-Motion Replay of Deciding Kicks (`src/scene.js`, `src/main.js`, `style.css`)
+- **Broadcast Side TV Angle**: Camera transitions smoothly to a dramatic side broadcast angle (`x = 5.8m, y = 1.8m, z = 4.2m`) focusing on the goal mouth.
+- **0.25x Slow-Motion Playback**: Renders the decisive kick and goalkeeper response in ultra-smooth slow motion.
+- **Replay Watermark & Skip**: Red blinking `🔴 重播 (REPLAY)` badge and 44px tap target `跳過 ➔` (Skip) button.
+
+### 5. Four Difficulty Levels (`src/difficulty.js`, `index.html`, `style.css`)
+- **Difficulty Selection Chips**: Added title screen selector with 4 tiers (🟢 易 / 🟡 中 / 🟠 難 / 🟣 地獄).
+- **Multi-Factor Scaling**: Directly modulates keeper reaction delay (120ms to 220ms), reach multiplier (0.38m to 0.48m), predictor habit weight (0.55 to 0.98), tell honesty (35% to 90%), gaze hints, and taker corner accuracy (25% to 85%).
+- **Persistence**: Player selection persists in `localStorage`.
+
+### 6. Visual Polish & Clear Readability (`src/scene.js`, `src/tuning.js`)
+- **Tiered Concrete Terraces**: Built 10 visible stepped concrete risers with structural edge trims, rear grandstand wall, overhead roof canopy, and structural steel support trusses.
+- **Pitchside LED Ad Boards**: Installed dynamic scrolling LED perimeter barrier boards behind the goal net featuring animated typography ("⚽ 12碼讀心戰" & "⚡ AI 讀心大對決").
+- **Enlarged Ball Radius**: Increased size 5 football radius to 0.135m in `src/tuning.js` for crisp, unmistakable flight readability at iPhone portrait (390×844).
+
+### 7. Comprehensive Unit Tests (`tests/`)
+- Total **7 test suites and 58 passing tests**:
+  - `tests/model.test.js` (14 / 14 pass)
+  - `tests/shot.test.js` (6 / 6 pass)
+  - `tests/keeperAI.test.js` (6 / 6 pass)
+  - `tests/input.test.js` (3 / 3 pass)
+  - `tests/difficulty.test.js` (3 / 3 pass)
+  - `tests/takerAI.test.js` (4 / 4 pass)
+  - `tests/taunts.test.js` (22 / 22 pass)
+- Added `tests/capture_r2_screenshots.js` validating the complete end-to-end flow via Chrome DevTools Protocol at 390×844 resolution, generating 7 verified screenshots (`screenshots/v2/r2-01` through `r2-07`).
+

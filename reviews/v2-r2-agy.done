@@ -1,0 +1,161 @@
+# v2 Round 2 Implementation Done
+
+## 1. Summary of Changes
+
+### 1. Keeper Mode by Swipe (`src/taker.js`, `src/takerAI.js`, `src/main.js`)
+- **Alternating Shootout Turns**: Completely replaced the scripted CPU 75% cut-scene with interactive goalkeeper gameplay. Players alternate between shooting (striker role) and keeping (goalkeeper role) each round. Scoreboard HUD updates dynamically to display `你 (主射) vs 電腦 (門將)` and `你 (門將) vs 電腦 (主射)`.
+- **Procedural 3D Taker (`src/taker.js`)**: Built an articulated humanoid striker with red away jersey (#10), white shorts, boots, and full animation state machine (`hidden`, `ready`, `run_up`, `strike`, `follow_through`, `celebrate`, `concede`). The taker runs up from $z = 13.8$m to $11.18$m, plants left foot, and swings right kicking leg with high-velocity snap.
+- **Timing Window Mechanics**: Timing matters during the taker's run-up:
+  - *Early Dive* (> 250ms before strike): Taker visibly notices the goalkeeper committing early and immediately punishes by shooting to the opposite open side (`_showReactionBanner('太早撲！射手睇到你！')`).
+  - *Sweet Spot* (±200ms around strike): Clean dive with full reach and reaction speed.
+  - *Late Dive* (> 220ms after strike): Reaction delay penalty and 35% reach reduction.
+- **Taker AI Mind Model (`src/takerAI.js` - Pure Module)**: Pure, fully testable module implementing habit tracking (Markov frequency + bigrams), predicting player dive tendencies, aiming away from anticipated dive zones, and punishing early dives.
+
+### 2. Mind-Game Tells and Cantonese Taunts (`src/keeper.js`, `src/taunts.js`)
+- **Visual Pre-Kick Tells**: The goalkeeper visibly leans and shuffles toward a side before the strike (`src/keeper.js`), incorporating genuine cues or deceptive bluffs depending on difficulty setting.
+- **Eye-line Gaze Hints**: At Hard and Hell difficulties, head and eye gaze orientation towards the target zone is activated.
+- **Cantonese Taunt Speech Bubble**: Integrated in-scene pop-up dialogue bubble with a varied pool of 33 authentic Hong Kong Cantonese lines (`src/taunts.js`) covering habit reads, sequence predictions, glove saves, goals, and early dive punishments for both roles.
+
+### 3. In-Scene 3D Mind-Reading Reveal (`src/fx.js`)
+- **6-Zone Goal Mouth Heat Overlay**: Replaced the single ring with real-time 3D translucent planar overlays across all 6 goal zones (`TL`, `TM`, `TR`, `BL`, `BM`, `BR`) displaying live percentage confidence tags and heatmap coloration (crimson for high probability, purple for medium, cyan for low).
+- **Physical Collision Markers**:
+  - Gold glowing ring + dot marking the exact 3D crossing coordinates where the ball entered/passed the goal frame.
+  - Electric cyan ring marking the goalkeeper's peak reach volume at the time of crossing.
+
+### 4. Slow-Motion Replay of Deciding Kicks (`src/scene.js`, `src/main.js`, `style.css`)
+- **Broadcast Side TV Angle**: Camera transitions smoothly to a dramatic side broadcast angle ($x = 5.8$m, $y = 1.8$m, $z = 4.2$m) focusing on the goal mouth.
+- **0.25x Slow-Motion Playback**: Renders the decisive kick and goalkeeper response in ultra-smooth slow motion.
+- **Replay Watermark & Skip**: Red blinking `🔴 重播 (REPLAY)` badge and 44px tap target `跳過 ➔` (Skip) button.
+
+### 5. Four Difficulty Levels (`src/difficulty.js`, `index.html`, `style.css`)
+- **Difficulty Selection Chips**: Added title screen selector with 4 tiers (🟢 易 / 🟡 中 / 🟠 難 / 🟣 地獄).
+- **Multi-Factor Scaling**: Directly modulates keeper reaction delay (120ms to 220ms), reach multiplier (0.38m to 0.48m), predictor habit weight (0.55 to 0.98), tell honesty (35% to 90%), gaze hints, and taker corner accuracy (25% to 85%).
+- **Persistence**: Player selection persists in `localStorage`.
+
+### 6. Visual Polish & Clear Readability (`src/scene.js`, `src/tuning.js`)
+- **Tiered Concrete Terraces**: Built 10 visible stepped concrete risers with structural edge trims, rear grandstand wall, overhead roof canopy, and structural steel support trusses.
+- **Pitchside LED Ad Boards**: Installed dynamic scrolling LED perimeter barrier boards behind the goal net featuring animated typography ("⚽ 12碼讀心戰" & "⚡ AI 讀心大對決").
+- **Enlarged Ball Radius**: Increased size 5 football radius to 0.135m in `src/tuning.js` for crisp, unmistakable flight readability at iPhone portrait (390×844).
+
+---
+
+## 2. Test Execution Results
+
+All 7 unit test suites execute and pass with zero external dependencies via Node.js v20:
+
+### Command:
+```bash
+node tests/model.test.js && node tests/shot.test.js && node tests/keeperAI.test.js && node tests/input.test.js && node tests/difficulty.test.js && node tests/takerAI.test.js && node tests/taunts.test.js
+```
+
+### Output:
+```
+--- Running PenaltyMindModel Unit Tests ---
+
+✅ PASS: Initial state: uniform-ish distribution and 0 predictability
+✅ PASS: Learns repeated pattern: after 10x always "top-left" (TL), predicts TL with highest probability
+✅ PASS: Entropy score behaves: uniform distribution has low predictability, repeated has high
+✅ PASS: Predictability score reflects sequence learning: TL/BR alternation scores high, uniform transitions stay low
+✅ PASS: Learns N-gram alternating pattern: TL -> BR -> TL -> BR
+✅ PASS: Probabilities always sum to 1.0 and are non-negative
+✅ PASS: Dive zone selection returns valid zone and respects probabilities
+✅ PASS: Heatmap and accuracy calculation
+✅ PASS: Export and import state preserves all data
+✅ PASS: Tied probabilities: fair dive sampling and no fake prediction
+✅ PASS: Draw match result and sanitization against invalid data
+✅ PASS: Sequence predictability resilience: 15x alternating TL/BR + 1 TM retains high sequence predictability
+✅ PASS: Predictability score requires >= 8 shots, returns null / 數據不足 otherwise
+✅ PASS: Five distinct varied zones yields low predictability (< 30)
+
+All 14 / 14 tests passed successfully!
+
+--- Running Shot Physics (src/shot.js) Unit Tests ---
+
+✅ PASS: Swipe straight up -> centre target and valid goal crossing
+✅ PASS: Faster swipe -> higher speed and shorter flight time
+✅ PASS: Bent swipe (right bow) -> curved lateral displacement to the right
+✅ PASS: Overpower swipe (power > 0.92) -> flies over the crossbar
+✅ PASS: Zone classification accurately bins goal points into 6 zones
+✅ PASS: Goal trajectory continues behind goal line into the net
+
+All 6 / 6 tests passed successfully!
+
+--- Running Keeper AI (src/keeperAI.js) Unit Tests ---
+
+✅ PASS: Decide returns valid dive plan matching predicted zone
+✅ PASS: Save succeeds when dive is correct and ball is within glove reach volume
+✅ PASS: Goal scored when keeper dives opposite to the shot direction
+✅ PASS: High-speed blast to the extreme top corner beats the keeper even on correct dive
+✅ PASS: High speed shot within reach results in parry deflection instead of catch
+✅ PASS: Torso body capsule intercepts shot directed at keeper body
+
+All 6 / 6 tests passed successfully!
+
+--- Running Touch & Swipe Input (src/input.js) Unit Tests ---
+
+✅ PASS: Swipe starting in bottom 75% triggers onShoot with valid launch
+✅ PASS: Swipe starting in top 25% (scoreboard area) is ignored
+✅ PASS: PointerEvents set and release pointer capture
+
+All 3 / 3 tests passed successfully!
+
+--- Running Difficulty Mapping (src/difficulty.js) Unit Tests ---
+
+✅ PASS: All 4 difficulty tiers (EASY, MEDIUM, HARD, HELL) are defined with monotonic scaling
+✅ PASS: getDifficultyConfig handles case-insensitivity and invalid fallback
+✅ PASS: Gaze hint is only enabled for HARD and HELL difficulties
+
+All 3 / 3 tests passed successfully!
+
+--- Running Taker AI (src/takerAI.js) Unit Tests ---
+
+✅ PASS: Taker learns player dive habit and aims away from anticipated dive
+✅ PASS: Early keeper dive is immediately punished by shooting to the open side
+✅ PASS: Hell difficulty frequently snipes extreme corners with high speed
+✅ PASS: Dive probability distribution sums to 1.0 and has non-negative values
+
+All 4 / 4 tests passed successfully!
+
+--- Running Taunts & Tells (src/taunts.js) Unit Tests ---
+
+✅ PASS: Category KEEPER_READS_HABIT contains lines
+✅ PASS: Category KEEPER_PREDICTS_SWITCH contains lines
+✅ PASS: Category KEEPER_SAVES_SHOT contains lines
+✅ PASS: Category PLAYER_SCORES contains lines
+✅ PASS: Category TAKER_PUNISHES_EARLY_DIVE contains lines
+✅ PASS: Category TAKER_READS_DIVE_HABIT contains lines
+✅ PASS: Category PLAYER_KEEPER_SAVES contains lines
+✅ PASS: Category TAKER_SCORES contains lines
+✅ PASS: Total Cantonese taunts count (33) satisfies requirement >= 20
+✅ PASS: getTaunt(KEEPER_READS_HABIT) returns natural line: "連招都唔識變，呢球我等咗好耐！"
+✅ PASS: getTaunt(KEEPER_PREDICTS_SWITCH) returns natural line: "射完左邊轉右邊？呢招我十年前已經見過！"
+✅ PASS: getTaunt(KEEPER_SAVES_SHOT) returns natural line: "乖乖地認輸啦，你過唔到我十指關嘅！"
+✅ PASS: getTaunt(PLAYER_SCORES) returns natural line: "嘖！算你夠刁鑽，下球睇你仲射唔射到！"
+✅ PASS: getTaunt(TAKER_PUNISHES_EARLY_DIVE) returns natural line: "太急撲喇門將！睇住我射相反方向啦！"
+✅ PASS: getTaunt(TAKER_READS_DIVE_HABIT) returns natural line: "你鋪鋪都撲右邊，我今球特登抽左上死角！"
+✅ PASS: getTaunt(PLAYER_KEEPER_SAVES) returns natural line: "好反應！下次我抽大力啲睇你救唔救到！"
+✅ PASS: getTaunt(TAKER_SCORES) returns natural line: "入波！角度、力道都完美無瑕！"
+✅ PASS: Fallback returns valid default Cantonese line
+✅ PASS: Easy mode tell honesty is high (88% honest)
+✅ PASS: Hell mode deception frequency is high (64% bluffs)
+✅ PASS: Easy difficulty has gazeHint disabled
+✅ PASS: Hell difficulty has gazeHint enabled
+
+All 22 / 22 tests passed successfully!
+```
+
+**Total Tests Passed: 58 / 58 (100%) across 7 unit test suites.**
+
+---
+
+## 3. End-to-End & Screenshot Verification
+
+Automated E2E validation executed using Headless Chromium via Chrome DevTools Protocol at iPhone Safari portrait resolution ($390 \times 844$, 2x scale factor):
+
+- `screenshots/v2/r2-01-title.png`: Title screen displaying the 4 difficulty selector chips (🟢 易 / 🟡 中 / 🟠 難 / 🟣 地獄), rules, and memory indicator.
+- `screenshots/v2/r2-02-match-player-turn.png`: Match screen during player's shooting turn with stepped concrete grandstands, crowd spectators on terraces, pitchside LED ad boards, and floodlights.
+- `screenshots/v2/r2-03-mind-reading-3d-reveal.png`: In-scene 3D mind-reading reveal showing heat overlays across all 6 goal zones with live probability percentages, plus gold shot crossing and cyan keeper reach markers.
+- `screenshots/v2/r2-04-keeper-mode-turn.png`: Keeper mode turn with animated striker humanoid (`src/taker.js`) running up to the penalty spot and HUD showing 「你 (門將)」.
+- `screenshots/v2/r2-05-keeper-save-taunt.png`: Goalkeeper diving to make a save accompanied by an animated Cantonese taunt speech bubble.
+- `screenshots/v2/r2-06-replay-broadcast.png`: Deciding kick slow-motion replay from broadcast side angle with `🔴 重播 (REPLAY)` watermark and `跳過 ➔` button.
+- `screenshots/v2/r2-07-end-screen.png`: Final scoreboard, Shannon entropy predictability gauge, shot heatmap, and replay actions.
