@@ -1,0 +1,90 @@
+# 12碼讀心戰 (Penalty Mind Game v2) - Round 4 Keeper Mode Upgrade Report
+
+**Date**: 2026-10-24
+**Status**: COMPLETE (ALL 5 KEEPER MODE ENHANCEMENTS IMPLEMENTED & VERIFIED)
+**Test Suite**: 11 Unit & Integration Suites (81/81 tests passing, 100% green)
+**Browser E2E Verification**: Real Headless Chrome 390×844 CDP verification (100% green, 0 console errors)
+
+---
+
+## 1. Summary of Changes & Enhancements
+
+Addressing Penny's feedback regarding iPhone goalkeeper controls being too difficult and punishing:
+
+### 1. Tap & Short Swipe Dive Controls (`src/shot.js`, `src/input.js`, `src/main.js`)
+- **Tap to Zone**: Players can simply tap any zone on the goal (TL, TM, TR, BL, BM, BR) to initiate a dive covering that zone. Taps outside the goal (e.g. high into the sky or low on the pitch) automatically map sensibly to the nearest goal zone.
+- **Short Swipe to Zone**: Short directional swipes ($\ge 18\text{px}$) pick the dive direction based on the swipe vector (up-left, up, up-right, down-left, down, down-right, lateral).
+- **Pure Helpers**: Exported `mapTapToZone`, `mapSwipeToZone`, and `resolveKeeperInput` in `src/shot.js` for deterministic, pure-math evaluation and testing.
+- **Dedicated Input Mode**: Added `this.mode = 'KEEPER'` in `SwipeInput` (`src/input.js`), removing bottom-75% start restrictions and capturing both taps and short swipes across the entire canvas with immediate preview and dive callbacks.
+
+### 2. Larger Keeper Reach & Save Hit Tolerance (`src/tuning.js`, `src/keeperAI.js`)
+- **Player Reach Multiplier**: Goalkeeper reach volume is scaled up when the player is goalkeeping (`playerReachMultiplier` in `TUNING.keeper` and `TUNING.keeperWindows`).
+- **Save Hit Tolerance Buffer**: Added `saveHitTolerance` (0.18m base buffer in `TUNING.keeper`, scaled up to 0.28m on Easy) added directly to both glove and body reach capsules in `checkSave()`.
+- **Zone Matching Bonus**: Added `zoneMatchingToleranceBonus` (+0.15m) when the player correctly predicts and dives into the striker's shot zone.
+
+### 3. Difficulty-Scaled Reaction Windows (`src/tuning.js`, `src/main.js`)
+- Added `TUNING.keeperWindows` scaling reaction windows across difficulty tiers:
+  - **Early Dive Threshold**: Scaled to 80ms on Easy, 140ms on Medium, 200ms on Hard, and 250ms on Hell. Players on Easy/Medium are no longer unfairly punished for committing during the striker's run-up.
+  - **Late Dive Threshold**: Extended reaction time after strike to 450ms on Easy, 340ms on Medium, 240ms on Hard, and 180ms on Hell, giving players ample time to react to the kick.
+
+### 4. Cantonese On-Screen Hint & In-Scene 3D Target Zones (`src/fx.js`, `src/main.js`)
+- **On-Screen Hint**: Turn banner displays clear Cantonese guidance: `「🧤 撲救：㩒龍門你想守嘅位置（或向方向輕掃）」`.
+- **In-Scene 3D Zones**: Added `showKeeperTargetZones(selectedZone)` and `hideKeeperTargetZones()` in `src/fx.js`. During the striker's run-up, 6 semi-transparent 3D planes with Cantonese labels (`左上`, `中上`, `右上`, `左下`, `中下`, `右下`) are rendered over the goal mouth.
+- **Instant Visual Feedback**: Tapping or swiping immediately lights up the chosen zone in 3D with a vibrant golden border (`✓ 右上`) and updates the HUD banner to `「🧤 已選定撲向：右上！準備接波！」`.
+
+### 5. Accidental Scroll/Zoom & iOS Double-Tap Zoom Prevention (`index.html`, `style.css`, `src/main.js`)
+- Viewport meta in `index.html`: `width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover`.
+- CSS `touch-action: none;` enforced across `html, body, #game-container, #scene, #screen-match`.
+- iOS double-tap zoom protection: added `touchend` timestamp threshold ($\le 300\text{ms}$) and `dblclick` event listener calling `e.preventDefault()`.
+
+### 6. Centralized Constants in `src/tuning.js`
+- All parameters placed strictly inside `TUNING.keeper` and `TUNING.keeperWindows`.
+
+---
+
+## 2. Test Execution Results
+
+### A. All 11 Unit Test Suites (81/81 Tests Passing, 100% Green)
+```bash
+node tests/difficulty.test.js && \
+node tests/input.test.js && \
+node tests/keeperAI.test.js && \
+node tests/keeper_r4.test.js && \
+node tests/match_integration.test.js && \
+node tests/model.test.js && \
+node tests/shot.test.js && \
+node tests/takerAI.test.js && \
+node tests/taunts.test.js && \
+node tests/tournament.test.js && \
+node tests/unlocks.test.js
+```
+- `tests/difficulty.test.js`: 4 / 4 passed
+- `tests/input.test.js`: 3 / 3 passed
+- `tests/keeperAI.test.js`: 6 / 6 passed
+- `tests/keeper_r4.test.js`: 6 / 6 passed (tap-to-zone on/off goal, swipe directional mapping, tolerance & reach bonus, difficulty window scaling)
+- `tests/match_integration.test.js`: 5 / 5 passed
+- `tests/model.test.js`: 14 / 14 passed
+- `tests/shot.test.js`: 7 / 7 passed
+- `tests/takerAI.test.js`: 4 / 4 passed
+- `tests/taunts.test.js`: 22 / 22 passed
+- `tests/tournament.test.js`: 5 / 5 passed
+- `tests/unlocks.test.js`: 5 / 5 passed
+**Total: 81 / 81 unit tests passing.**
+
+### B. Headless Chrome Browser CDP E2E Tests (390×844)
+1. `tests/verify_r4_keeper.js`:
+   - Verified on-screen Cantonese hint in turn banner.
+   - Verified in-scene 3D target zones displayed over goal mouth during run-up.
+   - Verified tapping on goal (e.g. TR at 301, 390) immediately highlights TR and updates HUD banner.
+   - Verified short swipe (up-left) selects TL.
+   - Verified off-goal tap (at 30, 800) maps to nearest zone (BL).
+   - Verified CPU striker kick execution and save determination with 0 browser console errors.
+2. `tests/verify_r3_fixes.js`: Passed (0 errors).
+3. `tests/full_match_e2e.js`: Passed complete 5+5 shootout match (0 errors).
+4. `tests/r3_e2e_test.js`: Passed full tournament and locker flow (0 errors).
+
+---
+
+## 3. Visual Verification Captures
+- `screenshots/r4-390/01_keeper_target_zones_initial.png`: In-scene 3D semi-transparent target zones over the goal mouth with Cantonese labels and turn banner hint.
+- `screenshots/r4-390/02_keeper_zone_selected_TR.png`: Immediate golden highlighted zone on input with updated banner `「🧤 已選定撲向：右上！準備接波！」`.

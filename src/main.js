@@ -278,6 +278,19 @@ class GameApp {
   }
 
   _bindEvents() {
+    // Prevent iOS double-tap zoom
+    let lastTouchTime = 0;
+    document.addEventListener('touchend', (e) => {
+      const now = performance.now();
+      if (now - lastTouchTime <= 300) {
+        e.preventDefault();
+      }
+      lastTouchTime = now;
+    }, { passive: false });
+    document.addEventListener('dblclick', (e) => {
+      e.preventDefault();
+    }, { passive: false });
+
     // Sound unlock on first touch
     const unlockSoundOnce = () => {
       sound.unlock();
@@ -319,6 +332,7 @@ class GameApp {
       this.ball.reset();
       this.keeper.reset();
       if (this.taker) this.taker.hide();
+      if (this.fx && this.fx.hideKeeperTargetZones) this.fx.hideKeeperTargetZones();
       this.matchState = 'TITLE';
     };
     if (this.dom.btnBackHome) this.dom.btnBackHome.addEventListener('click', goHome);
@@ -1501,10 +1515,6 @@ class GameApp {
       };
       this.keeper.startDive(this.keeperTurnState.divePlan);
     }
-        label: diveInfo.label
-      };
-      this.keeper.startDive(this.keeperTurnState.divePlan);
-    }
 
     // Taker AI decides target (aims away from player habit / punishes early dive)
     const earlyZone = this.keeperTurnState.earlyDive ? this.keeperTurnState.diveZone : null;
@@ -1725,6 +1735,7 @@ class GameApp {
     this.matchState = 'END';
     this.timeScale = 1.0;
     this.input.disable();
+    if (this.fx && this.fx.hideKeeperTargetZones) this.fx.hideKeeperTargetZones();
 
     const isWin = this.playerScore > this.cpuScore;
     const isDraw = this.playerScore === this.cpuScore;

@@ -51,6 +51,7 @@ body {
   display: flex;
   flex-direction: column;
   background: #060c1e;
+  touch-action: none;
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
   padding-left: env(safe-area-inset-left, 0px);
@@ -379,6 +380,7 @@ body {
   z-index: 20;
   background: transparent;
   overflow: hidden !important;
+  touch-action: none !important;
   pointer-events: none !important; /* Let touches pass to #scene canvas */
 }
 
