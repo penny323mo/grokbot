@@ -42,10 +42,10 @@ export class Goalkeeper3D {
 
     // Materials
     // Vibrant goalkeeper kit (Electric Cyan jersey & shorts with Neon Yellow gloves)
-    const jerseyMat = new THREE.MeshStandardMaterial({ color: 0x06b6d4, roughness: 0.6 });
-    const shortsMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.7 });
-    const skinMat = new THREE.MeshStandardMaterial({ color: 0xffd1a4, roughness: 0.5 });
-    const gloveMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.3 }); // Neon yellow
+    this.jerseyMat = new THREE.MeshStandardMaterial({ color: 0x06b6d4, roughness: 0.6 });
+    this.shortsMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.7 });
+    this.skinMat = new THREE.MeshStandardMaterial({ color: 0xffd1a4, roughness: 0.5 });
+    this.gloveMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.3 }); // Neon yellow
     const bootMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
     const hairMat = new THREE.MeshStandardMaterial({ color: 0x1e1b4b, roughness: 0.9 });
 
@@ -54,7 +54,7 @@ export class Goalkeeper3D {
 
     // 1. Torso (0.55m wide, 0.60m tall, 0.28m deep)
     const torsoGeo = new THREE.BoxGeometry(0.55, 0.60, 0.28);
-    this.torso = new THREE.Mesh(torsoGeo, jerseyMat);
+    this.torso = new THREE.Mesh(torsoGeo, this.jerseyMat);
     this.torso.position.set(0, 1.15, 0);
     this.bodyGroup.add(this.torso);
 
@@ -66,7 +66,7 @@ export class Goalkeeper3D {
 
     // 2. Head & Neck
     const headGeo = new THREE.SphereGeometry(0.14, 16, 16);
-    this.head = new THREE.Mesh(headGeo, skinMat);
+    this.head = new THREE.Mesh(headGeo, this.skinMat);
     this.head.position.set(0, 1.62, 0);
     this.bodyGroup.add(this.head);
 
@@ -81,12 +81,12 @@ export class Goalkeeper3D {
     this.leftArm = new THREE.Group();
     this.leftArm.position.set(-0.35, 1.38, 0);
     const armGeo = new THREE.CylinderGeometry(0.065, 0.055, 0.55, 12);
-    const lArmMesh = new THREE.Mesh(armGeo, jerseyMat);
+    const lArmMesh = new THREE.Mesh(armGeo, this.jerseyMat);
     lArmMesh.position.set(0, -0.25, 0);
     this.leftArm.add(lArmMesh);
 
     const gloveGeo = new THREE.BoxGeometry(0.16, 0.18, 0.12);
-    this.leftGlove = new THREE.Mesh(gloveGeo, gloveMat);
+    this.leftGlove = new THREE.Mesh(gloveGeo, this.gloveMat);
     this.leftGlove.position.set(0, -0.58, 0);
     this.leftArm.add(this.leftGlove);
     this.bodyGroup.add(this.leftArm);
@@ -94,18 +94,18 @@ export class Goalkeeper3D {
     // Right Arm Pivot
     this.rightArm = new THREE.Group();
     this.rightArm.position.set(0.35, 1.38, 0);
-    const rArmMesh = new THREE.Mesh(armGeo, jerseyMat);
+    const rArmMesh = new THREE.Mesh(armGeo, this.jerseyMat);
     rArmMesh.position.set(0, -0.25, 0);
     this.rightArm.add(rArmMesh);
 
-    this.rightGlove = new THREE.Mesh(gloveGeo, gloveMat);
+    this.rightGlove = new THREE.Mesh(gloveGeo, this.gloveMat);
     this.rightGlove.position.set(0, -0.58, 0);
     this.rightArm.add(this.rightGlove);
     this.bodyGroup.add(this.rightArm);
 
     // 4. Shorts (Hips)
     const shortsGeo = new THREE.BoxGeometry(0.52, 0.26, 0.27);
-    const shorts = new THREE.Mesh(shortsGeo, shortsMat);
+    const shorts = new THREE.Mesh(shortsGeo, this.shortsMat);
     shorts.position.set(0, 0.78, 0);
     this.bodyGroup.add(shorts);
 
@@ -166,6 +166,19 @@ export class Goalkeeper3D {
     this.reset();
     this.state = 'set';
     this.stateTime = 0;
+  }
+
+  setKitColors(colors) {
+    if (!colors) return;
+    if (this.jerseyMat && colors.primary) {
+      this.jerseyMat.color.set(colors.primary);
+    }
+    if (this.shortsMat && colors.shorts) {
+      this.shortsMat.color.set(colors.shorts);
+    }
+    if (this.gloveMat && (colors.secondary || colors.accent)) {
+      this.gloveMat.color.set(colors.secondary || colors.accent);
+    }
   }
 
   setTell(tellData) {

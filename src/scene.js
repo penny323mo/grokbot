@@ -76,16 +76,16 @@ export class StadiumScene {
     this.onResize();
 
     // 4. Lighting
-    const hemiLight = new THREE.HemisphereLight(0x7ea0e6, 0x1a3311, 0.90);
-    this.scene.add(hemiLight);
+    this.hemiLight = new THREE.HemisphereLight(0x7ea0e6, 0x1a3311, 0.90);
+    this.scene.add(this.hemiLight);
 
-    const dirLight = new THREE.DirectionalLight(0xfff6ea, 1.4);
-    dirLight.position.set(10, 20, 15);
-    this.scene.add(dirLight);
+    this.dirLight = new THREE.DirectionalLight(0xfff6ea, 1.4);
+    this.dirLight.position.set(10, 20, 15);
+    this.scene.add(this.dirLight);
 
-    const counterLight = new THREE.DirectionalLight(0x4a6eb0, 0.50);
-    counterLight.position.set(-8, 14, -10);
-    this.scene.add(counterLight);
+    this.counterLight = new THREE.DirectionalLight(0x4a6eb0, 0.50);
+    this.counterLight.position.set(-8, 14, -10);
+    this.scene.add(this.counterLight);
 
     // 5. Build Stadium Elements
     this._buildPitch();
@@ -350,6 +350,98 @@ export class StadiumScene {
     if (mode === 'REPLAY') this.cameraMode = 'REPLAY';
     else if (mode === 'KEEPER') this.cameraMode = 'KEEPER';
     else this.cameraMode = 'MAIN';
+  }
+
+  applyAtmosphere(stadiumSkinId) {
+    if (!this.scene) return;
+
+    if (stadiumSkinId === 'stadium_sunset') {
+      // Golden Sunset Dusk
+      this.scene.background.setHex(0x38180a);
+      if (this.scene.fog) {
+        this.scene.fog.color.setHex(0x2d1205);
+        this.scene.fog.density = 0.010;
+      }
+      if (this.hemiLight) {
+        this.hemiLight.color.setHex(0xf59e0b);
+        this.hemiLight.groundColor.setHex(0x1a2e05);
+        this.hemiLight.intensity = 0.85;
+      }
+      if (this.dirLight) {
+        this.dirLight.color.setHex(0xfbbf24);
+        this.dirLight.intensity = 1.6;
+        this.dirLight.position.set(12, 14, 12);
+      }
+      if (this.counterLight) {
+        this.counterLight.color.setHex(0xc2410c);
+        this.counterLight.intensity = 0.65;
+      }
+    } else if (stadiumSkinId === 'stadium_day') {
+      // Bright Daylight Pitch
+      this.scene.background.setHex(0x60a5fa);
+      if (this.scene.fog) {
+        this.scene.fog.color.setHex(0x93c5fd);
+        this.scene.fog.density = 0.005;
+      }
+      if (this.hemiLight) {
+        this.hemiLight.color.setHex(0xffffff);
+        this.hemiLight.groundColor.setHex(0x274a14);
+        this.hemiLight.intensity = 1.1;
+      }
+      if (this.dirLight) {
+        this.dirLight.color.setHex(0xfffbeb);
+        this.dirLight.intensity = 1.8;
+        this.dirLight.position.set(8, 26, 10);
+      }
+      if (this.counterLight) {
+        this.counterLight.color.setHex(0xbfdbfe);
+        this.counterLight.intensity = 0.55;
+      }
+    } else {
+      // Default Night Stadium
+      this.scene.background.setHex(0x060c1e);
+      if (this.scene.fog) {
+        this.scene.fog.color.setHex(0x081028);
+        this.scene.fog.density = 0.012;
+      }
+      if (this.hemiLight) {
+        this.hemiLight.color.setHex(0x7ea0e6);
+        this.hemiLight.groundColor.setHex(0x1a3311);
+        this.hemiLight.intensity = 0.90;
+      }
+      if (this.dirLight) {
+        this.dirLight.color.setHex(0xfff6ea);
+        this.dirLight.intensity = 1.4;
+        this.dirLight.position.set(10, 20, 15);
+      }
+      if (this.counterLight) {
+        this.counterLight.color.setHex(0x4a6eb0);
+        this.counterLight.intensity = 0.50;
+      }
+    }
+  }
+
+  updateCrowdTeamColors(teamAColor, teamBColor) {
+    if (!this.crowdTorsoInstances) return;
+    const colA = new THREE.Color(teamAColor || 0xdc2626);
+    const colB = new THREE.Color(teamBColor || 0x1d4ed8);
+    const neutralCols = [
+      new THREE.Color(0x334155),
+      new THREE.Color(0x1e293b),
+      new THREE.Color(0xd1d5db)
+    ];
+
+    for (let i = 0; i < this.crowdCount; i++) {
+      const rand = Math.random();
+      let c;
+      if (rand < 0.45) c = colA;
+      else if (rand < 0.80) c = colB;
+      else c = neutralCols[Math.floor(Math.random() * neutralCols.length)];
+      this.crowdTorsoInstances.setColorAt(i, c);
+    }
+    if (this.crowdTorsoInstances.instanceColor) {
+      this.crowdTorsoInstances.instanceColor.needsUpdate = true;
+    }
   }
 
   _buildStadiumStands() {

@@ -10,6 +10,9 @@ export class Ball3D {
   constructor(scene) {
     this.scene = scene;
     this.mesh = null;
+    this.canvas = null;
+    this.ballTexture = null;
+    this.ballMat = null;
     this.spinVector = new THREE.Vector3(0, 0, 0);
     this.initialPosition = new THREE.Vector3(0, TUNING.ball.radius, TUNING.goal.spotDistance);
 
@@ -22,10 +25,10 @@ export class Ball3D {
 
   init() {
     // Generate classic black & white football pattern onto canvas
-    const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 256;
-    const ctx = canvas.getContext('2d');
+    this.canvas = document.createElement('canvas');
+    this.canvas.width = 512;
+    this.canvas.height = 256;
+    const ctx = this.canvas.getContext('2d');
 
     ctx.fillStyle = '#f8fafc'; // White leather
     ctx.fillRect(0, 0, 512, 256);
@@ -57,18 +60,18 @@ export class Ball3D {
       drawPolygon(px, py, 26, 5);
     });
 
-    const ballTexture = new THREE.CanvasTexture(canvas);
-    ballTexture.wrapS = THREE.RepeatWrapping;
-    ballTexture.wrapT = THREE.ClampToEdgeWrapping;
+    this.ballTexture = new THREE.CanvasTexture(this.canvas);
+    this.ballTexture.wrapS = THREE.RepeatWrapping;
+    this.ballTexture.wrapT = THREE.ClampToEdgeWrapping;
 
     const ballGeo = new THREE.SphereGeometry(TUNING.ball.radius, 24, 24);
-    const ballMat = new THREE.MeshStandardMaterial({
-      map: ballTexture,
+    this.ballMat = new THREE.MeshStandardMaterial({
+      map: this.ballTexture,
       roughness: 0.4,
       metalness: 0.1
     });
 
-    this.mesh = new THREE.Mesh(ballGeo, ballMat);
+    this.mesh = new THREE.Mesh(ballGeo, this.ballMat);
     this.mesh.position.copy(this.initialPosition);
     this.scene.add(this.mesh);
 
@@ -145,5 +148,77 @@ export class Ball3D {
       }
     }
     posAttr.needsUpdate = true;
+  }
+
+  applySkin(skinId) {
+    if (!this.canvas || !this.ballTexture) return;
+    const ctx = this.canvas.getContext('2d');
+    const w = this.canvas.width;
+    const h = this.canvas.height;
+
+    let baseCol = '#f8fafc';
+    let patchCol = '#1e293b';
+    let strokeCol = '#475569';
+    let metalness = 0.1;
+    let roughness = 0.4;
+    let trailCol = 0xffffff;
+
+    if (skinId === 'ball_fire') {
+      baseCol = '#dc2626';
+      patchCol = '#f59e0b';
+      strokeCol = '#ef4444';
+      metalness = 0.2;
+      roughness = 0.35;
+      trailCol = 0xf59e0b;
+    } else if (skinId === 'ball_cyber') {
+      baseCol = '#06b6d4';
+      patchCol = '#a855f7';
+      strokeCol = '#00e5ff';
+      metalness = 0.3;
+      roughness = 0.3;
+      trailCol = 0x00e5ff;
+    } else if (skinId === 'ball_gold') {
+      baseCol = '#18181b';
+      patchCol = '#fbbf24';
+      strokeCol = '#f59e0b';
+      metalness = 0.8;
+      roughness = 0.2;
+      trailCol = 0xfbbf24;
+    }
+
+    ctx.fillStyle = baseCol;
+    ctx.fillRect(0, 0, w, h);
+
+    const patchPositions = [
+      [128, 64], [384, 64], [256, 128], [128, 192], [384, 192],
+      [0, 128], [512, 128], [64, 0], [448, 0], [64, 256], [448, 256]
+    ];
+
+    ctx.fillStyle = patchCol;
+    ctx.strokeStyle = strokeCol;
+    ctx.lineWidth = 3;
+
+    patchPositions.forEach(([px, py]) => {
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) {
+        const angle = (i * 2 * Math.PI) / 5 - Math.PI / 2;
+        const x = px + 26 * Math.cos(angle);
+        const y = py + 26 * Math.sin(angle);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    });
+
+    this.ballTexture.needsUpdate = true;
+    if (this.ballMat) {
+      this.ballMat.metalness = metalness;
+      this.ballMat.roughness = roughness;
+    }
+    if (this.trailLine && this.trailLine.material) {
+      this.trailLine.material.color.setHex(trailCol);
+    }
   }
 }
