@@ -42,19 +42,19 @@ export class Taker3D {
 
     // Materials
     // Crimson red away jersey (#dc2626) with white shorts (#f8fafc) and black/yellow boots
-    const jerseyMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.6 });
-    const shortsMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.7 });
-    const skinMat = new THREE.MeshStandardMaterial({ color: 0xffd1a4, roughness: 0.5 });
+    this.jerseyMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.6 });
+    this.shortsMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.7 });
+    this.skinMat = new THREE.MeshStandardMaterial({ color: 0xffd1a4, roughness: 0.5 });
     const bootMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4 });
     const hairMat = new THREE.MeshStandardMaterial({ color: 0x271c19, roughness: 0.9 });
-    const sockMat = new THREE.MeshStandardMaterial({ color: 0xb91c1c, roughness: 0.6 });
+    this.sockMat = new THREE.MeshStandardMaterial({ color: 0xb91c1c, roughness: 0.6 });
 
     this.bodyGroup = new THREE.Group();
     this.bodyGroup.position.set(0, 0, 0);
 
     // 1. Torso (0.52m wide, 0.58m tall, 0.26m deep)
     const torsoGeo = new THREE.BoxGeometry(0.52, 0.58, 0.26);
-    this.torso = new THREE.Mesh(torsoGeo, jerseyMat);
+    this.torso = new THREE.Mesh(torsoGeo, this.jerseyMat);
     this.torso.position.set(0, 1.15, 0);
     this.bodyGroup.add(this.torso);
 
@@ -66,7 +66,7 @@ export class Taker3D {
 
     // 2. Head & Neck
     const headGeo = new THREE.SphereGeometry(0.135, 16, 16);
-    this.head = new THREE.Mesh(headGeo, skinMat);
+    this.head = new THREE.Mesh(headGeo, this.skinMat);
     this.head.position.set(0, 1.60, 0);
     this.bodyGroup.add(this.head);
 
@@ -83,10 +83,10 @@ export class Taker3D {
     // Left Arm Pivot
     this.leftArm = new THREE.Group();
     this.leftArm.position.set(-0.33, 1.36, 0);
-    const lArmMesh = new THREE.Mesh(armGeo, jerseyMat);
+    const lArmMesh = new THREE.Mesh(armGeo, this.jerseyMat);
     lArmMesh.position.set(0, -0.25, 0);
     this.leftArm.add(lArmMesh);
-    const lHand = new THREE.Mesh(handGeo, skinMat);
+    const lHand = new THREE.Mesh(handGeo, this.skinMat);
     lHand.position.set(0, -0.56, 0);
     this.leftArm.add(lHand);
     this.bodyGroup.add(this.leftArm);
@@ -94,17 +94,17 @@ export class Taker3D {
     // Right Arm Pivot
     this.rightArm = new THREE.Group();
     this.rightArm.position.set(0.33, 1.36, 0);
-    const rArmMesh = new THREE.Mesh(armGeo, jerseyMat);
+    const rArmMesh = new THREE.Mesh(armGeo, this.jerseyMat);
     rArmMesh.position.set(0, -0.25, 0);
     this.rightArm.add(rArmMesh);
-    const rHand = new THREE.Mesh(handGeo, skinMat);
+    const rHand = new THREE.Mesh(handGeo, this.skinMat);
     rHand.position.set(0, -0.56, 0);
     this.rightArm.add(rHand);
     this.bodyGroup.add(this.rightArm);
 
     // 4. Shorts (Hips)
     const shortsGeo = new THREE.BoxGeometry(0.50, 0.25, 0.25);
-    const shorts = new THREE.Mesh(shortsGeo, shortsMat);
+    const shorts = new THREE.Mesh(shortsGeo, this.shortsMat);
     shorts.position.set(0, 0.78, 0);
     this.bodyGroup.add(shorts);
 
@@ -115,7 +115,7 @@ export class Taker3D {
     // Left Leg (Plant leg for right-footed striker)
     this.leftLeg = new THREE.Group();
     this.leftLeg.position.set(-0.16, 0.68, 0);
-    const lLegMesh = new THREE.Mesh(legGeo, sockMat);
+    const lLegMesh = new THREE.Mesh(legGeo, this.sockMat);
     lLegMesh.position.set(0, -0.32, 0);
     this.leftLeg.add(lLegMesh);
     const lBoot = new THREE.Mesh(bootGeo, bootMat);
@@ -126,7 +126,7 @@ export class Taker3D {
     // Right Leg (Striking leg)
     this.rightLeg = new THREE.Group();
     this.rightLeg.position.set(0.16, 0.68, 0);
-    const rLegMesh = new THREE.Mesh(legGeo, sockMat);
+    const rLegMesh = new THREE.Mesh(legGeo, this.sockMat);
     rLegMesh.position.set(0, -0.32, 0);
     this.rightLeg.add(rLegMesh);
     const rBoot = new THREE.Mesh(bootGeo, bootMat);
@@ -157,6 +157,19 @@ export class Taker3D {
     if (this.leftLeg) this.leftLeg.rotation.set(0, 0, 0);
     if (this.rightLeg) this.rightLeg.rotation.set(0, 0, 0);
     if (this.torso) this.torso.rotation.set(0.1, 0, 0);
+  }
+
+  setKitColors(colors) {
+    if (!colors) return;
+    if (this.jerseyMat && colors.primary) {
+      this.jerseyMat.color.set(colors.primary);
+    }
+    if (this.shortsMat && colors.shorts) {
+      this.shortsMat.color.set(colors.shorts);
+    }
+    if (this.sockMat && (colors.socks || colors.secondary)) {
+      this.sockMat.color.set(colors.socks || colors.secondary);
+    }
   }
 
   startRunUp(onStrike) {

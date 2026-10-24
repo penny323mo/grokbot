@@ -31,6 +31,10 @@
         <span>12碼讀心戰</span>
       </div>
       <div class="nav-controls">
+        <div class="nav-star-pill" id="nav-star-pill">
+          <span>⭐</span>
+          <span id="nav-star-count">0</span>
+        </div>
         <button id="btn-sound-toggle" class="icon-btn" aria-label="切換聲音">
           <span id="sound-icon">🔊</span>
           <span id="sound-label">聲音：開</span>
@@ -98,11 +102,158 @@
           </button>
         </div>
 
-        <button id="btn-start-game" class="btn-primary">
-          <span>⚡ 開波！進入大賽</span>
-        </button>
+        <div class="title-action-buttons">
+          <button id="btn-start-tournament" class="btn-primary" style="margin-bottom: 10px; background: linear-gradient(135deg, #f59e0b, #ef4444); border-color: #fbbf24;">
+            <span>🏆 世界盃淘汰賽 (16隊爭霸)</span>
+          </button>
+          <button id="btn-start-game" class="btn-primary" style="margin-bottom: 10px;">
+            <span>⚡ 單場快速對決</span>
+          </button>
+          <button id="btn-open-locker" class="btn-secondary" style="width: 100%;">
+            <span>🏅 榮譽殿堂 · 獎盃與裝備 (⭐ <span id="title-star-count">0</span>)</span>
+          </button>
+        </div>
       </div>
     </section>
+
+    <!-- =========================================
+         SCREEN 4: WORLD CUP TOURNAMENT BRACKET
+         ========================================= -->
+    <section id="screen-tournament" class="screen">
+      <div class="tournament-content">
+        <div class="tournament-header-card">
+          <div class="tournament-tag">🏆 16強淘汰制世界盃</div>
+          <h2 id="tourney-round-title" class="tourney-title">16強淘汰賽</h2>
+          <div class="tourney-team-badge">
+            <span id="tourney-player-flag" style="font-size: 1.4rem;">🇭🇰</span>
+            <span id="tourney-player-team-name" style="font-weight: 700;">香港代表隊</span>
+            <span class="tourney-status-chip" id="tourney-status-chip">第 1 / 4 輪</span>
+          </div>
+        </div>
+
+        <!-- Next Opponent Preview Card -->
+        <div id="tourney-next-match-card" class="tourney-next-card">
+          <div class="card-subtitle">⚽ 下一場對手情報</div>
+          <div class="next-opponent-row">
+            <div class="opponent-flag-col">
+              <span id="tourney-opp-flag" class="big-flag">🇧🇷</span>
+              <span id="tourney-opp-name" class="opp-name">巴西</span>
+            </div>
+            <div class="opponent-intel-col">
+              <div class="intel-line">
+                <span class="intel-tag">🧤 門將</span>
+                <span id="tourney-opp-keeper" class="intel-val">艾利臣 (森巴門神)</span>
+              </div>
+              <div class="intel-desc" id="tourney-opp-keeper-desc">身型高大、臂展極廣</div>
+              <div class="intel-line" style="margin-top: 6px;">
+                <span class="intel-tag">⚽ 射手</span>
+                <span id="tourney-opp-taker" class="intel-val">尼馬 (森巴魔術師)</span>
+              </div>
+              <div class="intel-desc" id="tourney-opp-taker-desc">助跑節奏多變，擅於反向破網</div>
+            </div>
+          </div>
+          <div class="difficulty-level-row">
+            <span>賽事難度：</span>
+            <span id="tourney-difficulty-badge" class="diff-badge-pill">🟢 易</span>
+          </div>
+          <button id="btn-tourney-start-match" class="btn-primary" style="margin-top: 14px; width: 100%;">
+            <span>⚡ 開波！進入點球大戰</span>
+          </button>
+        </div>
+
+        <!-- Tournament Bracket / Matches List -->
+        <div class="bracket-card">
+          <div class="bracket-header">
+            <span>📋 本輪對陣表</span>
+            <span id="bracket-round-name" style="font-size: 0.8rem; color: var(--accent-cyan); font-weight: 700;">16強</span>
+          </div>
+          <div id="bracket-matches-list" class="bracket-matches-list">
+            <!-- Dynamically populated matches -->
+          </div>
+        </div>
+
+        <!-- Tournament Bottom Actions -->
+        <div class="tournament-actions">
+          <button id="btn-tourney-reset" class="btn-secondary">
+            <span>🔄 重開世界盃</span>
+          </button>
+          <button id="btn-tourney-home" class="btn-secondary">
+            <span>🏠 返回主頁</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================
+         SCREEN 5: LOCKER ROOM & TROPHY CABINET
+         ========================================= -->
+    <section id="screen-locker" class="screen">
+      <div class="locker-content">
+        <div class="locker-header-card">
+          <div class="locker-title-row">
+            <h2>🏅 榮譽殿堂</h2>
+            <div class="stars-counter-badge">
+              <span>⭐</span>
+              <span id="locker-stars-num">0</span>
+              <span style="font-size: 0.72rem; color: var(--text-muted);">星星</span>
+            </div>
+          </div>
+          <p class="locker-subdesc">勝出比賽累積星星，解鎖傳奇裝備與球場氣氛！</p>
+        </div>
+
+        <!-- Tab Controls -->
+        <div class="locker-tabs">
+          <button class="locker-tab active" data-tab="trophies">🏆 獎盃櫃</button>
+          <button class="locker-tab" data-tab="balls">⚽ 足球</button>
+          <button class="locker-tab" data-tab="kits">👕 戰袍</button>
+          <button class="locker-tab" data-tab="stadiums">🏟️ 球場</button>
+        </div>
+
+        <!-- Tab Panels -->
+        <div id="locker-panel-trophies" class="locker-panel active">
+          <div id="trophies-grid" class="trophies-grid"></div>
+        </div>
+
+        <div id="locker-panel-balls" class="locker-panel" style="display: none;">
+          <div id="balls-grid" class="catalog-grid"></div>
+        </div>
+
+        <div id="locker-panel-kits" class="locker-panel" style="display: none;">
+          <div id="kits-grid" class="catalog-grid"></div>
+        </div>
+
+        <div id="locker-panel-stadiums" class="locker-panel" style="display: none;">
+          <div id="stadiums-grid" class="catalog-grid"></div>
+        </div>
+
+        <div class="locker-bottom-bar">
+          <button id="btn-locker-back-home" class="btn-secondary" style="width: 100%;">
+            <span>🏠 返回首頁</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Team Select Modal -->
+    <div id="modal-team-select" class="game-modal-overlay" style="display: none;">
+      <div class="team-select-card">
+        <div class="team-select-header">
+          <h3>🌍 選擇你的參賽國家隊</h3>
+          <p class="team-select-sub">帶領你的國家隊過關斬將，捧起世界盃金盃！（16 選 1）</p>
+        </div>
+        <div id="team-select-grid" class="team-select-grid">
+          <!-- 16 teams populated here -->
+        </div>
+        <div class="team-select-actions">
+          <button id="btn-confirm-team" class="btn-primary" disabled>
+            <span>確定參賽！</span>
+          </button>
+          <button id="btn-cancel-team" class="btn-secondary">
+            <span>取消</span>
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- =========================================
          SCREEN 2: MATCH HUD OVERLAY
@@ -242,8 +393,24 @@
           </div>
         </div>
 
+        <!-- Star Rewards Card -->
+        <div id="end-stars-card" class="end-stars-card">
+          <div class="stars-card-title">⭐ 本場星星獎勵</div>
+          <div id="end-stars-total" class="stars-card-total">+0 ⭐</div>
+          <div id="end-stars-breakdown" class="stars-card-breakdown"></div>
+        </div>
+
         <!-- Action Buttons -->
         <div class="action-buttons-group">
+          <button id="btn-tourney-advance" class="btn-primary" style="display: none; background: linear-gradient(135deg, #f59e0b, #ef4444); border-color: #fbbf24;">
+            <span>🏆 晉級下一輪 ➔</span>
+          </button>
+          <button id="btn-tourney-bracket-view" class="btn-secondary" style="display: none;">
+            <span>📊 查看淘汰賽對陣表</span>
+          </button>
+          <button id="btn-share-card" class="btn-secondary" style="border-color: var(--accent-cyan); color: var(--accent-cyan); font-weight: 700;">
+            <span>📸 生成專屬戰績卡 / 分享</span>
+          </button>
           <button id="btn-play-again" class="btn-primary">
             <span>🔄 再戰一場</span>
           </button>

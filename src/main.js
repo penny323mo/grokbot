@@ -18,6 +18,9 @@ import { TakerAIModel } from './takerAI.js';
 import { DIFFICULTY, getDifficultyConfig, saveDifficulty, loadDifficulty } from './difficulty.js';
 import { getTaunt, computeTell } from './taunts.js';
 import { sound } from './audio.js';
+import { TEAMS, ROUND_NAMES, TournamentManager } from './tournament.js';
+import { UnlocksManager, UNLOCK_CATALOG, TROPHIES } from './unlocks.js';
+import { ShareCardManager } from './share.js';
 
 class GameApp {
   constructor() {
@@ -36,6 +39,17 @@ class GameApp {
     this.takerAI = null;
     this.currentDifficulty = 'MEDIUM';
     this.difficultyConfig = null;
+
+    // Round 3: Tournament & Unlocks & Share Subsystems
+    this.tournament = new TournamentManager();
+    this.unlocks = new UnlocksManager();
+    this.shareCard = new ShareCardManager();
+    this.matchMode = 'QUICK'; // 'QUICK' | 'TOURNAMENT'
+    this.activePlayerTeam = null;
+    this.activeOpponentTeam = null;
+    this.selectedTeamForModal = 'HKG';
+    this.lastMatchStarResult = { total: 0, breakdown: [] };
+    this.isTabPaused = false;
 
     // Animation & physics loop state
     this.isRunning = false;
@@ -63,7 +77,7 @@ class GameApp {
     this.isReplaying = false;
 
     // Match state
-    this.matchState = 'TITLE'; // 'TITLE' | 'PLAYER_TURN' | 'BALL_FLIGHT' | 'KEEPER_TURN' | 'KEEPER_BALL_FLIGHT' | 'END'
+    this.matchState = 'TITLE'; // 'TITLE' | 'TOURNAMENT' | 'LOCKER' | 'PLAYER_TURN' | 'BALL_FLIGHT' | 'KEEPER_TURN' | 'KEEPER_BALL_FLIGHT' | 'END'
     this.round = 1;
     this.playerScore = 0;
     this.cpuScore = 0;
@@ -93,36 +107,58 @@ class GameApp {
     // 3. Taker AI Model
     this.takerAI = new TakerAIModel();
 
-    // 4. Check reduced motion
+    // 4. Load Tournament and Unlocks state
+    this.unlocks.load();
+    this.tournament.load();
+
+    // 5. Check reduced motion
     if (typeof window !== 'undefined' && window.matchMedia) {
       this.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     }
 
-    // 5. Cache DOM Elements
+    // 6. Pause rendering and WebAudio when tab is hidden (Save battery/prevent throttling)
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+          this.isTabPaused = true;
+          sound.suspend();
+        } else {
+          this.isTabPaused = false;
+          this.lastTime = performance.now();
+          sound.resume();
+        }
+      });
+    }
+
+    // 7. Cache DOM Elements
     this._cacheDOMElements();
 
-    // 6. Initialize 3D Scene & Subsystems
+    // 8. Initialize 3D Scene & Subsystems
     this.stadium = new StadiumScene(this.canvas);
     this.keeper = new Goalkeeper3D(this.stadium.scene);
     this.ball = new Ball3D(this.stadium.scene);
     this.taker = new Taker3D(this.stadium.scene);
     this.fx = new FXManager(this.stadium.scene, this.stadium.camera);
 
-    // 7. Initialize Swipe Input
+    // Apply equipped cosmetics (Ball skin, Stadium atmosphere, Kit)
+    this.applyCosmetics();
+
+    // 9. Initialize Swipe Input
     this.input = new SwipeInput(
       this.canvas,
       (launch) => this.onPlayerShoot(launch),
       (aimPoints) => this.fx.updateAimAssist(aimPoints)
     );
 
-    // 8. Bind UI Handlers
+    // 10. Bind UI Handlers
     this._bindEvents();
 
-    // 9. Update Title Screen Display
+    // 11. Update Title Screen & Nav Displays
     this._updateTitleMemoryStatus();
     this._updateDifficultyUI();
+    this._updateNavStars();
 
-    // 10. Start Render / Physics Loop
+    // 12. Start Render / Physics Loop
     this.isRunning = true;
     this.lastTime = performance.now();
     requestAnimationFrame((t) => this._loop(t));
@@ -134,19 +170,64 @@ class GameApp {
       screenTitle: document.getElementById('screen-title'),
       screenMatch: document.getElementById('screen-match'),
       screenEnd: document.getElementById('screen-end'),
+      screenTournament: document.getElementById('screen-tournament'),
+      screenLocker: document.getElementById('screen-locker'),
 
       // Top nav
       btnSound: document.getElementById('btn-sound-toggle'),
       soundIcon: document.getElementById('sound-icon'),
       soundLabel: document.getElementById('sound-label'),
       btnNavHome: document.getElementById('btn-nav-home'),
+      navStarCount: document.getElementById('nav-star-count'),
 
       // Title screen
       btnStart: document.getElementById('btn-start-game'),
+      btnStartTournament: document.getElementById('btn-start-tournament'),
+      btnOpenLocker: document.getElementById('btn-open-locker'),
+      titleStarCount: document.getElementById('title-star-count'),
       btnResetTitle: document.getElementById('btn-reset-memory-title'),
       titleMemoryDesc: document.getElementById('title-memory-desc'),
       diffChips: document.getElementById('difficulty-chips'),
       diffDesc: document.getElementById('diff-desc'),
+
+      // Tournament Screen
+      tourneyRoundTitle: document.getElementById('tourney-round-title'),
+      tourneyPlayerFlag: document.getElementById('tourney-player-flag'),
+      tourneyPlayerTeamName: document.getElementById('tourney-player-team-name'),
+      tourneyStatusChip: document.getElementById('tourney-status-chip'),
+      tourneyOppFlag: document.getElementById('tourney-opp-flag'),
+      tourneyOppName: document.getElementById('tourney-opp-name'),
+      tourneyOppKeeper: document.getElementById('tourney-opp-keeper'),
+      tourneyOppKeeperDesc: document.getElementById('tourney-opp-keeper-desc'),
+      tourneyOppTaker: document.getElementById('tourney-opp-taker'),
+      tourneyOppTakerDesc: document.getElementById('tourney-opp-taker-desc'),
+      tourneyDifficultyBadge: document.getElementById('tourney-difficulty-badge'),
+      btnTourneyStartMatch: document.getElementById('btn-tourney-start-match'),
+      bracketMatchesList: document.getElementById('bracket-matches-list'),
+      bracketRoundName: document.getElementById('bracket-round-name'),
+      btnTourneyReset: document.getElementById('btn-tourney-reset'),
+      btnTourneyHome: document.getElementById('btn-tourney-home'),
+
+      // Team Select Modal
+      modalTeamSelect: document.getElementById('modal-team-select'),
+      teamSelectGrid: document.getElementById('team-select-grid'),
+      btnConfirmTeam: document.getElementById('btn-confirm-team'),
+      btnCancelTeam: document.getElementById('btn-cancel-team'),
+
+      // Locker Room Elements
+      lockerStarsNum: document.getElementById('locker-stars-num'),
+      lockerTabs: document.querySelectorAll('.locker-tab'),
+      lockerPanels: {
+        trophies: document.getElementById('locker-panel-trophies'),
+        balls: document.getElementById('locker-panel-balls'),
+        kits: document.getElementById('locker-panel-kits'),
+        stadiums: document.getElementById('locker-panel-stadiums')
+      },
+      trophiesGrid: document.getElementById('trophies-grid'),
+      ballsGrid: document.getElementById('balls-grid'),
+      kitsGrid: document.getElementById('kits-grid'),
+      stadiumsGrid: document.getElementById('stadiums-grid'),
+      btnLockerBackHome: document.getElementById('btn-locker-back-home'),
 
       // Match HUD
       scoreDigits: document.getElementById('score-digits'),
@@ -178,6 +259,12 @@ class GameApp {
       endTotalShotsTag: document.getElementById('end-total-shots-tag'),
       endHeatmapGrid: document.getElementById('end-heatmap-grid'),
       endKeeperAcc: document.getElementById('end-keeper-acc'),
+      endStarsCard: document.getElementById('end-stars-card'),
+      endStarsTotal: document.getElementById('end-stars-total'),
+      endStarsBreakdown: document.getElementById('end-stars-breakdown'),
+      btnTourneyAdvance: document.getElementById('btn-tourney-advance'),
+      btnTourneyBracketView: document.getElementById('btn-tourney-bracket-view'),
+      btnShareCard: document.getElementById('btn-share-card'),
       btnPlayAgain: document.getElementById('btn-play-again'),
       btnResetEnd: document.getElementById('btn-reset-memory-end'),
       btnBackHome: document.getElementById('btn-back-home'),
