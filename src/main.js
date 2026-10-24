@@ -436,9 +436,13 @@ class GameApp {
     // Team selection modal buttons
     if (this.dom.btnConfirmTeam) {
       this.dom.btnConfirmTeam.addEventListener('click', () => {
-        this.tournament.startTournament(this.selectedTeamForModal);
+        const teamToStart = this.selectedTeamForModal || 'HKG';
+        this.tournament.startTournament(teamToStart);
         this.tournament.save();
-        if (this.dom.modalTeamSelect) this.dom.modalTeamSelect.classList.remove('active');
+        if (this.dom.modalTeamSelect) {
+          this.dom.modalTeamSelect.classList.remove('active');
+          this.dom.modalTeamSelect.style.display = 'none';
+        }
         this.renderTournamentBracket();
         this.switchScreen('tournament');
       });
@@ -446,7 +450,13 @@ class GameApp {
 
     if (this.dom.btnCancelTeam) {
       this.dom.btnCancelTeam.addEventListener('click', () => {
-        if (this.dom.modalTeamSelect) this.dom.modalTeamSelect.classList.remove('active');
+        if (this.dom.modalTeamSelect) {
+          this.dom.modalTeamSelect.classList.remove('active');
+          this.dom.modalTeamSelect.style.display = 'none';
+        }
+        if (!this.tournament.isActive()) {
+          goHome();
+        }
       });
     }
 
@@ -589,12 +599,12 @@ class GameApp {
   }
 
   openTournamentScreen() {
+    this.switchScreen('tournament');
     if (!this.tournament.isActive()) {
       this.openTeamSelectModal();
       return;
     }
     this.renderTournamentBracket();
-    this.switchScreen('tournament');
   }
 
   openTeamSelectModal() {
@@ -630,6 +640,7 @@ class GameApp {
     if (this.dom.btnConfirmTeam) {
       this.dom.btnConfirmTeam.disabled = !this.selectedTeamForModal;
     }
+    this.dom.modalTeamSelect.style.display = 'flex';
     this.dom.modalTeamSelect.classList.add('active');
   }
 
@@ -1679,11 +1690,15 @@ class GameApp {
 
     // Stars breakdown & award
     this.lastMatchStarResult = this.unlocks.calculateMatchStars({
+      won: isWin,
       isWin,
       cleanSheet,
       savesCount,
+      predictability: predScore,
       predictabilityScore: predScore,
+      isTournament: isTourney,
       isTournamentMatch: isTourney,
+      isChampion: isTourneyFinalWin,
       isTournamentFinalWin: isTourneyFinalWin
     });
     this.unlocks.addStars(this.lastMatchStarResult.total);
@@ -1853,7 +1868,9 @@ class GameApp {
         this.lastMatchStarResult.breakdown.forEach(item => {
           const row = document.createElement('div');
           row.className = 'star-breakdown-row';
-          row.innerHTML = `<span>${item.desc}</span><span>+${item.stars} ⭐</span>`;
+          const label = item.label || item.desc || '獎勵';
+          const count = item.count ?? item.stars ?? 1;
+          row.innerHTML = `<span>${label}</span><span>+${count} ⭐</span>`;
           this.dom.endStarsBreakdown.appendChild(row);
         });
       }

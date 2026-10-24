@@ -47,6 +47,24 @@ test('Star calculation correctly breaks down and totals performance bonuses', ()
   const res3 = um.calculateMatchStars({ won: true, savesCount: 4, predictability: 18, cleanSheet: true, isTournament: true, isChampion: true });
   assert.strictEqual(res3.total, 10, '2 + 1 + 1 + 1 + 5 = 10 stars');
 
+  // Compatible with finishMatch parameter names (isWin, isTournamentMatch, isTournamentFinalWin, predictabilityScore)
+  const resMatch = um.calculateMatchStars({
+    isWin: true,
+    cleanSheet: true,
+    savesCount: 3,
+    predictabilityScore: 20,
+    isTournamentMatch: true,
+    isTournamentFinalWin: true
+  });
+  assert.strictEqual(resMatch.total, 10, 'finishMatch names must yield identical star total');
+  assert(resMatch.breakdown.length >= 4);
+  resMatch.breakdown.forEach(item => {
+    assert(typeof item.label === 'string' && item.label.length > 0);
+    assert(typeof item.count === 'number' && item.count > 0);
+    assert.strictEqual(item.desc, item.label, 'desc alias must match label');
+    assert.strictEqual(item.stars, item.count, 'stars alias must match count');
+  });
+
   // Loss yields 0 stars
   const res4 = um.calculateMatchStars({ won: false, savesCount: 2, predictability: 20 });
   assert.strictEqual(res4.total, 0);

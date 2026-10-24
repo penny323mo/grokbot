@@ -175,37 +175,50 @@ export class UnlocksManager {
 
   /**
    * Calculate stars earned from a match based on performance
-   * @param {Object} stats - { won, savesCount, predictability, cleanSheet, isTournament, isChampion }
-   * @returns {Object} { total, breakdown: Array<{ label, count }> }
+   * @param {Object} stats - Supports both { won, isTournament, isChampion, predictability }
+   *                         and { isWin, isTournamentMatch, isTournamentFinalWin, predictabilityScore }
+   * @returns {Object} { total, breakdown: Array<{ label, count, desc, stars }> }
    */
   calculateMatchStars(stats = {}) {
+    const won = !!(stats.won ?? stats.isWin);
+    const isTournament = !!(stats.isTournament ?? stats.isTournamentMatch);
+    const isChampion = !!(stats.isChampion ?? stats.isTournamentFinalWin);
+    const pred = (stats.predictability !== undefined) ? stats.predictability : stats.predictabilityScore;
+    const savesCount = stats.savesCount || 0;
+    const cleanSheet = !!stats.cleanSheet;
+
     const breakdown = [];
     let total = 0;
 
-    if (stats.won) {
-      const baseWins = stats.isTournament ? 2 : 1;
+    if (won) {
+      const baseWins = isTournament ? 2 : 1;
       total += baseWins;
-      breakdown.push({ label: stats.isTournament ? '錦標賽晉級獲勝' : '比賽獲勝', count: baseWins });
+      const label = isTournament ? '錦標賽晉級獲勝' : '比賽獲勝';
+      breakdown.push({ label, count: baseWins, desc: label, stars: baseWins });
     }
 
-    if (stats.savesCount >= 3) {
+    if (savesCount >= 3) {
       total += 1;
-      breakdown.push({ label: '神撲 3 球或以上', count: 1 });
+      const label = '神撲 3 球或以上';
+      breakdown.push({ label, count: 1, desc: label, stars: 1 });
     }
 
-    if (stats.predictability !== null && stats.predictability < 35 && stats.won) {
+    if (pred !== null && pred !== undefined && pred < 35 && won) {
       total += 1;
-      breakdown.push({ label: '出招難以捉摸 (<35%)', count: 1 });
+      const label = '出招難以捉摸 (<35%)';
+      breakdown.push({ label, count: 1, desc: label, stars: 1 });
     }
 
-    if (stats.cleanSheet && stats.won) {
+    if (cleanSheet && won) {
       total += 1;
-      breakdown.push({ label: '零封對手', count: 1 });
+      const label = '零封對手';
+      breakdown.push({ label, count: 1, desc: label, stars: 1 });
     }
 
-    if (stats.isChampion) {
+    if (isChampion) {
       total += 5;
-      breakdown.push({ label: '榮登世界盃冠軍', count: 5 });
+      const label = '榮登世界盃冠軍';
+      breakdown.push({ label, count: 5, desc: label, stars: 5 });
     }
 
     return { total, breakdown };
@@ -352,7 +365,7 @@ export class UnlocksManager {
         }
       }
     } catch (e) {
-      console.warn('Failed to load unlocks, fallback to default:', e);
+      // Safe fallback on corrupted storage data
     }
     return false;
   }

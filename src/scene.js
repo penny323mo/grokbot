@@ -455,21 +455,27 @@ export class StadiumScene {
       roughness: 0.8
     });
 
-    // 10 visible stepped concrete terrace risers
+    // 10 visible stepped concrete terrace risers using InstancedMesh (2 draw calls instead of 20)
+    const stepGeo = new THREE.BoxGeometry(44, 0.85, 1.0);
+    const stepInstances = new THREE.InstancedMesh(stepGeo, concreteMat, 10);
+    const edgeGeo = new THREE.BoxGeometry(44, 0.08, 0.08);
+    const edgeInstances = new THREE.InstancedMesh(edgeGeo, edgeMat, 10);
+    const dummyRiser = new THREE.Object3D();
+
     for (let r = 0; r < 10; r++) {
       const stepY = 0.425 + r * 0.85;
       const stepZ = -6.2 - r * 0.75;
-      const stepGeo = new THREE.BoxGeometry(44, 0.85, 1.0);
-      const stepMesh = new THREE.Mesh(stepGeo, concreteMat);
-      stepMesh.position.set(0, stepY, stepZ);
-      this.scene.add(stepMesh);
 
-      // Step edge highlight line
-      const edgeGeo = new THREE.BoxGeometry(44, 0.08, 0.08);
-      const edgeMesh = new THREE.Mesh(edgeGeo, edgeMat);
-      edgeMesh.position.set(0, stepY + 0.425, stepZ + 0.5);
-      this.scene.add(edgeMesh);
+      dummyRiser.position.set(0, stepY, stepZ);
+      dummyRiser.updateMatrix();
+      stepInstances.setMatrixAt(r, dummyRiser.matrix);
+
+      dummyRiser.position.set(0, stepY + 0.425, stepZ + 0.5);
+      dummyRiser.updateMatrix();
+      edgeInstances.setMatrixAt(r, dummyRiser.matrix);
     }
+    this.scene.add(stepInstances);
+    this.scene.add(edgeInstances);
 
     // Grandstand back wall
     const wallMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.95 });
@@ -595,14 +601,8 @@ export class StadiumScene {
       new THREE.Color(0x6b4f3b)  // Medium brown hair
     ];
 
-    const torsoMat = new THREE.MeshStandardMaterial({
-      roughness: 0.85,
-      metalness: 0.05
-    });
-    const headMat = new THREE.MeshStandardMaterial({
-      roughness: 0.75,
-      metalness: 0.0
-    });
+    const torsoMat = new THREE.MeshBasicMaterial();
+    const headMat = new THREE.MeshBasicMaterial();
 
     this.crowdTorsoInstances = new THREE.InstancedMesh(torsoGeo, torsoMat, crowdCount);
     this.crowdHeadInstances = new THREE.InstancedMesh(headGeo, headMat, crowdCount);
@@ -814,27 +814,20 @@ export class StadiumScene {
       this.adTexture.offset.x = (this.adTexture.offset.x + deltaSec * 0.04) % 1.0;
     }
 
-    // 2. Animate crowd bobbing (seated 3D spectators)
+    // 2. Animate crowd bobbing (seated 3D spectators, zero allocation, direct float write)
     if (this.crowdTorsoInstances && this.crowdHeadInstances) {
-      const dummyT = new THREE.Object3D();
-      const dummyH = new THREE.Object3D();
-      for (let i = 0; i < this.crowdCount; i++) {
-        const bob = Math.sin(timeSec * 4.5 + this.crowdPhase[i]) * 0.035;
-
-        this.crowdTorsoInstances.getMatrixAt(i, dummyT.matrix);
-        dummyT.matrix.decompose(dummyT.position, dummyT.quaternion, dummyT.scale);
-        dummyT.position.y = this.crowdBaseY[i] + bob;
-        dummyT.updateMatrix();
-        this.crowdTorsoInstances.setMatrixAt(i, dummyT.matrix);
-
-        this.crowdHeadInstances.getMatrixAt(i, dummyH.matrix);
-        dummyH.matrix.decompose(dummyH.position, dummyH.quaternion, dummyH.scale);
-        dummyH.position.y = this.crowdBaseHeadY[i] + bob;
-        dummyH.updateMatrix();
-        this.crowdHeadInstances.setMatrixAt(i, dummyH.matrix);
+      if ((typeof document === 'undefined' || !document.hidden) && !this.prefersReducedMotion) {
+        const tArr = this.crowdTorsoInstances.instanceMatrix.array;
+        const hArr = this.crowdHeadInstances.instanceMatrix.array;
+        const count = this.crowdCount;
+        for (let i = 0; i < count; i++) {
+          const bob = Math.sin(timeSec * 4.5 + this.crowdPhase[i]) * 0.035;
+          tArr[i * 16 + 13] = this.crowdBaseY[i] + bob;
+          hArr[i * 16 + 13] = this.crowdBaseHeadY[i] + bob;
+        }
+        this.crowdTorsoInstances.instanceMatrix.needsUpdate = true;
+        this.crowdHeadInstances.instanceMatrix.needsUpdate = true;
       }
-      this.crowdTorsoInstances.instanceMatrix.needsUpdate = true;
-      this.crowdHeadInstances.instanceMatrix.needsUpdate = true;
     }
 
     // 3. Update Blob Shadows

@@ -8,7 +8,7 @@
 
 | 資源名稱 | 存放路徑 | 版本 | 授權條款 (License) | 來源 / 備註 |
 |---|---|---|---|---|
-| **Three.js** | `vendor/three.module.js` | r160 | [MIT License](https://github.com/mrdoob/three.js/blob/master/LICENSE) | 輕量化 ES 模組，完全離線內建，負責 WebGL 3D 渲染與幾何運算 |
+| **Three.js** | `vendor/three.module.min.js` | r160 | [MIT License](https://github.com/mrdoob/three.js/blob/master/LICENSE) | 輕量化 ES 模組，完全離線內建，負責 WebGL 3D 渲染與幾何運算 |
 
 ---
 

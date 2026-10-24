@@ -153,10 +153,17 @@ body {
   top: 52px; /* below top-nav */
   width: 100%;
   height: calc(100% - 52px);
-  overflow-y: auto;
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+
+#screen-title,
+#screen-tournament,
+#screen-locker,
+#screen-end {
+  overflow-y: auto;
 }
 
 .screen::-webkit-scrollbar {
@@ -371,7 +378,19 @@ body {
 #screen-match {
   z-index: 20;
   background: transparent;
-  pointer-events: none; /* Let touches pass to #scene canvas */
+  overflow: hidden !important;
+  pointer-events: none !important; /* Let touches pass to #scene canvas */
+}
+
+#screen-match * {
+  pointer-events: none !important;
+}
+
+#screen-match button,
+#screen-match .btn-skip-replay,
+#screen-match [role="button"],
+#screen-match .icon-btn {
+  pointer-events: auto !important;
 }
 
 .scoreboard-wrapper {
@@ -538,6 +557,11 @@ body {
 }
 
 /* Ghost Hand Tutorial Overlay */
+.tutorial-overlay,
+.tutorial-overlay * {
+  pointer-events: none !important;
+}
+
 .tutorial-overlay {
   position: absolute;
   bottom: 18%;
@@ -546,7 +570,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  pointer-events: none;
+  pointer-events: none !important;
   z-index: 25;
   animation: fadeIn 0.3s ease;
 }
@@ -557,6 +581,7 @@ body {
   position: relative;
   display: flex;
   justify-content: center;
+  pointer-events: none !important;
 }
 
 .ghost-hand-anim {
@@ -565,6 +590,7 @@ body {
   bottom: 0;
   filter: drop-shadow(0 0 12px rgba(0, 229, 255, 0.8));
   animation: swipe-up-hand 1.4s infinite cubic-bezier(0.2, 0.8, 0.2, 1);
+  pointer-events: none !important;
 }
 
 @keyframes swipe-up-hand {
@@ -595,6 +621,7 @@ body {
   margin-top: 10px;
   max-width: 88%;
   text-align: center;
+  pointer-events: none !important;
 }
 
 .tutorial-text {
@@ -602,6 +629,7 @@ body {
   font-weight: 800;
   color: #fff;
   line-height: 1.35;
+  pointer-events: none !important;
 }
 
 /* In-scene 讀心 Reveal Pill */

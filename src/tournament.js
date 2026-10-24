@@ -739,7 +739,7 @@ export class TournamentManager {
         }
       }
     } catch (e) {
-      console.warn('Failed to load tournament state, fallback to new:', e);
+      // Safe fallback on corrupted storage data
     }
     return false;
   }
