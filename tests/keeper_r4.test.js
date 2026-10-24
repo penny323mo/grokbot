@@ -5,7 +5,7 @@
 
 import assert from 'assert';
 import { mapTapToZone, mapSwipeToZone, resolveKeeperInput } from '../src/shot.js';
-import { checkSave, DIVE_TARGETS } from '../src/keeperAI.js';
+import { checkSave, DIVE_TARGETS, _onPlayerKeeperDive, resolvePlayerKeeperDive } from '../src/keeperAI.js';
 import { TUNING } from '../src/tuning.js';
 
 console.log('--- Running Round 4 Keeper Mode (src/shot.js & src/keeperAI.js) Unit Tests ---\n');
@@ -146,6 +146,15 @@ test('Player save hit tolerance and zone-matching bonus grant successful save on
   const checkStandard = checkSave(simBorderline, divePlanStandard, TUNING);
   assert.strictEqual(checkStandard.saved, false, 'Standard keeper without tolerance should miss borderline shot');
 
+  // CPU keeper diving to the exact same zone (TR) must NOT receive player zoneMatchingToleranceBonus (+0.15m)
+  const divePlanCpuSameZone = {
+    ...divePlanStandard,
+    zone: 'TR',
+    isPlayer: false
+  };
+  const checkCpu = checkSave(simBorderline, divePlanCpuSameZone, TUNING);
+  assert.strictEqual(checkCpu.saved, false, 'CPU keeper diving to same zone must NOT receive player zoneMatchingToleranceBonus');
+
   // Now with Player Forgiving Tolerance (saveHitTolerance 0.20m + zone matching bonus 0.15m)
   const divePlanPlayer = {
     ...divePlanStandard,
@@ -159,15 +168,107 @@ test('Player save hit tolerance and zone-matching bonus grant successful save on
   assert(checkPlayer.saveType === 'parry' || checkPlayer.saveType === 'catch');
 });
 
-// 6. Test Difficulty-scaled Reaction Windows and Tolerances
+// 6. Test _onPlayerKeeperDive timing across difficulty tiers (CRITICAL 1)
+test('_onPlayerKeeperDive mid-run-up tap is a pure commit and never penalized on Easy/Medium', () => {
+  const strikeTime = 1000;
+  const nowMidRunUp = 500; // 500ms before strike (run-up takes 850ms)
+
+  // EASY: pure commit, never early dive
+  const easyRes = _onPlayerKeeperDive('TR', {
+    now: nowMidRunUp,
+    strikeTime,
+    runUpStarted: true,
+    hasStruck: false,
+    difficultyKey: 'EASY'
+  });
+  assert.strictEqual(easyRes.earlyDive, false, 'Easy mid-run-up tap must NOT flag early dive');
+  assert.strictEqual(easyRes.validZone, 'TR');
+  assert.strictEqual(easyRes.divePlan.reachMultiplier, 1.45, 'Easy reachMultiplier (1.45) must be preserved');
+
+  // MEDIUM: pure commit, never early dive
+  const medRes = _onPlayerKeeperDive('TR', {
+    now: nowMidRunUp,
+    strikeTime,
+    runUpStarted: true,
+    hasStruck: false,
+    difficultyKey: 'MEDIUM'
+  });
+  assert.strictEqual(medRes.earlyDive, false, 'Medium mid-run-up tap must NOT flag early dive');
+  assert.strictEqual(medRes.validZone, 'TR');
+  assert.strictEqual(medRes.divePlan.reachMultiplier, 1.30, 'Medium reachMultiplier (1.30) must be preserved');
+
+  // HARD: early threshold is 350ms. At 500ms before strike (> 350ms), flags early dive
+  const hardEarly = _onPlayerKeeperDive('TR', {
+    now: 500,
+    strikeTime,
+    runUpStarted: true,
+    hasStruck: false,
+    difficultyKey: 'HARD'
+  });
+  assert.strictEqual(hardEarly.earlyDive, true, 'Hard tap 500ms before strike (> 350ms) flags early dive');
+  assert.strictEqual(hardEarly.divePlan.reachMultiplier, 1.0, 'Early dive reduces reachMultiplier to 1.0');
+
+  // HARD legal: 250ms before strike (< 350ms threshold), legal dive
+  const hardLegal = _onPlayerKeeperDive('TR', {
+    now: 750,
+    strikeTime,
+    runUpStarted: true,
+    hasStruck: false,
+    difficultyKey: 'HARD'
+  });
+  assert.strictEqual(hardLegal.earlyDive, false, 'Hard tap 250ms before strike is within legal window');
+  assert.strictEqual(hardLegal.divePlan.reachMultiplier, 1.15);
+
+  // HELL: early threshold is 250ms. At 300ms before strike (> 250ms), flags early
+  const hellEarly = _onPlayerKeeperDive('TR', {
+    now: 700,
+    strikeTime,
+    runUpStarted: true,
+    hasStruck: false,
+    difficultyKey: 'HELL'
+  });
+  assert.strictEqual(hellEarly.earlyDive, true, 'Hell tap 300ms before strike (> 250ms) flags early dive');
+
+  // HELL legal: 150ms before strike (< 250ms threshold), legal dive
+  const hellLegal = _onPlayerKeeperDive('TR', {
+    now: 850,
+    strikeTime,
+    runUpStarted: true,
+    hasStruck: false,
+    difficultyKey: 'HELL'
+  });
+  assert.strictEqual(hellLegal.earlyDive, false, 'Hell tap 150ms before strike is within legal window');
+  assert.strictEqual(hellLegal.divePlan.reachMultiplier, 1.05);
+});
+
+// 7. Test Late Window Tap (CRITICAL 2)
+test('Tap 100ms after strike in late window on Easy selects chosen zone, not BM', () => {
+  const strikeTime = 1000;
+  const nowPostStrike = 1100; // 100ms after kick
+
+  const res = _onPlayerKeeperDive('TR', {
+    now: nowPostStrike,
+    strikeTime,
+    runUpStarted: true,
+    hasStruck: true,
+    difficultyKey: 'EASY'
+  });
+
+  assert.strictEqual(res.validZone, 'TR', 'Late tap 100ms after strike must resolve to tapped zone (TR), not default to BM');
+  assert.strictEqual(res.divePlan.zone, 'TR');
+  assert.strictEqual(res.lateDive, false, '100ms after strike is within Easy 450ms reaction window, so lateDive is false');
+  assert.strictEqual(res.divePlan.reachMultiplier, 1.45, 'Full Easy reachMultiplier (1.45) preserved inside reaction window');
+});
+
+// 8. Test Difficulty-scaled Reaction Windows and Tolerances
 test('Reaction windows and tolerances scale monotonically across difficulty tiers (Easy is most forgiving)', () => {
   const w = TUNING.keeperWindows;
   assert(w, 'TUNING.keeperWindows must exist');
 
-  // Early dive threshold: smaller on Easy (80ms) means player can dive much earlier without being punished
-  assert(w.earlyDiveThresholdMs.EASY < w.earlyDiveThresholdMs.MEDIUM);
-  assert(w.earlyDiveThresholdMs.MEDIUM < w.earlyDiveThresholdMs.HARD);
-  assert(w.earlyDiveThresholdMs.HARD <= w.earlyDiveThresholdMs.HELL);
+  // Early dive threshold: Easy and Medium are Infinity (pure commit, never punished)
+  assert.strictEqual(w.earlyDiveThresholdMs.EASY, Infinity);
+  assert.strictEqual(w.earlyDiveThresholdMs.MEDIUM, Infinity);
+  assert(w.earlyDiveThresholdMs.HARD > w.earlyDiveThresholdMs.HELL, 'Hard allows later commit than Hell');
 
   // Late dive threshold: larger on Easy (450ms) gives the most generous reaction window after strike
   assert(w.lateDiveThresholdMs.EASY > w.lateDiveThresholdMs.MEDIUM);

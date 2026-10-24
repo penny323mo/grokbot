@@ -1320,6 +1320,15 @@ class GameApp {
   }
 
   startKeeperTurn() {
+    if (this.keeperWhistleTimeout) {
+      clearTimeout(this.keeperWhistleTimeout);
+      this.keeperWhistleTimeout = null;
+    }
+    if (this.keeperLateTimeout) {
+      clearTimeout(this.keeperLateTimeout);
+      this.keeperLateTimeout = null;
+    }
+
     this.matchState = 'KEEPER_TURN';
     this.isKeeperTurn = true;
     this.stadium.setCameraMode('KEEPER');
@@ -1380,7 +1389,7 @@ class GameApp {
     this.input.setAimAssist(false);
     this.input.setMode('KEEPER');
     this.input.onKeeperPreview = (zone, details) => {
-      if (this.matchState !== 'KEEPER_TURN' || this.keeperTurnState.playerDived) return;
+      if ((this.matchState !== 'KEEPER_TURN' && this.matchState !== 'KEEPER_BALL_FLIGHT') || this.keeperTurnState.playerDived) return;
       if (this.fx && this.fx.showKeeperTargetZones) {
         this.fx.showKeeperTargetZones(zone);
       }
@@ -1398,7 +1407,8 @@ class GameApp {
     this.updateHUD();
 
     // Delay then whistle and start striker run-up
-    setTimeout(() => {
+    this.keeperWhistleTimeout = setTimeout(() => {
+      this.keeperWhistleTimeout = null;
       if (this.matchState !== 'KEEPER_TURN') return;
       sound.playWhistle();
 
@@ -1417,9 +1427,22 @@ class GameApp {
   }
 
   _onPlayerKeeperDive(zone, details = {}) {
-    if (this.matchState !== 'KEEPER_TURN' || this.keeperTurnState.playerDived) return;
+    if ((this.matchState !== 'KEEPER_TURN' && this.matchState !== 'KEEPER_BALL_FLIGHT') || this.keeperTurnState.playerDived) return;
 
-    const validZone = (zone && DIVE_TARGETS[zone]) ? zone : 'BM';
+    const diffKey = (this.difficultyConfig && this.difficultyConfig.key) || 'MEDIUM';
+    const now = (details && typeof details.now === 'number') ? details.now : performance.now();
+    const strikeTime = this.keeperTurnState.strikeTime || (now + 500);
+
+    const { validZone, earlyDive, lateDive, divePlan } = resolvePlayerKeeperDive({
+      zone,
+      now,
+      strikeTime,
+      runUpStarted: this.keeperTurnState.runUpStarted,
+      hasStruck: this.keeperTurnState.hasStruck,
+      difficultyKey: diffKey,
+      tuning: TUNING
+    });
+
     const diveInfo = DIVE_TARGETS[validZone] || DIVE_TARGETS.BM;
 
     // Immediately highlight target zone in 3D and update banner
@@ -1430,61 +1453,33 @@ class GameApp {
       this.dom.turnBanner.innerHTML = `<span>🧤 已選定撲向：${diveInfo.label}！準備接波！</span>`;
     }
 
-    const diffKey = (this.difficultyConfig && this.difficultyConfig.key) || 'MEDIUM';
-    const windows = TUNING.keeperWindows || {};
-    const earlyThreshold = (windows.earlyDiveThresholdMs && windows.earlyDiveThresholdMs[diffKey]) ?? 140;
-    const lateThreshold = (windows.lateDiveThresholdMs && windows.lateDiveThresholdMs[diffKey]) ?? 340;
-    const diffReachMul = (windows.playerReachMultiplier && windows.playerReachMultiplier[diffKey]) ?? (TUNING.keeper.playerReachMultiplier || 1.30);
-    const diffTolerance = (windows.saveHitTolerance && windows.saveHitTolerance[diffKey]) ?? (TUNING.keeper.saveHitTolerance || 0.20);
-
-    const now = performance.now();
-    const strikeTime = this.keeperTurnState.strikeTime || (now + 500);
-    const msBeforeStrike = strikeTime - now;
-
-    let earlyDive = false;
-    let lateDive = false;
-    let reactTime = 0.06;
-    let reachMultiplier = diffReachMul;
-
-    // Timing window: difficulty scaled (easy is most forgiving)
-    if (this.keeperTurnState.runUpStarted && msBeforeStrike > earlyThreshold) {
-      earlyDive = true;
-      reactTime = 0.02;
-      reachMultiplier = 1.0;
-      this.showTaunt('TAKER_PUNISHES_EARLY_DIVE', null, '⚽');
-      this._showReactionBanner('太早撲！射手睇到你！', 'miss');
-    } else if (now > strikeTime + lateThreshold) {
-      // Late dive
-      lateDive = true;
-      reactTime = 0.24;
-      reachMultiplier = Math.max(0.75, diffReachMul * 0.70);
-    }
-
-    const divePlan = {
-      zone: validZone,
-      target: { x: diveInfo.x, y: diveInfo.y },
-      reactTime,
-      diveDuration: TUNING.keeper.diveDuration,
-      reachMultiplier,
-      tolerance: diffTolerance,
-      saveHitTolerance: diffTolerance,
-      isPlayer: true,
-      animName: diveInfo.anim,
-      label: diveInfo.label
-    };
-
     this.keeperTurnState.playerDived = true;
     this.keeperTurnState.diveZone = validZone;
     this.keeperTurnState.divePlan = divePlan;
     this.keeperTurnState.earlyDive = earlyDive;
     this.keeperTurnState.lateDive = lateDive;
 
-    // Start keeper dive animation
-    this.keeper.startDive(divePlan);
+    // If strike has ALREADY occurred (player reacted in the late window after the kick):
+    if (this.keeperTurnState.hasStruck) {
+      if (this.keeperLateTimeout) {
+        clearTimeout(this.keeperLateTimeout);
+        this.keeperLateTimeout = null;
+      }
+      this.keeper.startDive(divePlan);
+
+      if (this.activeShot) {
+        const saveCheck = checkSave(this.activeShot.sim, divePlan, TUNING);
+        this.activeShot.divePlan = divePlan;
+        this.activeShot.saveCheck = saveCheck;
+        this.activeShot.isGoal = this.activeShot.sim.result === 'goal' && !saveCheck.saved;
+        this.lastDecidingKick = { ...this.activeShot };
+      }
+    }
+    // If strike has not happened yet: pure commit, dive executes at strike!
   }
 
   _onPlayerKeeperSwipe(launch) {
-    if (this.matchState !== 'KEEPER_TURN' || this.keeperTurnState.playerDived) return;
+    if ((this.matchState !== 'KEEPER_TURN' && this.matchState !== 'KEEPER_BALL_FLIGHT') || this.keeperTurnState.playerDived) return;
 
     let zone = launch.zone;
     if (!zone) {
@@ -1505,31 +1500,7 @@ class GameApp {
     this.matchState = 'KEEPER_BALL_FLIGHT';
     sound.playKick();
 
-    // If player has not swiped yet, default to center BM
-    if (!this.keeperTurnState.playerDived) {
-      const diffKey = (this.difficultyConfig && this.difficultyConfig.key) || 'MEDIUM';
-      const windows = TUNING.keeperWindows || {};
-      const diffReachMul = (windows.playerReachMultiplier && windows.playerReachMultiplier[diffKey]) ?? (TUNING.keeper.playerReachMultiplier || 1.30);
-      const diffTolerance = (windows.saveHitTolerance && windows.saveHitTolerance[diffKey]) ?? (TUNING.keeper.saveHitTolerance || 0.20);
-
-      const diveInfo = DIVE_TARGETS.BM;
-      this.keeperTurnState.diveZone = 'BM';
-      this.keeperTurnState.divePlan = {
-        zone: 'BM',
-        target: { x: diveInfo.x, y: diveInfo.y },
-        reactTime: 0.16,
-        diveDuration: TUNING.keeper.diveDuration,
-        reachMultiplier: diffReachMul * 0.85,
-        tolerance: diffTolerance,
-        saveHitTolerance: diffTolerance,
-        isPlayer: true,
-        animName: diveInfo.anim,
-        label: diveInfo.label
-      };
-      this.keeper.startDive(this.keeperTurnState.divePlan);
-    }
-
-    // Taker AI decides target (aims away from player habit / punishes early dive)
+    // Taker AI decides target (aims away from player habit / punishes telegraphed early dive)
     const earlyZone = this.keeperTurnState.earlyDive ? this.keeperTurnState.diveZone : null;
     const takerDecision = this.takerAI.decideShot(this.difficultyConfig, earlyZone);
 
@@ -1543,29 +1514,133 @@ class GameApp {
 
     const targetPoint = takerDecision.targetPoint || takerDecision.target;
     const launch = pointToLaunch(targetPoint, takerDecision.speed, takerDecision.curve, TUNING);
-
     const sim = simulate(launch, 1 / 120, 1.8, TUNING);
-    const saveCheck = checkSave(sim, this.keeperTurnState.divePlan, TUNING);
 
-    this.ball.setSpin(launch.spin);
-    this.activeShot = {
-      sim,
-      divePlan: this.keeperTurnState.divePlan,
-      saveCheck,
-      modelProbs: null,
-      trajectory: sim.trajectory,
-      crossing: sim.crossing,
-      totalPoints: sim.trajectory.length,
-      isGoal: sim.result === 'goal' && !saveCheck.saved,
-      isKeeperTurn: true
-    };
-    this.lastDecidingKick = { ...this.activeShot };
-    this.flightTime = 0;
-    this.ballCrossed = false;
-    this.ballDeflecting = false;
+    const diffKey = (this.difficultyConfig && this.difficultyConfig.key) || 'MEDIUM';
+    const windows = TUNING.keeperWindows || {};
+    const lateThreshold = (windows.lateDiveThresholdMs && windows.lateDiveThresholdMs[diffKey]) ?? 340;
+
+    if (this.keeperTurnState.playerDived && this.keeperTurnState.divePlan) {
+      // Player committed during run-up: start dive animation NOW at strike!
+      this.keeper.startDive(this.keeperTurnState.divePlan);
+      const saveCheck = checkSave(sim, this.keeperTurnState.divePlan, TUNING);
+
+      this.ball.setSpin(launch.spin);
+      this.activeShot = {
+        sim,
+        divePlan: this.keeperTurnState.divePlan,
+        saveCheck,
+        modelProbs: null,
+        trajectory: sim.trajectory,
+        crossing: sim.crossing,
+        totalPoints: sim.trajectory.length,
+        isGoal: sim.result === 'goal' && !saveCheck.saved,
+        isKeeperTurn: true
+      };
+      this.lastDecidingKick = { ...this.activeShot };
+      this.flightTime = 0;
+      this.ballCrossed = false;
+      this.ballDeflecting = false;
+    } else {
+      // Player has not committed yet: keep input enabled for the reaction window!
+      this.ball.setSpin(launch.spin);
+      this.activeShot = {
+        sim,
+        divePlan: null,
+        saveCheck: { saved: false, reason: 'pending' },
+        modelProbs: null,
+        trajectory: sim.trajectory,
+        crossing: sim.crossing,
+        totalPoints: sim.trajectory.length,
+        isGoal: sim.result === 'goal',
+        isKeeperTurn: true
+      };
+      this.lastDecidingKick = { ...this.activeShot };
+      this.flightTime = 0;
+      this.ballCrossed = false;
+      this.ballDeflecting = false;
+
+      this.input.enable();
+
+      if (this.keeperLateTimeout) clearTimeout(this.keeperLateTimeout);
+      this.keeperLateTimeout = setTimeout(() => {
+        this.keeperLateTimeout = null;
+        if (this.matchState !== 'KEEPER_BALL_FLIGHT' || this.keeperTurnState.playerDived) return;
+
+        // Default to center BM when reaction window expires with no gesture
+        const diffReachMul = (windows.playerReachMultiplier && windows.playerReachMultiplier[diffKey]) ?? (TUNING.keeper.playerReachMultiplier || 1.30);
+        const diffTolerance = (windows.saveHitTolerance && windows.saveHitTolerance[diffKey]) ?? (TUNING.keeper.saveHitTolerance || 0.20);
+        const diveInfo = DIVE_TARGETS.BM;
+
+        const defaultPlan = {
+          zone: 'BM',
+          target: { x: diveInfo.x, y: diveInfo.y },
+          reactTime: 0.24,
+          diveDuration: TUNING.keeper.diveDuration,
+          reachMultiplier: Math.max(0.75, diffReachMul * 0.70),
+          tolerance: diffTolerance,
+          saveHitTolerance: diffTolerance,
+          isPlayer: true,
+          animName: diveInfo.anim,
+          label: diveInfo.label
+        };
+
+        this.keeperTurnState.playerDived = true;
+        this.keeperTurnState.lateDive = true;
+        this.keeperTurnState.diveZone = 'BM';
+        this.keeperTurnState.divePlan = defaultPlan;
+        this.input.disable();
+
+        this.keeper.startDive(defaultPlan);
+        if (this.activeShot) {
+          const saveCheck = checkSave(this.activeShot.sim, defaultPlan, TUNING);
+          this.activeShot.divePlan = defaultPlan;
+          this.activeShot.saveCheck = saveCheck;
+          this.activeShot.isGoal = this.activeShot.sim.result === 'goal' && !saveCheck.saved;
+          this.lastDecidingKick = { ...this.activeShot };
+        }
+      }, lateThreshold);
+    }
   }
 
   _onKeeperTurnCrossing() {
+    this.ballCrossed = true;
+    if (this.keeperLateTimeout) {
+      clearTimeout(this.keeperLateTimeout);
+      this.keeperLateTimeout = null;
+    }
+    this.input.disable();
+
+    if (!this.keeperTurnState.playerDived) {
+      const diffKey = (this.difficultyConfig && this.difficultyConfig.key) || 'MEDIUM';
+      const windows = TUNING.keeperWindows || {};
+      const diffReachMul = (windows.playerReachMultiplier && windows.playerReachMultiplier[diffKey]) ?? (TUNING.keeper.playerReachMultiplier || 1.30);
+      const diffTolerance = (windows.saveHitTolerance && windows.saveHitTolerance[diffKey]) ?? (TUNING.keeper.saveHitTolerance || 0.20);
+      const diveInfo = DIVE_TARGETS.BM;
+
+      const defaultPlan = {
+        zone: 'BM',
+        target: { x: diveInfo.x, y: diveInfo.y },
+        reactTime: 0.24,
+        diveDuration: TUNING.keeper.diveDuration,
+        reachMultiplier: Math.max(0.75, diffReachMul * 0.70),
+        tolerance: diffTolerance,
+        saveHitTolerance: diffTolerance,
+        isPlayer: true,
+        animName: diveInfo.anim,
+        label: diveInfo.label
+      };
+
+      this.keeperTurnState.playerDived = true;
+      this.keeperTurnState.lateDive = true;
+      this.keeperTurnState.diveZone = 'BM';
+      this.keeperTurnState.divePlan = defaultPlan;
+      if (this.activeShot) {
+        this.activeShot.divePlan = defaultPlan;
+        this.activeShot.saveCheck = checkSave(this.activeShot.sim, defaultPlan, TUNING);
+        this.activeShot.isGoal = this.activeShot.sim.result === 'goal' && !this.activeShot.saveCheck.saved;
+      }
+    }
     this.ballCrossed = true;
     const shot = this.activeShot;
     if (!shot) return;
@@ -1745,6 +1820,14 @@ class GameApp {
   }
 
   finishMatch() {
+    if (this.keeperWhistleTimeout) {
+      clearTimeout(this.keeperWhistleTimeout);
+      this.keeperWhistleTimeout = null;
+    }
+    if (this.keeperLateTimeout) {
+      clearTimeout(this.keeperLateTimeout);
+      this.keeperLateTimeout = null;
+    }
     this.matchState = 'END';
     this.timeScale = 1.0;
     this.input.disable();

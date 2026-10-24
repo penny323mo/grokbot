@@ -135,14 +135,22 @@ async function run() {
 
   const afterTapBanner = await evaluate(`document.getElementById('turn-banner').textContent`);
   const chosenDiveZone = await evaluate(`window.BTB_GAME.keeperTurnState.diveZone`);
+  const earlyDive = await evaluate(`window.BTB_GAME.keeperTurnState.earlyDive`);
   console.log('  Banner after Tap:', afterTapBanner);
   console.log('  Chosen Dive Zone:', chosenDiveZone);
+  console.log('  Early Dive Flag:', earlyDive);
 
   if (chosenDiveZone !== 'TR') {
     throw new Error(`Expected tap at (301, 390) to choose TR zone, but got: ${chosenDiveZone}`);
   }
   if (!afterTapBanner.includes('右上')) {
     throw new Error(`Expected banner to display "右上", got: "${afterTapBanner}"`);
+  }
+  if (earlyDive !== false) {
+    throw new Error(`Expected earlyDive to be false for run-up commit on Medium, got: ${earlyDive}`);
+  }
+  if (afterTapBanner.includes('太早撲')) {
+    throw new Error(`Run-up commit should never display "太早撲" banner`);
   }
 
   await snap('02_keeper_zone_selected_TR');
@@ -244,8 +252,37 @@ async function run() {
     throw new Error('Expected CPU kick to be recorded!');
   }
 
-  // 6. Check for browser exceptions
-  console.log('7. Verifying zero browser exceptions...');
+  // 6. Test World Cup team-select modal card layout at 390px
+  console.log('7. Testing World Cup team-select cards layout at 390px...');
+  await evaluate(`
+    window.BTB_GAME.openTeamSelectModal();
+  `);
+  await new Promise(r => setTimeout(r, 400));
+  const cardData = await evaluate(`(() => {
+    const grid = document.getElementById('team-select-grid');
+    const items = grid.querySelectorAll('.team-pick-item');
+    const firstItem = items[0];
+    const nameSpan = firstItem ? firstItem.querySelector('.team-pick-name') : null;
+    const intelSpan = firstItem ? firstItem.querySelector('.team-pick-intel') : null;
+    return {
+      itemCount: items.length,
+      gridCols: window.getComputedStyle(grid).gridTemplateColumns,
+      firstItemWidth: firstItem ? firstItem.getBoundingClientRect().width : 0,
+      nameText: nameSpan ? nameSpan.textContent : '',
+      intelText: intelSpan ? intelSpan.textContent : ''
+    };
+  })()`);
+  console.log('  Team select cards metrics:', JSON.stringify(cardData));
+  if (cardData.itemCount !== 16) {
+    throw new Error(`Expected 16 team cards, got: ${cardData.itemCount}`);
+  }
+  if (cardData.firstItemWidth < 250) {
+    throw new Error(`Expected card width >= 250px on 390px viewport, got: ${cardData.firstItemWidth}`);
+  }
+  await snap('03_team_select_cards_readable');
+
+  // 7. Check for browser exceptions
+  console.log('8. Verifying zero browser exceptions...');
   console.log('  Total page exceptions:', pageErrors.length);
   if (pageErrors.length > 0) {
     throw new Error(`Encountered ${pageErrors.length} browser errors during test`);
