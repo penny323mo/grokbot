@@ -280,6 +280,29 @@ export class UnlocksManager {
     return !!this.trophies[trophyId];
   }
 
+  checkTrophies(conditions = {}) {
+    const awarded = [];
+    if (conditions.tournamentWon) {
+      if (this.awardTrophy('trophy_champ')) awarded.push('trophy_champ');
+    }
+    if (conditions.isFinalist) {
+      if (this.awardTrophy('trophy_runner_up')) awarded.push('trophy_runner_up');
+    }
+    if (conditions.isSemiFinalist) {
+      if (this.awardTrophy('trophy_third')) awarded.push('trophy_third');
+    }
+    if (typeof conditions.savesInMatch === 'number' && conditions.savesInMatch >= 3) {
+      if (this.awardTrophy('trophy_golden_glove')) awarded.push('trophy_golden_glove');
+    }
+    if (conditions.allScored) {
+      if (this.awardTrophy('trophy_dead_eye')) awarded.push('trophy_dead_eye');
+    }
+    if (conditions.lowPredictability) {
+      if (this.awardTrophy('trophy_mind_master')) awarded.push('trophy_mind_master');
+    }
+    return awarded;
+  }
+
   getTrophies() {
     return TROPHIES.map(t => ({
       ...t,

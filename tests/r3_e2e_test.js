@@ -24,13 +24,16 @@ async function run() {
   const ws = new WebSocket(pageTarget.webSocketDebuggerUrl);
   let msgId = 1;
   const pending = new Map();
+  let isTracking = false;
   const pageErrors = [];
 
   ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
     if (data.method === 'Runtime.exceptionThrown') {
-      console.error('Browser Exception:', data.params.exceptionDetails);
-      pageErrors.push(data.params.exceptionDetails);
+      if (isTracking) {
+        console.error('Browser Exception:', data.params.exceptionDetails);
+        pageErrors.push(data.params.exceptionDetails);
+      }
     }
     if (data.id && pending.has(data.id)) {
       const { resolve, reject } = pending.get(data.id);
@@ -70,7 +73,8 @@ async function run() {
   });
 
   // Reload page to start clean with cache bypass
-  pageErrors.length = 0; // Clear any stale errors before reload
+  isTracking = true;
+  pageErrors.length = 0;
   await send('Page.reload', { ignoreCache: true });
   await new Promise(r => setTimeout(r, 1500));
 
@@ -85,6 +89,7 @@ async function run() {
   // 2. Test Team Selection & Tournament Screen
   console.log('2. Testing Team Selection & Tournament Screen...');
   await evaluate(`
+    window.BTB_GAME.tournament.reset();
     document.getElementById('btn-start-tournament').click();
   `);
   await new Promise(r => setTimeout(r, 400));

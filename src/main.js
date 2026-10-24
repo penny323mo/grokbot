@@ -558,23 +558,23 @@ class GameApp {
     }
 
     // Determine kit colors
-    let pKit = { jersey: '#e53935', shorts: '#ffffff', socks: '#e53935', gloves: '#ff1744' };
-    let oppKit = { jersey: '#1e88e5', shorts: '#0d47a1', socks: '#1e88e5', gloves: '#00e5ff' };
+    let pKit = { primary: '#e53935', shorts: '#ffffff', socks: '#e53935', secondary: '#ff1744' };
+    let oppKit = { primary: '#1e88e5', shorts: '#0d47a1', socks: '#1e88e5', secondary: '#00e5ff' };
 
     if (this.matchMode === 'TOURNAMENT' && this.tournament.isActive()) {
       const pTeam = this.tournament.getPlayerTeam();
       const oppTeam = this.tournament.getOpponentTeam();
-      if (pTeam && pTeam.kitColors) pKit = pTeam.kitColors;
-      if (oppTeam && oppTeam.kitColors) oppKit = oppTeam.kitColors;
+      if (pTeam && pTeam.colors) pKit = pTeam.colors;
+      if (oppTeam && oppTeam.colors) oppKit = oppTeam.colors;
     } else {
       const kitItem = UNLOCK_CATALOG.kits.find(k => k.id === equipped.kit);
       if (kitItem && kitItem.colors) {
-        pKit = kitItem.colors;
+        pKit = { primary: kitItem.colors.jersey, shorts: kitItem.colors.shorts, socks: kitItem.colors.socks, secondary: kitItem.colors.gloves };
       }
     }
 
     if (this.stadium) {
-      this.stadium.updateCrowdTeamColors(pKit.jersey, oppKit.jersey);
+      this.stadium.updateCrowdTeamColors(pKit.primary, oppKit.primary);
     }
 
     // In player turn (player shooting): Keeper is opponent, Striker is player
@@ -606,13 +606,16 @@ class GameApp {
       const card = document.createElement('div');
       card.className = `team-pick-item ${team.id === this.selectedTeamForModal ? 'selected' : ''}`;
       card.dataset.teamId = team.id;
+      const keeperName = team.keeper ? team.keeper.name : '鋼門';
+      const takerName = team.taker ? team.taker.name : '射手';
+      const tag = team.code || team.id;
       card.innerHTML = `
         <div class="team-pick-flag">${team.flag}</div>
         <div class="team-pick-name">${team.name}</div>
-        <div class="team-pick-tag">${team.styleTag}</div>
+        <div class="team-pick-tag">${tag}</div>
         <div class="team-pick-intel">
-          <span>🧤 ${team.keeperPersonality.name}</span>
-          <span>⚽ ${team.takerPersonality.name}</span>
+          <span>🧤 ${keeperName}</span>
+          <span>⚽ ${takerName}</span>
         </div>
       `;
       card.addEventListener('click', () => {
@@ -666,13 +669,14 @@ class GameApp {
     if (oppTeam) {
       if (this.dom.tourneyOppFlag) this.dom.tourneyOppFlag.textContent = oppTeam.flag;
       if (this.dom.tourneyOppName) this.dom.tourneyOppName.textContent = oppTeam.name;
-      if (this.dom.tourneyOppKeeper) this.dom.tourneyOppKeeper.textContent = oppTeam.keeperPersonality.name;
-      if (this.dom.tourneyOppKeeperDesc) this.dom.tourneyOppKeeperDesc.textContent = oppTeam.keeperPersonality.desc;
-      if (this.dom.tourneyOppTaker) this.dom.tourneyOppTaker.textContent = oppTeam.takerPersonality.name;
-      if (this.dom.tourneyOppTakerDesc) this.dom.tourneyOppTakerDesc.textContent = oppTeam.takerPersonality.desc;
+      if (this.dom.tourneyOppKeeper) this.dom.tourneyOppKeeper.textContent = oppTeam.keeper ? oppTeam.keeper.name : '門將';
+      if (this.dom.tourneyOppKeeperDesc) this.dom.tourneyOppKeeperDesc.textContent = oppTeam.keeper ? oppTeam.keeper.desc : '';
+      if (this.dom.tourneyOppTaker) this.dom.tourneyOppTaker.textContent = oppTeam.taker ? oppTeam.taker.name : '射手';
+      if (this.dom.tourneyOppTakerDesc) this.dom.tourneyOppTakerDesc.textContent = oppTeam.taker ? oppTeam.taker.desc : '';
       if (this.dom.tourneyDifficultyBadge && currentMatch) {
+        const diff = this.tournament.getCurrentDifficulty();
         const diffLabels = { EASY: '簡單 (EASY)', MEDIUM: '標準 (MEDIUM)', HARD: '困難 (HARD)', HELL: '地獄 (HELL)' };
-        this.dom.tourneyDifficultyBadge.textContent = diffLabels[currentMatch.difficulty] || currentMatch.difficulty;
+        this.dom.tourneyDifficultyBadge.textContent = diffLabels[diff] || diff;
       }
     }
 
@@ -683,12 +687,13 @@ class GameApp {
       roundMatches.forEach((m) => {
         const item = document.createElement('div');
         const isPlayerMatch = (m.id === currentMatch?.id) || (m.teamA?.id === pTeam?.id || m.teamB?.id === pTeam?.id);
-        item.className = `bracket-match-row ${isPlayerMatch ? 'player-match' : ''} ${m.completed ? 'done' : ''}`;
+        const isDone = m.winner !== null;
+        item.className = `bracket-match-row ${isPlayerMatch ? 'player-match' : ''} ${isDone ? 'done' : ''}`;
 
-        const scoreA = m.completed ? m.scoreA : '-';
-        const scoreB = m.completed ? m.scoreB : '-';
-        const winA = m.completed && m.winnerId === m.teamA?.id;
-        const winB = m.completed && m.winnerId === m.teamB?.id;
+        const scoreA = isDone ? m.scoreA : '-';
+        const scoreB = isDone ? m.scoreB : '-';
+        const winA = isDone && m.winner?.id === m.teamA?.id;
+        const winB = isDone && m.winner?.id === m.teamB?.id;
 
         item.innerHTML = `
           <div class="bm-team ${winA ? 'winner' : ''}">
@@ -715,7 +720,7 @@ class GameApp {
       } else if (isElim) {
         this.dom.btnTourneyStartMatch.textContent = '❌ 已出局（點擊下方重置）';
         this.dom.btnTourneyStartMatch.disabled = true;
-      } else if (currentMatch && currentMatch.completed) {
+      } else if (currentMatch && currentMatch.winner !== null) {
         this.dom.btnTourneyStartMatch.textContent = `晉級下一輪 (${this.tournament.getNextRoundName()})`;
         this.dom.btnTourneyStartMatch.disabled = false;
         this.dom.btnTourneyStartMatch.onclick = () => {
@@ -1099,10 +1104,10 @@ class GameApp {
     let divePlan = decide(modelProbs, this.difficultyConfig, TUNING);
 
     // Opponent keeper personality in tournament
-    if (this.matchMode === 'TOURNAMENT' && this.activeOpponentTeam?.keeperPersonality) {
-      const kp = this.activeOpponentTeam.keeperPersonality;
-      if (typeof kp.reactionBonus === 'number') {
-        divePlan.reactTime = Math.max(0.04, divePlan.reactTime + kp.reactionBonus);
+    if (this.matchMode === 'TOURNAMENT' && this.activeOpponentTeam?.keeper) {
+      const kp = this.activeOpponentTeam.keeper;
+      if (typeof kp.reactBonus === 'number') {
+        divePlan.reactTime = Math.max(0.04, divePlan.reactTime + kp.reactBonus);
       }
       if (typeof kp.reachBonus === 'number') {
         divePlan.reachMultiplier = (divePlan.reachMultiplier || 1.0) * (1.0 + kp.reachBonus);
@@ -1426,13 +1431,10 @@ class GameApp {
     const takerDecision = this.takerAI.decideShot(this.difficultyConfig, earlyZone);
 
     // Striker personality modifiers in tournament
-    if (this.matchMode === 'TOURNAMENT' && this.activeOpponentTeam?.takerPersonality) {
-      const tp = this.activeOpponentTeam.takerPersonality;
-      if (typeof tp.speedMultiplier === 'number') {
-        takerDecision.speed *= tp.speedMultiplier;
-      }
-      if (typeof tp.curveMultiplier === 'number') {
-        takerDecision.curve *= tp.curveMultiplier;
+    if (this.matchMode === 'TOURNAMENT' && this.activeOpponentTeam?.taker) {
+      const tp = this.activeOpponentTeam.taker;
+      if (typeof tp.speedBonus === 'number') {
+        takerDecision.speed += tp.speedBonus;
       }
     }
 
