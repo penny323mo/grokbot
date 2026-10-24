@@ -19,3 +19,6 @@ Repo: https://github.com/penny323mo/penalty-mind-game
 - 截圖 screenshots/v2/r2-*.png。自動比賽期間有一個 JS error（reading 'x'），交咗畀 grok 追。
 - grok round 2 verdict：**NOT READY**（龍門模式一射就 crash、撲邊永遠係中下、難度冇實際影響、重播唔係真重播等）。見 reviews/grok-v2-r2.md。
 - agy 修正後我再驗：自動比賽 0 個 JS error，攻守輪流一路去到 2-0；新增 match_integration test；8 套 tests 全過（65 項）。截圖已更新 r2-*.png。
+## Round 3 — 世界盃 + 解鎖 + 分享
+- agy 完成：src/tournament.js（16 隊淘汰賽）、unlocks.js（星星/解鎖）、share.js（分享卡）、坐低嘅觀眾。10 套 tests 全過。
+- 我驗到嘅問題（交咗 grok）：單場模式撥極都射唔出（回歸 bug）；撳「世界盃淘汰賽」冇反應；headless fps 跌咗。
