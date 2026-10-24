@@ -63,6 +63,11 @@ export class TakerAIModel {
     this.diveHistory.push(zone);
   }
 
+  // Alias for backward compatibility
+  recordDive(zone) {
+    this.recordPlayerDive(zone);
+  }
+
   /**
    * Compute probability distribution of where the player goalkeeper will dive next.
    * @returns {Object} { probabilities: { TL, TM, ... }, predictedDive: string }
@@ -196,6 +201,7 @@ export class TakerAIModel {
     return {
       targetZone,
       targetPoint: { x: targetX, y: targetY },
+      target: { x: targetX, y: targetY },
       speed,
       curve,
       earlyPunished,

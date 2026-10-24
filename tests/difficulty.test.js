@@ -7,6 +7,7 @@ const assert = require('assert');
 
 (async () => {
   const { DIFFICULTY_TIERS, getDifficultyConfig, DEFAULT_DIFFICULTY } = await import('../src/difficulty.js');
+  const { decide } = await import('../src/keeperAI.js');
 
   let passedTests = 0;
   let totalTests = 0;
@@ -63,6 +64,17 @@ const assert = require('assert');
     assert.strictEqual(getDifficultyConfig('MEDIUM').gazeHint, false);
     assert.strictEqual(getDifficultyConfig('HARD').gazeHint, true);
     assert.strictEqual(getDifficultyConfig('HELL').gazeHint, true);
+  });
+
+  test('keeperAI.decide directly consumes difficulty config keeperReactTime and scales reach', () => {
+    const dummyProbs = { probabilities: { TL: 0.16, TM: 0.17, TR: 0.17, BL: 0.16, BM: 0.17, BR: 0.17 } };
+    const hellPlan = decide(dummyProbs, getDifficultyConfig('HELL'));
+    assert.strictEqual(hellPlan.reactTime, 0.11, 'Hell reactTime must be 0.11s');
+    assert(hellPlan.reachMultiplier > 1.15, 'Hell reach multiplier should be scaled above 1.15');
+
+    const easyPlan = decide(dummyProbs, getDifficultyConfig('EASY'));
+    assert.strictEqual(easyPlan.reactTime, 0.22, 'Easy reactTime must be 0.22s');
+    assert(easyPlan.reachMultiplier < 0.95, 'Easy reach multiplier should be scaled below 0.95');
   });
 
   if (passedTests === totalTests) {

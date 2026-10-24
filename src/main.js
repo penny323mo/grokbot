@@ -12,7 +12,7 @@ import { Ball3D } from './ball.js';
 import { Taker3D } from './taker.js';
 import { FXManager } from './fx.js';
 import { SwipeInput } from './input.js';
-import { swipeToLaunch, simulate, getZoneFromPoint } from './shot.js';
+import { swipeToLaunch, simulate, getZoneFromPoint, pointToLaunch } from './shot.js';
 import { decide, checkSave, DIVE_TARGETS } from './keeperAI.js';
 import { TakerAIModel } from './takerAI.js';
 import { DIFFICULTY, getDifficultyConfig, saveDifficulty, loadDifficulty } from './difficulty.js';
@@ -374,13 +374,58 @@ class GameApp {
       this.dom.replayOverlay.style.display = 'flex';
     }
 
+    // Retrieve replay snapshot of deciding kick
+    const replayShot = this.lastDecidingKick || this.activeShot;
+
+    // Rewind ball & keeper poses for replay
+    this.ball.reset();
+    this.keeper.reset();
+    this.keeper.setReady();
+
+    if (replayShot && replayShot.divePlan) {
+      this.keeper.startDive(replayShot.divePlan);
+    }
+
+    if (replayShot && replayShot.isKeeperTurn) {
+      if (this.taker) {
+        this.taker.showReady();
+        this.taker.root.position.copy(this.taker.strikePos);
+        this.taker.state = 'strike';
+      }
+    } else {
+      if (this.taker) this.taker.hide();
+    }
+
+    if (replayShot) {
+      this.activeShot = {
+        sim: replayShot.sim,
+        divePlan: replayShot.divePlan,
+        saveCheck: replayShot.saveCheck,
+        modelProbs: replayShot.modelProbs,
+        trajectory: replayShot.trajectory,
+        crossing: replayShot.crossing,
+        totalPoints: replayShot.totalPoints,
+        isGoal: replayShot.isGoal,
+        isKeeperTurn: replayShot.isKeeperTurn,
+        deflectPos: replayShot.deflectPos ? { ...replayShot.deflectPos } : null,
+        deflectVel: replayShot.deflectVel ? { ...replayShot.deflectVel } : null
+      };
+      if (replayShot.sim && replayShot.sim.launch) {
+        this.ball.setSpin(replayShot.sim.launch.spin || { x: 0, y: 0, z: 0 });
+      }
+    }
+
+    this.flightTime = 0;
+    this.ballCrossed = false;
+    this.ballDeflecting = false;
+
     let done = false;
     const endReplay = () => {
       if (done) return;
       done = true;
       this.isReplaying = false;
       this.timeScale = 1.0;
-      this.stadium.setCameraMode('MAIN');
+      this.stadium.setCameraMode(this.isKeeperTurn ? 'KEEPER' : 'MAIN');
       if (this.dom.replayOverlay) {
         this.dom.replayOverlay.style.display = 'none';
       }
@@ -391,7 +436,7 @@ class GameApp {
       this.dom.btnSkipReplay.onclick = () => endReplay();
     }
 
-    const dur = (TUNING.replay && TUNING.replay.durationMs) || 2600;
+    const dur = (TUNING.replay && TUNING.replay.durationMs) || 3200;
     setTimeout(endReplay, dur);
   }
 
@@ -419,6 +464,7 @@ class GameApp {
   startPlayerTurn() {
     this.matchState = 'PLAYER_TURN';
     this.isKeeperTurn = false;
+    this.stadium.setCameraMode('MAIN');
     this.timeScale = 1.0;
     this.ballCrossed = false;
     this.ballDeflecting = false;
@@ -506,6 +552,7 @@ class GameApp {
       trajectory: sim.trajectory,
       crossing: sim.crossing,
       totalPoints: sim.trajectory.length,
+      isGoal: sim.result === 'goal' && !saveCheck.saved,
       isKeeperTurn: false
     };
     this.flightTime = 0;
@@ -517,6 +564,7 @@ class GameApp {
     this.ballCrossed = true;
     const shot = this.activeShot;
     if (!shot) return;
+    this.lastDecidingKick = { ...shot };
 
     const { sim, divePlan, saveCheck, modelProbs } = shot;
     let scored = false;
@@ -647,6 +695,7 @@ class GameApp {
   startKeeperTurn() {
     this.matchState = 'KEEPER_TURN';
     this.isKeeperTurn = true;
+    this.stadium.setCameraMode('KEEPER');
     this.timeScale = 1.0;
     this.ballCrossed = false;
     this.ballDeflecting = false;
@@ -719,15 +768,15 @@ class GameApp {
   _onPlayerKeeperSwipe(launch) {
     if (this.matchState !== 'KEEPER_TURN' || this.keeperTurnState.playerDived) return;
 
-    // Determine target dive zone from player swipe
-    const isLeft = launch.vx < -0.6;
-    const isRight = launch.vx > 0.6;
-    const isHigh = (launch.targetY > 1.3) || (launch.vy > 1.2);
+    // Determine target dive zone from player swipe using target point or velocity
+    const targetX = (launch.target && typeof launch.target.x === 'number')
+      ? launch.target.x
+      : (launch.velocity ? launch.velocity.x * 0.45 : 0);
+    const targetY = (launch.target && typeof launch.target.y === 'number')
+      ? launch.target.y
+      : (launch.velocity ? Math.max(0.2, launch.velocity.y * 0.4) : 0.8);
 
-    let zone = 'BM';
-    if (isLeft) zone = isHigh ? 'TL' : 'BL';
-    else if (isRight) zone = isHigh ? 'TR' : 'BR';
-    else zone = isHigh ? 'TM' : 'BM';
+    const zone = getZoneFromPoint(targetX, targetY, TUNING);
 
     const now = performance.now();
     const strikeTime = this.keeperTurnState.strikeTime || (now + 500);
@@ -798,21 +847,8 @@ class GameApp {
     const earlyZone = this.keeperTurnState.earlyDive ? this.keeperTurnState.diveZone : null;
     const takerDecision = this.takerAI.decideShot(this.difficultyConfig, earlyZone);
 
-    // Launch ball along physics trajectory toward taker's target
-    const targetX = takerDecision.target.x;
-    const targetY = takerDecision.target.y;
-    const launchSpeed = takerDecision.speed;
-    const curve = takerDecision.curve;
-
-    const launch = {
-      vx: (targetX / 11.0) * launchSpeed * 0.95,
-      vy: Math.max(0.5, (targetY / 11.0) * launchSpeed * 0.95 - 0.5 * TUNING.ball.gravity * (11.0 / launchSpeed)),
-      speed: launchSpeed,
-      spin: { x: 0, y: curve, z: 0 },
-      power: launchSpeed / 32.0,
-      targetX,
-      targetY
-    };
+    const targetPoint = takerDecision.targetPoint || takerDecision.target;
+    const launch = pointToLaunch(targetPoint, takerDecision.speed, takerDecision.curve, TUNING);
 
     const sim = simulate(launch, 1 / 120, 1.8, TUNING);
     const saveCheck = checkSave(sim, this.keeperTurnState.divePlan, TUNING);
@@ -826,8 +862,10 @@ class GameApp {
       trajectory: sim.trajectory,
       crossing: sim.crossing,
       totalPoints: sim.trajectory.length,
+      isGoal: sim.result === 'goal' && !saveCheck.saved,
       isKeeperTurn: true
     };
+    this.lastDecidingKick = { ...this.activeShot };
     this.flightTime = 0;
     this.ballCrossed = false;
     this.ballDeflecting = false;
@@ -837,6 +875,7 @@ class GameApp {
     this.ballCrossed = true;
     const shot = this.activeShot;
     if (!shot) return;
+    this.lastDecidingKick = { ...shot };
 
     const { sim, saveCheck } = shot;
     let scored = false;
@@ -904,16 +943,25 @@ class GameApp {
     // 1. Record player dive into Taker AI memory
     const actualDiveZone = this.keeperTurnState.diveZone || 'BM';
     if (this.takerAI) {
-      this.takerAI.recordDive(actualDiveZone);
+      this.takerAI.recordPlayerDive(actualDiveZone);
     }
 
-    // 2. In-scene 3D reveal
+    // 2. In-scene 3D reveal: dive habits & crossing marker
     const diveProbs = this.takerAI ? this.takerAI.getDiveProbabilities() : null;
+    const diveTarget = (this.keeperTurnState.divePlan && this.keeperTurnState.divePlan.target)
+      ? this.keeperTurnState.divePlan.target
+      : { x: this.keeper.root.position.x, y: 1.15 };
     this.fx.showMindReadingReveal(
-      diveProbs ? { probabilities: diveProbs } : null,
+      diveProbs,
       sim.crossing,
-      this.keeper.getKeeperReachPosition()
+      diveTarget
     );
+
+    const probPct = diveProbs && diveProbs.probabilities
+      ? Math.round((diveProbs.probabilities[actualDiveZone] || 0.16) * 100)
+      : 35;
+    const zoneName = (this.model && this.model.zoneLabels[actualDiveZone]) || actualDiveZone;
+    this._showMindRevealPill(`你撲向：${zoneName}（電腦讀取撲救慣性）`);
 
     // 3. Record CPU kick & update HUD
     this.cpuKicks.push({ scored });
@@ -1185,8 +1233,8 @@ class GameApp {
     const deltaSec = rawDelta * this.timeScale;
     const timeSec = timestamp / 1000;
 
-    // 1. Update Ball Trajectory Flight (Player Shot or Keeper Mode CPU Shot)
-    if (this.activeShot && (this.matchState === 'BALL_FLIGHT' || this.matchState === 'KEEPER_BALL_FLIGHT')) {
+    // 1. Update Ball Trajectory Flight (Player Shot or Keeper Mode CPU Shot or Replay)
+    if (this.activeShot && (this.matchState === 'BALL_FLIGHT' || this.matchState === 'KEEPER_BALL_FLIGHT' || this.isReplaying)) {
       this.flightTime += deltaSec;
       const sim = this.activeShot.sim;
       const totalPts = this.activeShot.totalPoints;
@@ -1206,10 +1254,30 @@ class GameApp {
 
       // Check Crossing moment
       if (!this.ballCrossed && this.flightTime >= tCrossing) {
-        if (this.activeShot.isKeeperTurn) {
-          this._onKeeperTurnCrossing();
+        this.ballCrossed = true;
+        if (!this.isReplaying) {
+          if (this.activeShot.isKeeperTurn) {
+            this._onKeeperTurnCrossing();
+          } else {
+            this._onPlayerShotCrossing();
+          }
         } else {
-          this._onPlayerShotCrossing();
+          if (this.activeShot.isGoal) {
+            this.stadium.deformNet(sim.crossing.x, sim.crossing.y);
+          } else if (this.activeShot.saveCheck && this.activeShot.saveCheck.saved) {
+            if (this.activeShot.saveCheck.saveType === 'catch') {
+              this.activeShot.deflectPos = { ...this.activeShot.saveCheck.contactPoint };
+              this.activeShot.deflectVel = { vx: 0, vy: 0, vz: 0 };
+            } else {
+              this.ballDeflecting = true;
+              this.deflectPos = { ...this.activeShot.saveCheck.contactPoint };
+              this.deflectVel = {
+                vx: (Math.random() - 0.5) * 4.0,
+                vy: 2.5,
+                vz: 6.0
+              };
+            }
+          }
         }
       }
 

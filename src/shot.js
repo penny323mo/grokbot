@@ -136,6 +136,50 @@ export function swipeToLaunch(points, viewport, tuning = TUNING) {
 }
 
 /**
+ * Convert a target point, launch speed, and curve into a simulate-compatible launch object.
+ * Used for AI shots (e.g. CPU taker during keeper mode) and programmatic trajectory simulations.
+ * @param {Object} targetPoint - { x, y } target at goal plane Z=0
+ * @param {number} speed - launch speed in m/s
+ * @param {number} [curve=0] - lateral curve parameter [-1, 1]
+ * @param {Object} [tuning=TUNING]
+ * @returns {Object} { position, velocity, spin, power, speed, target, curve }
+ */
+export function pointToLaunch(targetPoint, speed, curve = 0, tuning = TUNING) {
+  const startX = 0;
+  const startY = tuning.ball.radius;
+  const startZ = tuning.goal.spotDistance; // 11.0m
+
+  const targetX = targetPoint.x;
+  const targetY = Math.max(0.2, targetPoint.y);
+
+  const distZ = startZ;
+  const tFlight = distZ / speed;
+
+  // Ballistic compensation for gravity: vy0 * t + 0.5 * g * t^2 = targetY - startY
+  const vy = (targetY - startY - 0.5 * tuning.ball.gravity * tFlight * tFlight) / tFlight;
+
+  // Lateral spin and Magnus compensation
+  const spinY = curve * tuning.swipe.maxSpin;
+  const estimatedMagnusDeflectionX = 0.5 * (tuning.ball.magnusCoeff * spinY * speed) * tFlight * tFlight;
+  const vx = (targetX - startX - estimatedMagnusDeflectionX) / tFlight;
+  const vz = -distZ / tFlight;
+
+  // Scale to exact desired speed
+  const currentSpeed = Math.hypot(vx, vy, vz) || speed;
+  const scale = speed / currentSpeed;
+
+  return {
+    position: { x: startX, y: startY, z: startZ },
+    velocity: { x: vx * scale, y: vy * scale, z: vz * scale },
+    spin: { x: 0, y: spinY, z: 0 },
+    power: Math.min(1.0, speed / tuning.swipe.maxLaunchSpeed),
+    speed,
+    target: { x: targetX, y: targetY },
+    curve
+  };
+}
+
+/**
  * Determine which 6-zone (TL, TM, TR, BL, BM, BR) a goal crossing point belongs to.
  * @param {number} x - Crossing X coordinate
  * @param {number} y - Crossing Y coordinate
@@ -169,7 +213,7 @@ export function simulate(launch, dt = 1 / 120, maxTime = 1.6, tuning = TUNING) {
   let vy = launch.velocity.y;
   let vz = launch.velocity.z;
 
-  const spinY = launch.spin.y;
+  const spinY = (launch.spin && typeof launch.spin.y === 'number') ? launch.spin.y : 0;
   const rBall = tuning.ball.radius;
   const rPost = tuning.goal.postRadius;
   const goalHalfW = tuning.goal.width / 2; // 3.66m

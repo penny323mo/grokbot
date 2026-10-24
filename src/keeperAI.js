@@ -42,9 +42,15 @@ export function decide(modelProbs, difficulty = 0.5, tuning = TUNING) {
   let reachMultiplier = 1.0;
 
   if (typeof difficulty === 'object' && difficulty !== null) {
-    customReact = difficulty.reactionDelay;
+    customReact = (difficulty.keeperReactTime !== undefined)
+      ? difficulty.keeperReactTime
+      : (difficulty.reactionDelay !== undefined ? difficulty.reactionDelay : null);
     predictorWeight = difficulty.predictorWeight || 0.85;
-    reachMultiplier = difficulty.reachMultiplier || 1.0;
+    if (difficulty.keeperReach !== undefined && tuning && tuning.keeper && tuning.keeper.gloveReachRadius) {
+      reachMultiplier = difficulty.keeperReach / tuning.keeper.gloveReachRadius;
+    } else {
+      reachMultiplier = difficulty.reachMultiplier || 1.0;
+    }
   } else if (typeof difficulty === 'number') {
     diffFactor = difficulty;
   }

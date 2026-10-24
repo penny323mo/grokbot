@@ -6,8 +6,10 @@
 const assert = require('assert');
 
 (async () => {
-  const { swipeToLaunch, simulate, getZoneFromPoint } = await import('../src/shot.js');
+  const { swipeToLaunch, pointToLaunch, simulate, getZoneFromPoint } = await import('../src/shot.js');
   const { TUNING } = await import('../src/tuning.js');
+  const { TakerAIModel } = await import('../src/takerAI.js');
+  const { getDifficultyConfig } = await import('../src/difficulty.js');
 
   let passedTests = 0;
   let totalTests = 0;
@@ -151,6 +153,26 @@ const assert = require('assert');
     assert(pointsBehindNet.length > 5, 'Trajectory should continue into the net past Z = 0');
     const deepestPoint = pointsBehindNet[pointsBehindNet.length - 1];
     assert(deepestPoint.z <= -0.4, `Deepest trajectory point (${deepestPoint.z}m) must be behind goal line`);
+  });
+
+  test('pointToLaunch with takerAI.decideShot produces valid simulate trajectory without throwing', () => {
+    const takerAI = new TakerAIModel();
+    const diff = getDifficultyConfig('MEDIUM');
+    const decision = takerAI.decideShot(diff, null);
+
+    assert(decision.targetPoint && typeof decision.targetPoint.x === 'number');
+    assert(decision.target && typeof decision.target.x === 'number');
+
+    const cpuLaunch = pointToLaunch(decision.targetPoint, decision.speed, decision.curve, TUNING);
+    assert(cpuLaunch.position && cpuLaunch.velocity);
+    assert(typeof cpuLaunch.position.x === 'number');
+    assert(typeof cpuLaunch.velocity.x === 'number');
+
+    const sim = simulate(cpuLaunch, 1 / 120, 1.6, TUNING);
+    assert(sim.trajectory.length > 20, 'Trajectory must have steps');
+    assert(sim.crossing !== null, 'Ball must cross goal plane');
+    assert(typeof sim.crossing.x === 'number');
+    assert(typeof sim.crossing.y === 'number');
   });
 
   if (passedTests === totalTests) {

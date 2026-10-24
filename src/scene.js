@@ -20,8 +20,10 @@ export class StadiumScene {
     this.netDeformTarget = null;
     this.netDeformTime = 0;
 
-    this.crowdInstances = null;
+    this.crowdTorsoInstances = null;
+    this.crowdHeadInstances = null;
     this.crowdBaseY = [];
+    this.crowdBaseHeadY = [];
     this.crowdPhase = [];
     this.crowdCount = 0;
 
@@ -32,8 +34,12 @@ export class StadiumScene {
     this.baseCameraPos = new THREE.Vector3(0, 1.85, 15.6);
     this.lookTarget = new THREE.Vector3(0, 1.15, 2.5);
 
+    // Keeper Camera: Behind-the-striker view showing full goal, keeper, and human-sized striker
+    this.keeperCameraPos = new THREE.Vector3(0, 2.35, 18.2);
+    this.keeperLookTarget = new THREE.Vector3(0, 1.15, 1.0);
+
     // Replay Camera: Side broadcast TV angle
-    this.cameraMode = 'MAIN'; // 'MAIN' | 'REPLAY'
+    this.cameraMode = 'MAIN'; // 'MAIN' | 'KEEPER' | 'REPLAY'
     this.replayCameraPos = new THREE.Vector3(5.8, 1.8, 4.2);
     this.replayLookTarget = new THREE.Vector3(0, 1.2, 0.5);
 
@@ -341,7 +347,9 @@ export class StadiumScene {
   }
 
   setCameraMode(mode) {
-    this.cameraMode = mode === 'REPLAY' ? 'REPLAY' : 'MAIN';
+    if (mode === 'REPLAY') this.cameraMode = 'REPLAY';
+    else if (mode === 'KEEPER') this.cameraMode = 'KEEPER';
+    else this.cameraMode = 'MAIN';
   }
 
   _buildStadiumStands() {
@@ -466,55 +474,90 @@ export class StadiumScene {
   }
 
   _buildCrowd() {
-    // 260 instanced animated crowd spectator billboards on the stepped terraces
+    // 260 seated 3D spectators (torso box + head box with desaturated kit colours on concrete terraces)
     const crowdCount = 260;
     this.crowdCount = crowdCount;
-    const crowdGeo = new THREE.PlaneGeometry(0.55, 0.85);
 
-    const colors = [
-      new THREE.Color(0xd90429), // Red
-      new THREE.Color(0x0077b6), // Blue
-      new THREE.Color(0xffb703), // Yellow
-      new THREE.Color(0xffffff), // White
-      new THREE.Color(0x00e5ff), // Cyan
-      new THREE.Color(0xa855f7)  // Purple
+    const torsoGeo = new THREE.BoxGeometry(0.38, 0.44, 0.28);
+    const headGeo = new THREE.BoxGeometry(0.20, 0.22, 0.20);
+
+    // Realistic match crowd desaturated team & fan kit colours
+    const kitColors = [
+      new THREE.Color(0x1e3a5f), // Navy
+      new THREE.Color(0x334155), // Slate
+      new THREE.Color(0x7f1d1d), // Burgundy / Dark Red
+      new THREE.Color(0x14532d), // Dark Forest Green
+      new THREE.Color(0x1f2937), // Charcoal
+      new THREE.Color(0x92400e), // Muted Ochre / Amber
+      new THREE.Color(0x0f766e), // Dark Teal
+      new THREE.Color(0xd1d5db), // Light Warm Grey
+      new THREE.Color(0x475569)  // Medium Slate
     ];
 
-    const crowdMat = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
-      side: THREE.DoubleSide
+    const skinHairColors = [
+      new THREE.Color(0x271c19), // Dark brown / black hair
+      new THREE.Color(0x1c1917), // Black hair
+      new THREE.Color(0x4a2c11), // Brown hair
+      new THREE.Color(0xffd1a4), // Light skin
+      new THREE.Color(0xd49b6a), // Tan skin
+      new THREE.Color(0x6b4f3b)  // Medium brown hair
+    ];
+
+    const torsoMat = new THREE.MeshStandardMaterial({
+      roughness: 0.85,
+      metalness: 0.05
+    });
+    const headMat = new THREE.MeshStandardMaterial({
+      roughness: 0.75,
+      metalness: 0.0
     });
 
-    this.crowdInstances = new THREE.InstancedMesh(crowdGeo, crowdMat, crowdCount);
-    const dummy = new THREE.Object3D();
+    this.crowdTorsoInstances = new THREE.InstancedMesh(torsoGeo, torsoMat, crowdCount);
+    this.crowdHeadInstances = new THREE.InstancedMesh(headGeo, headMat, crowdCount);
+
+    const dummyTorso = new THREE.Object3D();
+    const dummyHead = new THREE.Object3D();
 
     for (let i = 0; i < crowdCount; i++) {
-      // 10 stepped rows on open terraces: rows 0-9 rise from y=2.45m up to y=10.1m
-      // All rows sit clearly above the goal crossbar (y=2.44m) and in front of the rear wall
+      // 10 stepped rows on open terraces: rows 0-9
       const row = Math.floor(i / 26);
       const col = i % 26;
 
-      const x = (col - 12.5) * 1.5 + (Math.random() - 0.5) * 0.35;
-      const y = 2.45 + row * 0.85 + Math.random() * 0.15;
-      const z = -6.2 - row * 0.75 + (Math.random() - 0.5) * 0.2;
+      // Concrete tread height: stepY = 0.425 + row * 0.85; treadTop = stepY + 0.425 = 0.85 + row * 0.85;
+      const treadTop = 0.85 + row * 0.85;
+      const stepZ = -6.2 - row * 0.75;
 
-      dummy.position.set(x, y, z);
-      dummy.rotation.x = -0.12;
-      dummy.updateMatrix();
+      const x = (col - 12.5) * 1.45 + (Math.random() - 0.5) * 0.25;
+      const torsoY = treadTop + 0.22;
+      const headY = treadTop + 0.44 + 0.11;
+      const z = stepZ + 0.12 + (Math.random() - 0.5) * 0.08;
 
-      this.crowdInstances.setMatrixAt(i, dummy.matrix);
-      const colObj = colors[Math.floor(Math.random() * colors.length)];
-      this.crowdInstances.setColorAt(i, colObj);
+      dummyTorso.position.set(x, torsoY, z);
+      dummyTorso.updateMatrix();
+      this.crowdTorsoInstances.setMatrixAt(i, dummyTorso.matrix);
 
-      this.crowdBaseY.push(y);
+      dummyHead.position.set(x, headY, z);
+      dummyHead.updateMatrix();
+      this.crowdHeadInstances.setMatrixAt(i, dummyHead.matrix);
+
+      const kitCol = kitColors[Math.floor(Math.random() * kitColors.length)];
+      this.crowdTorsoInstances.setColorAt(i, kitCol);
+
+      const headCol = skinHairColors[Math.floor(Math.random() * skinHairColors.length)];
+      this.crowdHeadInstances.setColorAt(i, headCol);
+
+      this.crowdBaseY.push(torsoY);
+      this.crowdBaseHeadY.push(headY);
       this.crowdPhase.push(Math.random() * Math.PI * 2);
     }
 
-    this.crowdInstances.instanceMatrix.needsUpdate = true;
-    if (this.crowdInstances.instanceColor) {
-      this.crowdInstances.instanceColor.needsUpdate = true;
-    }
-    this.scene.add(this.crowdInstances);
+    this.crowdTorsoInstances.instanceMatrix.needsUpdate = true;
+    if (this.crowdTorsoInstances.instanceColor) this.crowdTorsoInstances.instanceColor.needsUpdate = true;
+    this.scene.add(this.crowdTorsoInstances);
+
+    this.crowdHeadInstances.instanceMatrix.needsUpdate = true;
+    if (this.crowdHeadInstances.instanceColor) this.crowdHeadInstances.instanceColor.needsUpdate = true;
+    this.scene.add(this.crowdHeadInstances);
   }
 
   _buildFloodlights() {
@@ -622,7 +665,7 @@ export class StadiumScene {
    * Composes idle sway, screen shake, and camera punch-in in ONE unified step.
    */
   update(timeSec, deltaSec, ballPos, keeperPos, fx = null) {
-    // 1. Camera positioning (Main behind-spot view vs Replay side broadcast view)
+    // 1. Camera positioning (Main behind-spot view vs Keeper view vs Replay side broadcast view)
     let camPos;
     let target;
 
@@ -632,6 +675,24 @@ export class StadiumScene {
       camPos.x += repSway;
       camPos.y += Math.cos(timeSec * 0.5) * 0.03;
       target = this.replayLookTarget.clone();
+    } else if (this.cameraMode === 'KEEPER') {
+      const swayX = Math.sin(timeSec * 0.75) * 0.025;
+      const swayY = Math.cos(timeSec * 0.95) * 0.015;
+
+      camPos = this.keeperCameraPos.clone();
+      camPos.x += swayX;
+      camPos.y += swayY;
+
+      if (fx && fx.getShakeOffset) {
+        camPos.add(fx.getShakeOffset());
+      }
+      if (fx && fx.getPunchOffset) {
+        camPos.add(fx.getPunchOffset());
+      }
+      target = this.keeperLookTarget.clone();
+      if (fx && fx.getLookAtOffset) {
+        target.add(fx.getLookAtOffset());
+      }
     } else {
       const swayX = Math.sin(timeSec * 0.75) * 0.03;
       const swayY = Math.cos(timeSec * 0.95) * 0.02;
@@ -661,18 +722,27 @@ export class StadiumScene {
       this.adTexture.offset.x = (this.adTexture.offset.x + deltaSec * 0.04) % 1.0;
     }
 
-    // 2. Animate crowd bobbing
-    if (this.crowdInstances) {
-      const dummy = new THREE.Object3D();
+    // 2. Animate crowd bobbing (seated 3D spectators)
+    if (this.crowdTorsoInstances && this.crowdHeadInstances) {
+      const dummyT = new THREE.Object3D();
+      const dummyH = new THREE.Object3D();
       for (let i = 0; i < this.crowdCount; i++) {
-        this.crowdInstances.getMatrixAt(i, dummy.matrix);
-        dummy.matrix.decompose(dummy.position, dummy.quaternion, dummy.scale);
+        const bob = Math.sin(timeSec * 4.5 + this.crowdPhase[i]) * 0.035;
 
-        dummy.position.y = this.crowdBaseY[i] + Math.sin(timeSec * 4.5 + this.crowdPhase[i]) * 0.06;
-        dummy.updateMatrix();
-        this.crowdInstances.setMatrixAt(i, dummy.matrix);
+        this.crowdTorsoInstances.getMatrixAt(i, dummyT.matrix);
+        dummyT.matrix.decompose(dummyT.position, dummyT.quaternion, dummyT.scale);
+        dummyT.position.y = this.crowdBaseY[i] + bob;
+        dummyT.updateMatrix();
+        this.crowdTorsoInstances.setMatrixAt(i, dummyT.matrix);
+
+        this.crowdHeadInstances.getMatrixAt(i, dummyH.matrix);
+        dummyH.matrix.decompose(dummyH.position, dummyH.quaternion, dummyH.scale);
+        dummyH.position.y = this.crowdBaseHeadY[i] + bob;
+        dummyH.updateMatrix();
+        this.crowdHeadInstances.setMatrixAt(i, dummyH.matrix);
       }
-      this.crowdInstances.instanceMatrix.needsUpdate = true;
+      this.crowdTorsoInstances.instanceMatrix.needsUpdate = true;
+      this.crowdHeadInstances.instanceMatrix.needsUpdate = true;
     }
 
     // 3. Update Blob Shadows

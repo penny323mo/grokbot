@@ -14,7 +14,7 @@ async function main() {
   // 1. Get page targets from CDP
   const listRes = await fetch('http://127.0.0.1:9222/json');
   const targets = await listRes.json();
-  const pageTarget = targets.find(t => t.type === 'page' && t.url.includes('8089'));
+  const pageTarget = targets.find(t => t.type === 'page' && (t.url.includes('8765') || t.title.includes('12碼讀心戰') || t.url.includes('8089')));
 
   if (!pageTarget) {
     throw new Error('Could not find active game page in Chrome targets');
@@ -26,9 +26,14 @@ async function main() {
   const ws = new WebSocket(wsUrl);
   let msgId = 1;
   const pending = new Map();
+  const caughtErrors = [];
 
   ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
+    if (data.method === 'Runtime.exceptionThrown') {
+      console.error('PAGE ERROR EXCEPTION:', data.params.exceptionDetails);
+      caughtErrors.push(data.params.exceptionDetails);
+    }
     if (data.id && pending.has(data.id)) {
       const { resolve, reject } = pending.get(data.id);
       pending.delete(data.id);
@@ -46,6 +51,8 @@ async function main() {
       ws.send(JSON.stringify({ id, method, params }));
     });
   }
+
+  await send('Runtime.enable');
 
   async function evaluate(expression) {
     const res = await send('Runtime.evaluate', {
@@ -123,10 +130,9 @@ async function main() {
   // Simulate player swiping to dive top-right
   await evaluate(`
     window.BTB_GAME._onPlayerKeeperSwipe({
-      vx: 1.6,
-      vy: 1.8,
-      speed: 24.0,
-      targetY: 1.8
+      target: { x: 2.2, y: 1.8 },
+      velocity: { x: 1.6, y: 1.8, z: 0 },
+      speed: 24.0
     });
   `);
   await new Promise(r => setTimeout(r, 700));
@@ -138,7 +144,7 @@ async function main() {
   await evaluate(`
     window.BTB_GAME.triggerDecidingReplay();
   `);
-  await new Promise(r => setTimeout(r, 500));
+  await new Promise(r => setTimeout(r, 600));
 
   // Screenshot 6: Slow-motion Replay Broadcast Angle
   await takeScreenshot('r2-06-replay-broadcast.png');
@@ -154,7 +160,11 @@ async function main() {
   // Screenshot 7: End Screen
   await takeScreenshot('r2-07-end-screen.png');
 
-  console.log('✅ All 7 Round 2 screenshots captured and verified successfully!');
+  if (caughtErrors.length > 0) {
+    throw new Error('Caught ' + caughtErrors.length + ' page errors during screenshot capture: ' + JSON.stringify(caughtErrors));
+  }
+
+  console.log('✅ All 7 Round 2 screenshots captured and verified successfully with 0 PAGEERROR!');
   ws.close();
   process.exit(0);
 }

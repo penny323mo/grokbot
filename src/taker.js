@@ -28,8 +28,8 @@ export class Taker3D {
     this.hasStruck = false;
 
     // Positions:
-    // Ball is at (0, r, 11.0). Taker starts run-up ~2.8m behind ball, slightly angled
-    this.startPos = new THREE.Vector3(-0.65, 0, 13.8);
+    // Ball is at (0, r, 11.0). Taker starts run-up ~3.2m behind ball, angled for clear goal view
+    this.startPos = new THREE.Vector3(-0.65, 0, 14.2);
     this.strikePos = new THREE.Vector3(-0.25, 0, 11.18);
 
     this.init();
