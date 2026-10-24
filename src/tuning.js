@@ -20,7 +20,7 @@ export const TUNING = {
   },
 
   ball: {
-    radius: 0.11,        // Size 5 football radius ~11 cm
+    radius: 0.135,       // Enlarged size 5 football radius ~13.5 cm for clear mobile readability
     mass: 0.43,          // ~430 grams
     dragCoeff: 0.25,     // Aerodynamic quadratic drag coefficient
     airDensity: 1.225,   // kg/m^3
@@ -66,5 +66,18 @@ export const TUNING = {
 
   audio: {
     masterVolume: 0.85
+  },
+
+  replay: {
+    slowMoScale: 0.25,
+    durationMs: 2600,
+    cameraPos: { x: 5.8, y: 1.8, z: 4.2 },
+    lookAt: { x: 0, y: 1.2, z: 0.5 }
+  },
+
+  taker: {
+    runUpDurationMs: 850,
+    earlyDiveThresholdMs: 250, // Dive > 250ms before strike is treated as early
+    lateDiveThresholdMs: 220   // Dive > 220ms after strike is penalized in reach
   }
 };
