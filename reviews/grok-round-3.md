@@ -1,0 +1,1 @@
+I'll review the game against SPEC.md and the source files, then write findings only to `reviews/grok-round-3.md`.
