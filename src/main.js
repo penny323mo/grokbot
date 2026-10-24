@@ -149,6 +149,9 @@ class GameApp {
       (launch) => this.onPlayerShoot(launch),
       (aimPoints) => this.fx.updateAimAssist(aimPoints)
     );
+    this.input.setRaycastFn((sx, sy, vp) => {
+      return this.stadium ? this.stadium.screenToGoalPlane(sx, sy, vp) : null;
+    });
 
     // 10. Bind UI Handlers
     this._bindEvents();
@@ -278,19 +281,6 @@ class GameApp {
   }
 
   _bindEvents() {
-    // Prevent iOS double-tap zoom
-    let lastTouchTime = 0;
-    document.addEventListener('touchend', (e) => {
-      const now = performance.now();
-      if (now - lastTouchTime <= 300) {
-        e.preventDefault();
-      }
-      lastTouchTime = now;
-    }, { passive: false });
-    document.addEventListener('dblclick', (e) => {
-      e.preventDefault();
-    }, { passive: false });
-
     // Sound unlock on first touch
     const unlockSoundOnce = () => {
       sound.unlock();

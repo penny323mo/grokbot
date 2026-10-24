@@ -202,9 +202,15 @@ export function getZoneFromPoint(x, y, tuning = TUNING) {
  * @param {Object} [tuning=TUNING]
  * @returns {string} One of 'TL', 'TM', 'TR', 'BL', 'BM', 'BR'
  */
-export function mapTapToZone(point, viewport, tuning = TUNING) {
+export function mapTapToZone(point, viewport, tuning = TUNING, unprojectHit = null) {
   if (!point || !viewport) return 'BM';
 
+  // 1. Raycast projection onto goal plane z = 0 (exact 3D binning with 3D zone meshes)
+  if (unprojectHit && typeof unprojectHit.x === 'number' && typeof unprojectHit.y === 'number') {
+    return getZoneFromPoint(unprojectHit.x, unprojectHit.y, tuning);
+  }
+
+  // 2. Calibrated 2D screen viewport partition fallback (for off-target taps or pure Node test env)
   const w = viewport.width || 390;
   const h = viewport.height || 844;
 
@@ -256,7 +262,7 @@ export function mapSwipeToZone(dx, dy, tuning = TUNING) {
  * @param {Object} [tuning=TUNING]
  * @returns {{zone: string, type: 'tap'|'swipe', dist: number, dx: number, dy: number}}
  */
-export function resolveKeeperInput(gesture, viewport, tuning = TUNING) {
+export function resolveKeeperInput(gesture, viewport, tuning = TUNING, unprojectHit = null) {
   if (!gesture || !gesture.start) {
     return { zone: 'BM', type: 'tap', dist: 0, dx: 0, dy: 0 };
   }
@@ -273,7 +279,7 @@ export function resolveKeeperInput(gesture, viewport, tuning = TUNING) {
     const zone = mapSwipeToZone(dx, dy, tuning);
     return { zone, type: 'swipe', dist, dx, dy };
   } else {
-    const zone = mapTapToZone(p0, viewport, tuning);
+    const zone = mapTapToZone(p0, viewport, tuning, unprojectHit);
     return { zone, type: 'tap', dist, dx, dy };
   }
 }

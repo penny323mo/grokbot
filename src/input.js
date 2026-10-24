@@ -16,6 +16,7 @@ export class SwipeInput {
     this.mode = 'STRIKER'; // 'STRIKER' | 'KEEPER'
     this.onKeeperPreview = null;
     this.onKeeperDive = null;
+    this.raycastFn = null;
 
     this.isDragging = false;
     this.points = [];
@@ -80,6 +81,10 @@ export class SwipeInput {
     this.mode = mode || 'STRIKER';
   }
 
+  setRaycastFn(fn) {
+    this.raycastFn = typeof fn === 'function' ? fn : null;
+  }
+
   // --- Unified Core Swipe Processing ---
 
   _startSwipe(clientX, clientY) {
@@ -94,9 +99,10 @@ export class SwipeInput {
       this.isDragging = true;
       this.points = [{ x, y, t: performance.now() }];
       const viewport = { width: rect.width, height: rect.height };
-      const zone = mapTapToZone({ x, y }, viewport, TUNING);
+      const unprojectHit = this.raycastFn ? this.raycastFn(x, y, viewport) : null;
+      const zone = mapTapToZone({ x, y }, viewport, TUNING, unprojectHit);
       if (this.onKeeperPreview) {
-        this.onKeeperPreview(zone, { x, y, type: 'tap' });
+        this.onKeeperPreview(zone, { x, y, type: 'tap', unprojectHit });
       }
       return;
     }
@@ -125,7 +131,8 @@ export class SwipeInput {
       if (this.onKeeperPreview && this.points.length >= 2) {
         const viewport = { width: rect.width, height: rect.height };
         const p0 = this.points[0];
-        const res = resolveKeeperInput({ start: p0, end: { x, y } }, viewport, TUNING);
+        const unprojectHit = this.raycastFn ? this.raycastFn(x, y, viewport) : null;
+        const res = resolveKeeperInput({ start: p0, end: { x, y } }, viewport, TUNING, unprojectHit);
         this.onKeeperPreview(res.zone, res);
       }
       return;
@@ -159,7 +166,8 @@ export class SwipeInput {
 
     if (this.mode === 'KEEPER') {
       const p0 = this.points[0] || { x, y };
-      const res = resolveKeeperInput({ start: p0, end: { x, y } }, viewport, TUNING);
+      const unprojectHit = this.raycastFn ? this.raycastFn(p0.x, p0.y, viewport) : null;
+      const res = resolveKeeperInput({ start: p0, end: { x, y } }, viewport, TUNING, unprojectHit);
       this.enabled = false;
       this.points = [];
       if (this.onKeeperDive) {
