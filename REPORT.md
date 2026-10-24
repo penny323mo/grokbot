@@ -17,3 +17,5 @@ Repo: https://github.com/penny323mo/penalty-mind-game
 - agy 完成：龍門模式（射手助跑、撥手指撲）、takerAI 學你撲邊、門將假動作同 20+ 句廣東話寸人、3D 場內讀心熱圖、慢鏡重播、易/中/難/地獄、看台同廣告板。
 - Node tests 全過：difficulty 3、input 3、keeperAI 6、model 14、shot 6、takerAI 4、taunts 22。
 - 截圖 screenshots/v2/r2-*.png。自動比賽期間有一個 JS error（reading 'x'），交咗畀 grok 追。
+- grok round 2 verdict：**NOT READY**（龍門模式一射就 crash、撲邊永遠係中下、難度冇實際影響、重播唔係真重播等）。見 reviews/grok-v2-r2.md。
+- agy 修正後我再驗：自動比賽 0 個 JS error，攻守輪流一路去到 2-0；新增 match_integration test；8 套 tests 全過（65 項）。截圖已更新 r2-*.png。

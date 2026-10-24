@@ -79,11 +79,9 @@ Following the grok Round 1 code review (`reviews/grok-v2-r1.md`), all CRITICAL, 
 
 ---
 
-## v1 Archive (Legacy Prototype)
+## v1 Archive (Legacy 2D Prototype)
 
-### Round 1 fixes (v1)
-
-Following the code review in `reviews/grok-round-1.md`, all CRITICAL and MAJOR issues, and sensible MINOR issues have been addressed:
+Historical changelog for the initial 2D tap-a-grid prototype (prior to the v2 3D WebGL rewrite):
 
 ### 1. CRITICAL Fixes
 - **Tied probabilities fair sampling & prediction (Review #1)**:
@@ -294,4 +292,63 @@ Full implementation of ROUND 2 ("Both sides + mind games") from `UPGRADE_PLAN.md
   - `tests/takerAI.test.js` (4 / 4 pass)
   - `tests/taunts.test.js` (22 / 22 pass)
 - Added `tests/capture_r2_screenshots.js` validating the complete end-to-end flow via Chrome DevTools Protocol at 390×844 resolution, generating 7 verified screenshots (`screenshots/v2/r2-01` through `r2-07`).
+
+---
+
+## v2 Round 2 fixes
+
+Following the code review in `reviews/grok-v2-r2.md`, all CRITICAL and MAJOR issues and sensible MINOR issues have been completely addressed:
+
+### 1. CRITICAL Fixes
+- **CPU Taker Target Property Access (CRITICAL #1)**:
+  - Fixed property mismatch in `src/main.js` (`_onCpuTakerStrike` was accessing `takerDecision.target.x`).
+  - Updated to read `takerDecision.targetPoint || takerDecision.target`.
+  - Added `target: targetPoint` alias in `src/takerAI.js` `decideShot()` to guarantee backward and forward compatibility.
+- **Simulate-Compatible Launch for CPU Strike (CRITICAL #2)**:
+  - Replaced manual raw velocity object with `pointToLaunch(targetPoint, speed, curve, tuning)` in `src/shot.js` and `src/main.js`.
+  - Computes exact ballistic launch velocity compensating for gravity, aerodynamic quadratic drag, and Magnus curve.
+  - Added unit test in `tests/shot.test.js` verifying that `simulate(pointToLaunch(...))` runs without throwing and reaches the goal plane.
+- **Taker AI Dive Recording Method (CRITICAL #3)**:
+  - Corrected method call in `src/main.js` from `this.takerAI.recordDive` to `this.takerAI.recordPlayerDive(actualDiveZone)`.
+  - Added `recordDive` alias in `src/takerAI.js` to prevent any runtime exceptions if called under either name.
+
+### 2. MAJOR Fixes
+- **Keeper-Mode Swipe Zone Mapping (MAJOR #4)**:
+  - In `src/main.js` `_onPlayerKeeperSwipe`, replaced invalid property lookups (`launch.vx`, `launch.targetY`) with `launch.target` coordinates and `getZoneFromPoint(targetX, targetY, TUNING)`.
+  - Player swipes now accurately and reliably map to all 6 goal zones (`TL`, `TM`, `TR`, `BL`, `BM`, `BR`).
+- **Difficulty Scaling Alignment for Keeper AI (MAJOR #5)**:
+  - In `src/keeperAI.js` `decide()`, aligned parameter lookup to consume `difficulty.keeperReactTime ?? difficulty.reactionDelay ?? null` and `reachMultiplier = difficulty.keeperReach / tuning.keeper.gloveReachRadius`.
+  - Added alias mappings in `src/difficulty.js` across all 4 tiers (`EASY`, `MEDIUM`, `HARD`, `HELL`).
+  - Added test in `tests/difficulty.test.js` verifying `decide(probs, getDifficultyConfig('HELL')).reactTime === 0.11`.
+- **Dedicated Keeper-Turn Camera Rig (MAJOR #6 & MINOR #11)**:
+  - In `src/scene.js`, added `'KEEPER'` camera mode with `keeperCameraPos = (0, 2.35, 18.2)` and `keeperLookTarget = (0, 1.15, 1.0)`.
+  - In `startKeeperTurn()`, camera switches to `'KEEPER'`; in `startPlayerTurn()`, camera switches to `'MAIN'`.
+  - Moved striker run-up starting position to `(-0.65, 0, 14.2)` in `src/taker.js` (≥3.2m behind spot and ≥4.0m in front of camera), framing the entire goal, goalkeeper, and human-sized striker without obstruction.
+- **Seated 3D Spectators on Stepped Terraces (MAJOR #7)**:
+  - Replaced flat billboard planes with 260 true 3D seated spectators (articulated torso box `0.38×0.44×0.28m` + head box `0.20×0.22×0.20m`) sitting directly on the concrete steps.
+  - Desaturated realistic stadium kit colors (navy, slate, burgundy, forest green, warm amber, charcoal) and skin/hair tones.
+  - Synchronized torso and head crowd cheering bobbing in `src/scene.js`.
+- **In-Scene Mind-Reading Reveal Unwrapping (MAJOR #8)**:
+  - In `src/main.js` `_onKeeperTurnCrossing`, passed `diveProbs` directly without re-wrapping as `{ probabilities: diveProbs }`.
+  - Passed 2D goal-mouth glove reach coordinates `{ x, y }` to `this.fx.showMindReadingReveal` instead of the 3D root group.
+  - Added HUD reveal pill in keeper mode displaying player's dive habit recognition.
+- **Deciding Kick Slow-Motion Replay (MAJOR #9)**:
+  - In `src/main.js` `triggerDecidingReplay()`, stashed the deciding kick snapshot (`trajectory`, `sim`, `divePlan`, `saveCheck`, `isGoal`, `isKeeperTurn`).
+  - Rewinds ball and keeper poses to $t=0$, resets trajectory clock, and replays the actual trajectory at 0.25x slow motion from the side broadcast camera.
+  - User can watch the replay or click 「跳過 →」 (`btn-skip-replay`) to immediately transition to the end screen.
+
+### 3. Verification & Testing
+- **Integration Test Suite**: Created `tests/match_integration.test.js` running 5-round shootouts across all difficulty tiers (`EASY`, `MEDIUM`, `HARD`, `HELL`) and verifying early dive punishment.
+- **Browser CDP End-to-End Suite**: Created `tests/full_match_e2e.js` simulating a live 5+5 shootout in headless Chrome at iPhone 390×844 resolution, confirming 0 PAGEERROR, proper turn alternations, and valid end-screen display.
+- **Updated Screenshots**: Re-captured all 7 reference screenshots (`screenshots/v2/r2-01` through `r2-07`) at 390×844 @ 2x.
+- **Test Pass Count**: Total 8 test suites and 65 tests passing 100% green:
+  - `tests/model.test.js` (14/14)
+  - `tests/shot.test.js` (7/7)
+  - `tests/keeperAI.test.js` (6/6)
+  - `tests/input.test.js` (3/3)
+  - `tests/difficulty.test.js` (4/4)
+  - `tests/takerAI.test.js` (4/4)
+  - `tests/taunts.test.js` (22/22)
+  - `tests/match_integration.test.js` (5/5)
+
 

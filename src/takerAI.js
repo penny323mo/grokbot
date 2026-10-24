@@ -22,12 +22,12 @@ export const TAKER_TARGETS = {
 
 // Opposite zones for punishing premature early keeper dives
 const OPPOSITE_ZONES = {
-  TL: ['TR', 'BR', 'BL'],
+  TL: ['TR', 'BR'],
   TM: ['BL', 'BR'],
-  TR: ['TL', 'BL', 'BR'],
-  BL: ['TR', 'BR', 'TL'],
+  TR: ['TL', 'BL'],
+  BL: ['TR', 'BR'],
   BM: ['TL', 'TR'],
-  BR: ['TL', 'BL', 'TR']
+  BR: ['TL', 'BL']
 };
 
 export class TakerAIModel {
