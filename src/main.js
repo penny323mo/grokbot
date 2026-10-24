@@ -622,10 +622,14 @@ class GameApp {
         this.selectedTeamForModal = team.id;
         const allItems = this.dom.teamSelectGrid.querySelectorAll('.team-pick-item');
         allItems.forEach(i => i.classList.toggle('selected', i.dataset.teamId === team.id));
+        if (this.dom.btnConfirmTeam) this.dom.btnConfirmTeam.disabled = false;
       });
       this.dom.teamSelectGrid.appendChild(card);
     });
 
+    if (this.dom.btnConfirmTeam) {
+      this.dom.btnConfirmTeam.disabled = !this.selectedTeamForModal;
+    }
     this.dom.modalTeamSelect.classList.add('active');
   }
 
