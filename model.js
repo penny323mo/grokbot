@@ -424,20 +424,66 @@ class PenaltyMindModel {
   }
 
   /**
-   * Predictability Score (可預測度): 0 - 100%
-   * Evaluated from 1 - H(next | last) / log2(6) based on the sequence/bigrams the keeper learns.
-   * Falls back to marginal entropy if conditional history is unavailable.
+   * Predictability Score (可預測度): 0 - 100% (or null if totalShots < 8)
+   * Evaluated from normalised conditional entropy with Laplace smoothing over bigram transitions.
+   * Returns null if totalShots < 8 (insufficient sample size to determine habits).
    * 0% = Uniform / completely unpredictable
    * 100% = Totally predictable (pure repeated or alternating pattern)
-   * @returns {number} Integer between 0 and 100
+   * @returns {number|null} Integer between 0 and 100, or null if < 8 shots
    */
   getPredictabilityScore() {
-    if (this.totalShots === 0) return 0;
-    const maxEntropy = Math.log2(this.zones.length);
-    const entropy = this.getConditionalEntropy();
-    const normalizedEntropy = Math.min(1, Math.max(0, entropy / maxEntropy));
-    const score = (1 - normalizedEntropy) * 100;
-    return Math.round(Math.min(100, Math.max(0, score)));
+    if (this.totalShots < 8) return null;
+    const K = this.zones.length;
+    const maxEntropy = Math.log2(K);
+
+    let totalTransitions = 0;
+    for (const fromZ of this.zones) {
+      const row = this.bigrams[fromZ];
+      if (row) {
+        for (const toZ of this.zones) totalTransitions += (row[toZ] || 0);
+      }
+    }
+    if (totalTransitions === 0) return 0;
+
+    const alpha = 1;
+    function minEntropyForN(N) {
+      if (N <= 0) return maxEntropy;
+      const denom = N + K * alpha;
+      const p1 = (N + alpha) / denom;
+      const pOther = alpha / denom;
+      let h = - p1 * Math.log2(p1);
+      if (pOther > 0) {
+        h -= (K - 1) * pOther * Math.log2(pOther);
+      }
+      return h;
+    }
+
+    let weightedPred = 0;
+    for (const fromZ of this.zones) {
+      const row = this.bigrams[fromZ];
+      if (!row) continue;
+      let rowCount = 0;
+      for (const toZ of this.zones) rowCount += (row[toZ] || 0);
+      if (rowCount === 0) continue;
+
+      if (rowCount < 3) {
+        // Fewer than 3 transitions from this zone is statistically insufficient to infer a predictable habit
+        continue;
+      }
+
+      const denom = rowCount + K * alpha;
+      let H = 0;
+      for (const toZ of this.zones) {
+        const count = row[toZ] || 0;
+        const p = (count + alpha) / denom;
+        H -= p * Math.log2(p);
+      }
+      const minH = minEntropyForN(rowCount);
+      const rowPred = maxEntropy > minH ? (maxEntropy - H) / (maxEntropy - minH) : 0;
+      weightedPred += (rowCount / totalTransitions) * rowPred;
+    }
+
+    return Math.round(Math.min(100, Math.max(0, weightedPred * 100)));
   }
 
   /**
@@ -445,6 +491,9 @@ class PenaltyMindModel {
    */
   getPredictabilityRating(score = null) {
     const s = score !== null ? score : this.getPredictabilityScore();
+    if (s === null) {
+      return { tag: '數據不足', desc: '射門次數太少（需至少8次），未足以分析習慣。' };
+    }
     if (s >= 85) return { tag: '極易捉路 · 習慣定型', desc: '門將已經完全摸清你嘅射門套路！' };
     if (s >= 65) return { tag: '明顯偏好 · 露出破綻', desc: '你有幾招慣常射法，好容易被門將捉到。' };
     if (s >= 40) return { tag: '飄忽不定 · 偶有規律', desc: '有時會試新位，但偶爾仍會暴露習慣。' };

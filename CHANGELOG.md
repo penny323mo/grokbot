@@ -1,5 +1,49 @@
 # Changelog
 
+## v2 Round 1
+
+Comprehensive upgrade from 2D tap-a-grid prototype to an authentic 3D mobile penalty shootout game per UPGRADE_PLAN.md:
+
+### 1. 3D Stadium & Three.js Architecture
+- **Vendored Three.js**: Pinned Three.js r160 into `vendor/three.module.min.js` (655 KB), loaded via native `<script type="importmap">` without any external CDN dependencies or build step.
+- **3D Stadium Scene (`src/scene.js`)**: Procedural pitch with alternating mowing stripes and regulation markings, goal frame (7.32m × 2.44m) with depth net, 260 instanced animated crowd spectators bobbing in stands, night sky fog, floodlights, and blob shadow decals.
+- **Dynamic Net Deformation**: Procedural net displacement upon goal impact with realistic backward bulge and quadratic time decay.
+
+### 2. Swipe Shooting Physics (`src/shot.js`)
+- **Continuous Gesture Mapping**: Mapped touch and mouse swipe vectors to continuous goal space target coordinates.
+- **Ballistic Physics & Magnus Curve**: Implemented 120 Hz fixed-step numerical integration with quadratic aerodynamic drag and lateral Magnus spin acceleration derived from swipe curvature.
+- **Power & Overpower Lift**: Swipe speed scaled to 18–32 m/s; overpowered swipes (> 0.92 power) introduce vertical lift that can soar over the crossbar.
+- **Turf Bounce & Frame Collision**: Integrated turf bounce physics and restitution rebound off posts and crossbar.
+
+### 3. Procedural Articulated Goalkeeper & Reach Volume Saves (`src/keeper.js`, `src/keeperAI.js`)
+- **Joint Hierarchy & State Machine**: Humanoid goalkeeper with articulated joints and keyframe animations (`idle`, `set`, `dive_TL/TR/BL/BR`, `jump_TM`, `stay_BM`, `celebrate`, `concede`).
+- **Deterministic Reach-Volume Collision**: Saves are determined geometrically by sphere-vs-capsule intersection of the ball and goalkeeper reach volume at the goal line—not by random dice rolls.
+- **Parry vs Catch**: High-speed shots (> 22 m/s) result in glove parry rebounds, while moderate-speed shots within close reach are caught.
+- **Unstoppable Top-Corner Rule**: High-speed blasts (> 28 m/s) into the extreme corner beat even a correctly diving goalkeeper.
+
+### 4. Audio Engine & Visual Juice (`src/audio.js`, `src/fx.js`)
+- **WebAudio Synthesis**: Synthesized kick bass thuds, referee whistles, net swish noise bursts, metallic post clangs, glove impact saves, and continuous stadium crowd chatter with goal roar swells.
+- **Audio Unlock**: Default ON after first tap with automatic context resume on first user interaction.
+- **Juice & Slow-Mo**: Camera shake on goals and frame hits, 0.3x slow-motion when ball is within 3.2m of the goal line, hit-stop on glove saves, confetti particle explosions, and in-scene 3D 讀心 heat ring.
+- **Accessibility**: Full compliance with `prefers-reduced-motion` disabling slow-mo and camera shake.
+
+### 5. Prediction Model Predictability Fix (`model.js`)
+- **Sample Size Guard**: `getPredictabilityScore()` now returns `null` and displays 「數據不足」 when `totalShots < 8`.
+- **Laplace Smoothing & Normalization**: Replaced ungrounded entropy estimates with Laplace-smoothed conditional entropy ($\alpha = 1$, `minRow = 3`), ensuring players who vary across 5 distinct zones correctly receive low predictability scores (< 30%).
+
+### 6. Mobile-First Match Experience (`src/main.js`, `index.html`, `style.css`)
+- **Sudden-Death Match Flow**: Regulation 5 kicks with early mathematical clinch detection and sudden death if tied after 5 kicks.
+- **Tutorial & Ghost Hand**: Animated swipe gesture overlay and dotted aim-assist line displayed during the first 2 kicks for new players.
+- **In-Scene Reveal**: Translucent heat ring and HUD pill displaying keeper's predicted zone and confidence percentage.
+- **Mobile Safari Optimization**: Styled specifically for iPhone Safari portrait (390×844) with `touch-action: none`, `user-scalable=no`, and 44px tap targets.
+
+### 7. Unit Tests (`tests/`)
+- `tests/model.test.js`: 14 tests passing.
+- `tests/shot.test.js`: 5 tests passing.
+- `tests/keeperAI.test.js`: 5 tests passing.
+
+---
+
 ## Round 1 fixes
 
 Following the code review in `reviews/grok-round-1.md`, all CRITICAL and MAJOR issues, and sensible MINOR issues have been addressed:

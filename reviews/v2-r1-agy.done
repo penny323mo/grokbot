@@ -1,0 +1,68 @@
+# v2 Round 1 Implementation Done
+
+## 1. Summary of Changes
+- **Vendored Three.js r160**: Pinned module cleanly vendored to `vendor/three.module.min.js` (655 KB). Loaded in `index.html` via `<script type="importmap">`. Zero external CDN or network requests at runtime; 100% offline runnable. Total runtime payload is ~790 KB, well within the 1.5 MB budget.
+- **3D Stadium Scene (`src/scene.js`)**: Built procedural 3D stadium pitch with mowing stripes, field lines, 7.32m × 2.44m goal frame with 3D deformable net (physical impact bulge that decays over 0.65s), 260 instanced animated crowd spectators bobbing in stands, night floodlights, and ground blob shadow decals for both ball and goalkeeper.
+- **3D Football & Spin (`src/ball.js`)**: Procedural classic pentagonal patch leather texture, rolling angular tumble, lateral Magnus spin, and motion trail ribbon.
+- **Swipe-to-Shoot Physics (`src/shot.js` - Pure)**: Continuous touch/pointer gesture mapping from screen space to goal plane coordinates. Normalised swipe speed to launch velocity (18–32 m/s), curve from swipe path deflection, 120 Hz numerical ballistic integration with quadratic aerodynamic drag and lateral Magnus acceleration, turf bounce, and post/crossbar deflection physics.
+- **Procedural Animated Goalkeeper (`src/keeper.js`)**: Articulated humanoid model with joint hierarchy and animation state machine (`idle`, `set`, `dive_TL/TR/BL/BR`, `jump_TM`, `stay_BM`, `celebrate`, `concede`).
+- **Deterministic Reach-Volume Save Check (`src/keeperAI.js` - Pure)**: Physical sphere-vs-capsule collision check between ball trajectory and goalkeeper body/glove reach volume at the goal line. High-speed shots (> 22 m/s) produce glove parries while moderate shots are caught. Top-corner blasts (> 28 m/s into extreme corners) beat even a correct dive.
+- **Procedural WebAudio Sound Engine (`src/audio.js`)**: Synthesized kick bass thuds, referee whistles, net swish noise bursts, metallic post clangs, glove impact saves, and continuous stadium crowd chatter with goal roar swells. Audio is default ON after first tap, unlocked on first interaction.
+- **Juice & Visual Effects (`src/fx.js`)**: Goal confetti particle explosion (160 particles), camera shake, 0.3x slow-motion when ball is within 3.2m of goal line, hit-stop on glove saves, and in-scene 3D 讀心 heat ring on the goal mouth. Full `prefers-reduced-motion` compliance.
+- **Predictability Bug Fix (`model.js`)**: `getPredictabilityScore()` returns `null` and displays 「數據不足」 when `totalShots < 8`. Computed with Laplace smoothing ($\alpha = 1$, `minRow = 3`) conditional Shannon entropy, ensuring players varying across 5 distinct zones receive low predictability (< 30%).
+- **Centralized Tuning Constants (`src/tuning.js`)**: Centralized all geometry, ball, swipe, keeper, juice, and audio constants.
+- **Mobile-First Experience (`src/main.js`, `index.html`, `style.css`)**: iPhone Safari portrait 390×844 layout (`touch-action: none`, `user-scalable=no`, 44px tap targets). Single-match shootout flow with 5 regulation kicks, early math clinch detection, and sudden death. Dynamic ghost hand tutorial overlay and aim assist arc for the first 2 kicks.
+- **Documentation & Changelog**: Updated `README.md` (Cantonese how-to-play) and `CHANGELOG.md` ("## v2 Round 1").
+
+## 2. Test Execution Results
+
+All 3 unit test suites execute and pass with zero external dependencies via Node.js v20:
+
+### Command:
+```bash
+node tests/model.test.js && node tests/shot.test.js && node tests/keeperAI.test.js
+```
+
+### Output:
+```
+--- Running PenaltyMindModel Unit Tests ---
+
+✅ PASS: Initial state: uniform-ish distribution and 0 predictability
+✅ PASS: Learns repeated pattern: after 10x always "top-left" (TL), predicts TL with highest probability
+✅ PASS: Entropy score behaves: uniform distribution has low predictability, repeated has high
+✅ PASS: Predictability score reflects sequence learning: TL/BR alternation scores high, uniform transitions stay low
+✅ PASS: Learns N-gram alternating pattern: TL -> BR -> TL -> BR
+✅ PASS: Probabilities always sum to 1.0 and are non-negative
+✅ PASS: Dive zone selection returns valid zone and respects probabilities
+✅ PASS: Heatmap and accuracy calculation
+✅ PASS: Export and import state preserves all data
+✅ PASS: Tied probabilities: fair dive sampling and no fake prediction
+✅ PASS: Draw match result and sanitization against invalid data
+✅ PASS: Sequence predictability resilience: 15x alternating TL/BR + 1 TM retains high sequence predictability
+✅ PASS: Predictability score requires >= 8 shots, returns null / 數據不足 otherwise
+✅ PASS: Five distinct varied zones yields low predictability (< 30)
+
+All 14 / 14 tests passed successfully!
+
+--- Running Shot Physics (src/shot.js) Unit Tests ---
+
+✅ PASS: Swipe straight up -> centre target and valid goal crossing
+✅ PASS: Faster swipe -> higher speed and shorter flight time
+✅ PASS: Bent swipe (right bow) -> curved lateral displacement to the right
+✅ PASS: Overpower swipe (power > 0.92) -> flies over the crossbar
+✅ PASS: Zone classification accurately bins goal points into 6 zones
+
+All 5 / 5 tests passed successfully!
+
+--- Running Keeper AI (src/keeperAI.js) Unit Tests ---
+
+✅ PASS: Decide returns valid dive plan matching predicted zone
+✅ PASS: Save succeeds when dive is correct and ball is within glove reach volume
+✅ PASS: Goal scored when keeper dives opposite to the shot direction
+✅ PASS: High-speed blast to the extreme top corner beats the keeper even on correct dive
+✅ PASS: High speed shot within reach results in parry deflection instead of catch
+
+All 5 / 5 tests passed successfully!
+```
+
+**Total: 24 / 24 tests passed.**

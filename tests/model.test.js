@@ -40,8 +40,9 @@ test('Initial state: uniform-ish distribution and 0 predictability', () => {
   }
   assert(Math.abs(sum - 1.0) < 1e-6, 'Probabilities must sum to 1.0');
 
-  // Predictability score must be 0 with no shots
-  assert.strictEqual(model.getPredictabilityScore(), 0, 'Initial predictability score should be 0');
+  // Predictability score must be null with fewer than 8 shots (insufficient data)
+  assert.strictEqual(model.getPredictabilityScore(), null, 'Initial predictability score should be null (< 8 shots)');
+  assert.strictEqual(model.getPredictabilityRating().tag, '數據不足');
   assert.strictEqual(model.totalShots, 0);
 });
 
@@ -216,7 +217,7 @@ test('Export and import state preserves all data', () => {
   restoredModel.init();
   assert.strictEqual(restoredModel.totalShots, 0);
   assert.strictEqual(restoredModel.matchesPlayed, 0);
-  assert.strictEqual(restoredModel.getPredictabilityScore(), 0);
+  assert.strictEqual(restoredModel.getPredictabilityScore(), null);
 });
 
 test('Tied probabilities: fair dive sampling and no fake prediction', () => {
@@ -275,7 +276,7 @@ test('Draw match result and sanitization against invalid data', () => {
   });
   // Should reject and reset to 0
   assert.strictEqual(corruptedModel.totalShots, 0);
-  assert.strictEqual(corruptedModel.getPredictabilityScore(), 0);
+  assert.strictEqual(corruptedModel.getPredictabilityScore(), null);
 
   // Poisoned brain with string bigrams and negative predictions
   const poisonedBlob = {
@@ -306,6 +307,43 @@ test('Sequence predictability resilience: 15x alternating TL/BR + 1 TM retains h
   model.recordShot('TM');
   const scoreAfterDeviant = model.getPredictabilityScore();
   assert(scoreAfterDeviant >= 85, `Predictability (${scoreAfterDeviant}%) should remain high (>= 85%) after 30 alternating shots and 1 deviant`);
+});
+
+test('Predictability score requires >= 8 shots, returns null / 數據不足 otherwise', () => {
+  const model = new PenaltyMindModel();
+  assert.strictEqual(model.getPredictabilityScore(), null);
+  assert.strictEqual(model.getPredictabilityRating().tag, '數據不足');
+
+  // Single shot
+  model.recordShot('TL');
+  assert.strictEqual(model.getPredictabilityScore(), null, 'Single shot must return null predictability');
+  assert.strictEqual(model.getPredictabilityRating().tag, '數據不足');
+
+  // Up to 7 shots
+  const sample = ['TM', 'TR', 'BL', 'BM', 'BR', 'TL'];
+  for (const z of sample) model.recordShot(z);
+  assert.strictEqual(model.totalShots, 7);
+  assert.strictEqual(model.getPredictabilityScore(), null, '7 shots must return null predictability');
+  assert.strictEqual(model.getPredictabilityRating().tag, '數據不足');
+
+  // 8th shot reaches threshold
+  model.recordShot('TM');
+  assert.strictEqual(model.totalShots, 8);
+  assert.notStrictEqual(model.getPredictabilityScore(), null, '8 shots should return numeric predictability score');
+  assert.notStrictEqual(model.getPredictabilityRating().tag, '數據不足');
+});
+
+test('Five distinct varied zones yields low predictability (< 30)', () => {
+  const model = new PenaltyMindModel();
+  // 10 varied shots across 5 distinct zones: TL, TM, TR, BL, BM
+  const varied = ['TL', 'TM', 'TR', 'BL', 'BM', 'TR', 'TL', 'BM', 'TM', 'BL'];
+  for (const z of varied) {
+    model.recordShot(z);
+  }
+  assert(model.totalShots >= 8);
+  const score = model.getPredictabilityScore();
+  assert(score !== null);
+  assert(score < 30, `Score for 5 distinct varied zones (${score}%) must be < 30%`);
 });
 
 if (passedTests === totalTests) {
