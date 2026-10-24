@@ -636,6 +636,66 @@ export class TournamentManager {
     return ROUND_NAMES[this.currentRoundIndex].difficulty;
   }
 
+  // --- Convenience Getters & Aliases ---
+  isActive() {
+    return !!this.active;
+  }
+
+  isComplete() {
+    return !!this.isChampion;
+  }
+
+  checkEliminated() {
+    return !!this.isEliminated;
+  }
+
+  getPlayerTeam() {
+    return this.playerTeam;
+  }
+
+  getCurrentMatch() {
+    return this.getCurrentPlayerMatch();
+  }
+
+  getOpponentTeam() {
+    const m = this.getCurrentPlayerMatch();
+    if (!m) return null;
+    return m.teamA.id === this.playerTeam?.id ? m.teamB : m.teamA;
+  }
+
+  getRound() {
+    const r = this.rounds[this.currentRoundIndex];
+    return r ? r.id : 'R16';
+  }
+
+  getRoundName() {
+    const r = this.rounds[this.currentRoundIndex];
+    return r ? r.name : '完成';
+  }
+
+  getNextRoundName() {
+    const r = this.rounds[this.currentRoundIndex + 1];
+    return r ? r.name : '世界之巔';
+  }
+
+  getMatchesForRound(roundId) {
+    const r = this.rounds.find(x => x.id === roundId) || this.rounds[this.currentRoundIndex];
+    return r ? r.matches : [];
+  }
+
+  startTournament(playerTeamId = 'HKG') {
+    return this.startNewTournament(playerTeamId);
+  }
+
+  recordPlayerMatch(playerScore, opponentScore) {
+    const won = playerScore > opponentScore;
+    return this.recordPlayerMatchResult(won, playerScore, opponentScore);
+  }
+
+  advanceRound() {
+    return true;
+  }
+
   getState() {
     return {
       active: this.active,

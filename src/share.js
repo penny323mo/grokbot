@@ -254,6 +254,11 @@ export class ShareCardManager {
     return this.canvas;
   }
 
+  renderCardToDataURL(data = {}) {
+    this.renderCard(data);
+    return this.canvas.toDataURL('image/png');
+  }
+
   /**
    * Trigger native share sheet or download fallback
    * @param {Object} matchData

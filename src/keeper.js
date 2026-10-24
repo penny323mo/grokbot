@@ -116,7 +116,7 @@ export class Goalkeeper3D {
     // Left Leg
     this.leftLeg = new THREE.Group();
     this.leftLeg.position.set(-0.16, 0.68, 0);
-    const lLegMesh = new THREE.Mesh(legGeo, skinMat);
+    const lLegMesh = new THREE.Mesh(legGeo, this.skinMat);
     lLegMesh.position.set(0, -0.32, 0);
     this.leftLeg.add(lLegMesh);
 
@@ -128,7 +128,7 @@ export class Goalkeeper3D {
     // Right Leg
     this.rightLeg = new THREE.Group();
     this.rightLeg.position.set(0.16, 0.68, 0);
-    const rLegMesh = new THREE.Mesh(legGeo, skinMat);
+    const rLegMesh = new THREE.Mesh(legGeo, this.skinMat);
     rLegMesh.position.set(0, -0.32, 0);
     this.rightLeg.add(rLegMesh);
 

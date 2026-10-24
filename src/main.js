@@ -385,7 +385,7 @@ class GameApp {
           this.openTeamSelectModal();
           return;
         }
-        if (this.tournament.isComplete() || this.tournament.isEliminated()) {
+        if (this.tournament.isComplete() || this.tournament.isEliminated) {
           return;
         }
         this.startMatch('TOURNAMENT');
@@ -634,7 +634,7 @@ class GameApp {
     const pTeam = this.tournament.getPlayerTeam();
     const oppTeam = this.tournament.getOpponentTeam();
     const currentMatch = this.tournament.getCurrentMatch();
-    const isElim = this.tournament.isEliminated();
+    const isElim = this.tournament.isEliminated;
     const isComp = this.tournament.isComplete();
 
     if (this.dom.tourneyRoundTitle) {
