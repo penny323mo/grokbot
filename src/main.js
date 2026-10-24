@@ -13,7 +13,7 @@ import { Taker3D } from './taker.js';
 import { FXManager } from './fx.js';
 import { SwipeInput } from './input.js';
 import { swipeToLaunch, simulate, getZoneFromPoint, pointToLaunch } from './shot.js';
-import { decide, checkSave, DIVE_TARGETS } from './keeperAI.js';
+import { decide, checkSave, DIVE_TARGETS, resolvePlayerKeeperDive } from './keeperAI.js';
 import { TakerAIModel } from './takerAI.js';
 import { DIFFICULTY, getDifficultyConfig, saveDifficulty, loadDifficulty } from './difficulty.js';
 import { getTaunt, computeTell } from './taunts.js';
@@ -69,6 +69,8 @@ class GameApp {
     // Keeper mode state
     this.isKeeperTurn = false;
     this.keeperTurnState = null;
+    this.keeperWhistleTimeout = null;
+    this.keeperLateTimeout = null;
 
     // Mind-game taunt state
     this.tauntTimer = null;
@@ -317,6 +319,14 @@ class GameApp {
 
     // Back to home
     const goHome = () => {
+      if (this.keeperWhistleTimeout) {
+        clearTimeout(this.keeperWhistleTimeout);
+        this.keeperWhistleTimeout = null;
+      }
+      if (this.keeperLateTimeout) {
+        clearTimeout(this.keeperLateTimeout);
+        this.keeperLateTimeout = null;
+      }
       this.switchScreen('title');
       this._updateTitleMemoryStatus();
       this.ball.reset();
@@ -625,11 +635,16 @@ class GameApp {
       const tag = team.code || team.id;
       card.innerHTML = `
         <div class="team-pick-flag">${team.flag}</div>
-        <div class="team-pick-name">${team.name}</div>
-        <div class="team-pick-tag">${tag}</div>
-        <div class="team-pick-intel">
-          <span>🧤 ${keeperName}</span>
-          <span>⚽ ${takerName}</span>
+        <div class="team-pick-main">
+          <div class="team-pick-title">
+            <span class="team-pick-name">${team.name}</span>
+            <span class="team-pick-tag">${tag}</span>
+          </div>
+          <div class="team-pick-intel">
+            <span>🧤 ${keeperName}</span>
+            <span class="team-pick-dot">•</span>
+            <span>⚽ ${takerName}</span>
+          </div>
         </div>
       `;
       card.addEventListener('click', () => {
@@ -1009,6 +1024,14 @@ class GameApp {
   // ==========================================
 
   startMatch(mode = 'QUICK') {
+    if (this.keeperWhistleTimeout) {
+      clearTimeout(this.keeperWhistleTimeout);
+      this.keeperWhistleTimeout = null;
+    }
+    if (this.keeperLateTimeout) {
+      clearTimeout(this.keeperLateTimeout);
+      this.keeperLateTimeout = null;
+    }
     this.matchMode = mode;
     this.round = 1;
     this.playerScore = 0;

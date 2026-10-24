@@ -1410,10 +1410,10 @@ body {
 
 .team-select-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
   gap: 8px;
   overflow-y: auto;
-  max-height: 52vh;
+  max-height: 54vh;
   padding-right: 4px;
 }
 
@@ -1421,10 +1421,10 @@ body {
   background: rgba(30, 41, 59, 0.7);
   border: 1.5px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-sm);
-  padding: 10px;
+  padding: 8px 12px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
   touch-action: manipulation;
@@ -1441,25 +1441,58 @@ body {
 }
 
 .team-pick-flag {
-  font-size: 1.6rem;
+  font-size: 1.8rem;
   line-height: 1;
+  flex-shrink: 0;
 }
 
-.team-pick-info {
+.team-pick-main {
   display: flex;
   flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.team-pick-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .team-pick-name {
-  font-size: 0.88rem;
+  font-size: 0.95rem;
   font-weight: 800;
   color: #fff;
+  white-space: nowrap;
 }
 
-.team-pick-style {
-  font-size: 0.70rem;
-  color: var(--accent-cyan);
+.team-pick-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  letter-spacing: 0.05em;
 }
+
+.team-pick-intel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  color: #cbd5e1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.team-pick-dot {
+  color: #64748b;
+  font-size: 0.7rem;
+}
+
 
 .team-select-actions {
   display: flex;

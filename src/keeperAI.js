@@ -219,3 +219,83 @@ export function checkSave(simResult, divePlan, tuning = TUNING) {
     reason: 'out_of_reach'
   };
 }
+
+/**
+ * Resolves player goalkeeper dive plan and timing windows based on input timestamp.
+ * On Easy and Medium, choosing a zone during the run-up is a pure commit and never an early dive.
+ * On Hard and Hell, committing > earlyThreshold ms before strike telegraphs the dive.
+ * After strike, player has a difficulty-scaled reaction window (lateDiveThresholdMs) before default to BM.
+ */
+export function resolvePlayerKeeperDive({
+  zone = 'BM',
+  now = 0,
+  strikeTime = 0,
+  runUpStarted = false,
+  hasStruck = false,
+  difficultyKey = 'MEDIUM',
+  tuning = TUNING
+} = {}) {
+  const validZone = (zone && DIVE_TARGETS[zone]) ? zone : 'BM';
+  const diveInfo = DIVE_TARGETS[validZone] || DIVE_TARGETS.BM;
+
+  const windows = tuning.keeperWindows || {};
+  const earlyThreshold = (windows.earlyDiveThresholdMs && windows.earlyDiveThresholdMs[difficultyKey]) ?? Infinity;
+  const lateThreshold = (windows.lateDiveThresholdMs && windows.lateDiveThresholdMs[difficultyKey]) ?? 340;
+  const diffReachMul = (windows.playerReachMultiplier && windows.playerReachMultiplier[difficultyKey]) ?? (tuning.keeper.playerReachMultiplier || 1.30);
+  const diffTolerance = (windows.saveHitTolerance && windows.saveHitTolerance[difficultyKey]) ?? (tuning.keeper.saveHitTolerance || 0.20);
+
+  const msBeforeStrike = strikeTime - now;
+
+  let earlyDive = false;
+  let lateDive = false;
+  let reactTime = 0.06;
+  let reachMultiplier = diffReachMul;
+
+  // CRITICAL 1: Pure commit on Easy/Medium. Never early dive penalty.
+  // On Hard/Hell: early only if run-up started and committed > earlyThreshold before strike.
+  if (difficultyKey !== 'EASY' && difficultyKey !== 'MEDIUM' && runUpStarted && msBeforeStrike > earlyThreshold) {
+    earlyDive = true;
+    reactTime = 0.02;
+    reachMultiplier = 1.0;
+  } else if (hasStruck && now > strikeTime + lateThreshold) {
+    lateDive = true;
+    reactTime = 0.24;
+    reachMultiplier = Math.max(0.75, diffReachMul * 0.70);
+  }
+
+  const divePlan = {
+    zone: validZone,
+    target: { x: diveInfo.x, y: diveInfo.y },
+    reactTime,
+    diveDuration: tuning.keeper.diveDuration,
+    reachMultiplier,
+    tolerance: diffTolerance,
+    saveHitTolerance: diffTolerance,
+    isPlayer: true,
+    animName: diveInfo.anim,
+    label: diveInfo.label
+  };
+
+  return {
+    validZone,
+    earlyDive,
+    lateDive,
+    divePlan
+  };
+}
+
+/**
+ * Functional bridge matching main.js _onPlayerKeeperDive for pure test execution.
+ */
+export function _onPlayerKeeperDive(zone, context = {}) {
+  const {
+    now = 0,
+    strikeTime = 500,
+    runUpStarted = true,
+    hasStruck = false,
+    difficultyKey = 'MEDIUM',
+    tuning = TUNING
+  } = context;
+  return resolvePlayerKeeperDive({ zone, now, strikeTime, runUpStarted, hasStruck, difficultyKey, tuning });
+}
+
