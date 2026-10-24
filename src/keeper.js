@@ -29,6 +29,7 @@ export class Goalkeeper3D {
     this.stateTime = 0;
     this.divePlan = null;
     this.diveProgress = 0;
+    this.tell = null; // { type, gazeZone }
 
     this.basePos = new THREE.Vector3(0, 0, 0.05);
 
@@ -145,6 +146,7 @@ export class Goalkeeper3D {
     this.stateTime = 0;
     this.divePlan = null;
     this.diveProgress = 0;
+    this.tell = null;
 
     this.root.position.copy(this.basePos);
     this.root.rotation.set(0, 0, 0);
@@ -164,6 +166,10 @@ export class Goalkeeper3D {
     this.reset();
     this.state = 'set';
     this.stateTime = 0;
+  }
+
+  setTell(tellData) {
+    this.tell = tellData || null;
   }
 
   startDive(divePlan) {
@@ -210,9 +216,44 @@ export class Goalkeeper3D {
       this.rightLeg.rotation.z = 0.08;
     } else if (this.state === 'set') {
       // Crouched alert set stance
+      let tellOffsetX = 0;
+      let tellTiltZ = 0;
+      let headGazeY = 0;
+      let headGazeX = -0.15;
+
+      if (this.tell) {
+        if (this.tell.type === 'lean_left') {
+          tellOffsetX = -0.22;
+          tellTiltZ = 0.12;
+        } else if (this.tell.type === 'lean_right') {
+          tellOffsetX = 0.22;
+          tellTiltZ = -0.12;
+        } else if (this.tell.type === 'shuffle_left') {
+          tellOffsetX = -0.32 + Math.sin(timeSec * 7.0) * 0.06;
+          tellTiltZ = 0.08;
+        } else if (this.tell.type === 'shuffle_right') {
+          tellOffsetX = 0.32 - Math.sin(timeSec * 7.0) * 0.06;
+          tellTiltZ = -0.08;
+        }
+
+        // Eye-line gaze hint at higher difficulty
+        if (this.tell.gazeZone) {
+          const isLeft = this.tell.gazeZone.endsWith('L');
+          const isRight = this.tell.gazeZone.endsWith('R');
+          const isTop = this.tell.gazeZone.startsWith('T');
+          if (isLeft) headGazeY = 0.28;
+          else if (isRight) headGazeY = -0.28;
+          if (isTop) headGazeX = -0.02;
+          else headGazeX = -0.25;
+        }
+      }
+
+      this.root.position.x = this.basePos.x + tellOffsetX;
       this.bodyGroup.position.y = -0.12;
       this.torso.rotation.x = 0.25;
-      this.head.rotation.x = -0.15;
+      this.torso.rotation.z = tellTiltZ;
+      this.head.rotation.x = headGazeX;
+      this.head.rotation.y = headGazeY;
 
       this.leftArm.rotation.z = 0.70;
       this.rightArm.rotation.z = -0.70;

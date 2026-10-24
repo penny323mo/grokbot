@@ -36,8 +36,11 @@ export class FXManager {
     // Aim assist dotted arc line
     this.aimAssistLine = null;
 
-    // In-scene 讀心 heat ring overlay on goal mouth
-    this.mindHeatRing = null;
+    // In-scene 3D 讀心 heat reveal across all 6 zones on the goal mouth
+    this.mindZonesGroup = null;
+    this.zoneMeshes = {}; // { TL: Mesh, TM: Mesh, ... }
+    this.shotCrossingMarker = null;
+    this.keeperReachMarker = null;
     this.mindHeatTimer = 0;
 
     this.init();
@@ -88,19 +91,107 @@ export class FXManager {
     this.aimAssistLine.visible = false;
     this.scene.add(this.aimAssistLine);
 
-    // 3. In-scene 讀心 Heat Ring on goal mouth
-    const ringGeo = new THREE.RingGeometry(0.35, 0.75, 32);
-    const ringMat = new THREE.MeshBasicMaterial({
-      color: 0xa855f7, // Purple glow
+    // 3. In-scene 3D 讀心 6-Zone Goal Mouth Overlay & Markers
+    this.mindZonesGroup = new THREE.Group();
+    this.mindZonesGroup.position.set(0, 0, 0.02);
+    this.mindZonesGroup.visible = false;
+
+    const zones = [
+      { id: 'TL', x: -2.44, y: 1.83, label: '左上' },
+      { id: 'TM', x:  0.00, y: 1.83, label: '中上' },
+      { id: 'TR', x:  2.44, y: 1.83, label: '右上' },
+      { id: 'BL', x: -2.44, y: 0.61, label: '左下' },
+      { id: 'BM', x:  0.00, y: 0.61, label: '中下' },
+      { id: 'BR', x:  2.44, y: 0.61, label: '右下' }
+    ];
+
+    const zoneW = 2.36;
+    const zoneH = 1.16;
+
+    zones.forEach(z => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 256;
+      canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+
+      // Draw initial placeholder
+      ctx.fillStyle = 'rgba(30, 27, 75, 0.5)';
+      ctx.fillRect(0, 0, 256, 128);
+      ctx.strokeStyle = 'rgba(168, 85, 247, 0.6)';
+      ctx.lineWidth = 6;
+      ctx.strokeRect(4, 4, 248, 120);
+
+      const tex = new THREE.CanvasTexture(canvas);
+      const mat = new THREE.MeshBasicMaterial({
+        map: tex,
+        transparent: true,
+        opacity: 0.85,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+
+      const planeGeo = new THREE.PlaneGeometry(zoneW, zoneH);
+      const mesh = new THREE.Mesh(planeGeo, mat);
+      mesh.position.set(z.x, z.y, 0);
+
+      this.zoneMeshes[z.id] = {
+        mesh,
+        mat,
+        canvas,
+        ctx,
+        tex,
+        label: z.label,
+        center: { x: z.x, y: z.y }
+      };
+
+      this.mindZonesGroup.add(mesh);
+    });
+
+    // 4. Actual Shot Crossing Marker (Gold glowing ring & dot)
+    const shotGroup = new THREE.Group();
+    const goldRingGeo = new THREE.RingGeometry(0.18, 0.25, 24);
+    const goldRingMat = new THREE.MeshBasicMaterial({
+      color: 0xfbbf24,
       transparent: true,
-      opacity: 0.65,
+      opacity: 0.95,
       side: THREE.DoubleSide,
       depthWrite: false
     });
-    this.mindHeatRing = new THREE.Mesh(ringGeo, ringMat);
-    this.mindHeatRing.position.set(0, 1.22, 0.02);
-    this.mindHeatRing.visible = false;
-    this.scene.add(this.mindHeatRing);
+    const goldRing = new THREE.Mesh(goldRingGeo, goldRingMat);
+
+    const goldDotGeo = new THREE.CircleGeometry(0.08, 16);
+    const goldDotMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.95,
+      depthWrite: false
+    });
+    const goldDot = new THREE.Mesh(goldDotGeo, goldDotMat);
+    shotGroup.add(goldRing);
+    shotGroup.add(goldDot);
+    shotGroup.position.set(0, 1.2, 0.035);
+    shotGroup.visible = false;
+    this.shotCrossingMarker = shotGroup;
+    this.scene.add(shotGroup);
+
+    // 5. Keeper Reach Marker (Cyan / Neon Yellow ring)
+    const reachGroup = new THREE.Group();
+    const reachRingGeo = new THREE.RingGeometry(0.32, 0.40, 24);
+    const reachMat = new THREE.MeshBasicMaterial({
+      color: 0x00e5ff,
+      transparent: true,
+      opacity: 0.90,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const reachRing = new THREE.Mesh(reachRingGeo, reachMat);
+    reachGroup.add(reachRing);
+    reachGroup.position.set(0, 1.2, 0.035);
+    reachGroup.visible = false;
+    this.keeperReachMarker = reachGroup;
+    this.scene.add(reachGroup);
+
+    this.scene.add(this.mindZonesGroup);
   }
 
   triggerShake(intensity = TUNING.juice.shakeIntensity, durationMs = TUNING.juice.shakeDurationMs) {
@@ -145,13 +236,71 @@ export class FXManager {
     });
   }
 
+  showMindReadingReveal(modelProbs, crossingPoint, keeperReachPoint) {
+    if (!this.mindZonesGroup) return;
+
+    const probs = (modelProbs && modelProbs.probabilities) ? modelProbs.probabilities : {
+      TL: 0.16, TM: 0.17, TR: 0.17, BL: 0.16, BM: 0.17, BR: 0.17
+    };
+
+    // Update each zone's canvas texture with percentage and heatmap tint
+    Object.keys(this.zoneMeshes).forEach(zoneId => {
+      const zData = this.zoneMeshes[zoneId];
+      const p = probs[zoneId] || 0.16;
+      const pct = Math.round(p * 100);
+
+      const ctx = zData.ctx;
+      ctx.clearRect(0, 0, 256, 128);
+
+      // Color mapping: high prob (> 25%) = Hot pink/crimson; med = purple; low = blue/cyan
+      let fillCol, borderCol;
+      if (p >= 0.28) {
+        fillCol = 'rgba(225, 29, 72, 0.45)';
+        borderCol = 'rgba(244, 63, 94, 0.95)';
+      } else if (p >= 0.20) {
+        fillCol = 'rgba(168, 85, 247, 0.35)';
+        borderCol = 'rgba(192, 132, 252, 0.85)';
+      } else {
+        fillCol = 'rgba(14, 165, 233, 0.22)';
+        borderCol = 'rgba(56, 189, 248, 0.55)';
+      }
+
+      ctx.fillStyle = fillCol;
+      ctx.fillRect(4, 4, 248, 120);
+
+      ctx.strokeStyle = borderCol;
+      ctx.lineWidth = 5;
+      ctx.strokeRect(4, 4, 248, 120);
+
+      // Label & Probability Percentage
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 30px system-ui, -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`${zData.label} ${pct}%`, 128, 64);
+
+      zData.tex.needsUpdate = true;
+    });
+
+    this.mindZonesGroup.visible = true;
+
+    // Actual shot crossing marker
+    if (crossingPoint && this.shotCrossingMarker) {
+      this.shotCrossingMarker.position.set(crossingPoint.x, crossingPoint.y, 0.035);
+      this.shotCrossingMarker.visible = true;
+    }
+
+    // Keeper reach marker
+    if (keeperReachPoint && this.keeperReachMarker) {
+      this.keeperReachMarker.position.set(keeperReachPoint.x, keeperReachPoint.y, 0.035);
+      this.keeperReachMarker.visible = true;
+    }
+
+    this.mindHeatTimer = (TUNING.juice.revealDurationMs || 1600) / 1000;
+  }
+
   showMindHeatRing(predictedZone) {
-    if (!this.mindHeatRing) return;
-    const target = DIVE_TARGETS[predictedZone] || DIVE_TARGETS.BM;
-    this.mindHeatRing.position.set(target.x, target.y, 0.02);
-    this.mindHeatRing.scale.set(0.2, 0.2, 0.2);
-    this.mindHeatRing.visible = true;
-    this.mindHeatTimer = TUNING.juice.revealDurationMs / 1000;
+    this.showMindReadingReveal(null, null, null);
   }
 
   updateAimAssist(points) {
@@ -243,17 +392,39 @@ export class FXManager {
       }
     });
 
-    // 4. Mind-reading heat ring animation
+    // 4. In-scene 3D Mind-Reading Reveal Animation
     if (this.mindHeatTimer > 0) {
       this.mindHeatTimer -= deltaSec;
-      const progress = 1.0 - (this.mindHeatTimer / (TUNING.juice.revealDurationMs / 1000));
-      // Pulsing expand
-      const s = 1.0 + Math.sin(progress * Math.PI * 4) * 0.15;
-      this.mindHeatRing.scale.set(s, s, s);
-      this.mindHeatRing.rotation.z += deltaSec * 1.5;
-      this.mindHeatRing.material.opacity = Math.max(0, 0.75 * (1.0 - progress));
+      const duration = (TUNING.juice.revealDurationMs || 1600) / 1000;
+      const progress = 1.0 - Math.max(0, this.mindHeatTimer / duration);
+      const alpha = Math.max(0, 1.0 - progress);
+
+      if (this.mindZonesGroup) {
+        Object.values(this.zoneMeshes).forEach(z => {
+          z.mat.opacity = 0.88 * alpha;
+        });
+      }
+
+      if (this.shotCrossingMarker) {
+        const pulse = 1.0 + Math.sin(progress * Math.PI * 6) * 0.15;
+        this.shotCrossingMarker.scale.set(pulse, pulse, pulse);
+        this.shotCrossingMarker.children.forEach(c => {
+          if (c.material) c.material.opacity = alpha;
+        });
+      }
+
+      if (this.keeperReachMarker) {
+        const pulse = 1.0 + Math.cos(progress * Math.PI * 6) * 0.12;
+        this.keeperReachMarker.scale.set(pulse, pulse, pulse);
+        this.keeperReachMarker.children.forEach(c => {
+          if (c.material) c.material.opacity = 0.9 * alpha;
+        });
+      }
+
       if (this.mindHeatTimer <= 0) {
-        this.mindHeatRing.visible = false;
+        if (this.mindZonesGroup) this.mindZonesGroup.visible = false;
+        if (this.shotCrossingMarker) this.shotCrossingMarker.visible = false;
+        if (this.keeperReachMarker) this.keeperReachMarker.visible = false;
       }
     }
   }

@@ -1,7 +1,7 @@
 /**
  * 12碼讀心戰 (Penalty Mind Game v2) - Main Application Controller
- * Connects 3D Stadium Scene, Procedural Goalkeeper, Ball, Input, Physics,
- * Sound, Juice FX, and the Mental Prediction Model.
+ * Connects 3D Stadium Scene, Procedural Goalkeeper, Ball, Animated Taker, Input,
+ * Physics, Sound, Juice FX, Difficulty, Mind-Game Tells & Taunts, and Mental Prediction.
  */
 
 import * as THREE from 'three';
@@ -9,10 +9,14 @@ import { TUNING } from './tuning.js';
 import { StadiumScene } from './scene.js';
 import { Goalkeeper3D } from './keeper.js';
 import { Ball3D } from './ball.js';
+import { Taker3D } from './taker.js';
 import { FXManager } from './fx.js';
 import { SwipeInput } from './input.js';
 import { swipeToLaunch, simulate, getZoneFromPoint } from './shot.js';
 import { decide, checkSave, DIVE_TARGETS } from './keeperAI.js';
+import { TakerAIModel } from './takerAI.js';
+import { DIFFICULTY, getDifficultyConfig, saveDifficulty, loadDifficulty } from './difficulty.js';
+import { getTaunt, computeTell } from './taunts.js';
 import { sound } from './audio.js';
 
 class GameApp {
@@ -24,8 +28,14 @@ class GameApp {
     this.stadium = null;
     this.keeper = null;
     this.ball = null;
+    this.taker = null;
     this.fx = null;
     this.input = null;
+
+    // AI & Difficulty
+    this.takerAI = null;
+    this.currentDifficulty = 'MEDIUM';
+    this.difficultyConfig = null;
 
     // Animation & physics loop state
     this.isRunning = false;
@@ -42,11 +52,18 @@ class GameApp {
     this.deflectPos = null;
     this.deflectVel = null;
 
-    // CPU kick flight state
-    this.activeCpuShot = null;
+    // Keeper mode state
+    this.isKeeperTurn = false;
+    this.keeperTurnState = null;
+
+    // Mind-game taunt state
+    this.tauntTimer = null;
+
+    // Replay state
+    this.isReplaying = false;
 
     // Match state
-    this.matchState = 'TITLE'; // 'TITLE' | 'PLAYER_TURN' | 'BALL_FLIGHT' | 'REVEAL' | 'CPU_TURN' | 'END'
+    this.matchState = 'TITLE'; // 'TITLE' | 'PLAYER_TURN' | 'BALL_FLIGHT' | 'KEEPER_TURN' | 'KEEPER_BALL_FLIGHT' | 'END'
     this.round = 1;
     this.playerScore = 0;
     this.cpuScore = 0;
@@ -69,34 +86,43 @@ class GameApp {
       console.warn('PenaltyMindModel not found on window, fallback initialized.');
     }
 
-    // 2. Check reduced motion
+    // 2. Difficulty configuration
+    this.currentDifficulty = loadDifficulty();
+    this.difficultyConfig = getDifficultyConfig(this.currentDifficulty);
+
+    // 3. Taker AI Model
+    this.takerAI = new TakerAIModel();
+
+    // 4. Check reduced motion
     if (typeof window !== 'undefined' && window.matchMedia) {
       this.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     }
 
-    // 3. Cache DOM Elements
+    // 5. Cache DOM Elements
     this._cacheDOMElements();
 
-    // 4. Initialize 3D Scene & Subsystems
+    // 6. Initialize 3D Scene & Subsystems
     this.stadium = new StadiumScene(this.canvas);
     this.keeper = new Goalkeeper3D(this.stadium.scene);
     this.ball = new Ball3D(this.stadium.scene);
+    this.taker = new Taker3D(this.stadium.scene);
     this.fx = new FXManager(this.stadium.scene, this.stadium.camera);
 
-    // 5. Initialize Swipe Input
+    // 7. Initialize Swipe Input
     this.input = new SwipeInput(
       this.canvas,
       (launch) => this.onPlayerShoot(launch),
       (aimPoints) => this.fx.updateAimAssist(aimPoints)
     );
 
-    // 6. Bind UI Handlers
+    // 8. Bind UI Handlers
     this._bindEvents();
 
-    // 7. Update Title Screen Display
+    // 9. Update Title Screen Display
     this._updateTitleMemoryStatus();
+    this._updateDifficultyUI();
 
-    // 8. Start Render / Physics Loop
+    // 10. Start Render / Physics Loop
     this.isRunning = true;
     this.lastTime = performance.now();
     requestAnimationFrame((t) => this._loop(t));
@@ -119,6 +145,8 @@ class GameApp {
       btnStart: document.getElementById('btn-start-game'),
       btnResetTitle: document.getElementById('btn-reset-memory-title'),
       titleMemoryDesc: document.getElementById('title-memory-desc'),
+      diffChips: document.getElementById('difficulty-chips'),
+      diffDesc: document.getElementById('diff-desc'),
 
       // Match HUD
       scoreDigits: document.getElementById('score-digits'),
@@ -126,10 +154,19 @@ class GameApp {
       turnBanner: document.getElementById('turn-banner'),
       playerDots: document.getElementById('player-dots'),
       aiDots: document.getElementById('ai-dots'),
+      homeTeamName: document.getElementById('home-team-name'),
+      awayTeamName: document.getElementById('away-team-name'),
       reactionBanner: document.getElementById('reaction-banner'),
       tutorialOverlay: document.getElementById('tutorial-overlay'),
       mindRevealPill: document.getElementById('mind-reveal-pill'),
       mindRevealText: document.getElementById('mind-reveal-text'),
+
+      // Taunts & Replay
+      tauntBubble: document.getElementById('taunt-bubble'),
+      tauntAvatar: document.getElementById('taunt-avatar'),
+      tauntText: document.getElementById('taunt-text'),
+      replayOverlay: document.getElementById('replay-overlay'),
+      btnSkipReplay: document.getElementById('btn-skip-replay'),
 
       // End screen
       endResultBadge: document.getElementById('end-result-badge'),
@@ -194,10 +231,26 @@ class GameApp {
       this._updateTitleMemoryStatus();
       this.ball.reset();
       this.keeper.reset();
+      if (this.taker) this.taker.hide();
       this.matchState = 'TITLE';
     };
     if (this.dom.btnBackHome) this.dom.btnBackHome.addEventListener('click', goHome);
     if (this.dom.btnNavHome) this.dom.btnNavHome.addEventListener('click', goHome);
+
+    // Difficulty chips selection
+    if (this.dom.diffChips) {
+      this.dom.diffChips.addEventListener('click', (e) => {
+        const btn = e.target.closest('.diff-chip');
+        if (!btn) return;
+        const diff = btn.dataset.diff;
+        if (diff && DIFFICULTY[diff]) {
+          this.currentDifficulty = diff;
+          saveDifficulty(diff);
+          this.difficultyConfig = getDifficultyConfig(diff);
+          this._updateDifficultyUI();
+        }
+      });
+    }
 
     // Reset memory buttons
     if (this.dom.btnResetTitle) {
@@ -280,6 +333,68 @@ class GameApp {
     }
   }
 
+  _updateDifficultyUI() {
+    if (!this.dom.diffChips) return;
+    const chips = this.dom.diffChips.querySelectorAll('.diff-chip');
+    chips.forEach(chip => {
+      chip.classList.toggle('active', chip.dataset.diff === this.currentDifficulty);
+    });
+
+    const descs = {
+      EASY: '簡單模式：門將反應較慢、撲救範圍較細，適合輕鬆熱身。',
+      MEDIUM: '標準模式：門將具備正常反應速度與大腦讀心判斷。',
+      HARD: '困難模式：門將反應迅捷、撲救範圍廣闊，並開啟視線眼神提示！',
+      HELL: '地獄模式：門將預判神準、極速撲救，射手連環直抽死角！'
+    };
+    if (this.dom.diffDesc) {
+      this.dom.diffDesc.textContent = descs[this.currentDifficulty] || descs.MEDIUM;
+    }
+  }
+
+  showTaunt(category, context = null, avatar = '🧤') {
+    if (!this.dom.tauntBubble || !this.dom.tauntText) return;
+    const text = getTaunt(category);
+    this.dom.tauntText.textContent = text;
+    if (this.dom.tauntAvatar) this.dom.tauntAvatar.textContent = avatar;
+    this.dom.tauntBubble.style.display = 'flex';
+
+    if (this.tauntTimer) clearTimeout(this.tauntTimer);
+    this.tauntTimer = setTimeout(() => {
+      if (this.dom.tauntBubble) {
+        this.dom.tauntBubble.style.display = 'none';
+      }
+    }, 2400);
+  }
+
+  triggerDecidingReplay(onComplete) {
+    this.isReplaying = true;
+    this.timeScale = (TUNING.replay && TUNING.replay.slowMoScale) || 0.25;
+    this.stadium.setCameraMode('REPLAY');
+    if (this.dom.replayOverlay) {
+      this.dom.replayOverlay.style.display = 'flex';
+    }
+
+    let done = false;
+    const endReplay = () => {
+      if (done) return;
+      done = true;
+      this.isReplaying = false;
+      this.timeScale = 1.0;
+      this.stadium.setCameraMode('MAIN');
+      if (this.dom.replayOverlay) {
+        this.dom.replayOverlay.style.display = 'none';
+      }
+      if (onComplete) onComplete();
+    };
+
+    if (this.dom.btnSkipReplay) {
+      this.dom.btnSkipReplay.onclick = () => endReplay();
+    }
+
+    const dur = (TUNING.replay && TUNING.replay.durationMs) || 2600;
+    setTimeout(endReplay, dur);
+  }
+
   // ==========================================
   // MATCH MANAGEMENT
   // ==========================================
@@ -303,16 +418,30 @@ class GameApp {
 
   startPlayerTurn() {
     this.matchState = 'PLAYER_TURN';
+    this.isKeeperTurn = false;
     this.timeScale = 1.0;
     this.ballCrossed = false;
     this.ballDeflecting = false;
     this.activeShot = null;
     this.activeCpuShot = null;
 
-    // Reset ball and keeper
+    // Reset ball, keeper, and hide taker
     this.ball.reset();
     this.keeper.reset();
     this.keeper.setReady();
+    if (this.taker) this.taker.hide();
+
+    // Keeper visual tell before shot
+    const modelProbs = this.model ? this.model.getProbabilities() : null;
+    const plannedDive = decide(modelProbs, this.difficultyConfig, TUNING);
+    const tell = computeTell(plannedDive.zone, this.difficultyConfig);
+    let tellType = 'neutral';
+    if (tell.tellZone.endsWith('L')) tellType = Math.random() < 0.5 ? 'lean_left' : 'shuffle_left';
+    else if (tell.tellZone.endsWith('R')) tellType = Math.random() < 0.5 ? 'lean_right' : 'shuffle_right';
+    this.keeper.setTell({
+      type: tellType,
+      gazeZone: tell.gazeHint ? tell.tellZone : null
+    });
 
     // Turn banner
     const roundText = this.isSuddenDeath
@@ -322,6 +451,8 @@ class GameApp {
     if (this.dom.turnBanner) {
       this.dom.turnBanner.innerHTML = `<span>⚽ 你主射：向球門撥球射門！</span>`;
     }
+    if (this.dom.homeTeamName) this.dom.homeTeamName.textContent = '你 (主射)';
+    if (this.dom.awayTeamName) this.dom.awayTeamName.textContent = '電腦 (門將)';
 
     // Check tutorial condition (first 2 kicks of a new player)
     const totalShots = this.model ? (this.model.totalShots || 0) : 0;
@@ -332,6 +463,7 @@ class GameApp {
     }
 
     this.input.setAimAssist(isTutorial);
+    this.input.onShoot = (launch) => this.onPlayerShoot(launch);
     this.input.enable();
 
     // Whistle sound on round ready
@@ -354,9 +486,9 @@ class GameApp {
     // 2. Pure physics trajectory simulation (120 Hz)
     const sim = simulate(launch, 1 / 120, 1.8, TUNING);
 
-    // 3. Mental Model Probabilities & Keeper Dive Decision
+    // 3. Mental Model Probabilities & Keeper Dive Decision with Difficulty settings
     const modelProbs = this.model ? this.model.getProbabilities() : null;
-    const divePlan = decide(modelProbs, 0.5, TUNING);
+    const divePlan = decide(modelProbs, this.difficultyConfig, TUNING);
 
     // 4. Save Intersection Check (Deterministic reach volume)
     const saveCheck = checkSave(sim, divePlan, TUNING);
@@ -373,7 +505,8 @@ class GameApp {
       modelProbs,
       trajectory: sim.trajectory,
       crossing: sim.crossing,
-      totalPoints: sim.trajectory.length
+      totalPoints: sim.trajectory.length,
+      isKeeperTurn: false
     };
     this.flightTime = 0;
     this.ballCrossed = false;
@@ -467,15 +600,26 @@ class GameApp {
       this.model.saveToStorage();
     }
 
-    // 2. In-scene 讀心 reveal
-    this.fx.showMindHeatRing(divePlan.zone);
+    // 2. In-scene 3D reveal: 6 zones probabilities + crossing & reach markers
+    this.fx.showMindReadingReveal(modelProbs, sim.crossing, this.keeper.getKeeperReachPosition());
     const probPct = modelProbs && modelProbs.probabilities
       ? Math.round((modelProbs.probabilities[divePlan.zone] || 0.16) * 100)
       : 35;
     const zoneName = (this.model && this.model.zoneLabels[divePlan.zone]) || divePlan.zone;
     this._showMindRevealPill(`門將估你射：${zoneName}（信心 ${probPct}%）`);
 
-    // 3. Update score & player kick record
+    // 3. Cantonese Taunts
+    if (saveCheck.saved) {
+      if (modelProbs && modelProbs.predictedZone === divePlan.zone) {
+        this.showTaunt('KEEPER_READS_HABIT', null, '🧤');
+      } else {
+        this.showTaunt('KEEPER_SAVES_SHOT', null, '🧤');
+      }
+    } else if (scored) {
+      this.showTaunt('PLAYER_SCORES', null, '🧤');
+    }
+
+    // 4. Update score & player kick record
     if (scored) this.playerScore++;
     this.playerKicks.push({
       scored,
@@ -485,94 +629,327 @@ class GameApp {
 
     this.updateHUD();
 
-    // 4. Check for regulation early clinch
+    // 5. Check for regulation early clinch
     const clinch = this._checkEarlyClinch();
     if (clinch) {
-      setTimeout(() => this.finishMatch(), 1600);
+      setTimeout(() => {
+        this.triggerDecidingReplay(() => this.finishMatch());
+      }, 1200);
       return;
     }
 
-    // 5. Proceed to CPU turn
+    // 6. Proceed to player's keeper turn (swiping to dive against AI taker)
     setTimeout(() => {
-      this.startCpuTurn();
+      this.startKeeperTurn();
     }, 1400);
   }
 
-  startCpuTurn() {
-    this.matchState = 'CPU_TURN';
+  startKeeperTurn() {
+    this.matchState = 'KEEPER_TURN';
+    this.isKeeperTurn = true;
+    this.timeScale = 1.0;
+    this.ballCrossed = false;
+    this.ballDeflecting = false;
+    this.activeShot = null;
+
+    // Reset ball and goalkeeper
     this.ball.reset();
     this.keeper.reset();
     this.keeper.setReady();
 
+    // Striker visible in ready stance
+    if (this.taker) {
+      this.taker.showReady();
+    }
+
+    // Turn banner & labels
+    const roundText = this.isSuddenDeath
+      ? `突然死亡（第 ${this.round} 輪）`
+      : `第 ${this.round} 輪`;
+    if (this.dom.roundSubtag) this.dom.roundSubtag.textContent = roundText;
     if (this.dom.turnBanner) {
-      this.dom.turnBanner.innerHTML = `<span>🤖 電腦主射中……</span>`;
+      this.dom.turnBanner.innerHTML = `<span>🧤 你把關撲救：向目標滑動撲救！</span>`;
     }
+    if (this.dom.homeTeamName) this.dom.homeTeamName.textContent = '你 (門將)';
+    if (this.dom.awayTeamName) this.dom.awayTeamName.textContent = '電腦 (主射)';
 
-    // Brief delay then whistle + CPU kick cut-scene
-    setTimeout(() => {
-      sound.playWhistle();
-
-      setTimeout(() => {
-        sound.playKick();
-
-        // CPU kick has probability 0.75 per spec
-        const isGoal = Math.random() < 0.75;
-        const targetX = isGoal ? (Math.random() > 0.5 ? 2.5 : -2.5) : (Math.random() > 0.5 ? 4.2 : -4.2);
-        const targetY = isGoal ? 1.6 : 2.9;
-
-        // Animated ball flight for CPU shot
-        this.activeCpuShot = {
-          startTime: performance.now(),
-          duration: 0.55,
-          isGoal,
-          targetX,
-          targetY
-        };
-
-        // Keeper reaction
-        if (isGoal) {
-          // Keeper dives opposite or misses
-          this.keeper.startDive({
-            target: { x: -targetX * 0.8, y: targetY * 0.6 },
-            reactTime: 0.18,
-            diveDuration: 0.45
-          });
-        } else {
-          // Keeper saves
-          this.keeper.startDive({
-            target: { x: targetX, y: targetY },
-            reactTime: 0.10,
-            diveDuration: 0.42
-          });
-        }
-      }, 700);
-    }, 500);
-  }
-
-  _onCpuShotComplete(isGoal) {
-    this.activeCpuShot = null;
-
-    if (isGoal) {
-      this.cpuScore++;
-      this.stadium.deformNet(2.0, 1.4);
-      sound.playNet();
-      sound.swellGoal();
-      this.keeper.concede();
-      this._showReactionBanner('電腦入波', 'score');
-    } else {
-      this.keeper.celebrate();
-      sound.playSave(true);
-      sound.swellMiss();
-      this._showReactionBanner('電腦射失！', 'miss');
+    if (this.dom.tutorialOverlay) {
+      this.dom.tutorialOverlay.style.display = 'none';
     }
+    this.fx.hideAimAssist();
 
-    this.cpuKicks.push({ scored: isGoal });
+    this.keeperTurnState = {
+      runUpStarted: false,
+      runUpStartTime: 0,
+      strikeTime: 0,
+      playerDived: false,
+      diveZone: null,
+      divePlan: null,
+      earlyDive: false,
+      lateDive: false,
+      hasStruck: false
+    };
+
+    // Configure input for keeper dive swipe
+    this.input.setAimAssist(false);
+    this.input.onShoot = (launch) => this._onPlayerKeeperSwipe(launch);
+    this.input.enable();
+
     this.updateHUD();
 
-    // Check round progression or match resolution
+    // Delay then whistle and start striker run-up
+    setTimeout(() => {
+      if (this.matchState !== 'KEEPER_TURN') return;
+      sound.playWhistle();
+
+      const runUpDuration = (TUNING.taker && TUNING.taker.runUpDurationMs) || 850;
+      const now = performance.now();
+      this.keeperTurnState.runUpStarted = true;
+      this.keeperTurnState.runUpStartTime = now;
+      this.keeperTurnState.strikeTime = now + runUpDuration;
+
+      if (this.taker) {
+        this.taker.startRunUp(() => {
+          this._onCpuTakerStrike();
+        });
+      }
+    }, 700);
+  }
+
+  _onPlayerKeeperSwipe(launch) {
+    if (this.matchState !== 'KEEPER_TURN' || this.keeperTurnState.playerDived) return;
+
+    // Determine target dive zone from player swipe
+    const isLeft = launch.vx < -0.6;
+    const isRight = launch.vx > 0.6;
+    const isHigh = (launch.targetY > 1.3) || (launch.vy > 1.2);
+
+    let zone = 'BM';
+    if (isLeft) zone = isHigh ? 'TL' : 'BL';
+    else if (isRight) zone = isHigh ? 'TR' : 'BR';
+    else zone = isHigh ? 'TM' : 'BM';
+
+    const now = performance.now();
+    const strikeTime = this.keeperTurnState.strikeTime || (now + 500);
+    const msBeforeStrike = strikeTime - now;
+
+    let earlyDive = false;
+    let lateDive = false;
+    let reactTime = 0.08;
+    let reachMultiplier = 1.0;
+
+    // Timing window:
+    // If player dives > 250ms before strike, striker spots the dive and shoots opposite!
+    if (this.keeperTurnState.runUpStarted && msBeforeStrike > 250) {
+      earlyDive = true;
+      reactTime = 0.02;
+      this.showTaunt('TAKER_PUNISHES_EARLY_DIVE', null, '⚽');
+      this._showReactionBanner('太早撲！射手睇到你！', 'miss');
+    } else if (now > strikeTime + 220) {
+      // Late dive
+      lateDive = true;
+      reactTime = 0.28;
+      reachMultiplier = 0.65;
+    }
+
+    const diveInfo = DIVE_TARGETS[zone] || DIVE_TARGETS.BM;
+    const divePlan = {
+      zone,
+      target: { x: diveInfo.x, y: diveInfo.y },
+      reactTime,
+      diveDuration: TUNING.keeper.diveDuration,
+      reachMultiplier,
+      animName: diveInfo.anim,
+      label: diveInfo.label
+    };
+
+    this.keeperTurnState.playerDived = true;
+    this.keeperTurnState.diveZone = zone;
+    this.keeperTurnState.divePlan = divePlan;
+    this.keeperTurnState.earlyDive = earlyDive;
+    this.keeperTurnState.lateDive = lateDive;
+
+    // Start keeper dive animation
+    this.keeper.startDive(divePlan);
+  }
+
+  _onCpuTakerStrike() {
+    this.keeperTurnState.hasStruck = true;
+    this.matchState = 'KEEPER_BALL_FLIGHT';
+    sound.playKick();
+
+    // If player has not swiped yet, default to center BM
+    if (!this.keeperTurnState.playerDived) {
+      const diveInfo = DIVE_TARGETS.BM;
+      this.keeperTurnState.diveZone = 'BM';
+      this.keeperTurnState.divePlan = {
+        zone: 'BM',
+        target: { x: diveInfo.x, y: diveInfo.y },
+        reactTime: 0.18,
+        diveDuration: TUNING.keeper.diveDuration,
+        reachMultiplier: 0.85,
+        animName: diveInfo.anim,
+        label: diveInfo.label
+      };
+      this.keeper.startDive(this.keeperTurnState.divePlan);
+    }
+
+    // Taker AI decides target (aims away from player habit / punishes early dive)
+    const earlyZone = this.keeperTurnState.earlyDive ? this.keeperTurnState.diveZone : null;
+    const takerDecision = this.takerAI.decideShot(this.difficultyConfig, earlyZone);
+
+    // Launch ball along physics trajectory toward taker's target
+    const targetX = takerDecision.target.x;
+    const targetY = takerDecision.target.y;
+    const launchSpeed = takerDecision.speed;
+    const curve = takerDecision.curve;
+
+    const launch = {
+      vx: (targetX / 11.0) * launchSpeed * 0.95,
+      vy: Math.max(0.5, (targetY / 11.0) * launchSpeed * 0.95 - 0.5 * TUNING.ball.gravity * (11.0 / launchSpeed)),
+      speed: launchSpeed,
+      spin: { x: 0, y: curve, z: 0 },
+      power: launchSpeed / 32.0,
+      targetX,
+      targetY
+    };
+
+    const sim = simulate(launch, 1 / 120, 1.8, TUNING);
+    const saveCheck = checkSave(sim, this.keeperTurnState.divePlan, TUNING);
+
+    this.ball.setSpin(launch.spin);
+    this.activeShot = {
+      sim,
+      divePlan: this.keeperTurnState.divePlan,
+      saveCheck,
+      modelProbs: null,
+      trajectory: sim.trajectory,
+      crossing: sim.crossing,
+      totalPoints: sim.trajectory.length,
+      isKeeperTurn: true
+    };
+    this.flightTime = 0;
+    this.ballCrossed = false;
+    this.ballDeflecting = false;
+  }
+
+  _onKeeperTurnCrossing() {
+    this.ballCrossed = true;
+    const shot = this.activeShot;
+    if (!shot) return;
+
+    const { sim, saveCheck } = shot;
+    let scored = false;
+
+    if (saveCheck.saved) {
+      scored = false;
+      this.keeper.celebrate();
+      if (this.taker) this.taker.concede();
+
+      if (!this.prefersReducedMotion) {
+        this.hitStopTimer = TUNING.juice.hitStopMs / 1000;
+      }
+
+      if (saveCheck.saveType === 'catch') {
+        sound.playSave(true);
+        sound.swellMiss();
+        this.ballDeflecting = false;
+        this.activeShot.deflectPos = { ...saveCheck.contactPoint };
+        this.activeShot.deflectVel = { vx: 0, vy: 0, vz: 0 };
+      } else {
+        sound.playSave(false);
+        sound.swellMiss();
+        this.ballDeflecting = true;
+        this.deflectPos = {
+          x: saveCheck.contactPoint.x,
+          y: saveCheck.contactPoint.y,
+          z: saveCheck.contactPoint.z
+        };
+        this.deflectVel = {
+          vx: (Math.random() - 0.5) * 6.0,
+          vy: Math.random() * 4.0 + 1.5,
+          vz: 6.5
+        };
+      }
+
+      this.showTaunt('PLAYER_KEEPER_SAVES', null, '🧤');
+      this._showReactionBanner('撲出！神撲！', 'score');
+    } else {
+      if (sim.result === 'goal') {
+        scored = true;
+        this.cpuScore++;
+        this.keeper.concede();
+        if (this.taker) this.taker.celebrate();
+        this.stadium.deformNet(sim.crossing.x, sim.crossing.y);
+        this.fx.triggerGoalExplosion(sim.crossing);
+        sound.playNet();
+        sound.swellGoal();
+
+        if (this.keeperTurnState.earlyDive) {
+          this.showTaunt('TAKER_PUNISHES_EARLY_DIVE', null, '⚽');
+        } else {
+          this.showTaunt('TAKER_SCORES', null, '⚽');
+        }
+        this._showReactionBanner('電腦入波', 'miss');
+      } else {
+        scored = false;
+        this.keeper.celebrate();
+        if (this.taker) this.taker.concede();
+        sound.playPost();
+        sound.swellMiss();
+        this._showReactionBanner('電腦射失！', 'score');
+      }
+    }
+
+    // 1. Record player dive into Taker AI memory
+    const actualDiveZone = this.keeperTurnState.diveZone || 'BM';
+    if (this.takerAI) {
+      this.takerAI.recordDive(actualDiveZone);
+    }
+
+    // 2. In-scene 3D reveal
+    const diveProbs = this.takerAI ? this.takerAI.getDiveProbabilities() : null;
+    this.fx.showMindReadingReveal(
+      diveProbs ? { probabilities: diveProbs } : null,
+      sim.crossing,
+      this.keeper.getKeeperReachPosition()
+    );
+
+    // 3. Record CPU kick & update HUD
+    this.cpuKicks.push({ scored });
+    this.updateHUD();
+
+    // 4. Check for deciding kick or round progression
+    const isDecided = this._checkMatchDecided();
+    if (isDecided) {
+      setTimeout(() => {
+        this.triggerDecidingReplay(() => this.finishMatch());
+      }, 1200);
+      return;
+    }
+
     setTimeout(() => {
       this._evaluateRoundEnd();
     }, 1400);
+  }
+
+  _checkMatchDecided() {
+    const pKicksTaken = this.playerKicks.length;
+    const cKicksTaken = this.cpuKicks.length;
+
+    if (this.isSuddenDeath) {
+      // In sudden death, if both have kicked and scores differ:
+      return pKicksTaken === cKicksTaken && this.playerScore !== this.cpuScore;
+    }
+
+    const pRemaining = this.totalRounds - pKicksTaken;
+    const cRemaining = this.totalRounds - cKicksTaken;
+
+    if (this.playerScore > this.cpuScore + cRemaining) return true;
+    if (this.cpuScore > this.playerScore + pRemaining) return true;
+    if (pKicksTaken >= this.totalRounds && cKicksTaken >= this.totalRounds && this.playerScore !== this.cpuScore) return true;
+
+    return false;
   }
 
   _evaluateRoundEnd() {
@@ -690,7 +1067,7 @@ class GameApp {
           const k = this.cpuKicks[i];
           dot.classList.add(k.scored ? 'scored' : 'missed');
           dot.textContent = k.scored ? '✓' : '✕';
-        } else if (i === this.cpuKicks.length && this.matchState === 'CPU_TURN') {
+        } else if (i === this.cpuKicks.length && (this.matchState === 'KEEPER_TURN' || this.matchState === 'KEEPER_BALL_FLIGHT')) {
           dot.classList.add('current');
         }
         this.dom.aiDots.appendChild(dot);
@@ -808,28 +1185,32 @@ class GameApp {
     const deltaSec = rawDelta * this.timeScale;
     const timeSec = timestamp / 1000;
 
-    // 1. Update Player Ball Flight Trajectory
-    if (this.activeShot && this.matchState === 'BALL_FLIGHT') {
+    // 1. Update Ball Trajectory Flight (Player Shot or Keeper Mode CPU Shot)
+    if (this.activeShot && (this.matchState === 'BALL_FLIGHT' || this.matchState === 'KEEPER_BALL_FLIGHT')) {
       this.flightTime += deltaSec;
       const sim = this.activeShot.sim;
       const totalPts = this.activeShot.totalPoints;
       const tCrossing = sim.crossing.t;
 
       // Check Slow-Mo (ball within 3.2m of goal line)
-      if (!this.ballCrossed && !this.prefersReducedMotion) {
+      if (!this.ballCrossed && !this.prefersReducedMotion && !this.isReplaying) {
         const estZ = TUNING.goal.spotDistance - (this.flightTime / tCrossing) * TUNING.goal.spotDistance;
         if (estZ <= TUNING.juice.slowMoDistZ && estZ > 0) {
           this.timeScale = TUNING.juice.slowMoTimeScale;
         } else {
           this.timeScale = 1.0;
         }
-      } else {
+      } else if (!this.isReplaying) {
         this.timeScale = 1.0;
       }
 
       // Check Crossing moment
       if (!this.ballCrossed && this.flightTime >= tCrossing) {
-        this._onPlayerShotCrossing();
+        if (this.activeShot.isKeeperTurn) {
+          this._onKeeperTurnCrossing();
+        } else {
+          this._onPlayerShotCrossing();
+        }
       }
 
       // Position Ball
@@ -871,31 +1252,9 @@ class GameApp {
       }
     }
 
-    // 2. Update CPU Shot Cutscene Flight
-    if (this.activeCpuShot && this.matchState === 'CPU_TURN') {
-      const elapsed = (timestamp - this.activeCpuShot.startTime) / 1000;
-      const prog = Math.min(1.0, elapsed / this.activeCpuShot.duration);
-      const ease = prog;
-
-      const sx = 0;
-      const sy = TUNING.ball.radius;
-      const sz = TUNING.goal.spotDistance;
-
-      const tx = this.activeCpuShot.targetX;
-      const ty = this.activeCpuShot.targetY;
-      const tz = 0;
-
-      const cx = sx + (tx - sx) * ease;
-      const cz = sz + (tz - sz) * ease;
-      const arc = Math.sin(prog * Math.PI) * 0.8;
-      const cy = sy + (ty - sy) * ease + arc;
-
-      this.ball.update({ x: cx, y: cy, z: cz }, { vx: 0, vy: 5, vz: -20 }, deltaSec);
-
-      if (prog >= 1.0) {
-        const isGoal = this.activeCpuShot.isGoal;
-        this._onCpuShotComplete(isGoal);
-      }
+    // 2. Update Taker Humanoid
+    if (this.taker) {
+      this.taker.update(timeSec, deltaSec);
     }
 
     // 3. Update Subsystems

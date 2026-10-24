@@ -32,6 +32,12 @@ export class StadiumScene {
     this.baseCameraPos = new THREE.Vector3(0, 1.85, 15.6);
     this.lookTarget = new THREE.Vector3(0, 1.15, 2.5);
 
+    // Replay Camera: Side broadcast TV angle
+    this.cameraMode = 'MAIN'; // 'MAIN' | 'REPLAY'
+    this.replayCameraPos = new THREE.Vector3(5.8, 1.8, 4.2);
+    this.replayLookTarget = new THREE.Vector3(0, 1.2, 0.5);
+
+    this.adTexture = null;
     this.resizeObserver = null;
 
     this.init();
@@ -334,36 +340,129 @@ export class StadiumScene {
     this.scene.add(roof);
   }
 
+  setCameraMode(mode) {
+    this.cameraMode = mode === 'REPLAY' ? 'REPLAY' : 'MAIN';
+  }
+
   _buildStadiumStands() {
-    const standMat = new THREE.MeshStandardMaterial({
-      color: 0x162035,
-      roughness: 0.85
+    const concreteMat = new THREE.MeshStandardMaterial({
+      color: 0x334155, // Slate concrete
+      roughness: 0.9,
+      metalness: 0.1
+    });
+    const edgeMat = new THREE.MeshStandardMaterial({
+      color: 0x475569, // Riser edge strip
+      roughness: 0.8
     });
 
-    // 1. North Stand Upper Grandstand (behind goal)
-    const northGeo = new THREE.BoxGeometry(46, 12, 14);
-    const northStand = new THREE.Mesh(northGeo, standMat);
-    northStand.position.set(0, 7.5, -15);
-    this.scene.add(northStand);
+    // 10 visible stepped concrete terrace risers
+    for (let r = 0; r < 10; r++) {
+      const stepY = 0.425 + r * 0.85;
+      const stepZ = -6.2 - r * 0.75;
+      const stepGeo = new THREE.BoxGeometry(44, 0.85, 1.0);
+      const stepMesh = new THREE.Mesh(stepGeo, concreteMat);
+      stepMesh.position.set(0, stepY, stepZ);
+      this.scene.add(stepMesh);
 
-    // 2. North Lower Terrace Apron (stepped concrete front in front of upper stand)
-    const lowerTerraceGeo = new THREE.BoxGeometry(44, 3.5, 4);
-    const lowerTerrace = new THREE.Mesh(lowerTerraceGeo, standMat);
-    lowerTerrace.position.set(0, 1.75, -7.5);
-    this.scene.add(lowerTerrace);
+      // Step edge highlight line
+      const edgeGeo = new THREE.BoxGeometry(44, 0.08, 0.08);
+      const edgeMesh = new THREE.Mesh(edgeGeo, edgeMat);
+      edgeMesh.position.set(0, stepY + 0.425, stepZ + 0.5);
+      this.scene.add(edgeMesh);
+    }
 
-    // 3. West & East Stands
-    const sideGeo = new THREE.BoxGeometry(14, 12, 44);
-    const westStand = new THREE.Mesh(sideGeo, standMat);
+    // Grandstand back wall
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.95 });
+    const backWallGeo = new THREE.BoxGeometry(46, 16, 2);
+    const backWall = new THREE.Mesh(backWallGeo, wallMat);
+    backWall.position.set(0, 8.0, -14.5);
+    this.scene.add(backWall);
+
+    // Roof canopy with cantilever overhang
+    const roofMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7 });
+    const roofGeo = new THREE.BoxGeometry(46, 0.8, 12);
+    const roof = new THREE.Mesh(roofGeo, roofMat);
+    roof.position.set(0, 12.8, -10.5);
+    this.scene.add(roof);
+
+    // Structural support trusses under roof
+    const trussMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.7 });
+    for (let tx = -18; tx <= 18; tx += 9) {
+      const trussGeo = new THREE.CylinderGeometry(0.12, 0.12, 8.5, 8);
+      const truss = new THREE.Mesh(trussGeo, trussMat);
+      truss.rotation.x = -Math.PI * 0.12;
+      truss.position.set(tx, 10.5, -12.5);
+      this.scene.add(truss);
+    }
+
+    // West & East Stand side blocks
+    const sideMat = new THREE.MeshStandardMaterial({ color: 0x162035, roughness: 0.85 });
+    const westStand = new THREE.Mesh(new THREE.BoxGeometry(14, 12, 44), sideMat);
     westStand.position.set(-22, 6, 4);
     this.scene.add(westStand);
 
-    const eastStand = new THREE.Mesh(sideGeo, standMat);
+    const eastStand = new THREE.Mesh(new THREE.BoxGeometry(14, 12, 44), sideMat);
     eastStand.position.set(22, 6, 4);
     this.scene.add(eastStand);
 
-    // Instanced Crowd Billboard Quads
+    // Pitchside LED advertising boards behind goal
+    this._buildAdBoards();
+
+    // Crowd spectators on the stepped terraces
     this._buildCrowd();
+  }
+
+  _buildAdBoards() {
+    const adCanvas = document.createElement('canvas');
+    adCanvas.width = 1024;
+    adCanvas.height = 128;
+    const ctx = adCanvas.getContext('2d');
+
+    // Background gradient
+    const bgGrad = ctx.createLinearGradient(0, 0, 1024, 0);
+    bgGrad.addColorStop(0, '#0a1128');
+    bgGrad.addColorStop(0.3, '#0d1b3e');
+    bgGrad.addColorStop(0.7, '#0a1128');
+    bgGrad.addColorStop(1, '#0d1b3e');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, 1024, 128);
+
+    // Glowing top/bottom LED strips
+    ctx.fillStyle = '#00e5ff';
+    ctx.fillRect(0, 0, 1024, 6);
+    ctx.fillStyle = '#facc15';
+    ctx.fillRect(0, 122, 1024, 6);
+
+    // Dynamic LED text & logos
+    ctx.font = 'bold 36px system-ui, -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('⚽ 12碼讀心戰 · PENALTY MIND GAME', 256, 64);
+    ctx.fillStyle = '#38bdf8';
+    ctx.fillText('⚡ AI 讀心大對決 · 港式狂熱十二碼', 768, 64);
+
+    this.adTexture = new THREE.CanvasTexture(adCanvas);
+    this.adTexture.wrapS = THREE.RepeatWrapping;
+    this.adTexture.repeat.set(2.0, 1.0);
+
+    const adMat = new THREE.MeshBasicMaterial({
+      map: this.adTexture,
+      toneMapped: false
+    });
+
+    const adGeo = new THREE.BoxGeometry(32, 0.95, 0.25);
+    const adMesh = new THREE.Mesh(adGeo, adMat);
+    adMesh.position.set(0, 0.475, -3.8); // Located behind goal net (depth 2m)
+    this.scene.add(adMesh);
+
+    // Dark frame structure behind LED boards
+    const frameGeo = new THREE.BoxGeometry(32.2, 0.15, 0.35);
+    const frameMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.8 });
+    const topFrame = new THREE.Mesh(frameGeo, frameMat);
+    topFrame.position.set(0, 0.98, -3.8);
+    this.scene.add(topFrame);
   }
 
   _buildCrowd() {
@@ -523,28 +622,44 @@ export class StadiumScene {
    * Composes idle sway, screen shake, and camera punch-in in ONE unified step.
    */
   update(timeSec, deltaSec, ballPos, keeperPos, fx = null) {
-    // 1. Idle camera sway
-    const swayX = Math.sin(timeSec * 0.75) * 0.03;
-    const swayY = Math.cos(timeSec * 0.95) * 0.02;
+    // 1. Camera positioning (Main behind-spot view vs Replay side broadcast view)
+    let camPos;
+    let target;
 
-    const camPos = this.baseCameraPos.clone();
-    camPos.x += swayX;
-    camPos.y += swayY;
+    if (this.cameraMode === 'REPLAY') {
+      const repSway = Math.sin(timeSec * 0.4) * 0.06;
+      camPos = this.replayCameraPos.clone();
+      camPos.x += repSway;
+      camPos.y += Math.cos(timeSec * 0.5) * 0.03;
+      target = this.replayLookTarget.clone();
+    } else {
+      const swayX = Math.sin(timeSec * 0.75) * 0.03;
+      const swayY = Math.cos(timeSec * 0.95) * 0.02;
 
-    // Apply shake and punch-in offsets from FXManager
-    if (fx && fx.getShakeOffset) {
-      camPos.add(fx.getShakeOffset());
+      camPos = this.baseCameraPos.clone();
+      camPos.x += swayX;
+      camPos.y += swayY;
+
+      // Apply shake and punch-in offsets from FXManager
+      if (fx && fx.getShakeOffset) {
+        camPos.add(fx.getShakeOffset());
+      }
+      if (fx && fx.getPunchOffset) {
+        camPos.add(fx.getPunchOffset());
+      }
+      target = this.lookTarget.clone();
+      if (fx && fx.getLookAtOffset) {
+        target.add(fx.getLookAtOffset());
+      }
     }
-    if (fx && fx.getPunchOffset) {
-      camPos.add(fx.getPunchOffset());
-    }
+
     this.camera.position.copy(camPos);
-
-    const target = this.lookTarget.clone();
-    if (fx && fx.getLookAtOffset) {
-      target.add(fx.getLookAtOffset());
-    }
     this.camera.lookAt(target);
+
+    // Animate pitchside LED ad boards scrolling
+    if (this.adTexture) {
+      this.adTexture.offset.x = (this.adTexture.offset.x + deltaSec * 0.04) % 1.0;
+    }
 
     // 2. Animate crowd bobbing
     if (this.crowdInstances) {

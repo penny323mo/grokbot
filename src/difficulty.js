@@ -98,3 +98,5 @@ export function loadDifficulty() {
   } catch (_) {}
   return DEFAULT_DIFFICULTY;
 }
+
+export const DIFFICULTY = DIFFICULTY_TIERS;

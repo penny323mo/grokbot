@@ -61,10 +61,26 @@
           <h4>📋 賽事規例與讀心機制</h4>
           <ul class="rules-list">
             <li><strong>真實撥球手感：</strong> 向前滑動射門；撥得快大力啲、撥得彎會帶香蕉弧線；太大力有機會飛過界！</li>
+            <li><strong>攻守輪換互換：</strong> 射門完輪到你守門！滑動手指撲救，留意射手助跑時機，太早撲會被識破轉射！</li>
             <li><strong>AI 學習記憶：</strong> 門將會持續記錄你嘅射門方位同連招出招習慣，隨住出腳次數增加，門將會越嚟越易睇穿你！</li>
             <li><strong>物理撲救空間：</strong> 門將唔係靠骰仔決定救波，而係靠手套同身體撲救範圍攔截；射向極限死角高速波先有機會射破十指關！</li>
             <li><strong>5 輪點球大戰：</strong> 雙方各射 5 輪，打和即進入一球定勝負嘅突然死亡！</li>
           </ul>
+        </div>
+
+        <!-- Difficulty Selector -->
+        <div class="difficulty-card">
+          <div class="difficulty-title">
+            <span>⚡</span>
+            <span>選擇難度級別</span>
+          </div>
+          <div class="difficulty-chips" id="difficulty-chips">
+            <button class="diff-chip" data-diff="EASY">🟢 易</button>
+            <button class="diff-chip active" data-diff="MEDIUM">🟡 中</button>
+            <button class="diff-chip" data-diff="HARD">🟠 難</button>
+            <button class="diff-chip" data-diff="HELL">🟣 地獄</button>
+          </div>
+          <div id="diff-desc" class="diff-desc">標準模式：門將具備正常反應速度與大腦讀心判斷。</div>
         </div>
 
         <div class="memory-status-banner">
@@ -150,6 +166,23 @@
       <div id="mind-reveal-pill" class="mind-reveal-pill">
         <span class="mind-icon">🧠</span>
         <span id="mind-reveal-text">門將估你射：左下（信心 47%）</span>
+      </div>
+
+      <!-- Cantonese Taunt Speech Bubble -->
+      <div id="taunt-bubble" class="taunt-bubble" style="display: none;">
+        <div class="taunt-avatar" id="taunt-avatar">🧤</div>
+        <div class="taunt-text" id="taunt-text">「又係左下？我睇穿你喇！」</div>
+      </div>
+
+      <!-- Slow-motion Replay Overlay -->
+      <div id="replay-overlay" class="replay-overlay" style="display: none;">
+        <div class="replay-badge">
+          <span class="replay-rec-dot"></span>
+          <span>重播 (REPLAY)</span>
+        </div>
+        <button id="btn-skip-replay" class="btn-skip-replay">
+          <span>跳過 ➔</span>
+        </button>
       </div>
 
       <!-- Floating Reaction Popups -->

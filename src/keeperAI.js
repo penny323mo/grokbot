@@ -36,11 +36,24 @@ function clamp01(val) {
  * @returns {Object} Dive plan { zone, target, reactTime, diveDuration, animName }
  */
 export function decide(modelProbs, difficulty = 0.5, tuning = TUNING) {
+  let diffFactor = 0.5;
+  let customReact = null;
+  let predictorWeight = 0.85;
+  let reachMultiplier = 1.0;
+
+  if (typeof difficulty === 'object' && difficulty !== null) {
+    customReact = difficulty.reactionDelay;
+    predictorWeight = difficulty.predictorWeight || 0.85;
+    reachMultiplier = difficulty.reachMultiplier || 1.0;
+  } else if (typeof difficulty === 'number') {
+    diffFactor = difficulty;
+  }
+
   let chosenZone = 'BM';
 
   if (modelProbs && modelProbs.probabilities) {
-    // If model has a clear predictedZone, keeper strongly prioritises it
-    if (modelProbs.predictedZone && (!modelProbs.isAmbiguous || Math.random() < 0.85)) {
+    // If model has a clear predictedZone, keeper prioritises it according to predictorWeight
+    if (modelProbs.predictedZone && (!modelProbs.isAmbiguous || Math.random() < predictorWeight)) {
       chosenZone = modelProbs.predictedZone;
     } else {
       // Sample according to probability distribution
@@ -59,8 +72,9 @@ export function decide(modelProbs, difficulty = 0.5, tuning = TUNING) {
   const diveInfo = DIVE_TARGETS[chosenZone] || DIVE_TARGETS.BM;
 
   // Reaction time: faster (smaller delay) on higher difficulty
-  const reactTime = tuning.keeper.reactionDelayMax -
-    difficulty * (tuning.keeper.reactionDelayMax - tuning.keeper.reactionDelayMin);
+  const reactTime = customReact !== null
+    ? customReact
+    : (tuning.keeper.reactionDelayMax - diffFactor * (tuning.keeper.reactionDelayMax - tuning.keeper.reactionDelayMin));
 
   return {
     zone: chosenZone,
@@ -68,7 +82,8 @@ export function decide(modelProbs, difficulty = 0.5, tuning = TUNING) {
     reactTime,
     diveDuration: tuning.keeper.diveDuration,
     animName: diveInfo.anim,
-    label: diveInfo.label
+    label: diveInfo.label,
+    reachMultiplier
   };
 }
 
@@ -153,11 +168,12 @@ export function checkSave(simResult, divePlan, tuning = TUNING) {
 
   // Two capsules:
   // 1. Arm/Glove capsule from torso shoulder (rootX, rootY + 0.3) to extended glove (gloveX, gloveY)
-  const rGlove = tuning.keeper.gloveReachRadius;
+  const reachMultiplier = (divePlan && divePlan.reachMultiplier) || 1.0;
+  const rGlove = tuning.keeper.gloveReachRadius * reachMultiplier;
   const distGlove = distToSegment(bx, by, rootX, rootY + 0.3, gloveX, gloveY);
 
   // 2. Torso/Body capsule from lower legs (rootX, 0.4) to head (rootX, rootY + 0.45)
-  const rBody = tuning.keeper.bodyReachRadius;
+  const rBody = tuning.keeper.bodyReachRadius * reachMultiplier;
   const distBody = distToSegment(bx, by, rootX, 0.4, rootX, Math.max(0.7, rootY + 0.45));
 
   const distToReach = Math.min(distGlove, distBody);
