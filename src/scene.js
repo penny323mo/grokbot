@@ -352,6 +352,29 @@ export class StadiumScene {
     else this.cameraMode = 'MAIN';
   }
 
+  screenToGoalPlane(screenX, screenY, viewport = null) {
+    if (!this.camera) return null;
+    const w = viewport?.width || this.canvas?.clientWidth || 390;
+    const h = viewport?.height || this.canvas?.clientHeight || 844;
+    const ndcX = (screenX / w) * 2 - 1;
+    const ndcY = -(screenY / h) * 2 + 1;
+
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), this.camera);
+    const ray = raycaster.ray;
+
+    // Intersect ray with goal plane z = 0
+    if (Math.abs(ray.direction.z) < 1e-5) return null;
+    const t = -ray.origin.z / ray.direction.z;
+    if (t < 0) return null;
+
+    return {
+      x: ray.origin.x + t * ray.direction.x,
+      y: ray.origin.y + t * ray.direction.y,
+      z: 0
+    };
+  }
+
   applyAtmosphere(stadiumSkinId) {
     if (!this.scene) return;
 

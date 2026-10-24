@@ -67,11 +67,13 @@ export const TUNING = {
 
   // Difficulty-scaled reaction windows & tolerance for Player Goalkeeper Mode (v2-r4)
   keeperWindows: {
-    // Early dive threshold in ms before strike (smaller = player can dive earlier without punishment)
+    // Early dive threshold in ms before strike.
+    // Selecting a zone on Easy/Medium is a pure commit, never punished (Infinity).
+    // On Hard/Hell, committing > threshold ms before strike telegraphs the dive.
     earlyDiveThresholdMs: {
-      EASY: 80,
-      MEDIUM: 140,
-      HARD: 200,
+      EASY: Infinity,
+      MEDIUM: Infinity,
+      HARD: 350,
       HELL: 250
     },
     // Late dive threshold in ms after strike (larger = player has more time to react)
@@ -119,8 +121,6 @@ export const TUNING = {
   },
 
   taker: {
-    runUpDurationMs: 850,
-    earlyDiveThresholdMs: 250, // Dive > 250ms before strike is treated as early
-    lateDiveThresholdMs: 220   // Dive > 220ms after strike is penalized in reach
+    runUpDurationMs: 850
   }
 };

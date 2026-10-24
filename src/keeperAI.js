@@ -183,9 +183,10 @@ export function checkSave(simResult, divePlan, tuning = TUNING) {
         ? divePlan.saveHitTolerance
         : ((divePlan && divePlan.isPlayer) ? (tuning.keeper.saveHitTolerance || 0) : 0));
 
-  // Extra tolerance bonus if keeper dived to the exact same zone as the shot
+  // Extra tolerance bonus ONLY if player keeper dived to the exact same zone as the shot
   const shotZone = simResult.zone;
-  const zoneBonus = (divePlan && shotZone && divePlan.zone === shotZone)
+  const isPlayerKeeper = !!(divePlan && divePlan.isPlayer);
+  const zoneBonus = (isPlayerKeeper && shotZone && divePlan.zone === shotZone)
     ? (tuning.keeper.zoneMatchingToleranceBonus || 0)
     : 0;
 
