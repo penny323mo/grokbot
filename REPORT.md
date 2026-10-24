@@ -22,3 +22,10 @@ Repo: https://github.com/penny323mo/penalty-mind-game
 ## Round 3 — 世界盃 + 解鎖 + 分享
 - agy 完成：src/tournament.js（16 隊淘汰賽）、unlocks.js（星星/解鎖）、share.js（分享卡）、坐低嘅觀眾。10 套 tests 全過。
 - 我驗到嘅問題（交咗 grok）：單場模式撥極都射唔出（回歸 bug）；撳「世界盃淘汰賽」冇反應；headless fps 跌咗。
+
+## Round 3 — post-fix results (e29422f)
+- Tests: 10 suites, 75/75 pass.
+- Headless 390px: the single-match swipe shoots (pointerdown reaches the canvas; the keeper prediction and the result "入波！" both appear). 0 console errors.
+- The World Cup button opens the team-select modal (r3wc-*).
+- Live site: HTTP 200.
+- Known issues: the team-select cards are narrow, so the text wraps vertically; headless fps is about 12 (swiftshader); not yet tested on a real iPhone; grok hasn't re-reviewed since the r3 fixes (its last verdict was NOT READY).
