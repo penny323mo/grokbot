@@ -303,6 +303,61 @@ export class FXManager {
     this.showMindReadingReveal(null, null, null);
   }
 
+  showKeeperTargetZones(selectedZone = null) {
+    if (!this.mindZonesGroup || !this.zoneMeshes) return;
+
+    Object.keys(this.zoneMeshes).forEach(zoneId => {
+      const zData = this.zoneMeshes[zoneId];
+      const isSelected = (selectedZone === zoneId);
+      const ctx = zData.ctx;
+      ctx.clearRect(0, 0, 256, 128);
+
+      if (isSelected) {
+        // Vibrant glowing gold highlight for chosen zone (immediate visual feedback)
+        ctx.fillStyle = 'rgba(251, 191, 36, 0.42)';
+        ctx.fillRect(4, 4, 248, 120);
+
+        ctx.strokeStyle = '#fbbf24';
+        ctx.lineWidth = 8;
+        ctx.strokeRect(4, 4, 248, 120);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 34px system-ui, -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`✓ ${zData.label}`, 128, 64);
+      } else {
+        // Semi-transparent target zone drawn over the goal during run-up
+        ctx.fillStyle = selectedZone ? 'rgba(15, 23, 42, 0.20)' : 'rgba(0, 229, 255, 0.16)';
+        ctx.fillRect(4, 4, 248, 120);
+
+        ctx.strokeStyle = selectedZone ? 'rgba(148, 163, 184, 0.35)' : 'rgba(0, 229, 255, 0.70)';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(4, 4, 248, 120);
+
+        ctx.fillStyle = selectedZone ? 'rgba(255, 255, 255, 0.50)' : '#ffffff';
+        ctx.font = 'bold 30px system-ui, -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(zData.label, 128, 64);
+      }
+
+      zData.mat.opacity = 0.88;
+      zData.tex.needsUpdate = true;
+    });
+
+    if (this.shotCrossingMarker) this.shotCrossingMarker.visible = false;
+    if (this.keeperReachMarker) this.keeperReachMarker.visible = false;
+    this.mindZonesGroup.visible = true;
+    this.mindHeatTimer = 0; // Keep steady, do not auto-fade during keeper runup
+  }
+
+  hideKeeperTargetZones() {
+    if (this.mindZonesGroup) {
+      this.mindZonesGroup.visible = false;
+    }
+  }
+
   updateAimAssist(points) {
     if (!this.aimAssistLine || !points || points.length < 2) {
       if (this.aimAssistLine) this.aimAssistLine.visible = false;

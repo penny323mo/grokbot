@@ -51,7 +51,50 @@ export const TUNING = {
     gloveReachRadius: 0.42,  // Effective reach of extended glove (metres)
     bodyReachRadius: 0.48,   // Effective reach of torso / legs
     catchSpeedLimit: 22.0,   // Below this speed (m/s) keeper catches; above = parry
-    parryReboundSpeed: 0.45
+    parryReboundSpeed: 0.45,
+
+    // Forgiving mobile goalkeeper tuning (v2-r4)
+    saveHitTolerance: 0.18,          // Base extra hit tolerance buffer in metres for saves
+    zoneMatchingToleranceBonus: 0.15,// Extra hit tolerance if player guessed the exact shot zone
+    playerReachMultiplier: 1.30,     // 30% larger reach when player is goalkeeper
+    shortSwipeMinDistPx: 18,         // Distinguish tap (< 18px) from short swipe (>= 18px)
+    tapGoalMapping: {
+      splitXLeft: 0.363,             // Normalized screen X boundary between Left and Middle
+      splitXRight: 0.637,            // Normalized screen X boundary between Middle and Right
+      splitYMid: 0.493               // Normalized screen Y boundary between Top and Bottom
+    }
+  },
+
+  // Difficulty-scaled reaction windows & tolerance for Player Goalkeeper Mode (v2-r4)
+  keeperWindows: {
+    // Early dive threshold in ms before strike (smaller = player can dive earlier without punishment)
+    earlyDiveThresholdMs: {
+      EASY: 80,
+      MEDIUM: 140,
+      HARD: 200,
+      HELL: 250
+    },
+    // Late dive threshold in ms after strike (larger = player has more time to react)
+    lateDiveThresholdMs: {
+      EASY: 450,
+      MEDIUM: 340,
+      HARD: 240,
+      HELL: 180
+    },
+    // Goalkeeper reach multiplier by difficulty
+    playerReachMultiplier: {
+      EASY: 1.45,
+      MEDIUM: 1.30,
+      HARD: 1.15,
+      HELL: 1.05
+    },
+    // Save hit tolerance buffer in metres
+    saveHitTolerance: {
+      EASY: 0.28,
+      MEDIUM: 0.20,
+      HARD: 0.12,
+      HELL: 0.06
+    }
   },
 
   juice: {

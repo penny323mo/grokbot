@@ -195,6 +195,90 @@ export function getZoneFromPoint(x, y, tuning = TUNING) {
 }
 
 /**
+ * Map a screen tap coordinate to the nearest 3x2 goal zone (TL, TM, TR, BL, BM, BR).
+ * Works for points on the goal and taps outside the goal (nearest zone partition).
+ * @param {{x: number, y: number}} point - Screen tap coordinates in pixels
+ * @param {{width: number, height: number}} viewport - Screen viewport dimensions
+ * @param {Object} [tuning=TUNING]
+ * @returns {string} One of 'TL', 'TM', 'TR', 'BL', 'BM', 'BR'
+ */
+export function mapTapToZone(point, viewport, tuning = TUNING) {
+  if (!point || !viewport) return 'BM';
+
+  const w = viewport.width || 390;
+  const h = viewport.height || 844;
+
+  const nx = point.x / w;
+  const ny = point.y / h;
+
+  const mapping = (tuning.keeper && tuning.keeper.tapGoalMapping) || {};
+  const splitXLeft = mapping.splitXLeft ?? 0.363;
+  const splitXRight = mapping.splitXRight ?? 0.637;
+  const splitYMid = mapping.splitYMid ?? 0.493;
+
+  let horiz = 'M';
+  if (nx < splitXLeft) horiz = 'L';
+  else if (nx > splitXRight) horiz = 'R';
+
+  const isTop = ny < splitYMid;
+  return (isTop ? 'T' : 'B') + horiz;
+}
+
+/**
+ * Map a short swipe vector (dx, dy) to its directional dive zone.
+ * @param {number} dx - Swipe horizontal delta in pixels
+ * @param {number} dy - Swipe vertical delta in pixels (negative = up)
+ * @param {Object} [tuning=TUNING]
+ * @returns {string} One of 'TL', 'TM', 'TR', 'BL', 'BM', 'BR'
+ */
+export function mapSwipeToZone(dx, dy, tuning = TUNING) {
+  const absX = Math.abs(dx);
+  const absY = Math.abs(dy);
+
+  // If swipe is primarily upward (dy < 0)
+  if (dy < 0) {
+    if (dx < -absY * 0.414) return 'TL';
+    if (dx > absY * 0.414) return 'TR';
+    return 'TM';
+  }
+
+  // If swipe is primarily downward or lateral
+  if (dx < -Math.max(1, absY) * 0.414) return 'BL';
+  if (dx > Math.max(1, absY) * 0.414) return 'BR';
+  return 'BM';
+}
+
+/**
+ * Resolve player goalkeeper input: determines whether gesture is a tap or short swipe,
+ * and maps cleanly to the target dive zone with forgiving tolerances.
+ * @param {{start: {x: number, y: number}, end?: {x: number, y: number}}} gesture
+ * @param {{width: number, height: number}} viewport
+ * @param {Object} [tuning=TUNING]
+ * @returns {{zone: string, type: 'tap'|'swipe', dist: number, dx: number, dy: number}}
+ */
+export function resolveKeeperInput(gesture, viewport, tuning = TUNING) {
+  if (!gesture || !gesture.start) {
+    return { zone: 'BM', type: 'tap', dist: 0, dx: 0, dy: 0 };
+  }
+
+  const p0 = gesture.start;
+  const p1 = gesture.end || gesture.start;
+  const dx = p1.x - p0.x;
+  const dy = p1.y - p0.y;
+  const dist = Math.hypot(dx, dy);
+
+  const minDist = (tuning.keeper && tuning.keeper.shortSwipeMinDistPx) || 18;
+
+  if (dist >= minDist) {
+    const zone = mapSwipeToZone(dx, dy, tuning);
+    return { zone, type: 'swipe', dist, dx, dy };
+  } else {
+    const zone = mapTapToZone(p0, viewport, tuning);
+    return { zone, type: 'tap', dist, dx, dy };
+  }
+}
+
+/**
  * Simulate the full trajectory of a shot using fixed-step numerical integration.
  * @param {Object} launch - Output from swipeToLaunch
  * @param {number} [dt=1/120] - Integration step size in seconds

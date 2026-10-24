@@ -1048,6 +1048,13 @@ class GameApp {
     this.activeShot = null;
     this.activeCpuShot = null;
 
+    if (this.input) {
+      this.input.setMode('STRIKER');
+    }
+    if (this.fx && this.fx.hideKeeperTargetZones) {
+      this.fx.hideKeeperTargetZones();
+    }
+
     // Reset cosmetics for player turn
     this.applyCosmetics();
 
@@ -1313,7 +1320,7 @@ class GameApp {
       : `第 ${this.round} 輪`;
     if (this.dom.roundSubtag) this.dom.roundSubtag.textContent = roundText;
     if (this.dom.turnBanner) {
-      this.dom.turnBanner.innerHTML = `<span>🧤 你把關撲救：向目標滑動撲救！</span>`;
+      this.dom.turnBanner.innerHTML = `<span>🧤 撲救：㩒龍門你想守嘅位置（或向方向輕掃）</span>`;
     }
     const pName = this.activePlayerTeam ? this.activePlayerTeam.name : '你';
     const oppName = this.activeOpponentTeam ? this.activeOpponentTeam.name : '電腦';
@@ -1324,6 +1331,11 @@ class GameApp {
       this.dom.tutorialOverlay.style.display = 'none';
     }
     this.fx.hideAimAssist();
+
+    // Show semi-transparent target zones over the goal during run-up
+    if (this.fx && this.fx.showKeeperTargetZones) {
+      this.fx.showKeeperTargetZones(null);
+    }
 
     this.keeperTurnState = {
       runUpStarted: false,
@@ -1337,8 +1349,22 @@ class GameApp {
       hasStruck: false
     };
 
-    // Configure input for keeper dive swipe
+    // Configure input for keeper tap/swipe dive
     this.input.setAimAssist(false);
+    this.input.setMode('KEEPER');
+    this.input.onKeeperPreview = (zone, details) => {
+      if (this.matchState !== 'KEEPER_TURN' || this.keeperTurnState.playerDived) return;
+      if (this.fx && this.fx.showKeeperTargetZones) {
+        this.fx.showKeeperTargetZones(zone);
+      }
+      const zoneLabel = (DIVE_TARGETS[zone] && DIVE_TARGETS[zone].label) || zone;
+      if (this.dom.turnBanner) {
+        this.dom.turnBanner.innerHTML = `<span>🧤 已選定撲向：${zoneLabel}！準備接波！</span>`;
+      }
+    };
+    this.input.onKeeperDive = (zone, details) => {
+      this._onPlayerKeeperDive(zone, details);
+    };
     this.input.onShoot = (launch) => this._onPlayerKeeperSwipe(launch);
     this.input.enable();
 
@@ -1363,18 +1389,26 @@ class GameApp {
     }, 700);
   }
 
-  _onPlayerKeeperSwipe(launch) {
+  _onPlayerKeeperDive(zone, details = {}) {
     if (this.matchState !== 'KEEPER_TURN' || this.keeperTurnState.playerDived) return;
 
-    // Determine target dive zone from player swipe using target point or velocity
-    const targetX = (launch.target && typeof launch.target.x === 'number')
-      ? launch.target.x
-      : (launch.velocity ? launch.velocity.x * 0.45 : 0);
-    const targetY = (launch.target && typeof launch.target.y === 'number')
-      ? launch.target.y
-      : (launch.velocity ? Math.max(0.2, launch.velocity.y * 0.4) : 0.8);
+    const validZone = (zone && DIVE_TARGETS[zone]) ? zone : 'BM';
+    const diveInfo = DIVE_TARGETS[validZone] || DIVE_TARGETS.BM;
 
-    const zone = getZoneFromPoint(targetX, targetY, TUNING);
+    // Immediately highlight target zone in 3D and update banner
+    if (this.fx && this.fx.showKeeperTargetZones) {
+      this.fx.showKeeperTargetZones(validZone);
+    }
+    if (this.dom.turnBanner) {
+      this.dom.turnBanner.innerHTML = `<span>🧤 已選定撲向：${diveInfo.label}！準備接波！</span>`;
+    }
+
+    const diffKey = (this.difficultyConfig && this.difficultyConfig.key) || 'MEDIUM';
+    const windows = TUNING.keeperWindows || {};
+    const earlyThreshold = (windows.earlyDiveThresholdMs && windows.earlyDiveThresholdMs[diffKey]) ?? 140;
+    const lateThreshold = (windows.lateDiveThresholdMs && windows.lateDiveThresholdMs[diffKey]) ?? 340;
+    const diffReachMul = (windows.playerReachMultiplier && windows.playerReachMultiplier[diffKey]) ?? (TUNING.keeper.playerReachMultiplier || 1.30);
+    const diffTolerance = (windows.saveHitTolerance && windows.saveHitTolerance[diffKey]) ?? (TUNING.keeper.saveHitTolerance || 0.20);
 
     const now = performance.now();
     const strikeTime = this.keeperTurnState.strikeTime || (now + 500);
@@ -1382,42 +1416,61 @@ class GameApp {
 
     let earlyDive = false;
     let lateDive = false;
-    let reactTime = 0.08;
-    let reachMultiplier = 1.0;
+    let reactTime = 0.06;
+    let reachMultiplier = diffReachMul;
 
-    // Timing window:
-    // If player dives > 250ms before strike, striker spots the dive and shoots opposite!
-    if (this.keeperTurnState.runUpStarted && msBeforeStrike > 250) {
+    // Timing window: difficulty scaled (easy is most forgiving)
+    if (this.keeperTurnState.runUpStarted && msBeforeStrike > earlyThreshold) {
       earlyDive = true;
       reactTime = 0.02;
+      reachMultiplier = 1.0;
       this.showTaunt('TAKER_PUNISHES_EARLY_DIVE', null, '⚽');
       this._showReactionBanner('太早撲！射手睇到你！', 'miss');
-    } else if (now > strikeTime + 220) {
+    } else if (now > strikeTime + lateThreshold) {
       // Late dive
       lateDive = true;
-      reactTime = 0.28;
-      reachMultiplier = 0.65;
+      reactTime = 0.24;
+      reachMultiplier = Math.max(0.75, diffReachMul * 0.70);
     }
 
-    const diveInfo = DIVE_TARGETS[zone] || DIVE_TARGETS.BM;
     const divePlan = {
-      zone,
+      zone: validZone,
       target: { x: diveInfo.x, y: diveInfo.y },
       reactTime,
       diveDuration: TUNING.keeper.diveDuration,
       reachMultiplier,
+      tolerance: diffTolerance,
+      saveHitTolerance: diffTolerance,
+      isPlayer: true,
       animName: diveInfo.anim,
       label: diveInfo.label
     };
 
     this.keeperTurnState.playerDived = true;
-    this.keeperTurnState.diveZone = zone;
+    this.keeperTurnState.diveZone = validZone;
     this.keeperTurnState.divePlan = divePlan;
     this.keeperTurnState.earlyDive = earlyDive;
     this.keeperTurnState.lateDive = lateDive;
 
     // Start keeper dive animation
     this.keeper.startDive(divePlan);
+  }
+
+  _onPlayerKeeperSwipe(launch) {
+    if (this.matchState !== 'KEEPER_TURN' || this.keeperTurnState.playerDived) return;
+
+    let zone = launch.zone;
+    if (!zone) {
+      const targetX = (launch.target && typeof launch.target.x === 'number')
+        ? launch.target.x
+        : (launch.velocity ? launch.velocity.x * 0.45 : 0);
+      const targetY = (launch.target && typeof launch.target.y === 'number')
+        ? launch.target.y
+        : (launch.velocity ? Math.max(0.2, launch.velocity.y * 0.4) : 0.8);
+      zone = getZoneFromPoint(targetX, targetY, TUNING);
+    }
+
+    this._onPlayerKeeperDive(zone, launch);
   }
 
   _onCpuTakerStrike() {
@@ -1427,15 +1480,27 @@ class GameApp {
 
     // If player has not swiped yet, default to center BM
     if (!this.keeperTurnState.playerDived) {
+      const diffKey = (this.difficultyConfig && this.difficultyConfig.key) || 'MEDIUM';
+      const windows = TUNING.keeperWindows || {};
+      const diffReachMul = (windows.playerReachMultiplier && windows.playerReachMultiplier[diffKey]) ?? (TUNING.keeper.playerReachMultiplier || 1.30);
+      const diffTolerance = (windows.saveHitTolerance && windows.saveHitTolerance[diffKey]) ?? (TUNING.keeper.saveHitTolerance || 0.20);
+
       const diveInfo = DIVE_TARGETS.BM;
       this.keeperTurnState.diveZone = 'BM';
       this.keeperTurnState.divePlan = {
         zone: 'BM',
         target: { x: diveInfo.x, y: diveInfo.y },
-        reactTime: 0.18,
+        reactTime: 0.16,
         diveDuration: TUNING.keeper.diveDuration,
-        reachMultiplier: 0.85,
+        reachMultiplier: diffReachMul * 0.85,
+        tolerance: diffTolerance,
+        saveHitTolerance: diffTolerance,
+        isPlayer: true,
         animName: diveInfo.anim,
+        label: diveInfo.label
+      };
+      this.keeper.startDive(this.keeperTurnState.divePlan);
+    }
         label: diveInfo.label
       };
       this.keeper.startDive(this.keeperTurnState.divePlan);

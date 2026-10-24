@@ -4,7 +4,7 @@
  * computes real-time aim assist, and triggers kick execution.
  */
 
-import { swipeToLaunch, simulate } from './shot.js';
+import { swipeToLaunch, simulate, mapTapToZone, mapSwipeToZone, resolveKeeperInput } from './shot.js';
 import { TUNING } from './tuning.js';
 
 export class SwipeInput {
@@ -12,6 +12,10 @@ export class SwipeInput {
     this.canvas = canvas;
     this.onShoot = onShootCallback;
     this.onSwipeMove = onSwipeMoveCallback;
+
+    this.mode = 'STRIKER'; // 'STRIKER' | 'KEEPER'
+    this.onKeeperPreview = null;
+    this.onKeeperDive = null;
 
     this.isDragging = false;
     this.points = [];
@@ -72,6 +76,10 @@ export class SwipeInput {
     this.aimAssistEnabled = enabled;
   }
 
+  setMode(mode) {
+    this.mode = mode || 'STRIKER';
+  }
+
   // --- Unified Core Swipe Processing ---
 
   _startSwipe(clientX, clientY) {
@@ -81,7 +89,19 @@ export class SwipeInput {
     const x = clientX - rect.left;
     const y = clientY - rect.top;
 
-    // Accept start in bottom 75% of screen (pitch & ball area)
+    if (this.mode === 'KEEPER') {
+      // In Keeper mode, accept taps anywhere on screen (goal, pitch, surrounding)
+      this.isDragging = true;
+      this.points = [{ x, y, t: performance.now() }];
+      const viewport = { width: rect.width, height: rect.height };
+      const zone = mapTapToZone({ x, y }, viewport, TUNING);
+      if (this.onKeeperPreview) {
+        this.onKeeperPreview(zone, { x, y, type: 'tap' });
+      }
+      return;
+    }
+
+    // STRIKER mode: Accept start in bottom 75% of screen (pitch & ball area)
     if (y < rect.height * 0.25) return;
 
     this.isDragging = true;
@@ -101,7 +121,17 @@ export class SwipeInput {
       this.points.shift();
     }
 
-    // Aim assist preview for tutorial
+    if (this.mode === 'KEEPER') {
+      if (this.onKeeperPreview && this.points.length >= 2) {
+        const viewport = { width: rect.width, height: rect.height };
+        const p0 = this.points[0];
+        const res = resolveKeeperInput({ start: p0, end: { x, y } }, viewport, TUNING);
+        this.onKeeperPreview(res.zone, res);
+      }
+      return;
+    }
+
+    // Aim assist preview for tutorial in STRIKER mode
     if (this.aimAssistEnabled && this.onSwipeMove && this.points.length >= 2) {
       const viewport = { width: rect.width, height: rect.height };
       const launch = swipeToLaunch(this.points, viewport, TUNING);
@@ -126,6 +156,21 @@ export class SwipeInput {
     if (this.onSwipeMove) this.onSwipeMove(null);
 
     const viewport = { width: rect.width, height: rect.height };
+
+    if (this.mode === 'KEEPER') {
+      const p0 = this.points[0] || { x, y };
+      const res = resolveKeeperInput({ start: p0, end: { x, y } }, viewport, TUNING);
+      this.enabled = false;
+      this.points = [];
+      if (this.onKeeperDive) {
+        this.onKeeperDive(res.zone, res);
+      } else if (this.onShoot) {
+        this.onShoot({ target: { x: res.dx || 0, y: res.dy || 0 }, zone: res.zone, ...res });
+      }
+      return;
+    }
+
+    // STRIKER mode
     const launch = swipeToLaunch(this.points, viewport, TUNING);
 
     if (launch && this.onShoot) {

@@ -175,11 +175,26 @@ export function checkSave(simResult, divePlan, tuning = TUNING) {
   // Two capsules:
   // 1. Arm/Glove capsule from torso shoulder (rootX, rootY + 0.3) to extended glove (gloveX, gloveY)
   const reachMultiplier = (divePlan && divePlan.reachMultiplier) || 1.0;
-  const rGlove = tuning.keeper.gloveReachRadius * reachMultiplier;
+
+  // Hit tolerance buffers (v2-r4 forgiving reach)
+  const baseTolerance = (divePlan && typeof divePlan.tolerance === 'number')
+    ? divePlan.tolerance
+    : ((divePlan && typeof divePlan.saveHitTolerance === 'number')
+        ? divePlan.saveHitTolerance
+        : ((divePlan && divePlan.isPlayer) ? (tuning.keeper.saveHitTolerance || 0) : 0));
+
+  // Extra tolerance bonus if keeper dived to the exact same zone as the shot
+  const shotZone = simResult.zone;
+  const zoneBonus = (divePlan && shotZone && divePlan.zone === shotZone)
+    ? (tuning.keeper.zoneMatchingToleranceBonus || 0)
+    : 0;
+
+  const totalTolerance = baseTolerance + zoneBonus;
+  const rGlove = (tuning.keeper.gloveReachRadius * reachMultiplier) + totalTolerance;
   const distGlove = distToSegment(bx, by, rootX, rootY + 0.3, gloveX, gloveY);
 
   // 2. Torso/Body capsule from lower legs (rootX, 0.4) to head (rootX, rootY + 0.45)
-  const rBody = tuning.keeper.bodyReachRadius * reachMultiplier;
+  const rBody = (tuning.keeper.bodyReachRadius * reachMultiplier) + totalTolerance;
   const distBody = distToSegment(bx, by, rootX, 0.4, rootX, Math.max(0.7, rootY + 0.45));
 
   const distToReach = Math.min(distGlove, distBody);
