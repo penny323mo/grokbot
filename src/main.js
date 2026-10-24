@@ -311,6 +311,7 @@ class GameApp {
 
     // Reset ball and keeper
     this.ball.reset();
+    this.keeper.reset();
     this.keeper.setReady();
 
     // Turn banner
@@ -426,6 +427,7 @@ class GameApp {
       // Not saved by keeper
       if (sim.result === 'goal') {
         scored = true;
+        this.activeShot.isGoal = true;
         this.keeper.concede();
         this.stadium.deformNet(sim.crossing.x, sim.crossing.y);
         this.fx.triggerGoalExplosion(sim.crossing);
@@ -499,6 +501,7 @@ class GameApp {
   startCpuTurn() {
     this.matchState = 'CPU_TURN';
     this.ball.reset();
+    this.keeper.reset();
     this.keeper.setReady();
 
     if (this.dom.turnBanner) {
@@ -830,19 +833,21 @@ class GameApp {
       }
 
       // Position Ball
-      if (!this.ballCrossed) {
-        // Pre-crossing interpolation along trajectory
+      if (!this.ballCrossed || (this.activeShot.isGoal && !this.ballDeflecting && !this.activeShot.deflectPos)) {
+        // Pre-crossing interpolation along trajectory, and continuation into net on goal
         const dt = 1 / 120;
-        const idx = Math.min(totalPts - 1, Math.floor(this.flightTime / dt));
+        const maxFlightTime = this.activeShot.isGoal ? (tCrossing + 0.35) : tCrossing;
+        const currTime = Math.min(this.flightTime, maxFlightTime);
+        const idx = Math.min(totalPts - 1, Math.floor(currTime / dt));
         const nextIdx = Math.min(totalPts - 1, idx + 1);
-        const frac = (this.flightTime - idx * dt) / dt;
+        const frac = (currTime - idx * dt) / dt;
 
         const p0 = sim.trajectory[idx];
         const p1 = sim.trajectory[nextIdx];
 
         if (p0 && p1) {
           const bx = p0.x + (p1.x - p0.x) * frac;
-          const by = p0.y + (p1.y - p0.y) * frac;
+          const by = Math.max(TUNING.ball.radius, p0.y + (p1.y - p0.y) * frac);
           const bz = p0.z + (p1.z - p0.z) * frac;
           this.ball.update({ x: bx, y: by, z: bz }, p0, deltaSec);
         }
@@ -899,7 +904,7 @@ class GameApp {
 
     this.keeper.update(timeSec, deltaSec);
     this.fx.update(deltaSec);
-    this.stadium.update(timeSec, deltaSec, ballPos, keeperReach);
+    this.stadium.update(timeSec, deltaSec, ballPos, keeperReach, this.fx);
 
     // 4. Render 3D Scene
     this.stadium.render();
@@ -913,4 +918,8 @@ window.addEventListener('DOMContentLoaded', () => {
   const app = new GameApp();
   app.init();
   window.BTB_GAME = app;
+
+  if (typeof window !== 'undefined' && window.location.search.includes('autostart=1')) {
+    setTimeout(() => app.startMatch(), 150);
+  }
 });

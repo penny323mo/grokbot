@@ -150,15 +150,18 @@ export class Goalkeeper3D {
     this.root.rotation.set(0, 0, 0);
     this.bodyGroup.position.set(0, 0, 0);
     this.bodyGroup.rotation.set(0, 0, 0);
+    if (this.torso) this.torso.rotation.set(0, 0, 0);
+    if (this.head) this.head.rotation.set(0, 0, 0);
 
     // Reset joint rotations
-    this.leftArm.rotation.set(0, 0, 0.4);
-    this.rightArm.rotation.set(0, 0, -0.4);
-    this.leftLeg.rotation.set(0, 0, 0);
-    this.rightLeg.rotation.set(0, 0, 0);
+    if (this.leftArm) this.leftArm.rotation.set(0, 0, 0.4);
+    if (this.rightArm) this.rightArm.rotation.set(0, 0, -0.4);
+    if (this.leftLeg) this.leftLeg.rotation.set(0, 0, 0);
+    if (this.rightLeg) this.rightLeg.rotation.set(0, 0, 0);
   }
 
   setReady() {
+    this.reset();
     this.state = 'set';
     this.stateTime = 0;
   }

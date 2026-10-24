@@ -56,12 +56,13 @@ python3 -m http.server 8000
 本項目包含完整純邏輯單元測試套件，完全毋須瀏覽器或外部依賴：
 ```bash
 # 執行所有測試
-node tests/model.test.js && node tests/shot.test.js && node tests/keeperAI.test.js
+node tests/model.test.js && node tests/shot.test.js && node tests/keeperAI.test.js && node tests/input.test.js
 ```
 測試覆蓋：
 1. `tests/model.test.js` (14 題)：N-gram 規律學習、機率歸一化、`< 8` 次數據不足守衛、5 方位多變低可預測度 (< 30) 驗證。
-2. `tests/shot.test.js` (5 題)：直線向上滑動映射、滑動速度與球速縮放、香蕉球 Magnus 彎曲側移、超限大力飛過界、6 區方位判定。
-3. `tests/keeperAI.test.js` (5 題)：門將預判反應決策、手套撲救範圍判定、反向飛撲漏波、極限死角高速破門、重炮拍出 vs 慢波沒收。
+2. `tests/shot.test.js` (6 題)：直線向上滑動映射、滑動速度與球速縮放、香蕉球 Magnus 彎曲側移、超限大力飛過界、6 區方位判定、球門過白界後繼續直入網底彈道。
+3. `tests/keeperAI.test.js` (6 題)：門將預判反應決策、手套撲救範圍判定、反向飛撲漏波、極限死角高速破門、重炮拍出 vs 慢波沒收、軀幹身體 Capsule 幾何撲救判定。
+4. `tests/input.test.js` (3 題)：手機 TouchEvent 滑動主射、PointerCapture 生命週期鎖定、屏幕底部 75% 起腳區域檢測。
 
 ---
 
@@ -88,7 +89,8 @@ node tests/model.test.js && node tests/shot.test.js && node tests/keeperAI.test.
 ├── tests/
 │   ├── model.test.js          # AI 讀心模型單元測試
 │   ├── shot.test.js           # 射門物理與手勢映射單元測試
-│   └── keeperAI.test.js       # 門將撲救與幾何判定單元測試
+│   ├── keeperAI.test.js       # 門將撲救與幾何判定單元測試
+│   └── input.test.js          # 觸摸手勢與輸入單元測試
 ├── README.md                  # 遊戲說明與玩法文檔 (廣東話)
 └── CHANGELOG.md               # 版本變更記錄
 ```

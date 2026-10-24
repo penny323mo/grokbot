@@ -73,7 +73,22 @@ export function decide(modelProbs, difficulty = 0.5, tuning = TUNING) {
 }
 
 /**
+ * Distance from point (px, py) to a 2D line segment between (x1, y1) and (x2, y2).
+ */
+function distToSegment(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) return Math.hypot(px - x1, py - y1);
+  const t = clamp01(((px - x1) * dx + (py - y1) * dy) / lenSq);
+  const projX = x1 + t * dx;
+  const projY = y1 + t * dy;
+  return Math.hypot(px - projX, py - projY);
+}
+
+/**
  * Check whether the keeper reaches and saves the ball based on 3D trajectory and dive plan.
+ * Evaluates reach capsules (torso capsule + extended arm/glove reach capsule along dive vector).
  * Decision is physically decided by reach volume intersection, NOT a random dice roll.
  * @param {Object} simResult - Output of shot.simulate()
  * @param {Object} divePlan - Output of keeperAI.decide()
@@ -122,37 +137,47 @@ export function checkSave(simResult, divePlan, tuning = TUNING) {
   // Smooth quadratic ease-out dive trajectory
   const ease = 1 - (1 - progress) * (1 - progress);
 
-  // Keeper reach center at moment ball crosses
-  const keeperX = startX + ease * (divePlan.target.x - startX);
-  const keeperY = startY + ease * (divePlan.target.y - startY);
-
-  const dist = Math.hypot(bx - keeperX, by - keeperY);
-
-  // Base reach radius
-  const reach = tuning.keeper.gloveReachRadius;
+  // Keeper root & glove positions at moment ball crosses
+  const rootX = startX + ease * (divePlan.target.x * 0.75);
+  const rootY = startY + ease * (divePlan.target.y - startY) * 0.45;
+  const gloveX = startX + ease * (divePlan.target.x - startX);
+  const gloveY = startY + ease * (divePlan.target.y - startY);
 
   // Top corner check: if shot is right in the extreme top corner at high velocity,
   // it beats the keeper even on a correct dive
   const isExtremeTopCorner = (Math.abs(bx) > 3.05 && by > 1.95);
   if (isExtremeTopCorner && bSpeed >= 28.0) {
-    return { saved: false, dist, reason: 'unstoppable_top_corner' };
+    const distToGlove = Math.hypot(bx - gloveX, by - gloveY);
+    return { saved: false, dist: distToGlove, reason: 'unstoppable_top_corner' };
   }
 
-  if (dist <= reach) {
+  // Two capsules:
+  // 1. Arm/Glove capsule from torso shoulder (rootX, rootY + 0.3) to extended glove (gloveX, gloveY)
+  const rGlove = tuning.keeper.gloveReachRadius;
+  const distGlove = distToSegment(bx, by, rootX, rootY + 0.3, gloveX, gloveY);
+
+  // 2. Torso/Body capsule from lower legs (rootX, 0.4) to head (rootX, rootY + 0.45)
+  const rBody = tuning.keeper.bodyReachRadius;
+  const distBody = distToSegment(bx, by, rootX, 0.4, rootX, Math.max(0.7, rootY + 0.45));
+
+  const distToReach = Math.min(distGlove, distBody);
+  const isSaved = (distGlove <= rGlove) || (distBody <= rBody);
+
+  if (isSaved) {
     // Ball within reach volume: SAVE!
     // Parry vs Catch based on velocity and distance
-    const isCatch = bSpeed <= tuning.keeper.catchSpeedLimit && dist <= reach * 0.65;
+    const isCatch = bSpeed <= tuning.keeper.catchSpeedLimit && distGlove <= rGlove * 0.70;
     return {
       saved: true,
       saveType: isCatch ? 'catch' : 'parry',
-      dist,
+      dist: distToReach,
       contactPoint: { x: bx, y: by, z: 0 }
     };
   }
 
   return {
     saved: false,
-    dist,
+    dist: distToReach,
     reason: 'out_of_reach'
   };
 }

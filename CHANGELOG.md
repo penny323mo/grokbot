@@ -39,12 +39,49 @@ Comprehensive upgrade from 2D tap-a-grid prototype to an authentic 3D mobile pen
 
 ### 7. Unit Tests (`tests/`)
 - `tests/model.test.js`: 14 tests passing.
-- `tests/shot.test.js`: 5 tests passing.
-- `tests/keeperAI.test.js`: 5 tests passing.
+- `tests/shot.test.js`: 6 tests passing.
+- `tests/keeperAI.test.js`: 6 tests passing.
+- `tests/input.test.js`: 3 tests passing.
 
 ---
 
-## Round 1 fixes
+## v2 Round 1 fixes
+
+Following the grok Round 1 code review (`reviews/grok-v2-r1.md`), all CRITICAL, MAJOR, and sensible MINOR issues have been resolved:
+
+### 1. Goalkeeper Reset Between Kicks (CRITICAL #1)
+- **Root & Body Transform Reset**: Updated `setReady()` in `src/keeper.js` to unconditionally call `this.reset()`, resetting `root.position` to `this.basePos`, `root.rotation` to `(0,0,0)`, and all `bodyGroup` and joint rotations.
+- **Pre-Turn Clean State**: Updated `startPlayerTurn()` and `startCpuTurn()` in `src/main.js` to call `this.keeper.reset()` before `this.keeper.setReady()`, preventing the goalkeeper from staying sprawled in dive poses on later kicks.
+
+### 2. Camera Framing & Stadium Visuals (CRITICAL #2)
+- **Unclipped Ball & Pitch**: Reframed camera in `src/scene.js` (`baseCameraPos = (0, 1.85, 15.6)`, `lookTarget = (0, 1.15, 2.5)`, vertical FOV 56°). The ball at `(0, 0.11, 11)` now sits with a 155px margin above the screen bottom, leaving the full ball, penalty spot, and lush turf unclipped under the HUD.
+- **Unobstructed Grandstand & Crowd**: Moved North grandstand crowd billboards to the open front terraces (`z = -6.2` to `-12.95m`, `y = 2.45` to `10.1m`), directly above crossbar height ($2.44m$). All 260 cheering crowd spectators bobbing in the stands are now prominently visible across the upper third.
+- **In-Frame Floodlights**: Lowered stadium floodlight towers to $y = 13.0m$ and brought them closer (`z = -8m` and `+12m`). Added glowing lens flare halo quads with additive blending, providing realistic night stadium illumination.
+
+### 3. TouchEvent Fallback & Pointer Capture (MAJOR #3)
+- **PointerCapture**: Added `setPointerCapture` and `releasePointerCapture` on `#scene` in `src/input.js` to prevent iOS Safari from dropping pointermove events when fingers move quickly.
+- **Direct TouchEvent Listeners**: Added `{ passive: false }` touch listeners (`touchstart`, `touchmove`, `touchend`, `touchcancel`) with `preventDefault()` on the canvas, ensuring synthetic touch events reliably execute swipe shooting on iPhone Safari.
+- **Added Input Unit Tests**: Created `tests/input.test.js` validating TouchEvent swipe execution, PointerCapture lifecycle, and boundary filtering (3/3 tests pass).
+
+### 4. Unified Camera Juice Composition (MAJOR #4)
+- **Composed Sway, Shake & Punch-In**: Refactored `src/fx.js` to track `shakeOffset`, `punchOffset`, and `lookAtOffset`. `stadium.update()` now computes idle camera sway, screen shake, forward punch-in, and look-at lerp in a single unified step, preventing shake from being overwritten.
+- **Camera Punch-In on Goal**: Camera now punches forward 1.8m toward the goal on scores with smooth sine recovery and look-at target focus.
+
+### 5. Swipe Start Boundary Tuning (MAJOR #5)
+- **Bottom 75% Acceptance**: Updated `_startSwipe` in `src/input.js` to accept touches starting anywhere in the bottom 75% of the screen (`y >= rect.height * 0.25`), enabling players to naturally flick the ball from anywhere on the pitch.
+
+### 6. Minor Improvements & Polish
+- **Favicon & Apple Web App Meta (MINOR #6 & #11)**: Added `favicon.svg`, 32×32 `favicon.png`, `apple-touch-icon`, and `<meta name="apple-mobile-web-app-capable" content="yes">` to `index.html`.
+- **Canvas-Bounded Renderer Sizing (MINOR #7)**: In `src/scene.js`, renderer now reads `canvas.getBoundingClientRect()`, passes `false` to `setSize()`, and listens to parent resize via `ResizeObserver` for responsive desktop and mobile container support.
+- **Reach Volume Capsules (MINOR #8)**: Replaced single 2D circle with two 3D capsules (torso/body capsule + extended arm/glove reach capsule along the dive vector) in `src/keeperAI.js`. Added unit test in `tests/keeperAI.test.js` (6/6 tests pass).
+- **Post-Goal Ball Net Penetration (MINOR #9)**: In `src/main.js`, goal trajectory continues past the goal line into the net bulge ($z < 0$), settling realistically into the mesh.
+- **Confetti Particle Count (MINOR #10)**: Increased confetti count to 220 in `src/tuning.js` (within budget).
+
+---
+
+## v1 Archive (Legacy Prototype)
+
+### Round 1 fixes (v1)
 
 Following the code review in `reviews/grok-round-1.md`, all CRITICAL and MAJOR issues, and sensible MINOR issues have been addressed:
 

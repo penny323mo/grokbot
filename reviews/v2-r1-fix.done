@@ -1,0 +1,111 @@
+# v2 Round 1 Fixes Done
+
+## 1. Summary of Completed Fixes
+
+All CRITICAL and MAJOR issues and sensible MINOR issues from `reviews/grok-v2-r1.md` have been addressed:
+
+### CRITICAL Items:
+1. **Goalkeeper Reset Between Kicks (`src/keeper.js`, `src/main.js`)**:
+   - Updated `setReady()` in `src/keeper.js` to explicitly invoke `this.reset()` to zero `root.position` to `this.basePos`, `root.rotation` to `(0, 0, 0)`, and clear all `bodyGroup` joint rotations.
+   - Updated `startPlayerTurn()` and `startCpuTurn()` in `src/main.js` to call `this.keeper.reset()` before `this.keeper.setReady()`. The goalkeeper now returns cleanly to the crouching ready stance between all kicks instead of remaining sprawled on the grass.
+
+2. **Camera Framing & Stadium Visuals at 390×844 (`src/scene.js`, `src/main.js`)**:
+   - Reframed perspective camera (`baseCameraPos = (0, 1.85, 15.6)`, `lookTarget = (0, 1.15, 2.5)`, vertical FOV 56°). The ball at `(0, 0.11, 11)` now sits with a 155px margin above the screen bottom, leaving the full ball, penalty spot, and lush green pitch fully unclipped.
+   - Repositioned North grandstand crowd billboards to the open front terraces (`z = -6.2` to `-12.95m`, `y = 2.45` to `10.1m`), directly above the goal crossbar ($2.44m$). All 260 spectators are completely unobstructed and cheering in full view across the upper third.
+   - Lowered stadium floodlight towers to $y = 13.0m$ and brought them closer (`z = -8m` and `+12m`). Added glowing lens flare halo quads with additive blending, providing authentic night stadium lighting. Re-captured `screenshots/v2/r1-02-match.png` at 390×844.
+
+### MAJOR Items:
+3. **TouchEvent Fallback & PointerCapture (`src/input.js`, `tests/input.test.js`)**:
+   - Added `setPointerCapture` and `releasePointerCapture` to `#scene` to prevent iOS Safari from dropping pointermove events during rapid swipes.
+   - Added `{ passive: false }` direct touch event listeners (`touchstart`, `touchmove`, `touchend`, `touchcancel`) calling `preventDefault()` on canvas, mapping touch coordinates through the unified swipe system.
+   - Added `tests/input.test.js` validating TouchEvent swipe execution, PointerCapture, and boundary filtering (3/3 tests pass).
+
+4. **Unified Camera Juice Composition (`src/fx.js`, `src/scene.js`, `src/main.js`)**:
+   - Refactored `src/fx.js` to compute `shakeOffset`, `punchOffset`, and `lookAtOffset`.
+   - `stadium.update()` now combines idle sway, screen shake, camera punch-in (1.8m forward towards goal on scores with smooth sine recovery), and look-at target focus in a single step, preventing screen shake from being overwritten.
+
+5. **Swipe Start Boundary Tuning (`src/input.js`)**:
+   - Updated `_startSwipe` to accept touches starting anywhere in the bottom 75% of the screen (`y >= rect.height * 0.25`), enabling players to naturally flick the ball from anywhere on the pitch.
+
+### MINOR Items:
+6. **Favicon (`favicon.svg`, `favicon.png`, `index.html`)**:
+   - Added `favicon.svg` and generated 32×32 `favicon.png`, along with `<link rel="icon">` and `<link rel="apple-touch-icon">` tags in `index.html`.
+7. **Canvas-Bounded Renderer Sizing (`src/scene.js`)**:
+   - Sized renderer using `canvas.getBoundingClientRect()`, passed `false` to `setSize()`, and attached a `ResizeObserver` on `canvas.parentElement` for responsive layout on both desktop and mobile containers.
+8. **Reach Volume 3D Capsules (`src/keeperAI.js`, `tests/keeperAI.test.js`)**:
+   - Replaced single 2D circle with two 3D capsules (torso/body capsule + extended arm/glove reach capsule along the dive vector). Added unit test in `tests/keeperAI.test.js` (6/6 tests pass).
+9. **Post-Goal Ball Net Penetration (`src/main.js`, `tests/shot.test.js`)**:
+   - Goal trajectory continues past the goal line into the net bulge ($z < 0$), settling realistically into the mesh. Added unit test in `tests/shot.test.js` (6/6 tests pass).
+10. **Confetti Count (`src/tuning.js`, `src/fx.js`)**:
+    - Increased confetti particle count to 220 (within $\le 300$ budget).
+11. **Mobile Web App Meta (`index.html`)**:
+    - Added `<meta name="apple-mobile-web-app-capable" content="yes">`, status-bar-style, and theme-color in `index.html`.
+12. **Documentation & Changelog (`CHANGELOG.md`, `README.md`)**:
+    - Appended `## v2 Round 1 fixes` to `CHANGELOG.md` and archived legacy v1 sections.
+    - Updated `README.md` with new test suites and documentation.
+    - **No git commands were run**.
+
+---
+
+## 2. Unit Test Results
+
+All 4 unit test suites execute and pass cleanly via Node.js v20:
+
+### Command:
+```bash
+node tests/model.test.js && node tests/shot.test.js && node tests/keeperAI.test.js && node tests/input.test.js
+```
+
+### Output:
+```
+--- Running PenaltyMindModel Unit Tests ---
+
+✅ PASS: Initial state: uniform-ish distribution and 0 predictability
+✅ PASS: Learns repeated pattern: after 10x always "top-left" (TL), predicts TL with highest probability
+✅ PASS: Entropy score behaves: uniform distribution has low predictability, repeated has high
+✅ PASS: Predictability score reflects sequence learning: TL/BR alternation scores high, uniform transitions stay low
+✅ PASS: Learns N-gram alternating pattern: TL -> BR -> TL -> BR
+✅ PASS: Probabilities always sum to 1.0 and are non-negative
+✅ PASS: Dive zone selection returns valid zone and respects probabilities
+✅ PASS: Heatmap and accuracy calculation
+✅ PASS: Export and import state preserves all data
+✅ PASS: Tied probabilities: fair dive sampling and no fake prediction
+✅ PASS: Draw match result and sanitization against invalid data
+✅ PASS: Sequence predictability resilience: 15x alternating TL/BR + 1 TM retains high sequence predictability
+✅ PASS: Predictability score requires >= 8 shots, returns null / 數據不足 otherwise
+✅ PASS: Five distinct varied zones yields low predictability (< 30)
+
+All 14 / 14 tests passed successfully!
+
+--- Running Shot Physics (src/shot.js) Unit Tests ---
+
+✅ PASS: Swipe straight up -> centre target and valid goal crossing
+✅ PASS: Faster swipe -> higher speed and shorter flight time
+✅ PASS: Bent swipe (right bow) -> curved lateral displacement to the right
+✅ PASS: Overpower swipe (power > 0.92) -> flies over the crossbar
+✅ PASS: Zone classification accurately bins goal points into 6 zones
+✅ PASS: Goal trajectory continues behind goal line into the net
+
+All 6 / 6 tests passed successfully!
+
+--- Running Keeper AI (src/keeperAI.js) Unit Tests ---
+
+✅ PASS: Decide returns valid dive plan matching predicted zone
+✅ PASS: Save succeeds when dive is correct and ball is within glove reach volume
+✅ PASS: Goal scored when keeper dives opposite to the shot direction
+✅ PASS: High-speed blast to the extreme top corner beats the keeper even on correct dive
+✅ PASS: High speed shot within reach results in parry deflection instead of catch
+✅ PASS: Torso body capsule intercepts shot directed at keeper body
+
+All 6 / 6 tests passed successfully!
+
+--- Running Touch & Swipe Input (src/input.js) Unit Tests ---
+
+✅ PASS: Swipe starting in bottom 75% triggers onShoot with valid launch
+✅ PASS: Swipe starting in top 25% (scoreboard area) is ignored
+✅ PASS: PointerEvents set and release pointer capture
+
+All 3 / 3 tests passed successfully!
+```
+
+**Total: 29 / 29 unit tests passing.**

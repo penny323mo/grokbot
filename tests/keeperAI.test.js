@@ -143,6 +143,31 @@ const assert = require('assert');
     assert.strictEqual(saveCheck.saveType, 'parry', 'High speed shot should be parried, not caught');
   });
 
+  test('Torso body capsule intercepts shot directed at keeper body', () => {
+    // Keeper diving towards Top-Right, but keeper torso/body occupies center-right
+    const divePlan = {
+      zone: 'TR',
+      target: { x: 2.65, y: 1.90 },
+      reactTime: 0.16,
+      diveDuration: 0.48
+    };
+
+    // Ball directed near keeper's initial body position during early reaction
+    const simResult = {
+      result: 'goal',
+      crossing: {
+        x: 0.10,
+        y: 0.90,
+        z: 0,
+        t: 0.18, // early arrival
+        speed: 21.0
+      }
+    };
+
+    const saveCheck = checkSave(simResult, divePlan, TUNING);
+    assert.strictEqual(saveCheck.saved, true, 'Torso body capsule should block shot into keeper body');
+  });
+
   if (passedTests === totalTests) {
     console.log(`\nAll ${passedTests} / ${totalTests} tests passed successfully!`);
   } else {

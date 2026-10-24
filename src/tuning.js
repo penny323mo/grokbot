@@ -60,7 +60,7 @@ export const TUNING = {
     shakeDurationMs: 250, // Screen shake duration on goal / post
     shakeIntensity: 0.08,
     hitStopMs: 80,        // Save contact freeze frame
-    confettiCount: 160,
+    confettiCount: 220,
     revealDurationMs: 1400 // In-scene mind-reading heat overlay duration
   },
 

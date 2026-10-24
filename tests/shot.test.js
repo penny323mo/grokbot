@@ -136,6 +136,23 @@ const assert = require('assert');
     assert.strictEqual(getZoneFromPoint(2.5, 0.6, TUNING), 'BR');
   });
 
+  test('Goal trajectory continues behind goal line into the net', () => {
+    const points = [
+      { x: 195, y: 680, t: 0 },
+      { x: 195, y: 530, t: 120 }
+    ];
+    const launch = swipeToLaunch(points, viewport, TUNING);
+    assert(launch !== null);
+    const sim = simulate(launch, 1 / 120, 1.5, TUNING);
+    assert.strictEqual(sim.result, 'goal');
+
+    // Trajectory must have points behind goal line (Z < 0)
+    const pointsBehindNet = sim.trajectory.filter(p => p.z < 0);
+    assert(pointsBehindNet.length > 5, 'Trajectory should continue into the net past Z = 0');
+    const deepestPoint = pointsBehindNet[pointsBehindNet.length - 1];
+    assert(deepestPoint.z <= -0.4, `Deepest trajectory point (${deepestPoint.z}m) must be behind goal line`);
+  });
+
   if (passedTests === totalTests) {
     console.log(`\nAll ${passedTests} / ${totalTests} tests passed successfully!`);
   } else {

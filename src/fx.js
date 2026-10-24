@@ -1,6 +1,6 @@
 /**
  * 12碼讀心戰 (Penalty Mind Game v2) - Juice & Visual Effects
- * Slow-motion, camera shake, goal confetti explosion, keeper glove flash,
+ * Slow-motion, camera shake, punch-in, goal confetti explosion, keeper glove flash,
  * in-scene 3D 讀心 heat ring, and aim assist trajectory.
  */
 
@@ -18,10 +18,16 @@ export class FXManager {
       this.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     }
 
-    // Camera shake
+    // Camera shake & punch-in offsets
     this.shakeTimer = 0;
     this.shakeIntensity = 0;
-    this.cameraBasePos = new THREE.Vector3().copy(camera.position);
+    this.shakeOffset = new THREE.Vector3(0, 0, 0);
+
+    this.punchTimer = 0;
+    this.punchDuration = 0.28;
+    this.punchOffset = new THREE.Vector3(0, 0, 0);
+    this.lookAtOffset = new THREE.Vector3(0, 0, 0);
+    this.targetContact = null;
 
     // Confetti system
     this.confettiGroup = null;
@@ -38,8 +44,8 @@ export class FXManager {
   }
 
   init() {
-    // 1. Confetti Particle System (160 particles)
-    const count = TUNING.juice.confettiCount;
+    // 1. Confetti Particle System (220 particles)
+    const count = TUNING.juice.confettiCount || 220;
     this.confettiGroup = new THREE.Group();
     const confGeo = new THREE.PlaneGeometry(0.12, 0.12);
 
@@ -83,7 +89,6 @@ export class FXManager {
     this.scene.add(this.aimAssistLine);
 
     // 3. In-scene 讀心 Heat Ring on goal mouth
-    // Translucent glowing circle located at predicted dive zone
     const ringGeo = new THREE.RingGeometry(0.35, 0.75, 32);
     const ringMat = new THREE.MeshBasicMaterial({
       color: 0xa855f7, // Purple glow
@@ -104,8 +109,15 @@ export class FXManager {
     this.shakeTimer = durationMs / 1000;
   }
 
+  triggerPunchIn(contactPoint) {
+    if (this.reducedMotion) return;
+    this.punchTimer = this.punchDuration;
+    this.targetContact = contactPoint ? { x: contactPoint.x, y: contactPoint.y, z: contactPoint.z } : { x: 0, y: 1.5, z: 0 };
+  }
+
   triggerGoalExplosion(contactPoint) {
-    this.triggerShake(0.09, 280);
+    this.triggerShake(0.12, 280);
+    this.triggerPunchIn(contactPoint);
 
     // Explode confetti from goal contact
     const cx = contactPoint ? contactPoint.x : 0;
@@ -163,22 +175,55 @@ export class FXManager {
     if (this.aimAssistLine) this.aimAssistLine.visible = false;
   }
 
+  getShakeOffset() {
+    return this.shakeOffset;
+  }
+
+  getPunchOffset() {
+    return this.punchOffset;
+  }
+
+  getLookAtOffset() {
+    return this.lookAtOffset;
+  }
+
   update(deltaSec) {
-    // 1. Camera shake
+    // 1. Camera shake calculation
     if (this.shakeTimer > 0) {
       this.shakeTimer -= deltaSec;
       const decay = Math.max(0, this.shakeTimer / (TUNING.juice.shakeDurationMs / 1000));
-      const ox = (Math.random() - 0.5) * 2 * this.shakeIntensity * decay;
-      const oy = (Math.random() - 0.5) * 2 * this.shakeIntensity * decay;
-      this.camera.position.x += ox;
-      this.camera.position.y += oy;
+      this.shakeOffset.set(
+        (Math.random() - 0.5) * 2 * this.shakeIntensity * decay,
+        (Math.random() - 0.5) * 2 * this.shakeIntensity * decay,
+        0
+      );
+    } else {
+      this.shakeOffset.set(0, 0, 0);
     }
 
-    // 2. Confetti simulation
-    let activeConfetti = false;
+    // 2. Camera punch-in calculation
+    if (this.punchTimer > 0 && !this.reducedMotion) {
+      this.punchTimer -= deltaSec;
+      const progress = 1.0 - Math.max(0, this.punchTimer / this.punchDuration);
+      // Sine wave peak in middle of duration
+      const factor = Math.sin(progress * Math.PI);
+      // Push camera forward along Z (towards goal) by 1.8m
+      this.punchOffset.set(0, -0.2 * factor, -1.8 * factor);
+      if (this.targetContact) {
+        this.lookAtOffset.set(
+          (this.targetContact.x * 0.25) * factor,
+          ((this.targetContact.y - 1.2) * 0.25) * factor,
+          0
+        );
+      }
+    } else {
+      this.punchOffset.set(0, 0, 0);
+      this.lookAtOffset.set(0, 0, 0);
+    }
+
+    // 3. Confetti simulation
     this.confettiParticles.forEach(p => {
       if (p.life > 0) {
-        activeConfetti = true;
         p.life -= deltaSec;
         p.vel.y -= 9.8 * deltaSec; // gravity
         p.vel.x *= 0.98;
@@ -198,7 +243,7 @@ export class FXManager {
       }
     });
 
-    // 3. Mind-reading heat ring animation
+    // 4. Mind-reading heat ring animation
     if (this.mindHeatTimer > 0) {
       this.mindHeatTimer -= deltaSec;
       const progress = 1.0 - (this.mindHeatTimer / (TUNING.juice.revealDurationMs / 1000));
