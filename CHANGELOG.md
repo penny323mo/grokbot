@@ -279,5 +279,34 @@
 - **P2-19**：詳細文檔說明 Dixon-Coles 低比分相關參數 $\rho = -0.05$ 之統計校準原理。
 - **P2-20**：管線優先讀取 `fixtures.csv` 中尖端莊家之實際讓球盤口與澳門盤檔位比對，直接進行銳利度去水共識。
 
+## v4 R3 fixes
+
+### 1. 核心經濟理性與值博健全性 (Value Sanity & Pinnacle Anchor)
+- **尖端錨點防線 (Pinnacle Anchor Rule)**：
+  - 澳彩獨贏 (1X2) 抽水高達 11%–12%，若澳彩給出賠率小於或等於 Pinnacle（尖端市場莊家）同方向賠率，或對比 Pinnacle 算得之期望值 EV $\le 0$，一律判定為「一般」，嚴禁標記為「值博」。
+  - 徹底修復升班馬小樣本導致之侯城 (Hull City) 1X2 賠率倒掛破綻（澳彩 4.70 vs Pinnacle 5.07，先前被錯誤標記為 +18.9% 值博）。
+- **升班馬與小樣本衰減保護**：
+  - 針對頂級聯賽累積場次少於 20 場之球隊，平滑衰減 Dixon-Coles 預期入球權重（$w_{\text{dc}} \to 0$），防止缺乏歷史樣本時過度外推。
+- **杜絕 $\pm 15\%$ 截斷破綻**：
+  - 若模型計算之原始 EV $> +15\%$ 或 $< -25\%$，不再截斷為 $+15\%$ 後貼上「值博」標籤，而是正確認定為「數據不足」（tier `insufficient`），並自動排除於推薦與戰績記錄之外。
+
+### 2. 亞洲讓球盤跨檔位插值 (Sharp AH Quarter-line Calibration)
+- **泊松分數矩陣校準**：
+  - 當 `fixtures.csv` 存在尖端莊家（Pinnacle / Bet365）讓球盤口且與澳彩檔位相差在 $\pm 0.5$ 球以內時，不再因為檔位不完全相等而棄用，而是透過 `calibrate_lambdas_to_sharp_ah` 將尖端盤口勝率校準至雙參數目標矩陣，精確插值至澳彩實開之四分之一盤口。
+
+### 3. 架構容錯與安全保障 (Last-Good Preservation & Error Surfacing)
+- **澳彩失敗防護升級**：
+  - `validate_macau_response` 強化檢查：若返回賽事未包含實盤賠率（`odds_1x2` 或 `main_ah`），即判定驗證失敗，絕不以無賠率之 `raw_samples/macau_sample.json` 覆寫良好賽程，直接從既有 `data/data.js` 還原上一輪有效實盤數據。
+- **The Odds API 警示穿透**：
+  - 遇 Odds API 獲取失敗時，於 `health_status` 中將總體狀態提升為 `warning`，並於前端狀態欄即時告警。
+
+### 4. P2 細節修正與 UI 體驗提升
+- **戰績統計字串對齊**：`record_tracker.py` 統一支援 `"half_win"` 與 `"half_won"`（及 `"half_loss"` / `"half_lost"`），防止半贏賽事 KPI 歸零。
+- **莊家清單優先保留 Pinnacle**：於 `booksList` 中優先將 Pinnacle 置於首位，確保比較彈窗與柱狀圖常態呈現真實尖端數據。
+- **雙向盤口 Power De-vig**：大細波與讓球盤去水全面調用指數冪次法（Power de-vig）。
+- **「點樣計」教學卡片**：首頁加入精煉廣東話「💡 點樣計？值博率與定價模型剖析」折疊卡片，清楚拆解尖端錨點、Dixon-Coles 泊松矩陣、值博率門檻與 1/4 凱利注碼控制原則。
+- **測試擴充**：新增 5 項 Python 測試與 2 項 Node.js 測試（共 18 Python + 27 Node 測試全部通過），並通過 390×844 手機端 0 console 錯誤驗證。
+
+
 
 

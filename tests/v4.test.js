@@ -113,3 +113,31 @@ test('v4 Math: De-vigging multiplicative normalization', () => {
   assert.ok(Math.abs(sum - 1.0) < 1e-9, `Sum was ${sum}`);
   assert.ok(probs[0] > probs[1] && probs[1] > probs[2]);
 });
+
+test('v4 Value Sanity: No 1X2 market with Macau odds <= Pinnacle odds is badged as 值博', () => {
+  const fixtures = data.macauFixtures || [];
+  for (const fx of fixtures) {
+    const pinBook = (fx.booksList || []).find(b => b.key === 'pinnacle');
+    const o1x2 = fx.macau?.odds_1x2;
+    if (pinBook && pinBook['1x2'] && o1x2) {
+      const sel = o1x2.best_sel;
+      const macauOdds = o1x2[sel.toLowerCase()];
+      const pinOdds = pinBook['1x2'][sel.toLowerCase()];
+      if (macauOdds <= pinOdds) {
+        assert.notEqual(o1x2.badge?.label, '值博',
+          `Match ${fx.home} vs ${fx.away} sel ${sel}: Macau ${macauOdds} <= Pin ${pinOdds} must not be 值博`);
+      }
+    }
+  }
+});
+
+test('v4 Value Sanity: Hull City 1X2 @ 4.70 (Pinnacle 5.07) is NOT badged as 值博', () => {
+  const fixtures = data.macauFixtures || [];
+  const hullFx = fixtures.find(f => f.home.includes('Hull') || f.away.includes('Hull'));
+  if (hullFx && hullFx.macau?.odds_1x2) {
+    const o1x2 = hullFx.macau.odds_1x2;
+    assert.notEqual(o1x2.badge?.label, '值博', 'Hull City 1X2 must not be badged as 值博');
+    assert.equal(o1x2.badge?.label, '一般', 'Hull City 1X2 should be labeled 一般');
+  }
+});
+

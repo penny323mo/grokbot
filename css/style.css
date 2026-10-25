@@ -2641,3 +2641,87 @@ strong, .th-price, .stat-num, .kpi-val, .m-val, .td-num, .hm-prob-txt, .edge-pil
   font-weight: 800;
 }
 
+/* --- How it works (點樣計) Explainer --- */
+.how-it-works-card {
+  margin-top: 24px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.explainer-details {
+  width: 100%;
+}
+.explainer-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-normal);
+  user-select: none;
+}
+.explainer-summary::-webkit-details-marker {
+  display: none;
+}
+.explainer-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.explainer-toggle-icon {
+  font-size: 11px;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+.explainer-details[open] .explainer-toggle-icon {
+  transform: rotate(180deg);
+}
+.explainer-content {
+  padding: 0 16px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 14px;
+}
+.explainer-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.explainer-step strong {
+  color: var(--text-normal);
+  display: block;
+  margin-bottom: 2px;
+}
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: rgba(0, 255, 135, 0.15);
+  color: var(--accent-green);
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.explainer-step code {
+  background: var(--surface-3);
+  padding: 2px 5px;
+  border-radius: 4px;
+  color: var(--accent-cyan);
+  font-size: 12px;
+  font-family: monospace;
+}
+
+

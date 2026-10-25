@@ -117,6 +117,46 @@
           <h3 class="empty-title">未來三日暫時冇賽程／賠率</h3>
           <p class="empty-desc">football-data 通常逢星期二、五更新，澳門彩票逢賽前一至兩日開盤。</p>
         </div>
+
+        <!-- Explainer Card: 點樣計 (How it works) -->
+        <div class="section-card how-it-works-card">
+          <details class="explainer-details" open>
+            <summary class="explainer-summary">
+              <span class="explainer-title">💡 點樣計？值博率與定價模型剖析</span>
+              <span class="explainer-toggle-icon">▼</span>
+            </summary>
+            <div class="explainer-content">
+              <div class="explainer-step">
+                <span class="step-num">1</span>
+                <div>
+                  <strong>尖端國際共識（Pinnacle 錨點）</strong>
+                  <p>以抽水僅 2%–3% 之 Pinnacle 及歐洲尖端莊家為定價標竿，透過 Power De-vig 去除莊家抽水，還原真實市場勝率；絕不盲目採用散戶或次級莊家極端賠率。</p>
+                </div>
+              </div>
+              <div class="explainer-step">
+                <span class="step-num">2</span>
+                <div>
+                  <strong>Dixon-Coles 預期入球泊松矩陣</strong>
+                  <p>結合雙參數泊松入球期望值與低入球修正（ρ = -0.05）。針對升班馬實施樣本數衰減保護，防止小樣本膨脹模型評級。</p>
+                </div>
+              </div>
+              <div class="explainer-step">
+                <span class="step-num">3</span>
+                <div>
+                  <strong>嚴謹值博率門檻（EV > +3%）</strong>
+                  <p>公式：<code>EV = (真實勝率 × 澳彩賠率) - 1</code>。澳彩賠率必須嚴格高於尖端莊家賠率且 EV 介乎 +3% 至 +15% 方評為「值博」；若 EV 異常偏離（> +15%）則標記為「數據不足」，杜絕假破綻。</p>
+                </div>
+              </div>
+              <div class="explainer-step">
+                <span class="step-num">4</span>
+                <div>
+                  <strong>1/4 凱利注碼控管</strong>
+                  <p>依據勝率與盤口賠率建議最佳投注注碼（四分之一凱利），嚴格控制回撤風險，長期累積正期望值收益。</p>
+                </div>
+              </div>
+            </div>
+          </details>
+        </div>
       </section>
 
       <!-- TAB 2: 莊家比較 (Bookmaker Comparison) -->

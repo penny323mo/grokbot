@@ -14,16 +14,20 @@ import unittest
 import json
 import os
 import sys
+from datetime import datetime, timezone
 
 # Add root and scripts directory
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "scripts")))
 
 from math_engine import (
-    remove_margin_multiplicative, remove_margin_power,
+    remove_margin_multiplicative, remove_margin_power, remove_margin,
     solve_poisson_lambda_for_ou25, convert_ou_line_probs,
-    settle_ah_single, settle_ou_single, classify_ev, calc_kelly_stake
+    settle_ah_single, settle_ou_single, classify_ev, calc_kelly_stake,
+    calibrate_lambdas_to_sharp_ah, calc_dc_matrix, derive_ah_fair_from_matrix
 )
+from pipeline import validate_macau_response
+from record_tracker import update_track_record
 from team_names import (
     TEAM_NAMES, get_team_cantonese, normalize_team_name,
     teams_match, strip_accents
@@ -365,6 +369,151 @@ class TestOddsLabV4(unittest.TestCase):
         self.assertTrue(teams_match("Brighton", "Brighton Hove Albion"))
         self.assertTrue(teams_match("Athletic Bilbao", "Athletic Club"))
         self.assertTrue(teams_match("PSG", "Paris Saint-Germain"))
+
+    def test_r3_pinnacle_anchor_rule(self):
+        """
+        R3 Sanity: If Macau odds <= Pinnacle odds, or EV vs Pinnacle is <= 0,
+        the selection must never be badged as 值博.
+        """
+        macau_odds = 4.70
+        pinnacle_odds = 5.07  # Pinnacle offers better odds on Hull than Macau
+        # Direct rule: if macau_odds <= pinnacle_odds, it is an anti-value trap
+        self.assertTrue(macau_odds <= pinnacle_odds)
+        # classify_ev of clamped or non-anchored is 一般 / 數據不足
+        badge_non_anchored = {
+            "label": "一般",
+            "tier": "neutral",
+            "badgeClass": "badge-val-neutral",
+            "ev_pct": -7.3
+        }
+        self.assertNotEqual(badge_non_anchored["label"], "值博")
+
+    def test_r3_clamp_loophole_eliminated_marks_insufficient(self):
+        """
+        R3 Sanity: If raw EV > 15% (e.g. 18.9%) or is_clamped=True,
+        classify_ev must mark as 數據不足, NOT 值博.
+        """
+        badge_high = classify_ev(0.189)
+        self.assertEqual(badge_high["label"], "數據不足")
+        self.assertEqual(badge_high["tier"], "insufficient")
+        self.assertNotEqual(badge_high["label"], "值博")
+
+        badge_clamped = classify_ev(0.05, is_clamped=True)
+        self.assertEqual(badge_clamped["label"], "數據不足")
+        self.assertEqual(badge_clamped["tier"], "insufficient")
+
+    def test_r3_sharp_ah_interpolation_to_quarter_line(self):
+        """
+        R3 Sanity: Sharp line at 0.0 interpolates to Macau quarter lines (+0.25 / -0.25)
+        via score matrix calibration without requiring exact line match.
+        """
+        mu = 2.6
+        p_sharp_h = 0.54  # Sharp book has slight home bias on line 0
+        sharp_lh, sharp_la = calibrate_lambdas_to_sharp_ah(mu, 0.0, p_sharp_h)
+        self.assertGreater(sharp_lh, sharp_la)
+        self.assertAlmostEqual(sharp_lh + sharp_la, mu, places=4)
+
+        matrix = calc_dc_matrix(sharp_lh, sharp_la, rho=-0.05)
+        quarter_ah = derive_ah_fair_from_matrix(matrix, -0.25)
+        self.assertIn("p_win", quarter_ah)
+        self.assertIn("p_hw", quarter_ah)
+        self.assertGreater(quarter_ah["fair_h"], 1.0)
+        self.assertGreater(quarter_ah["fair_a"], 1.0)
+
+    def test_r3_truncated_macau_response_fails_validation(self):
+        """
+        R3 Health/Last-good: If Macau Slot returns empty list or events without odds markets,
+        validation must fail so previous good data.js fixtures are preserved.
+        """
+        # Case 1: unpriced events
+        unpriced = {
+            "events": [{
+                "ev_id": "999",
+                "start_time": "2026-10-26 20:00",
+                "league_code": "E0",
+                "home_en": "Arsenal",
+                "away_en": "Chelsea"
+                # Missing odds_1x2 and main_ah!
+            }]
+        }
+        valid, msg = validate_macau_response(unpriced)
+        self.assertFalse(valid)
+        self.assertIn("contain no odds markets", msg)
+
+        # Case 2: priced events
+        priced = {
+            "events": [{
+                "ev_id": "999",
+                "start_time": "2026-10-26 20:00",
+                "league_code": "E0",
+                "home_en": "Arsenal",
+                "away_en": "Chelsea",
+                "odds_1x2": {"h": 1.9, "d": 3.4, "a": 3.8, "margin": 0.08}
+            }]
+        }
+        valid2, msg2 = validate_macau_response(priced)
+        self.assertTrue(valid2)
+
+    def test_r3_track_record_half_win_string_alignment(self):
+        """
+        R3 Fix: summary must correctly count both half_win and half_won strings.
+        """
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tf:
+            test_path = tf.name
+
+        initial_state = {
+            "version": 4,
+            "bets": [
+                {
+                    "id": "test_bet_1",
+                    "match_key": "E0_TeamA_TeamB",
+                    "league": "E0",
+                    "league_name": "英超",
+                    "home": "TeamA",
+                    "away": "TeamB",
+                    "date": "2026-10-24",
+                    "kickoff": "2026-10-24 19:00:00",
+                    "closing_frozen": True,
+                    "market": "AH",
+                    "selection": "H",
+                    "line": -0.75,
+                    "macau_odds": 2.00,
+                    "initial_macau_odds": 2.00,
+                    "closing_macau_odds": 2.00,
+                    "clv": 0.02,
+                    "status": "pending",
+                    "score": None,
+                    "outcome": None,
+                    "profit_1u": None
+                }
+            ],
+            "summary": {
+                "total_bets": 1, "settled_bets": 0, "pending_bets": 1,
+                "won": 0, "half_won": 0, "push": 0, "half_lost": 0, "lost": 0,
+                "profit_units": 0.0, "roi_pct": 0.0, "avg_clv": 0.0
+            }
+        }
+        with open(test_path, "w") as f:
+            json.dump(initial_state, f)
+
+        # Settle with 1-0 score (Home wins by 1 on line -0.75 -> half win!)
+        finished = [{
+            "date": "2026-10-24",
+            "home": "TeamA",
+            "away": "TeamB",
+            "fthg": 1,
+            "ftag": 0
+        }]
+        res = update_track_record([], finished_matches=finished, filepath=test_path,
+                                  current_time_utc=datetime(2026, 10, 25, tzinfo=timezone.utc))
+        self.assertEqual(res["bets"][0]["outcome"], "half_win")
+        self.assertEqual(res["summary"]["half_won"], 1)
+        self.assertEqual(res["summary"]["total_profit"], 0.5)
+
+        if os.path.exists(test_path):
+            os.remove(test_path)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -4,17 +4,21 @@ pipeline.py - Orchestrates the entire Odds Lab v4 data pipeline:
 1. Fetches or loads Macau Slot live data (next 3 days, top 5 + UEFA cups)
 2. Fetches or loads The Odds API data (guarded daily run, 500/mo budget)
 3. Loads football-data historical matches & upcoming sharp AH fixtures
-4. Fits Dixon-Coles model on top-5 leagues
+4. Fits Dixon-Coles model on top-5 leagues with sample size attenuation for promotees
 5. Cross-source matches fixtures with normalized team names (strictly avoiding collisions)
 6. Calculates consensus: Pinnacle-weighted (0.6 Pinnacle + 0.4 other books median)
 7. Fits Poisson/DC lambda goal expectations to consensus 1X2 + totals
-8. Blends consensus (0.7) with Dixon-Coles model (0.3) for 1X2, Over/Under, AND Asian Handicap
-9. Classifies Macau Slot markets with EV% and Cantonese badges (guarding against outlier edge)
-10. Builds bookmaker discrepancy matrix and best price highlights
-11. Records and updates snapshots in data/snapshots/ (with valid match keys and sparklines)
-12. Updates track record in data/track_record.json (freezing CLV at kickoff, strictly date-gated results)
-13. Performs schema validation and writes health status to data/health.json
-14. Preserves last-good data on failure and triggers single de-duped data-alert issue in CI
+8. Sharp Asian Handicap interpolation to Macau quarter lines (via score matrix calibration)
+9. Blends consensus with Dixon-Coles model for 1X2, Over/Under, AND Asian Handicap
+10. Strict "值博 sanity" & Pinnacle Anchor:
+    - Never badge as 值博 if Macau odds <= Pinnacle odds on that selection
+    - Never badge as 值博 if raw EV > 15% (mark as 數據不足 instead of loophole clamp)
+11. Builds bookmaker discrepancy matrix and best price highlights (prioritizing Pinnacle in booksList)
+12. Records and updates snapshots in data/snapshots/ (with valid match keys and sparklines)
+13. Updates track record in data/track_record.json (freezing CLV at kickoff, strictly date-gated results)
+14. Schema validation and error handling:
+    - On Macau failure, preserves previous good data.js without corrupting with unpriced samples
+    - On Odds API error, surfaces overall warning in health status
 """
 
 import csv
@@ -36,11 +40,11 @@ from team_names import TEAM_NAMES, get_team_cantonese, teams_match, normalize_te
 from fetch_macau import fetch_macau_data, COMPETITION_MAP
 from fetch_odds_api import fetch_odds_api
 from math_engine import (
-    remove_margin_multiplicative, remove_margin_power,
+    remove_margin_multiplicative, remove_margin_power, remove_margin,
     solve_poisson_lambda_for_ou25, convert_ou_line_probs,
     calc_ou_expected_return, settle_ah_single, settle_ou_single,
     blend_probabilities, classify_ev, calc_kelly_stake,
-    calc_dc_matrix, fit_lambdas_from_consensus,
+    calc_dc_matrix, fit_lambdas_from_consensus, calibrate_lambdas_to_sharp_ah,
     derive_ah_fair_from_matrix, blend_ah_distributions
 )
 from snapshots_tracker import save_snapshot, load_snapshots_history
@@ -74,17 +78,26 @@ def load_previous_fixtures_from_data_js(data_js_path):
     return []
 
 def validate_macau_response(macau_result):
-    """Schema check for Macau Slot API response."""
+    """Schema check for Macau Slot API response: must have events with actual odds."""
     if not isinstance(macau_result, dict):
         return False, "Macau result is not a dictionary"
     events = macau_result.get("events")
     if events is None or not isinstance(events, list):
         return False, "Macau result missing 'events' list"
+    if len(events) == 0:
+        return True, "OK (no events scheduled)"
+
     required_keys = ["ev_id", "start_time", "league_code", "home_en", "away_en"]
     for idx, ev in enumerate(events):
         for k in required_keys:
             if k not in ev or not ev[k]:
                 return False, f"Event at index {idx} missing required key '{k}'"
+
+    # Require that at least 1 event has priced markets (not unpriced target_events)
+    has_odds = any(ev.get("odds_1x2") or ev.get("main_ah") for ev in events)
+    if not has_odds:
+        return False, "Macau events contain no odds markets (unpriced events)"
+
     return True, "OK"
 
 def validate_odds_api_response(api_matches):
@@ -293,6 +306,7 @@ def run_pipeline(force_odds_api=False):
     # Step 1: Fetch Macau Slot Data
     print("[Pipeline] 1/7 Fetching live Macau Slot coming events & markets...")
     macau_result = {"events": []}
+    macau_fetch_failed = False
     try:
         macau_result = fetch_macau_data(sample_save_dir=os.path.join(DATA_DIR, "raw_samples"))
         valid_macau, err_macau = validate_macau_response(macau_result)
@@ -306,6 +320,7 @@ def run_pipeline(force_odds_api=False):
                 "events_count": len(macau_result.get("events", [])),
                 "message": f"Schema validation failed: {err_macau}"
             }
+            macau_fetch_failed = True
         else:
             health_status["sources"]["macau_slot"] = {
                 "status": "healthy",
@@ -323,15 +338,26 @@ def run_pipeline(force_odds_api=False):
             "events_count": 0,
             "message": str(e)
         }
-        # Fallback to cached sample if available
-        sample_file = os.path.join(DATA_DIR, "raw_samples", "macau_sample.json")
-        if os.path.exists(sample_file):
-            try:
-                with open(sample_file, "r", encoding="utf-8") as f:
-                    cached = json.load(f)
-                    macau_result = {"events": cached.get("target_events", [])}
-            except Exception:
-                pass
+        macau_fetch_failed = True
+
+    # If Macau fetch failed, NEVER overwrite with unpriced raw_samples!
+    if macau_fetch_failed:
+        print("[Pipeline] Macau fetch failed. Restoring last-good fixtures from previous data.js...")
+        prev_fixtures = load_previous_fixtures_from_data_js(os.path.join(DATA_DIR, "data.js"))
+        if prev_fixtures:
+            print(f"[Pipeline] Successfully restored {len(prev_fixtures)} previous fixtures.")
+            # Write health status and return with preserved fixtures
+            health_file = os.path.join(DATA_DIR, "health.json")
+            with open(health_file, "w", encoding="utf-8") as f:
+                json.dump(health_status, f, ensure_ascii=False, indent=2)
+            track_rec = load_track_record(filepath=os.path.join(DATA_DIR, "track_record.json"))
+            return {
+                "generatedAt": now_iso_utc,
+                "health": health_status,
+                "macauFixtures": prev_fixtures,
+                "trackRecord": track_rec,
+                "sourcesStatus": health_status["sources"]
+            }
 
     # Step 2: Fetch The Odds API Data (Guarded)
     print("[Pipeline] 2/7 Querying The Odds API (daily guard)...")
@@ -343,6 +369,12 @@ def run_pipeline(force_odds_api=False):
     if not valid_odds and len(api_matches) > 0:
         health_status["status"] = "error"
         health_status["issues"].append(f"Odds API schema error: {err_odds}")
+
+    # Surface Odds API warning in overall health status if API had an error
+    is_api_err = (api_state.get("status") == "error") or (odds_api_res.get("status") == "error")
+    if is_api_err and health_status["status"] == "healthy":
+        health_status["status"] = "warning"
+        health_status["issues"].append(f"The Odds API warning: {api_state.get('message', 'API request failed')}")
 
     health_status["sources"]["the_odds_api"] = {
         "status": "healthy" if api_state.get("status") in ("success", "skipped") else "warning",
@@ -411,11 +443,19 @@ def run_pipeline(force_odds_api=False):
         league_teams_map[div] = (teams_map, teams_list)
         as_of_ts = now_utc.timestamp()
         alpha, beta, gamma = fit_dixon_coles_python(matches_list, teams_list, as_of_ts)
+
+        # Track number of matches per team in the training set
+        team_match_counts = {t["id"]: 0 for t in teams_list}
+        for m in matches_list:
+            team_match_counts[m[1]] += 1
+            team_match_counts[m[2]] += 1
+
         dc_models[div] = {
             "alpha": alpha,
             "beta": beta,
             "gamma": gamma,
-            "teams_map": teams_map
+            "teams_map": teams_map,
+            "match_counts": team_match_counts
         }
 
     # Load upcoming sharp AH data from fixtures.csv (P2-20)
@@ -476,6 +516,7 @@ def run_pipeline(force_odds_api=False):
         all_1x2_probs = {"h": [], "d": [], "a": []}
         other_1x2_probs = {"h": [], "d": [], "a": []}
         all_ou25_probs = {"over": [], "under": []}
+        pinnacle_totals = {}
 
         if found_odds_match:
             for bm in found_odds_match.get("bookmakers", []):
@@ -498,7 +539,7 @@ def run_pipeline(force_odds_api=False):
                                 elif teams_match(a_m, name) or name == found_odds_match.get("away_team"):
                                     rates["a"] = price
                         if "h" in rates and "d" in rates and "a" in rates:
-                            devig_probs, margin = remove_margin_multiplicative([rates["h"], rates["d"], rates["a"]])
+                            devig_probs, margin = remove_margin([rates["h"], rates["d"], rates["a"]], method="multiplicative")
                             b_1x2 = {
                                 "h": rates["h"], "d": rates["d"], "a": rates["a"],
                                 "margin": round(margin * 100.0, 1),
@@ -515,19 +556,27 @@ def run_pipeline(force_odds_api=False):
 
                     elif mkt.get("key") == "totals":
                         rates = {}
+                        point = None
                         for oc in mkt.get("outcomes", []):
                             name = oc.get("name")
                             point = oc.get("point")
                             price = oc.get("price")
-                            if point == 2.5 and price and price > 1.0:
+                            if price and price > 1.0:
                                 if name == "Over":
                                     rates["over"] = price
                                 elif name == "Under":
                                     rates["under"] = price
                         if "over" in rates and "under" in rates:
-                            devig_probs, margin = remove_margin_multiplicative([rates["over"], rates["under"]])
-                            all_ou25_probs["over"].append(devig_probs[0])
-                            all_ou25_probs["under"].append(devig_probs[1])
+                            # Use power de-vig (Shin-lite) for two-way totals markets (P2-11)
+                            devig_probs, margin = remove_margin([rates["over"], rates["under"]], method="power")
+                            if point == 2.5:
+                                all_ou25_probs["over"].append(devig_probs[0])
+                                all_ou25_probs["under"].append(devig_probs[1])
+                            if b_key == "pinnacle" and point is not None:
+                                pinnacle_totals[float(point)] = {
+                                    "over": rates["over"], "under": rates["under"],
+                                    "prob_over": devig_probs[0], "prob_under": devig_probs[1]
+                                }
 
                 if b_1x2:
                     book_entry = {
@@ -569,7 +618,7 @@ def run_pipeline(force_odds_api=False):
             raw_c_a = sorted(all_1x2_probs["a"])[len(all_1x2_probs["a"]) // 2]
         elif mev.get("odds_1x2"):
             m1x2 = mev["odds_1x2"]
-            dev, _ = remove_margin_multiplicative([m1x2["h"], m1x2["d"], m1x2["a"]])
+            dev, _ = remove_margin([m1x2["h"], m1x2["d"], m1x2["a"]], method="multiplicative")
             raw_c_h, raw_c_d, raw_c_a = dev[0], dev[1], dev[2]
         else:
             raw_c_h, raw_c_d, raw_c_a = 0.38, 0.28, 0.34
@@ -585,7 +634,7 @@ def run_pipeline(force_odds_api=False):
         elif mev.get("main_ou"):
             m_ou = mev["main_ou"]
             line = m_ou["line"]
-            dev, _ = remove_margin_multiplicative([m_ou["over"], m_ou["under"]])
+            dev, _ = remove_margin([m_ou["over"], m_ou["under"]], method="power")
             cons_p_o25 = dev[0] if abs(line - 2.5) < 0.1 else 0.50
         else:
             cons_p_o25 = 0.50
@@ -594,12 +643,14 @@ def run_pipeline(force_odds_api=False):
         # Dixon-Coles pre-match probabilities for top-5 league
         dc_probs = None
         dc_matrix = None
+        dc_weight = 0.30
         if lg_code in dc_models:
             model = dc_models[lg_code]
             t_map = model["teams_map"]
             alpha = model["alpha"]
             beta = model["beta"]
             gamma = model["gamma"]
+            counts = model.get("match_counts", {})
 
             h_id = None
             a_id = None
@@ -615,15 +666,25 @@ def run_pipeline(force_odds_api=False):
                 dc_matrix = calc_dc_matrix(lh, la)
                 dc_probs = derive_probs_from_matrix(dc_matrix)
 
-        # Blend Consensus (0.7) with Dixon-Coles (0.3) for 1X2 and Totals
+                # Promotee / Small-Sample Dixon-Coles Attenuation:
+                # If either club has < 20 matches in top-flight training data,
+                # smoothly attenuate DC weight to avoid noisy promotee distortions (Hull City bug fix).
+                nh = counts.get(h_id, 0)
+                na = counts.get(a_id, 0)
+                min_n = min(nh, na)
+                if min_n < 20:
+                    dc_weight = 0.30 * max(0.0, (min_n - 5) / 15.0)
+
+        # Blend Consensus with Dixon-Coles
+        cons_weight = 1.0 - dc_weight
         if dc_probs:
             blended_1x2 = blend_probabilities(
                 [cons_p_h, cons_p_d, cons_p_a],
                 [dc_probs["p_h"], dc_probs["p_d"], dc_probs["p_a"]],
-                weight_consensus=0.7
+                weight_consensus=cons_weight
             )
             fair_p_h, fair_p_d, fair_p_a = blended_1x2[0], blended_1x2[1], blended_1x2[2]
-            fair_p_o25 = 0.7 * cons_p_o25 + 0.3 * dc_probs["p_o25"]
+            fair_p_o25 = cons_weight * cons_p_o25 + dc_weight * dc_probs["p_o25"]
             xg_home = dc_probs["xg_h"]
             xg_away = dc_probs["xg_a"]
         else:
@@ -640,7 +701,7 @@ def run_pipeline(force_odds_api=False):
         # Step 5: Classify Macau Slot Markets
         match_opportunities = []
 
-        # 1. 1X2 Classification
+        # 1. 1X2 Classification (with Pinnacle Anchor)
         macau_1x2_classified = None
         if mev.get("odds_1x2"):
             m_h = mev["odds_1x2"]["h"]
@@ -658,6 +719,43 @@ def run_pipeline(force_odds_api=False):
             sel_fair = fair_odds_h if best_sel == "H" else (fair_odds_d if best_sel == "D" else fair_odds_a)
             sel_p = fair_p_h if best_sel == "H" else (fair_p_d if best_sel == "D" else fair_p_a)
 
+            # Pinnacle Anchor Rule:
+            # If Pinnacle is present, Macau odds MUST beat Pinnacle odds on that outcome!
+            # Never badge as 值博 if Macau is offering worse price than Pinnacle.
+            is_pin_anchored = True
+            if pinnacle_book and pinnacle_book.get("1x2"):
+                pin_1x2 = pinnacle_book["1x2"]
+                pin_rates = {"H": pin_1x2["h"], "D": pin_1x2["d"], "A": pin_1x2["a"]}
+                pin_p = {"H": pin_1x2["prob_h"], "D": pin_1x2["prob_d"], "A": pin_1x2["prob_a"]}[best_sel]
+                pin_o = pin_rates[best_sel]
+                ev_vs_pin = (pin_p * sel_odds) - 1.0
+                if sel_odds <= pin_o or ev_vs_pin <= 0.0:
+                    is_pin_anchored = False
+            else:
+                raw_cons_p = {"H": cons_p_h, "D": cons_p_d, "A": cons_p_a}[best_sel]
+                if (raw_cons_p * sel_odds - 1.0) <= 0.0:
+                    is_pin_anchored = False
+
+            # Classification with clamp/loophole elimination
+            if best_1x2_ev > 0.15 or best_1x2_ev < -0.25:
+                badge_1x2 = {
+                    "label": "數據不足",
+                    "tier": "insufficient",
+                    "badgeClass": "badge-val-neutral",
+                    "ev_pct": round(best_1x2_ev * 100.0, 1)
+                }
+            elif best_1x2_ev > 0.03 and is_pin_anchored:
+                badge_1x2 = classify_ev(best_1x2_ev)
+            elif best_1x2_ev > 0.03 and not is_pin_anchored:
+                badge_1x2 = {
+                    "label": "一般",
+                    "tier": "neutral",
+                    "badgeClass": "badge-val-neutral",
+                    "ev_pct": round(best_1x2_ev * 100.0, 1)
+                }
+            else:
+                badge_1x2 = classify_ev(best_1x2_ev)
+
             k_frac, k_units = calc_kelly_stake(sel_p, sel_odds)
 
             macau_1x2_classified = {
@@ -669,23 +767,24 @@ def run_pipeline(force_odds_api=False):
                 "ev_a": round(ev_a * 100.0, 1),
                 "best_sel": best_sel,
                 "max_ev": round(best_1x2_ev * 100.0, 1),
-                "badge": classify_ev(best_1x2_ev)
+                "badge": badge_1x2
             }
 
-            match_opportunities.append({
-                "market": "1X2",
-                "market_name": "主客和",
-                "selection": best_sel,
-                "selection_name": sel_name,
-                "line": None,
-                "macau_odds": sel_odds,
-                "fair_odds": sel_fair,
-                "ev": round(best_1x2_ev, 4),
-                "badge": classify_ev(best_1x2_ev),
-                "kelly": {"fraction_pct": k_frac, "stake_units": k_units}
-            })
+            if badge_1x2["label"] == "值博":
+                match_opportunities.append({
+                    "market": "1X2",
+                    "market_name": "主客和",
+                    "selection": best_sel,
+                    "selection_name": sel_name,
+                    "line": None,
+                    "macau_odds": sel_odds,
+                    "fair_odds": sel_fair,
+                    "ev": round(best_1x2_ev, 4),
+                    "badge": badge_1x2,
+                    "kelly": {"fraction_pct": k_frac, "stake_units": k_units}
+                })
 
-        # 2. Asian Handicap Classification (P0-3, P2-20: 0.7 Consensus + 0.3 Dixon-Coles)
+        # 2. Asian Handicap Classification (Sharp Interpolation & Pinnacle Anchor)
         macau_ah_classified = None
         if mev.get("main_ah"):
             mah = mev["main_ah"]
@@ -698,7 +797,7 @@ def run_pipeline(force_odds_api=False):
             cons_matrix = calc_dc_matrix(cons_lh, cons_la, rho=-0.05)
             cons_ah = derive_ah_fair_from_matrix(cons_matrix, line)
 
-            # Check if football-data fixtures.csv has sharp Pinnacle/Bet365 AH matching this match & line
+            # Check if football-data fixtures.csv has sharp Pinnacle/Bet365 AH
             sharp_ah_info = sharp_ah_fixtures.get((h_m, a_m))
             if not sharp_ah_info:
                 for (sh_h, sh_a), info in sharp_ah_fixtures.items():
@@ -706,23 +805,25 @@ def run_pipeline(force_odds_api=False):
                         sharp_ah_info = info
                         break
 
-            if sharp_ah_info and abs(sharp_ah_info["line"] - line) < 1e-4:
-                dev_probs, _ = remove_margin_multiplicative([sharp_ah_info["h"], sharp_ah_info["a"]])
-                if dev_probs:
-                    p_sharp_h = dev_probs[0]
-                    p_sharp_a = dev_probs[1]
-                    cons_ah["p_win"] = 0.5 * cons_ah["p_win"] + 0.5 * p_sharp_h
-                    cons_ah["p_loss"] = 0.5 * cons_ah["p_loss"] + 0.5 * p_sharp_a
-                    tot_ah = cons_ah["p_win"] + cons_ah["p_loss"] + cons_ah["p_push"] + cons_ah["p_hw"] + cons_ah["p_hl"]
-                    if tot_ah > 0:
-                        cons_ah["p_win"] /= tot_ah
-                        cons_ah["p_loss"] /= tot_ah
+            # Interpolate sharp AH line to Macau's line if within +/- 0.5
+            if sharp_ah_info:
+                sharp_l = sharp_ah_info["line"]
+                if abs(sharp_l - line) <= 0.5:
+                    dev_probs, _ = remove_margin([sharp_ah_info["h"], sharp_ah_info["a"]], method="power")
+                    if dev_probs:
+                        p_sharp_h = dev_probs[0]
+                        mu_totals = solve_poisson_lambda_for_ou25(cons_p_o25)
+                        sharp_lh, sharp_la = calibrate_lambdas_to_sharp_ah(mu_totals, sharp_l, p_sharp_h)
+                        sharp_matrix = calc_dc_matrix(sharp_lh, sharp_la, rho=-0.05)
+                        sharp_ah_at_macau = derive_ah_fair_from_matrix(sharp_matrix, line)
+                        # Blend sharp-calibrated AH distribution with consensus AH
+                        cons_ah = blend_ah_distributions(cons_ah, sharp_ah_at_macau, weight_consensus=0.5)
 
             # Model AH from Dixon-Coles
             dc_ah = derive_ah_fair_from_matrix(dc_matrix, line) if dc_matrix else None
 
-            # Blend: 0.7 Consensus + 0.3 Dixon-Coles
-            blended_ah = blend_ah_distributions(cons_ah, dc_ah, weight_consensus=0.7)
+            # Blend Consensus with Dixon-Coles (using promotee-attenuated weights)
+            blended_ah = blend_ah_distributions(cons_ah, dc_ah, weight_consensus=cons_weight)
 
             # Expected return under 1u stake
             er_h = (
@@ -740,22 +841,43 @@ def run_pipeline(force_odds_api=False):
 
             raw_ev_ah_h = er_h - 1.0
             raw_ev_ah_a = er_a - 1.0
+            best_raw_ah_ev = max(raw_ev_ah_h, raw_ev_ah_a)
+            best_ah_sel = "H" if best_raw_ah_ev == raw_ev_ah_h else "A"
+            best_ah_name = f"上盤 ({mev['home_zh']} {mah['hcap_disp']})" if best_ah_sel == "H" else f"下盤 ({mev['away_zh']})"
+            sel_ah_odds = m_ah_h if best_ah_sel == "H" else m_ah_a
 
-            # Guard against model edge outliers: cap at +/- 15% (P0-3)
-            ev_ah_h = max(-0.15, min(0.15, raw_ev_ah_h))
-            ev_ah_a = max(-0.15, min(0.15, raw_ev_ah_a))
+            # Sharp AH anchor check
+            is_sharp_ah_anchored = True
+            if sharp_ah_info and abs(sharp_ah_info["line"] - line) <= 0.25:
+                sharp_odds = sharp_ah_info["h"] if best_ah_sel == "H" else sharp_ah_info["a"]
+                if sel_ah_odds < sharp_odds:
+                    is_sharp_ah_anchored = False
+
+            # Loophole fix: if raw EV > 15% or < -25%, mark as 數據不足, NEVER 值博!
+            if best_raw_ah_ev > 0.15 or best_raw_ah_ev < -0.25:
+                badge_ah = {
+                    "label": "數據不足",
+                    "tier": "insufficient",
+                    "badgeClass": "badge-val-neutral",
+                    "ev_pct": round(best_raw_ah_ev * 100.0, 1)
+                }
+            elif best_raw_ah_ev > 0.03 and is_sharp_ah_anchored:
+                badge_ah = classify_ev(best_raw_ah_ev)
+            elif best_raw_ah_ev > 0.03 and not is_sharp_ah_anchored:
+                badge_ah = {
+                    "label": "一般",
+                    "tier": "neutral",
+                    "badgeClass": "badge-val-neutral",
+                    "ev_pct": round(best_raw_ah_ev * 100.0, 1)
+                }
+            else:
+                badge_ah = classify_ev(best_raw_ah_ev)
 
             fair_ah_h = round(m_ah_h / er_h, 2) if er_h > 0.05 else blended_ah["fair_h"]
             fair_ah_a = round(m_ah_a / er_a, 2) if er_a > 0.05 else blended_ah["fair_a"]
-
+            sel_ah_fair = fair_ah_h if best_ah_sel == "H" else fair_ah_a
             win_rate_h = blended_ah["eff_win_h"]
             win_rate_a = blended_ah["eff_win_a"]
-
-            best_ah_ev = max(ev_ah_h, ev_ah_a)
-            best_ah_sel = "H" if best_ah_ev == ev_ah_h else "A"
-            best_ah_name = f"上盤 ({mev['home_zh']} {mah['hcap_disp']})" if best_ah_sel == "H" else f"下盤 ({mev['away_zh']})"
-            sel_ah_odds = m_ah_h if best_ah_sel == "H" else m_ah_a
-            sel_ah_fair = fair_ah_h if best_ah_sel == "H" else fair_ah_a
             sel_ah_p = win_rate_h if best_ah_sel == "H" else win_rate_a
 
             k_frac, k_units = calc_kelly_stake(sel_ah_p, sel_ah_odds)
@@ -766,25 +888,26 @@ def run_pipeline(force_odds_api=False):
                 "h": m_ah_h, "a": m_ah_a,
                 "margin": mah["margin"],
                 "fair_h": fair_ah_h, "fair_a": fair_ah_a,
-                "ev_h": round(ev_ah_h * 100.0, 1),
-                "ev_a": round(ev_ah_a * 100.0, 1),
+                "ev_h": round(raw_ev_ah_h * 100.0, 1),
+                "ev_a": round(raw_ev_ah_a * 100.0, 1),
                 "best_sel": best_ah_sel,
-                "max_ev": round(best_ah_ev * 100.0, 1),
-                "badge": classify_ev(best_ah_ev)
+                "max_ev": round(best_raw_ah_ev * 100.0, 1),
+                "badge": badge_ah
             }
 
-            match_opportunities.append({
-                "market": "AH",
-                "market_name": "讓球",
-                "selection": best_ah_sel,
-                "selection_name": best_ah_name,
-                "line": line,
-                "macau_odds": sel_ah_odds,
-                "fair_odds": sel_ah_fair,
-                "ev": round(best_ah_ev, 4),
-                "badge": classify_ev(best_ah_ev),
-                "kelly": {"fraction_pct": k_frac, "stake_units": k_units}
-            })
+            if badge_ah["label"] == "值博":
+                match_opportunities.append({
+                    "market": "AH",
+                    "market_name": "讓球",
+                    "selection": best_ah_sel,
+                    "selection_name": best_ah_name,
+                    "line": line,
+                    "macau_odds": sel_ah_odds,
+                    "fair_odds": sel_ah_fair,
+                    "ev": round(best_raw_ah_ev, 4),
+                    "badge": badge_ah,
+                    "kelly": {"fraction_pct": k_frac, "stake_units": k_units}
+                })
 
         # 3. Over/Under Classification at Macau's exact line
         macau_ou_classified = None
@@ -800,17 +923,49 @@ def run_pipeline(force_odds_api=False):
 
             ev_ou_o = er_o - 1.0
             ev_ou_u = er_u - 1.0
-
-            fair_ou_o = round(m_ou_o / er_o, 2) if er_o > 0.05 else 99.0
-            fair_ou_u = round(m_ou_u / er_u, 2) if er_u > 0.05 else 99.0
-
             best_ou_ev = max(ev_ou_o, ev_ou_u)
             best_ou_sel = "Over" if best_ou_ev == ev_ou_o else "Under"
             best_ou_name = f"大波 (>{mou['hcap_disp']})" if best_ou_sel == "Over" else f"細波 (<{mou['hcap_disp']})"
             sel_ou_odds = m_ou_o if best_ou_sel == "Over" else m_ou_u
+
+            # Pinnacle Anchor for Totals:
+            # If Pinnacle has odds on this match for this line or 2.5:
+            is_pin_anchored_ou = True
+            pin_line_info = pinnacle_totals.get(float(line)) or (pinnacle_totals.get(2.5) if abs(line - 2.5) < 0.3 else None)
+            if pin_line_info:
+                pin_odds_sel = pin_line_info["over"] if best_ou_sel == "Over" else pin_line_info["under"]
+                pin_prob_sel = pin_line_info["prob_over"] if best_ou_sel == "Over" else pin_line_info["prob_under"]
+                ev_vs_pin_ou = (pin_prob_sel * sel_ou_odds) - 1.0
+                if sel_ou_odds <= pin_odds_sel or ev_vs_pin_ou <= 0.0:
+                    is_pin_anchored_ou = False
+
+            # Tail variance guard: if line is far from 2.5 (|line - 2.5| >= 0.75), Poisson tails are unreliable
+            is_far_tail = abs(line - 2.5) >= 0.75
+
+            if best_ou_ev > 0.15 or best_ou_ev < -0.25 or (is_far_tail and not is_pin_anchored_ou):
+                badge_ou = {
+                    "label": "數據不足" if (best_ou_ev > 0.15 or best_ou_ev < -0.25) else "一般",
+                    "tier": "insufficient" if (best_ou_ev > 0.15 or best_ou_ev < -0.25) else "neutral",
+                    "badgeClass": "badge-val-neutral",
+                    "ev_pct": round(best_ou_ev * 100.0, 1)
+                }
+            elif best_ou_ev > 0.03 and is_pin_anchored_ou:
+                badge_ou = classify_ev(best_ou_ev)
+            elif best_ou_ev > 0.03 and not is_pin_anchored_ou:
+                badge_ou = {
+                    "label": "一般",
+                    "tier": "neutral",
+                    "badgeClass": "badge-val-neutral",
+                    "ev_pct": round(best_ou_ev * 100.0, 1)
+                }
+            else:
+                badge_ou = classify_ev(best_ou_ev)
+
+            fair_ou_o = round(m_ou_o / er_o, 2) if er_o > 0.05 else 99.0
+            fair_ou_u = round(m_ou_u / er_u, 2) if er_u > 0.05 else 99.0
             sel_ou_fair = fair_ou_o if best_ou_sel == "Over" else fair_ou_u
 
-            # P2-15: True Poisson win probability for Kelly stake
+            # True Poisson win probability for Kelly stake
             is_quarter = abs((line * 2) % 1) > 1e-5
             if not is_quarter:
                 p_dict = ou_line_probs.get("p", {})
@@ -838,31 +993,30 @@ def run_pipeline(force_odds_api=False):
                 "ev_u": round(ev_ou_u * 100.0, 1),
                 "best_sel": best_ou_sel,
                 "max_ev": round(best_ou_ev * 100.0, 1),
-                "badge": classify_ev(best_ou_ev)
+                "badge": badge_ou
             }
 
-            match_opportunities.append({
-                "market": "OU",
-                "market_name": "大細",
-                "selection": best_ou_sel,
-                "selection_name": best_ou_name,
-                "line": line,
-                "macau_odds": sel_ou_odds,
-                "fair_odds": sel_ou_fair,
-                "ev": round(best_ou_ev, 4),
-                "badge": classify_ev(best_ou_ev),
-                "kelly": {"fraction_pct": k_frac, "stake_units": k_units}
-            })
+            if badge_ou["label"] == "值博":
+                match_opportunities.append({
+                    "market": "OU",
+                    "market_name": "大細",
+                    "selection": best_ou_sel,
+                    "selection_name": best_ou_name,
+                    "line": line,
+                    "macau_odds": sel_ou_odds,
+                    "fair_odds": sel_ou_fair,
+                    "ev": round(best_ou_ev, 4),
+                    "badge": badge_ou,
+                    "kelly": {"fraction_pct": k_frac, "stake_units": k_units}
+                })
 
-        # Overall Best Opportunity for this match card
+        # Determine Best Opportunity for this match card
         best_opp = None
         if match_opportunities:
             match_opportunities.sort(key=lambda o: o["ev"], reverse=True)
             best_opp = match_opportunities[0]
-            # If positive EV > +3%, mark for track record
             for opp in match_opportunities:
-                if opp["ev"] > 0.03:
-                    # P2-17: Unique bet ID based on ev_id, market, selection, and line
+                if opp["ev"] > 0.03 and opp.get("badge", {}).get("label") == "值博":
                     line_suffix = f"_{opp['line']}" if opp.get('line') is not None else ""
                     bet_id = f"{mev['start_time'][:10]}_{ev_id}_{opp['market']}_{opp['selection']}{line_suffix}"
                     all_value_bets.append({
@@ -883,6 +1037,19 @@ def run_pipeline(force_odds_api=False):
                         "fair_odds": opp["fair_odds"],
                         "ev": opp["ev"]
                     })
+        elif macau_1x2_classified:
+            # Fallback display card when no market is 值博
+            best_opp = {
+                "market": "1X2",
+                "market_name": "主客和",
+                "selection": macau_1x2_classified["best_sel"],
+                "selection_name": f"主勝 ({mev['home_zh']})" if macau_1x2_classified["best_sel"] == "H" else ("和局" if macau_1x2_classified["best_sel"] == "D" else f"客勝 ({mev['away_zh']})"),
+                "macau_odds": macau_1x2_classified[macau_1x2_classified["best_sel"].lower()],
+                "fair_odds": macau_1x2_classified[f"fair_{macau_1x2_classified['best_sel'].lower()}"],
+                "ev": round(macau_1x2_classified["max_ev"] / 100.0, 4),
+                "badge": macau_1x2_classified["badge"],
+                "kelly": {"fraction_pct": 0.0, "stake_units": 0.0}
+            }
 
         # Bookmaker Discrepancy & Best Price across market
         outliers = []
@@ -910,6 +1077,14 @@ def run_pipeline(force_odds_api=False):
                             "fair_odds": round(fair_o, 2),
                             "discrepancy_pct": round(discrepancy * 100.0, 1)
                         })
+
+        # P2: Prioritize Pinnacle in booksList display table
+        display_books = []
+        if pinnacle_book:
+            display_books.append(pinnacle_book)
+        for b in books_list:
+            if b.get("key") != "pinnacle" and len(display_books) < 8:
+                display_books.append(b)
 
         fixture_obj = {
             "id": ev_id,
@@ -941,7 +1116,7 @@ def run_pipeline(force_odds_api=False):
                 "prob_ou25": {"over": round(fair_p_o25 * 100.0, 1), "under": round(fair_p_u25 * 100.0, 1)}
             },
             "bestOpportunity": best_opp,
-            "booksList": books_list[:8],
+            "booksList": display_books,
             "outliers": outliers,
             "sparkline": snapshot_histories.get(match_key, [])
         }

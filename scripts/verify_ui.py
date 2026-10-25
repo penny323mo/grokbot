@@ -58,7 +58,7 @@ def main():
 
             # 1. Screenshot Tab 1 (Default: 澳門盤值博)
             print("[UI Verify] Capturing Tab 1: 澳門盤值博...")
-            page.screenshot(path=os.path.join(SCREENSHOTS_DIR, "r2-01_macau_fixtures.png"))
+            page.screenshot(path=os.path.join(SCREENSHOTS_DIR, "r3-01_macau_fixtures.png"))
             page.screenshot(path=os.path.join(SCREENSHOTS_DIR, "01_macau_fixtures.png"))
 
             # 2. Toggle "只睇值博"
@@ -67,7 +67,7 @@ def main():
                 btn_only_val.click()
                 page.wait_for_timeout(500)
                 print("[UI Verify] Capturing Tab 1 (只睇值博 filtered)...")
-                page.screenshot(path=os.path.join(SCREENSHOTS_DIR, "r2-02_only_value_filter.png"))
+                page.screenshot(path=os.path.join(SCREENSHOTS_DIR, "r3-02_only_value_filter.png"))
                 page.screenshot(path=os.path.join(SCREENSHOTS_DIR, "02_only_value_filter.png"))
                 # Toggle back
                 btn_only_val.click()
@@ -79,7 +79,7 @@ def main():
                 print("[UI Verify] Opening Match Detail Modal...")
                 first_card.click()
                 page.wait_for_timeout(600)
-                page.screenshot(path=os.path.join(SCREENSHOTS_DIR, "r2-03_match_detail_modal.png"))
+                page.screenshot(path=os.path.join(SCREENSHOTS_DIR, "r3-03_match_detail_modal.png"))
                 page.screenshot(path=os.path.join(SCREENSHOTS_DIR, "03_match_detail_modal.png"))
                 # Close modal
                 page.locator("#btnCloseMatchDetail").click()
@@ -91,7 +91,7 @@ def main():
                 print("[UI Verify] Capturing Tab 2: 莊家比較...")
                 btn_compare.click()
                 page.wait_for_timeout(600)
-                page.screenshot(path=os.path.join(SCREENSHOTS_DIR, "r2-04_compare_tab.png"))
+                page.screenshot(path=os.path.join(SCREENSHOTS_DIR, "r3-04_compare_tab.png"))
                 page.screenshot(path=os.path.join(SCREENSHOTS_DIR, "04_compare_tab.png"))
 
             # 5. Tab 3: 戰績追蹤
@@ -100,7 +100,7 @@ def main():
                 print("[UI Verify] Capturing Tab 3: 戰績追蹤...")
                 btn_record.click()
                 page.wait_for_timeout(600)
-                page.screenshot(path=os.path.join(SCREENSHOTS_DIR, "r2-05_track_record_tab.png"))
+                page.screenshot(path=os.path.join(SCREENSHOTS_DIR, "r3-05_track_record_tab.png"))
                 page.screenshot(path=os.path.join(SCREENSHOTS_DIR, "05_track_record_tab.png"))
 
             browser.close()
