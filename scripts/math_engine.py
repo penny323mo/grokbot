@@ -266,15 +266,26 @@ def blend_probabilities(consensus_probs, model_probs=None, weight_consensus=0.7)
         return {k: v / tot for k, v in blended.items()}
     return consensus_probs
 
-def classify_ev(ev_fraction):
+def classify_ev(ev_fraction, is_clamped=False):
     """
     Classifies EV percentage into user-facing Cantonese label and badge class.
-    EV > +3%: 值博 (positive value)
+    If is_clamped is True or abs(ev_fraction) > 0.15 (discrepancy too extreme/unreliable):
+    Classifies as '數據不足' (insufficient/divergent data) instead of '值博'!
+
+    EV > +3% (and <= 15% without clamp): 值博 (positive value)
     -3% <= EV <= +3%: 一般 (neutral)
-    EV < -3%: 唔值博 (negative value)
+    EV < -3% (and >= -25%): 唔值博 (negative value)
+    EV > 15% or EV < -25%: 數據不足 (outlier / model-market discrepancy)
     """
     ev_pct = ev_fraction * 100.0
-    if ev_pct > 3.0:
+    if is_clamped or ev_pct > 15.0 or ev_pct < -25.0:
+        return {
+            "label": "數據不足",
+            "tier": "insufficient",
+            "badgeClass": "badge-val-neutral",
+            "ev_pct": round(ev_pct, 1)
+        }
+    elif ev_pct > 3.0:
         return {
             "label": "值博",
             "tier": "value",
@@ -348,6 +359,33 @@ def fit_lambdas_from_consensus(p_h, p_d, p_a, p_o25, rho=-0.05, max_iter=30):
         mat = calc_dc_matrix(lh, la, rho=rho)
         ph_est = sum(mat[i][j] for i in range(len(mat)) for j in range(len(mat)) if i > j)
         if ph_est < p_h:
+            low = mid
+        else:
+            high = mid
+        best_lh = mid
+
+    final_la = max(0.05, mu - best_lh)
+    return best_lh, final_la
+
+def calibrate_lambdas_to_sharp_ah(mu, sharp_line, p_sharp_h, rho=-0.05, max_iter=30):
+    """
+    Calibrates expected goals parameters (lh, la) to match a sharp Asian Handicap probability
+    at sharp_line, given total expected goals mu.
+    Ensures that when evaluating at Macau's exact quarter line, the distribution is properly
+    anchored to the sharp bookmaker's line.
+    """
+    low = 0.05 * mu
+    high = 0.95 * mu
+    best_lh = 0.5 * mu
+
+    for _ in range(max_iter):
+        mid = (low + high) / 2.0
+        lh = mid
+        la = max(0.05, mu - mid)
+        mat = calc_dc_matrix(lh, la, rho=rho)
+        ah_stat = derive_ah_fair_from_matrix(mat, sharp_line)
+        est_p = ah_stat["eff_win_h"]
+        if est_p < p_sharp_h:
             low = mid
         else:
             high = mid

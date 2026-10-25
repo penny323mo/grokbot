@@ -287,9 +287,9 @@ def update_track_record(value_bets, finished_matches=None, filepath="data/track_
     pending = [b for b in bets_list if b["status"] == "pending"]
 
     won = sum(1 for b in settled if b.get("outcome") == "win")
-    half_won = sum(1 for b in settled if b.get("outcome") == "half_won")
+    half_won = sum(1 for b in settled if b.get("outcome") in ("half_won", "half_win"))
     pushed = sum(1 for b in settled if b.get("outcome") == "push")
-    half_lost = sum(1 for b in settled if b.get("outcome") == "half_loss")
+    half_lost = sum(1 for b in settled if b.get("outcome") in ("half_lost", "half_loss"))
     lost = sum(1 for b in settled if b.get("outcome") == "loss")
 
     total_profit = sum(b.get("profit_1u", 0.0) for b in settled)
