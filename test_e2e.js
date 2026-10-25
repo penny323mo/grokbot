@@ -176,6 +176,8 @@ async function run() {
     console.log('Testing AH Info modal...');
     await page.click('.bottom-nav .nav-tab[data-tab="tab-match"]');
     await new Promise(r => setTimeout(r, 200));
+    await page.evaluate(() => document.getElementById('btnAhInfo').scrollIntoView({ block: 'center' }));
+    await new Promise(r => setTimeout(r, 100));
     await page.click('#btnAhInfo');
     await new Promise(r => setTimeout(r, 200));
     const isAhOpen = await page.$eval('#ahInfoBackdrop', el => el.classList.contains('active'));

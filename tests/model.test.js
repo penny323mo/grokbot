@@ -194,3 +194,134 @@ test('Backtest function runs on a slice and returns finite numbers', () => {
   assert.ok(Array.isArray(res.bankrollCurve), 'bankrollCurve must be array');
   assert.ok(res.bankrollCurve.length > 0, 'bankrollCurve must not be empty');
 });
+
+test('Regression: half-life changes λ when anchored even without asOfDate', () => {
+  const d = require('../data/data.js');
+  const e0 = d.leagues['E0'];
+  const arsenal = e0.teams.find(t => t.name === 'Arsenal').id;
+  const coventry = e0.teams.find(t => t.name === 'Coventry').id;
+
+  const m30 = model.fitDixonColes(e0.matches, e0.teams.length, { halfLifeDays: 30 });
+  const m180 = model.fitDixonColes(e0.matches, e0.teams.length, { halfLifeDays: 180 });
+
+  const p30 = m30.predict(arsenal, coventry);
+  const p180 = m180.predict(arsenal, coventry);
+
+  assert.ok(
+    Math.abs(p30.lambdaHome - p180.lambdaHome) > 0.05,
+    `Half-life 30d vs 180d should move lambdaHome, got 30d=${p30.lambdaHome}, 180d=${p180.lambdaHome}`
+  );
+});
+
+test('Regression: same-day or future matches (>= asOfDate) do not leak into walk-forward fit', () => {
+  const d = require('../data/data.js');
+  const e0 = d.leagues['E0'];
+  const arsenal = e0.teams.find(t => t.name === 'Arsenal').id;
+  const coventry = e0.teams.find(t => t.name === 'Coventry').id;
+
+  const asOf = '2026-10-20';
+  const baseModel = model.fitDixonColes(e0.matches, e0.teams.length, { asOfDate: asOf, iterations: 80 });
+  const basePred = baseModel.predict(arsenal, coventry);
+
+  // Clone matches and append a 15-0 match on the same date and one week later
+  const leakedMatches = e0.matches.slice();
+  const dummy1 = [asOf, arsenal, coventry, 15, 0, 8, 0, '2627'];
+  const dummy2 = ['2026-10-27', arsenal, coventry, 15, 0, 8, 0, '2627'];
+  leakedMatches.push(dummy1);
+  leakedMatches.push(dummy2);
+
+  const leakedModel = model.fitDixonColes(leakedMatches, e0.teams.length, { asOfDate: asOf, iterations: 80 });
+  const leakedPred = leakedModel.predict(arsenal, coventry);
+
+  assert.ok(
+    Math.abs(basePred.lambdaHome - leakedPred.lambdaHome) < 1e-9,
+    `Same-day and future matches must not alter fit: base=${basePred.lambdaHome}, leaked=${leakedPred.lambdaHome}`
+  );
+});
+
+test('Regression: AH Kelly on line -2 @ 2.03 is 0 for Arsenal vs Coventry (EV <= 0)', () => {
+  const d = require('../data/data.js');
+  const e0 = d.leagues['E0'];
+  const arsenal = e0.teams.find(t => t.name === 'Arsenal').id;
+  const coventry = e0.teams.find(t => t.name === 'Coventry').id;
+
+  const m = model.fitDixonColes(e0.matches, e0.teams.length, { halfLifeDays: 180 });
+  const pred = m.predict(arsenal, coventry);
+  const matrix = model.calcScoreMatrix(pred.lambdaHome, pred.lambdaAway, -0.05, 10);
+
+  // Line -2.0 at odds 2.03
+  const ahMinus2 = model.calcAHProbs(matrix, -2.0);
+  const kellyMinus2 = model.calcAHKelly(ahMinus2.home, 2.03, 0.25);
+
+  assert.ok(
+    kellyMinus2.edge <= 0,
+    `Arsenal -2.0 @ 2.03 should have non-positive edge, got ${kellyMinus2.edge}`
+  );
+  assert.strictEqual(
+    kellyMinus2.fullKelly,
+    0,
+    `Arsenal -2.0 @ 2.03 should recommend 0 Kelly fraction, got ${kellyMinus2.fullKelly}`
+  );
+  assert.strictEqual(
+    kellyMinus2.recommendedStake(10000),
+    0,
+    `Arsenal -2.0 @ 2.03 stake should be 0`
+  );
+
+  // In contrast, on level ball (line 0) at odds 2.03, Kelly is positive
+  const ah0 = model.calcAHProbs(matrix, 0.0);
+  const kelly0 = model.calcAHKelly(ah0.home, 2.03, 0.25);
+  assert.ok(
+    kelly0.fullKelly > 0.2,
+    `Arsenal line 0 @ 2.03 should have high Kelly, got ${kelly0.fullKelly}`
+  );
+});
+
+test('Regression: alpha + beta net rating ranks top teams (曼城/阿仙奴) far above bottom/promoted (葉士域治/高雲地利)', () => {
+  const d = require('../data/data.js');
+  const e0 = d.leagues['E0'];
+  const m = model.fitDixonColes(e0.matches, e0.teams.length, { halfLifeDays: 180, iterations: 180 });
+
+  const getNet = (zhName) => {
+    const t = e0.teams.find(x => x.zh === zhName);
+    assert.ok(t, `Team ${zhName} must exist`);
+    return m.alpha[t.id] + m.beta[t.id];
+  };
+
+  const netArsenal = getNet('阿仙奴');
+  const netManCity = getNet('曼城');
+  const netIpswich = getNet('葉士域治');
+  const netCoventry = getNet('高雲地利');
+
+  assert.ok(netArsenal > 0.35, `Arsenal net rating should be > 0.35, got ${netArsenal}`);
+  assert.ok(netManCity > 0.35, `Man City net rating should be > 0.35, got ${netManCity}`);
+  assert.ok(netIpswich < 0, `Ipswich net rating should be negative, got ${netIpswich}`);
+  assert.ok(netCoventry < 0, `Coventry net rating should be negative, got ${netCoventry}`);
+  assert.ok(
+    netArsenal - netIpswich > 0.5,
+    `Gap between Arsenal and Ipswich should be > 0.5, got ${netArsenal - netIpswich}`
+  );
+});
+
+test('Regression: Promoted teams prior prevents overrating (Alaves vs Malaga)', () => {
+  const d = require('../data/data.js');
+  const sp1 = d.leagues['SP1'];
+  const m = model.fitDixonColes(sp1.matches, sp1.teams.length, { halfLifeDays: 180 });
+
+  const alaves = sp1.teams.find(t => t.zh === '艾拉維斯').id;
+  const malaga = sp1.teams.find(t => t.zh === '馬拉加').id;
+
+  const pred = m.predict(alaves, malaga);
+  const matrix = model.calcScoreMatrix(pred.lambdaHome, pred.lambdaAway, -0.05, 10);
+  const m1x2 = model.derive1X2(matrix);
+
+  // Market gave Malaga ~16% away win chance; old broken model gave 28%
+  assert.ok(
+    m1x2.away < 0.18,
+    `Malaga away win probability against Alaves should be < 18%, got ${(m1x2.away * 100).toFixed(1)}%`
+  );
+  assert.ok(
+    m1x2.fairAway > 5.5,
+    `Malaga fair away odds should be > 5.5, got ${m1x2.fairAway.toFixed(2)}`
+  );
+});

@@ -16,9 +16,11 @@
     selectedFixtureIdx: 0,
     ouLine: 2.5,
     selectedScore: { home: 1, away: 0 },
+    selectedScoreManuallySet: false,
     activeTab: 'tab-match',
     pickerTarget: 'home', // 'home' or 'away'
     modelCache: {},
+    walkForwardCache: {},
     backtestResult: null,
     settings: {
       edgeThreshold: 0.03, // 3%
@@ -30,36 +32,43 @@
   };
 
   // Asian handicap Cantonese line terminology
-  const AH_LINE_NAMES = {
-    '0': '平手',
-    '-0.25': '讓平半',
-    '0.25': '受讓平半',
-    '-0.5': '讓半球',
-    '0.5': '受讓半球',
-    '-0.75': '讓半一',
-    '0.75': '受讓半一',
-    '-1': '讓一球',
-    '-1.0': '讓一球',
-    '1': '受讓一球',
-    '1.0': '受讓一球',
-    '-1.25': '讓一球球半',
-    '1.25': '受讓一球球半',
-    '-1.5': '讓球半',
-    '1.5': '受讓球半',
-    '-1.75': '讓球半二球',
-    '1.75': '受讓球半二球',
-    '-2': '讓兩球',
-    '-2.0': '讓兩球',
-    '2': '受讓兩球',
-    '2.0': '受讓兩球'
-  };
+  function formatAHLineZh(line) {
+    if (line === 0 || Math.abs(line) < 1e-6) return '平手 (0)';
+    const abs = Math.abs(line);
+    let name = '';
+    if (Math.abs(abs - 0.25) < 1e-6) name = '平半';
+    else if (Math.abs(abs - 0.5) < 1e-6) name = '半球';
+    else if (Math.abs(abs - 0.75) < 1e-6) name = '半一';
+    else if (Math.abs(abs - 1.0) < 1e-6) name = '一球';
+    else if (Math.abs(abs - 1.25) < 1e-6) name = '一球/球半';
+    else if (Math.abs(abs - 1.5) < 1e-6) name = '球半';
+    else if (Math.abs(abs - 1.75) < 1e-6) name = '球半/兩球';
+    else if (Math.abs(abs - 2.0) < 1e-6) name = '兩球';
+    else if (Math.abs(abs - 2.25) < 1e-6) name = '兩球/兩球半';
+    else if (Math.abs(abs - 2.5) < 1e-6) name = '兩球半';
+    else name = `${abs}球`;
 
-  function getAhName(line) {
-    const key = String(line);
-    return AH_LINE_NAMES[key] ? ` (${AH_LINE_NAMES[key]})` : '';
+    if (line < 0) return `讓${name} (${line > 0 ? '+' : ''}${line})`;
+    return `受讓${name} (+${abs})`;
   }
 
-  // --- Storage Helpers ---
+  function getAhName(line) {
+    if (line === 0 || Math.abs(line) < 1e-6) return ' (平手)';
+    const abs = Math.abs(line);
+    let name = '';
+    if (Math.abs(abs - 0.25) < 1e-6) name = line < 0 ? '讓平半' : '受讓平半';
+    else if (Math.abs(abs - 0.5) < 1e-6) name = line < 0 ? '讓半球' : '受讓半球';
+    else if (Math.abs(abs - 0.75) < 1e-6) name = line < 0 ? '讓半一' : '受讓半一';
+    else if (Math.abs(abs - 1.0) < 1e-6) name = line < 0 ? '讓一球' : '受讓一球';
+    else if (Math.abs(abs - 1.25) < 1e-6) name = line < 0 ? '讓一球/球半' : '受讓一球/球半';
+    else if (Math.abs(abs - 1.5) < 1e-6) name = line < 0 ? '讓球半' : '受讓球半';
+    else if (Math.abs(abs - 1.75) < 1e-6) name = line < 0 ? '讓球半/兩球' : '受讓球半/兩球';
+    else if (Math.abs(abs - 2.0) < 1e-6) name = line < 0 ? '讓兩球' : '受讓兩球';
+    else name = line < 0 ? `讓${abs}球` : `受讓${abs}球`;
+    return ` (${name})`;
+  }
+
+  // --- Storage & Unified Settings Helpers (Issue 8) ---
   function loadSettings() {
     try {
       const saved = localStorage.getItem('odds_lab_settings');
@@ -80,9 +89,52 @@
     }
   }
 
-  // --- Model Fitting & Caching ---
+  function applySettingsToDom() {
+    const edgePct = (state.settings.edgeThreshold * 100).toFixed(1);
+    const kVal = state.settings.kellyFraction.toFixed(2);
+    const hlVal = state.settings.halfLifeDays;
+    const bVal = state.settings.bankroll || 10000;
+    const method = state.settings.marginMethod || 'proportional';
+
+    // Settings sheet
+    const sEdgeSlider = document.getElementById('settingEdgeSlider');
+    const sEdgeVal = document.getElementById('settingEdgeVal');
+    if (sEdgeSlider) sEdgeSlider.value = edgePct;
+    if (sEdgeVal) sEdgeVal.textContent = `${edgePct}%`;
+
+    const sKellySlider = document.getElementById('settingKellySlider');
+    const sKellyVal = document.getElementById('settingKellyVal');
+    if (sKellySlider) sKellySlider.value = kVal;
+    if (sKellyVal) sKellyVal.textContent = `${kVal}x`;
+
+    const sHlSlider = document.getElementById('settingHalfLifeSlider');
+    const sHlVal = document.getElementById('settingHalfLifeVal');
+    if (sHlSlider) sHlSlider.value = hlVal;
+    if (sHlVal) sHlVal.textContent = `${hlVal}日`;
+
+    const sMethod = document.getElementById('settingMarginMethod');
+    if (sMethod) sMethod.value = method;
+
+    // Kelly card inputs
+    const kBankInput = document.getElementById('kellyBankrollInput');
+    if (kBankInput) kBankInput.value = bVal;
+
+    const kFracSlider = document.getElementById('kellyFractionSlider');
+    const kFracVal = document.getElementById('kellyFractionVal');
+    if (kFracSlider) kFracSlider.value = kVal;
+    if (kFracVal) kFracVal.textContent = `${kVal}x`;
+
+    // Backtest edge threshold slider
+    const btEdgeSlider = document.getElementById('btEdgeSlider');
+    const btEdgeVal = document.getElementById('btEdgeVal');
+    if (btEdgeSlider) btEdgeSlider.value = edgePct;
+    if (btEdgeVal) btEdgeVal.textContent = `${edgePct}%`;
+  }
+
+  // --- Model Fitting & Caching (Issue 2: anchored decay) ---
   function getLeagueModel(leagueId) {
-    const cacheKey = `${leagueId}_${state.settings.halfLifeDays}`;
+    const anchor = window.ODDS_DATA ? (window.ODDS_DATA.dataThrough || '2026-10-25') : '2026-10-25';
+    const cacheKey = `${leagueId}_${state.settings.halfLifeDays}_${anchor}`;
     if (state.modelCache[cacheKey]) {
       return state.modelCache[cacheKey];
     }
@@ -92,7 +144,8 @@
 
     const model = window.OddsModel.fitDixonColes(leagueData.matches, leagueData.teams.length, {
       halfLifeDays: state.settings.halfLifeDays,
-      iterations: 60,
+      anchorDate: anchor,
+      iterations: 160,
       rho: -0.05
     });
 
@@ -100,10 +153,54 @@
     return model;
   }
 
+  function getWalkForwardModel(leagueId, asOfDate) {
+    const cacheKey = `${leagueId}_${asOfDate}_${state.settings.halfLifeDays}`;
+    if (state.walkForwardCache[cacheKey]) {
+      return state.walkForwardCache[cacheKey];
+    }
+
+    const leagueData = window.ODDS_DATA.leagues[leagueId];
+    if (!leagueData) return null;
+
+    const model = window.OddsModel.fitDixonColes(leagueData.matches, leagueData.teams.length, {
+      asOfDate,
+      halfLifeDays: state.settings.halfLifeDays,
+      iterations: 120,
+      rho: -0.05
+    });
+
+    state.walkForwardCache[cacheKey] = model;
+    return model;
+  }
+
+  // Active fixture resolver (Issue 9)
+  function getActiveFixture() {
+    const leagueData = window.ODDS_DATA.leagues[state.activeLeague];
+    if (!leagueData || !leagueData.fixtures) return null;
+
+    if (state.selectedFixtureIdx >= 0 && state.selectedFixtureIdx < leagueData.fixtures.length) {
+      const fix = leagueData.fixtures[state.selectedFixtureIdx];
+      if (fix[2] === state.activeHomeId && fix[3] === state.activeAwayId) {
+        return fix;
+      }
+    }
+
+    // Search for matching fixture
+    for (let i = 0; i < leagueData.fixtures.length; i++) {
+      const fix = leagueData.fixtures[i];
+      if (fix[2] === state.activeHomeId && fix[3] === state.activeAwayId) {
+        state.selectedFixtureIdx = i;
+        return fix;
+      }
+    }
+
+    return null;
+  }
+
   // --- Initialization ---
   function initApp() {
     loadSettings();
-    updateSettingsUI();
+    applySettingsToDom();
 
     if (!window.ODDS_DATA || !window.ODDS_DATA.leagues) {
       console.error('ODDS_DATA is not loaded properly.');
@@ -122,6 +219,8 @@
     setupTeamPickers();
     setupSettingsModal();
     setupAhInfoModal();
+    setupTermInfoModal();
+    setupOULineChips();
     setupKellyCalculatorEvents();
     setupBacktestEvents();
 
@@ -164,7 +263,7 @@
     }
   }
 
-  // --- League Chips ---
+  // --- League Chips Navigation ---
   function setupLeagueChips() {
     const chips = document.querySelectorAll('#leagueChips .chip');
     chips.forEach(chip => {
@@ -300,27 +399,33 @@
       aBarEl.style.width = `${(100 - hPct).toFixed(1)}%`;
     }
 
-    // Score Matrix & Markets
+    // Score Matrix & Markets (Issue 19: maxGoals = 10)
     const matrix = window.OddsModel.calcScoreMatrix(lambdaHome, lambdaAway, model.rho, 10);
     const m1x2 = window.OddsModel.derive1X2(matrix);
 
-    // Get Bookmaker Odds from active fixture if available
-    let fixtureOdds = null;
-    if (state.selectedFixtureIdx >= 0 && leagueData.fixtures && leagueData.fixtures[state.selectedFixtureIdx]) {
-      const fix = leagueData.fixtures[state.selectedFixtureIdx];
-      if (fix[2] === state.activeHomeId && fix[3] === state.activeAwayId) {
-        fixtureOdds = {
-          h1x2: fix[4],
-          d1x2: fix[5],
-          a1x2: fix[6],
-          ouLine: fix[7],
-          ouOver: fix[8],
-          ouUnder: fix[9],
-          ahLine: fix[10],
-          ahH: fix[11],
-          ahA: fix[12]
-        };
+    // Initialise selected score to mode if not manually set (Issue 23)
+    if (!state.selectedScoreManuallySet) {
+      const topScores = window.OddsModel.deriveMostLikelyScores(matrix, 1);
+      if (topScores.length > 0) {
+        state.selectedScore = { home: topScores[0].home, away: topScores[0].away };
       }
+    }
+
+    // Get Bookmaker Odds from active matching fixture
+    let fixtureOdds = null;
+    const fix = getActiveFixture();
+    if (fix) {
+      fixtureOdds = {
+        h1x2: fix[4],
+        d1x2: fix[5],
+        a1x2: fix[6],
+        ouLine: fix[7],
+        ouOver: fix[8],
+        ouUnder: fix[9],
+        ahLine: fix[10],
+        ahH: fix[11],
+        ahA: fix[12]
+      };
     }
 
     render1X2Grid(m1x2, fixtureOdds);
@@ -330,7 +435,7 @@
     updateKellyCalculator(matrix, m1x2, fixtureOdds);
   }
 
-  // --- 1X2 Market Grid Rendering ---
+  // --- 1X2 Market Grid Rendering (Issue 7: show de-vigged book probability) ---
   function render1X2Grid(m1x2, fixOdds) {
     const grid = document.getElementById('market1x2Grid');
     if (!grid) return;
@@ -378,6 +483,11 @@
 
       const box = document.createElement('div');
       box.className = `market-box ${hasValue ? 'has-edge' : ''}`;
+
+      const devigText = m.bookieFairProb
+        ? `${(m.bookieFairProb * 100).toFixed(1)}% (@${(1 / m.bookieFairProb).toFixed(2)})`
+        : '--';
+
       box.innerHTML = `
         <div class="mb-header">
           <span class="mb-title">${m.title}</span>
@@ -395,6 +505,10 @@
           <div class="mb-row">
             <span>莊家開出</span>
             <strong>${m.bookieOdds ? m.bookieOdds.toFixed(2) : '--'}</strong>
+          </div>
+          <div class="mb-row">
+            <span>莊家去水後</span>
+            <strong>${devigText}</strong>
           </div>
           ${edge !== null ? `
           <div class="mb-row">
@@ -433,7 +547,6 @@
         const prob = matrix[h][a];
         const ratio = Math.min(1.0, prob / maxP);
 
-        // Dynamic background with neon green hue
         const alpha = Math.max(0.06, ratio * 0.75);
         const bgColor = `rgba(0, 255, 135, ${alpha.toFixed(3)})`;
         const isMostLikely = h === mostLikelyScore.h && a === mostLikelyScore.a;
@@ -449,6 +562,7 @@
 
         cell.addEventListener('click', () => {
           state.selectedScore = { home: h, away: a };
+          state.selectedScoreManuallySet = true;
           document.querySelectorAll('.hm-cell').forEach(c => c.classList.remove('active-score'));
           cell.classList.add('active-score');
           updateHeatmapDetail(h, a, prob);
@@ -458,8 +572,11 @@
       }
     }
 
-    // Default select most likely score if no current selection
-    updateHeatmapDetail(state.selectedScore.home, state.selectedScore.away, matrix[state.selectedScore.home][state.selectedScore.away]);
+    // Update detail with current selected score
+    const currH = state.selectedScore.home;
+    const currA = state.selectedScore.away;
+    const currP = (matrix[currH] && matrix[currH][currA] !== undefined) ? matrix[currH][currA] : 0;
+    updateHeatmapDetail(currH, currA, currP);
 
     // Render Top 3 Most Likely Scores
     const topScoresEl = document.getElementById('hmTopScores');
@@ -472,6 +589,7 @@
         pill.innerHTML = `<strong>${item.score}</strong> (${(item.prob * 100).toFixed(1)}% @${item.fairOdds.toFixed(1)})`;
         pill.addEventListener('click', () => {
           state.selectedScore = { home: item.home, away: item.away };
+          state.selectedScoreManuallySet = true;
           renderScoreHeatmap(matrix);
         });
         topScoresEl.appendChild(pill);
@@ -489,11 +607,30 @@
     if (oddsEl) oddsEl.textContent = (prob > 0 ? (1 / prob).toFixed(2) : '--');
   }
 
-  // --- O/U & BTTS Markets Rendering ---
+  // --- O/U & BTTS Markets Setup & Rendering (Issue 5: no listener leak) ---
+  function setupOULineChips() {
+    const chips = document.querySelectorAll('#ouLineChips .chip-sm');
+    chips.forEach(c => {
+      c.onclick = () => {
+        chips.forEach(x => x.classList.remove('active'));
+        c.classList.add('active');
+        state.ouLine = parseFloat(c.getAttribute('data-line'));
+        renderMatchLab();
+      };
+    });
+  }
+
   function renderOUMarkets(matrix, fixOdds) {
     const ouGrid = document.getElementById('ouMarketGrid');
     const bttsRow = document.getElementById('bttsRow');
     if (!ouGrid || !bttsRow) return;
+
+    // Update active class on line chips
+    const chips = document.querySelectorAll('#ouLineChips .chip-sm');
+    chips.forEach(c => {
+      const l = parseFloat(c.getAttribute('data-line'));
+      c.classList.toggle('active', Math.abs(l - state.ouLine) < 1e-6);
+    });
 
     const line = state.ouLine;
     const ouData = window.OddsModel.deriveOU(matrix, [line])[line];
@@ -502,7 +639,7 @@
     // Bookmaker odds for OU if line matches 2.5
     let bookieOver = null;
     let bookieUnder = null;
-    if (fixOdds && line === 2.5) {
+    if (fixOdds && Math.abs(line - 2.5) < 1e-6) {
       bookieOver = fixOdds.ouOver;
       bookieUnder = fixOdds.ouUnder;
     }
@@ -511,28 +648,28 @@
     let edgeUnder = (bookieUnder && bookieUnder > 1) ? ouData.under * bookieUnder - 1 : null;
 
     ouGrid.innerHTML = `
-      <div class="market-box ${edgeOver >= state.settings.edgeThreshold ? 'has-edge' : ''}">
+      <div class="market-box ${edgeOver !== null && edgeOver >= state.settings.edgeThreshold ? 'has-edge' : ''}">
         <div class="mb-header">
           <span class="mb-title">大波 (Over ${line})</span>
-          ${edgeOver >= state.settings.edgeThreshold ? '<span class="value-badge">⭐ 值博</span>' : ''}
+          ${edgeOver !== null && edgeOver >= state.settings.edgeThreshold ? '<span class="value-badge">⭐ 值博</span>' : ''}
         </div>
         <div class="mb-prob">${(ouData.over * 100).toFixed(1)}%</div>
         <div class="mb-rows">
           <div class="mb-row"><span>模型公平價</span><strong>${ouData.overFair.toFixed(2)}</strong></div>
           <div class="mb-row"><span>莊家開出</span><strong>${bookieOver ? bookieOver.toFixed(2) : '--'}</strong></div>
-          ${edgeOver !== null ? `<div class="mb-row"><span>值博率</span><span class="edge-pill ${edgeOver > 0 ? 'pos' : 'neg'}">${edgeOver > 0 ? '+' : ''}${(edgeOver * 100).toFixed(1)}%</span></div>` : ''}
+          ${edgeOver !== null ? `<div class="mb-row"><span>值博優勢</span><span class="edge-pill ${edgeOver > 0 ? 'pos' : 'neg'}">${edgeOver > 0 ? '+' : ''}${(edgeOver * 100).toFixed(1)}%</span></div>` : ''}
         </div>
       </div>
-      <div class="market-box ${edgeUnder >= state.settings.edgeThreshold ? 'has-edge' : ''}">
+      <div class="market-box ${edgeUnder !== null && edgeUnder >= state.settings.edgeThreshold ? 'has-edge' : ''}">
         <div class="mb-header">
           <span class="mb-title">細波 (Under ${line})</span>
-          ${edgeUnder >= state.settings.edgeThreshold ? '<span class="value-badge">⭐ 值博</span>' : ''}
+          ${edgeUnder !== null && edgeUnder >= state.settings.edgeThreshold ? '<span class="value-badge">⭐ 值博</span>' : ''}
         </div>
         <div class="mb-prob">${(ouData.under * 100).toFixed(1)}%</div>
         <div class="mb-rows">
           <div class="mb-row"><span>模型公平價</span><strong>${ouData.underFair.toFixed(2)}</strong></div>
           <div class="mb-row"><span>莊家開出</span><strong>${bookieUnder ? bookieUnder.toFixed(2) : '--'}</strong></div>
-          ${edgeUnder !== null ? `<div class="mb-row"><span>值博率</span><span class="edge-pill ${edgeUnder > 0 ? 'pos' : 'neg'}">${edgeUnder > 0 ? '+' : ''}${(edgeUnder * 100).toFixed(1)}%</span></div>` : ''}
+          ${edgeUnder !== null ? `<div class="mb-row"><span>值博優勢</span><span class="edge-pill ${edgeUnder > 0 ? 'pos' : 'neg'}">${edgeUnder > 0 ? '+' : ''}${(edgeUnder * 100).toFixed(1)}%</span></div>` : ''}
         </div>
       </div>
     `;
@@ -553,20 +690,9 @@
         </div>
       </div>
     `;
-
-    // Bind line selector chips
-    const chips = document.querySelectorAll('#ouLineChips .chip-sm');
-    chips.forEach(c => {
-      c.addEventListener('click', () => {
-        chips.forEach(x => x.classList.remove('active'));
-        c.classList.add('active');
-        state.ouLine = parseFloat(c.getAttribute('data-line'));
-        renderOUMarkets(matrix, fixOdds);
-      });
-    });
   }
 
-  // --- Asian Handicap Table Rendering ---
+  // --- Asian Handicap Table Rendering (Issue 16: tap popover on pills) ---
   function renderAHTable(matrix, fixOdds) {
     const tableBody = document.getElementById('ahTableBody');
     const fairBadge = document.getElementById('modelFairAhBadge');
@@ -577,8 +703,7 @@
     const bookieLine = fixOdds && fixOdds.ahLine !== null ? fixOdds.ahLine : null;
 
     if (fairBadge) {
-      const fairName = getAhName(fairLine);
-      fairBadge.textContent = `模型公平盤: ${fairLine > 0 ? '+' : ''}${fairLine}${fairName}`;
+      fairBadge.textContent = `模型公平盤: ${formatAHLineZh(fairLine)}`;
     }
 
     tableBody.innerHTML = '';
@@ -604,19 +729,21 @@
         <td class="th-price"><strong>${row.fairAway < 100 ? row.fairAway.toFixed(2) : '--'}</strong></td>
         <td>
           <div class="split-pill-row">
-            <span class="split-pill" title="贏全">${(hp.win * 100).toFixed(0)}%</span>
-            <span class="split-pill" title="贏半">${(hp.halfWin * 100).toFixed(0)}%</span>
-            <span class="split-pill" title="走盤">${(hp.push * 100).toFixed(0)}%</span>
-            <span class="split-pill" title="輸半">${(hp.halfLoss * 100).toFixed(0)}%</span>
-            <span class="split-pill" title="輸全">${(hp.loss * 100).toFixed(0)}%</span>
+            <span class="split-pill" data-split="全贏" title="贏全">${(hp.win * 100).toFixed(0)}% 贏</span>
+            <span class="split-pill" data-split="贏半" title="贏半">${(hp.halfWin * 100).toFixed(0)}% 贏半</span>
+            <span class="split-pill" data-split="走盤" title="走盤">${(hp.push * 100).toFixed(0)}% 走</span>
+            <span class="split-pill" data-split="輸半" title="輸半">${(hp.halfLoss * 100).toFixed(0)}% 輸半</span>
+            <span class="split-pill" data-split="全輸" title="輸全">${(hp.loss * 100).toFixed(0)}% 輸</span>
           </div>
         </td>
       `;
       tableBody.appendChild(tr);
     });
+
+    bindPillClickListeners(tableBody);
   }
 
-  // --- Kelly Calculator ---
+  // --- Kelly Calculator (Issues 1 & 9: resolve AH line and fixture odds) ---
   function setupKellyCalculatorEvents() {
     const marketSel = document.getElementById('kellyMarketSelect');
     const oddsInput = document.getElementById('kellyOddsInput');
@@ -631,18 +758,26 @@
       autoPrefillKellyOdds();
       updateCalc();
     });
+
     if (oddsInput) oddsInput.addEventListener('input', updateCalc);
+
     if (bankrollInput) bankrollInput.addEventListener('input', () => {
       state.settings.bankroll = parseFloat(bankrollInput.value) || 10000;
       saveSettings();
       updateCalc();
     });
+
     if (fractionSlider) fractionSlider.addEventListener('input', () => {
       const frac = parseFloat(fractionSlider.value);
       const fracEl = document.getElementById('kellyFractionVal');
       if (fracEl) fracEl.textContent = `${frac.toFixed(2)}x`;
       state.settings.kellyFraction = frac;
       saveSettings();
+      // Keep settings sheet in sync (Issue 8)
+      const sKellySlider = document.getElementById('settingKellySlider');
+      const sKellyVal = document.getElementById('settingKellyVal');
+      if (sKellySlider) sKellySlider.value = frac.toFixed(2);
+      if (sKellyVal) sKellyVal.textContent = `${frac.toFixed(2)}x`;
       updateCalc();
     });
   }
@@ -658,20 +793,38 @@
     if (!marketSel || !oddsInput) return;
 
     const val = marketSel.value;
-    const leagueData = window.ODDS_DATA.leagues[state.activeLeague];
-    const fix = (leagueData && state.selectedFixtureIdx >= 0) ? leagueData.fixtures[state.selectedFixtureIdx] : null;
+    const fix = getActiveFixture();
 
-    let targetOdds = 2.00;
+    // Update Asian handicap select option labels with the true line (Issue 1)
+    const optAhHome = marketSel.querySelector('option[value="ah_home"]');
+    const optAhAway = marketSel.querySelector('option[value="ah_away"]');
+    const line = (fix && fix[10] !== null) ? fix[10] : 0;
+
+    if (optAhHome) optAhHome.textContent = `亞洲讓球: 主隊 ${formatAHLineZh(line)}`;
+    if (optAhAway) optAhAway.textContent = `亞洲讓球: 客隊 ${formatAHLineZh(-line)}`;
+
+    // Issue 9: only prefill odds if fixture matches activeHomeId and activeAwayId
     if (fix) {
-      if (val === '1x2_home') targetOdds = fix[4] || 2.0;
-      else if (val === '1x2_draw') targetOdds = fix[5] || 3.2;
-      else if (val === '1x2_away') targetOdds = fix[6] || 3.5;
-      else if (val === 'ou_over') targetOdds = fix[8] || 1.95;
-      else if (val === 'ou_under') targetOdds = fix[9] || 1.95;
-      else if (val === 'ah_home') targetOdds = fix[11] || 1.90;
-      else if (val === 'ah_away') targetOdds = fix[12] || 1.90;
+      let targetOdds = null;
+      if (val === '1x2_home') targetOdds = fix[4];
+      else if (val === '1x2_draw') targetOdds = fix[5];
+      else if (val === '1x2_away') targetOdds = fix[6];
+      else if (val === 'ou_over') targetOdds = fix[8];
+      else if (val === 'ou_under') targetOdds = fix[9];
+      else if (val === 'ah_home') targetOdds = fix[11];
+      else if (val === 'ah_away') targetOdds = fix[12];
+
+      if (targetOdds && targetOdds > 1) {
+        oddsInput.value = targetOdds.toFixed(2);
+        oddsInput.placeholder = '2.00';
+      } else {
+        oddsInput.value = '';
+        oddsInput.placeholder = '呢場暫時未有盤口';
+      }
+    } else {
+      oddsInput.value = '';
+      oddsInput.placeholder = '呢場暫時未有盤口';
     }
-    oddsInput.value = targetOdds.toFixed(2);
   }
 
   function calculateKellyNow() {
@@ -684,14 +837,21 @@
     const stakeEl = document.getElementById('kellyStakeVal');
     const fullEl = document.getElementById('kellyFullVal');
 
-    if (!marketSel || !oddsInput || !bankrollInput) return;
+    if (!marketSel || !oddsInput || !bankrollInput || !fractionSlider) return;
 
     const marketType = marketSel.value;
-    const odds = parseFloat(oddsInput.value) || 2.00;
+    const oddsValStr = oddsInput.value.trim();
+    const odds = parseFloat(oddsValStr);
     const bankroll = parseFloat(bankrollInput.value) || 10000;
     const fraction = parseFloat(fractionSlider.value) || 0.25;
 
-    // Get current model predictions
+    if (!odds || odds <= 1) {
+      if (evEl) { evEl.textContent = '--'; evEl.style.color = 'var(--text-dim)'; }
+      if (fullEl) { fullEl.textContent = '--'; }
+      if (stakeEl) { stakeEl.textContent = '$0 (0.0%)'; stakeEl.style.color = 'var(--text-dim)'; }
+      return;
+    }
+
     const model = getLeagueModel(state.activeLeague);
     if (!model) return;
 
@@ -711,8 +871,11 @@
     else if (marketType === 'ou_under') prob = ouData.under;
     else if (marketType.startsWith('ah_')) {
       isAH = true;
-      const ahLine = 0; // default 0 if no fixture
+      // Issue 1: Read the fixture AH line from active fixture
+      const fix = getActiveFixture();
+      const ahLine = (fix && fix[10] !== null) ? fix[10] : 0;
       const ah = window.OddsModel.calcAHProbs(matrix, ahLine);
+      // ah.away is already the reflection of ahLine
       ahProbs = marketType === 'ah_home' ? ah.home : ah.away;
     }
 
@@ -726,7 +889,7 @@
     if (evEl) {
       const evPct = kellyRes.edge * 100;
       evEl.textContent = `${evPct > 0 ? '+' : ''}${evPct.toFixed(1)}%`;
-      evEl.style.color = evPct > 0 ? 'var(--accent-green)' : 'var(--text-dim)';
+      evEl.style.color = evPct > 0 ? 'var(--accent-green)' : (evPct < 0 ? 'var(--accent-red)' : 'var(--text-dim)');
     }
 
     if (fullEl) {
@@ -741,7 +904,7 @@
     }
   }
 
-  // --- Tab 2: Market Movement & CLV ---
+  // --- Tab 2: Market Movement & CLV (Issue 6, 7, 13) ---
   function populateMovementTeamSelect() {
     const sel = document.getElementById('movementTeamSelect');
     if (!sel) return;
@@ -773,6 +936,26 @@
     renderLeagueEfficiencyStats();
   }
 
+  // Sparkline generator (SVG)
+  function createSparklineSvg(openProb, closeProb) {
+    const w = 84;
+    const h = 26;
+    const p1 = Math.max(5, Math.min(95, openProb));
+    const p2 = Math.max(5, Math.min(95, closeProb));
+    const y1 = h - (p1 / 100) * (h - 8) - 4;
+    const y2 = h - (p2 / 100) * (h - 8) - 4;
+    const isUp = p2 >= p1;
+    const color = isUp ? '#00ff87' : '#f43f5e';
+
+    return `
+      <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="overflow:visible;">
+        <line x1="8" y1="${y1.toFixed(1)}" x2="${w - 8}" y2="${y2.toFixed(1)}" stroke="${color}" stroke-width="2" stroke-linecap="round" />
+        <circle cx="8" cy="${y1.toFixed(1)}" r="3" fill="#8b9bb4" />
+        <circle cx="${w - 8}" cy="${y2.toFixed(1)}" r="3.5" fill="${color}" />
+      </svg>
+    `;
+  }
+
   function renderMovementMatches(teamId) {
     const listEl = document.getElementById('movementMatchesList');
     if (!listEl) return;
@@ -781,7 +964,6 @@
     if (!leagueData) return;
 
     const matches = leagueData.matches || [];
-    // Find last 10 matches involving teamId
     const teamMatches = [];
     for (let i = matches.length - 1; i >= 0 && teamMatches.length < 10; i--) {
       const m = matches[i];
@@ -792,7 +974,7 @@
 
     listEl.innerHTML = '';
     if (teamMatches.length === 0) {
-      listEl.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-dim)">暫無比賽數據</div>';
+      listEl.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-dim)">未有賽事數據</div>';
       return;
     }
 
@@ -812,21 +994,40 @@
       if (thisGoals > oppGoals) { resultTag = 'win'; resultText = '贏'; }
       else if (thisGoals < oppGoals) { resultTag = 'loss'; resultText = '輸'; }
 
-      // 1X2 Open vs Close for this team
+      // 1X2 Open vs Close
       const openOdds = isHome ? m[8] : m[10];
       const closeOdds = isHome ? m[11] : m[13];
       const openAH = m[18] !== null ? (isHome ? m[18] : -m[18]) : null;
       const closeAH = m[21] !== null ? (isHome ? m[21] : -m[21]) : null;
 
-      // CLV calculation: compare taken opening odds with closing sharp fair odds
+      // Issue 6: Walk-forward pre-match model prediction
+      const preModel = getWalkForwardModel(state.activeLeague, m[0]);
+      let modelProbThisTeam = 0.35;
+      let modelFairThisTeam = 2.85;
+      if (preModel) {
+        const pred = preModel.predict(m[1], m[2]);
+        const mat = window.OddsModel.calcScoreMatrix(pred.lambdaHome, pred.lambdaAway, preModel.rho, 10);
+        const m1x2 = window.OddsModel.derive1X2(mat);
+        modelProbThisTeam = isHome ? m1x2.home : m1x2.away;
+        modelFairThisTeam = isHome ? m1x2.fairHome : m1x2.fairAway;
+      }
+
+      // CLV using settings.marginMethod (Issue 7)
       const sharpClosing = [m[24], m[25], m[26]];
       const selIdx = isHome ? 0 : 2;
-      const clv = window.OddsModel.calcCLV(openOdds, sharpClosing, 'proportional', selIdx);
+      const clv = (openOdds && openOdds > 1)
+        ? window.OddsModel.calcCLV(openOdds, sharpClosing, state.settings.marginMethod, selIdx)
+        : 0;
       const clvPct = clv * 100;
 
-      // Movement arrow
-      let oddsMoveText = '無變動';
+      // Odds movement & Sparkline
+      let oddsMoveText = '冇變過';
+      let sparklineHtml = '';
       if (closeOdds && openOdds) {
+        const openImp = (1 / openOdds) * 100;
+        const closeImp = (1 / closeOdds) * 100;
+        sparklineHtml = createSparklineSvg(openImp, closeImp);
+
         if (closeOdds < openOdds) {
           oddsMoveText = `<span class="arrow-down">↘ 降水 (${openOdds.toFixed(2)} → ${closeOdds.toFixed(2)})</span>`;
         } else if (closeOdds > openOdds) {
@@ -834,15 +1035,19 @@
         } else {
           oddsMoveText = `平盤 (${openOdds.toFixed(2)})`;
         }
+      } else if (!openOdds && closeOdds) {
+        oddsMoveText = `未有開盤 (收市 ${closeOdds.toFixed(2)})`;
       }
 
-      let ahMoveText = '--';
+      let ahMoveText = '未有讓球盤';
       if (openAH !== null && closeAH !== null) {
-        if (openAH !== closeAH) {
-          ahMoveText = `盤口跳檔: ${openAH > 0 ? '+' : ''}${openAH} → ${closeAH > 0 ? '+' : ''}${closeAH}`;
+        if (Math.abs(openAH - closeAH) > 1e-6) {
+          ahMoveText = `盤口跳檔: ${formatAHLineZh(openAH)} → ${formatAHLineZh(closeAH)}`;
         } else {
-          ahMoveText = `盤口維持: ${openAH > 0 ? '+' : ''}${openAH}`;
+          ahMoveText = `盤口維持: ${formatAHLineZh(openAH)}`;
         }
+      } else if (closeAH !== null) {
+        ahMoveText = `收市盤: ${formatAHLineZh(closeAH)}`;
       }
 
       const card = document.createElement('div');
@@ -850,7 +1055,7 @@
       card.innerHTML = `
         <div class="mov-header">
           <span>${m[0]} (${isHome ? '主場' : '作客'})</span>
-          <span class="clv-pill ${clvPct > 0 ? 'pos' : 'neg'}">CLV: ${clvPct > 0 ? '+' : ''}${clvPct.toFixed(1)}%</span>
+          <span class="clv-pill ${clvPct > 0 ? 'pos' : (clvPct < 0 ? 'neg' : '')}">CLV: ${clvPct > 0 ? '+' : ''}${clvPct.toFixed(1)}%</span>
         </div>
         <div class="mov-teams-row">
           <span>${isHome ? thisTeam.zh : oppTeam.zh} ${fthg} - ${ftag} ${isHome ? oppTeam.zh : thisTeam.zh}</span>
@@ -866,6 +1071,17 @@
             <strong>${ahMoveText}</strong>
           </div>
         </div>
+        <div class="mov-model-row" style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:var(--surface-2);border-radius:var(--radius-sm);margin-top:6px;font-size:11px;">
+          <div>
+            <span style="color:var(--text-dim)">賽前模型概率:</span>
+            <strong style="color:var(--accent-cyan);margin-left:4px;">${(modelProbThisTeam * 100).toFixed(1)}%</strong>
+            <span style="color:var(--text-dim);margin-left:4px;">(公平價 ${modelFairThisTeam.toFixed(2)})</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="color:var(--text-dim);font-size:10px;">勝率走勢</span>
+            ${sparklineHtml}
+          </div>
+        </div>
       `;
       listEl.appendChild(card);
     });
@@ -877,6 +1093,7 @@
 
     const matches = leagueData.matches || [];
     let sumOverround = 0;
+    let countOverround = 0;
     let ahMoveCount = 0;
     let ahTotal = 0;
     let steamCoverCount = 0;
@@ -887,6 +1104,7 @@
       const ch = m[11], cd = m[12], ca = m[13];
       if (ch && cd && ca) {
         sumOverround += window.OddsModel.calcOverround([ch, cd, ca]);
+        countOverround++;
       }
 
       // AH movement
@@ -896,15 +1114,12 @@
         ahTotal++;
         if (Math.abs(oLine - cLine) > 1e-6) {
           ahMoveCount++;
-          // check which side moved toward
           const goalDiff = m[3] - m[4];
           if (cLine < oLine) {
-            // moved toward Home (Home gives more)
             steamTotal++;
             const mult = window.OddsModel.settleAH(goalDiff, cLine, 2.0);
             if (mult > 1.0) steamCoverCount++;
           } else {
-            // moved toward Away
             steamTotal++;
             const mult = window.OddsModel.settleAH(-goalDiff, -cLine, 2.0);
             if (mult > 1.0) steamCoverCount++;
@@ -913,7 +1128,8 @@
       }
     });
 
-    const avgOverround = matches.length > 0 ? (sumOverround / matches.length) * 100 : 105.0;
+    // Issue 13: Vig is (overround - 1.0) * 100, e.g. 5.6%
+    const avgVig = countOverround > 0 ? ((sumOverround / countOverround) - 1.0) * 100 : 5.6;
     const ahMoveRate = ahTotal > 0 ? (ahMoveCount / ahTotal) * 100 : 0;
     const steamCoverRate = steamTotal > 0 ? (steamCoverCount / steamTotal) * 100 : 50.0;
 
@@ -921,12 +1137,12 @@
     const elAhMove = document.getElementById('statAhMoveRate');
     const elSteam = document.getElementById('statSteamCoverRate');
 
-    if (elOverround) elOverround.textContent = `${avgOverround.toFixed(1)}%`;
+    if (elOverround) elOverround.textContent = `${avgVig.toFixed(1)}%`;
     if (elAhMove) elAhMove.textContent = `${ahMoveRate.toFixed(1)}%`;
     if (elSteam) elSteam.textContent = `${steamCoverRate.toFixed(1)}%`;
   }
 
-  // --- Tab 3: Backtest Engine ---
+  // --- Tab 3: Backtest Engine (Issue 10: unified multi-league bankroll) ---
   function setupBacktestEvents() {
     const btnRun = document.getElementById('btnRunBacktest');
     const slider = document.getElementById('btEdgeSlider');
@@ -935,6 +1151,13 @@
     if (slider && valDisplay) {
       slider.addEventListener('input', () => {
         valDisplay.textContent = `${parseFloat(slider.value).toFixed(1)}%`;
+        state.settings.edgeThreshold = parseFloat(slider.value) / 100;
+        saveSettings();
+        // Keep settings sheet in sync
+        const sEdgeSlider = document.getElementById('settingEdgeSlider');
+        const sEdgeVal = document.getElementById('settingEdgeVal');
+        if (sEdgeSlider) sEdgeSlider.value = slider.value;
+        if (sEdgeVal) sEdgeVal.textContent = `${slider.value}%`;
       });
     }
 
@@ -970,16 +1193,7 @@
     }
 
     const leagueResults = [];
-    let combinedBets = [];
-    let combinedCurve = [{ index: 0, bankroll: 100, profit: 0 }];
-    let currentBankroll = 100;
-    let totalStakedAll = 0;
-    let totalReturnAll = 0;
-    let totalWinsAll = 0;
-    let clvSumAll = 0;
-    let beatCloseAll = 0;
-    let peak = 100;
-    let maxDd = 0;
+    let allBets = [];
 
     targetLeagues.forEach(lgId => {
       const lgData = window.ODDS_DATA.leagues[lgId];
@@ -990,10 +1204,11 @@
         market,
         oddsType,
         edgeThreshold,
-        staking,
+        staking: 'flat', // collect candidate bets with full details
         kellyFraction: state.settings.kellyFraction,
         initialBankroll: 100,
-        halfLifeDays: state.settings.halfLifeDays
+        halfLifeDays: state.settings.halfLifeDays,
+        marginMethod: state.settings.marginMethod
       });
 
       leagueResults.push({
@@ -1002,36 +1217,72 @@
         res
       });
 
-      totalStakedAll += res.totalStaked;
-      totalReturnAll += res.totalReturn;
-      totalWinsAll += res.wins;
-
       res.bets.forEach(b => {
-        combinedBets.push(b);
-        currentBankroll += b.profit;
-        if (currentBankroll > peak) peak = currentBankroll;
-        const dd = (peak - currentBankroll) / peak;
-        if (dd > maxDd) maxDd = dd;
+        b.leagueId = lgId;
+        b.leagueName = lgData.name;
+        allBets.push(b);
+      });
+    });
 
-        clvSumAll += b.clv / 100;
-        if (b.clv > 0) beatCloseAll++;
+    // Sort all bets chronologically by match date (Issue 10)
+    allBets.sort((a, b) => a.date.localeCompare(b.date));
 
-        combinedCurve.push({
-          index: combinedBets.length,
-          bankroll: Math.round(currentBankroll * 100) / 100,
-          profit: Math.round((currentBankroll - 100) * 100) / 100
-        });
+    // Simulate combined bankroll chronologically
+    const initialBankroll = 100;
+    let bankroll = initialBankroll;
+    let peak = initialBankroll;
+    let maxDd = 0;
+    let totalStakedAll = 0;
+    let totalReturnAll = 0;
+    let winsAll = 0;
+    let clvSumAll = 0;
+    let beatCloseAll = 0;
+
+    const combinedCurve = [{ index: 0, date: '開始', bankroll, profit: 0 }];
+
+    allBets.forEach((b, idx) => {
+      let stake = 1.0;
+      if (staking === 'kelly') {
+        const kFrac = state.settings.kellyFraction || 0.25;
+        const odds = b.odds;
+        const prob = (b.profit > 0 ? (b.payout / odds) : 0.35); // fallback prob
+        const k = window.OddsModel.calcKelly(prob, odds, kFrac, 0.2);
+        stake = k.recommendedStake(bankroll);
+        stake = Math.min(bankroll, stake);
+        if (stake <= 0) return;
+      }
+
+      totalStakedAll += stake;
+      const isWin = b.profit > 0;
+      const payout = isWin ? stake * b.odds : 0;
+      const netProfit = payout - stake;
+      totalReturnAll += payout;
+      if (isWin) winsAll++;
+
+      bankroll += netProfit;
+      if (bankroll > peak) peak = bankroll;
+      const dd = (peak - bankroll) / peak;
+      if (dd > maxDd) maxDd = dd;
+
+      clvSumAll += (b.clv || 0) / 100;
+      if (b.clv > 0) beatCloseAll++;
+
+      combinedCurve.push({
+        index: idx + 1,
+        date: b.date,
+        bankroll: Math.round(bankroll * 100) / 100,
+        profit: Math.round((bankroll - initialBankroll) * 100) / 100
       });
     });
 
     const netProfitAll = totalReturnAll - totalStakedAll;
     const roiAll = totalStakedAll > 0 ? (netProfitAll / totalStakedAll) * 100 : 0;
-    const hitRateAll = combinedBets.length > 0 ? (totalWinsAll / combinedBets.length) * 100 : 0;
-    const avgClvAll = combinedBets.length > 0 ? (clvSumAll / combinedBets.length) * 100 : 0;
-    const beatCloseRateAll = combinedBets.length > 0 ? (beatCloseAll / combinedBets.length) * 100 : 0;
+    const hitRateAll = allBets.length > 0 ? (winsAll / allBets.length) * 100 : 0;
+    const avgClvAll = allBets.length > 0 ? (clvSumAll / allBets.length) * 100 : 0;
+    const beatCloseRateAll = allBets.length > 0 ? (beatCloseAll / allBets.length) * 100 : 0;
 
     state.backtestResult = {
-      totalBets: combinedBets.length,
+      totalBets: allBets.length,
       hitRate: hitRateAll,
       profit: netProfitAll,
       roi: roiAll,
@@ -1059,70 +1310,59 @@
     roiEl.style.color = res.roi >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
 
     document.getElementById('btMaxDd').textContent = `${res.maxDrawdown.toFixed(1)}%`;
-    document.getElementById('btAvgClv').textContent = `${res.avgCLV >= 0 ? '+' : ''}${res.avgCLV.toFixed(1)}%`;
+
+    const clvEl = document.getElementById('btAvgClv');
+    clvEl.textContent = `${res.avgCLV >= 0 ? '+' : ''}${res.avgCLV.toFixed(2)}%`;
+    clvEl.style.color = res.avgCLV >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+
     document.getElementById('btBeatClose').textContent = `${res.beatCloseRate.toFixed(1)}%`;
-    document.getElementById('btTotalStaked').textContent = `${res.totalStaked.toFixed(1)} u`;
+    document.getElementById('btTotalStaked').textContent = `${Math.round(res.totalStaked)} u`;
 
     const summaryBadge = document.getElementById('btSummaryBadge');
     if (summaryBadge) {
       summaryBadge.textContent = `${res.totalBets} 注 / ROI ${res.roi >= 0 ? '+' : ''}${res.roi.toFixed(1)}%`;
     }
 
-    // Render Canvas Bankroll Chart
+    // Draw animated canvas bankroll chart (Issue 18)
     drawBankrollChart(res.bankrollCurve);
 
-    // Render League Breakdown Table
-    const tableBody = document.getElementById('btLeagueTableBody');
-    if (tableBody) {
-      tableBody.innerHTML = '';
-      res.leagueResults.forEach(lr => {
-        const r = lr.res;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><strong>${lr.name}</strong></td>
-          <td>${r.totalBets}</td>
-          <td>${r.hitRate.toFixed(1)}%</td>
-          <td style="color:${r.profit >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">
-            ${r.profit >= 0 ? '+' : ''}${r.profit.toFixed(1)} u
-          </td>
-          <td style="color:${r.roi >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">
-            ${r.roi >= 0 ? '+' : ''}${r.roi.toFixed(1)}%
-          </td>
-          <td>${r.avgCLV >= 0 ? '+' : ''}${r.avgCLV.toFixed(1)}%</td>
-        `;
-        tableBody.appendChild(tr);
-      });
-    }
+    // Render per-league breakdown table
+    renderLeagueBreakdownTable(res.leagueResults);
   }
 
-  // --- Canvas Bankroll Chart Drawing ---
+  // --- Canvas Bankroll Chart Drawing (Issue 18: animation, axes, baseline) ---
+  let animFrameId = null;
+
   function drawBankrollChart(curve) {
     const canvas = document.getElementById('bankrollChart');
     if (!canvas) return;
+
+    if (animFrameId) {
+      cancelAnimationFrame(animFrameId);
+      animFrameId = null;
+    }
 
     const ctx = canvas.getContext('2d');
     const width = canvas.width;
     const height = canvas.height;
 
-    ctx.clearRect(0, 0, width, height);
-
     if (!curve || curve.length < 2) {
+      ctx.clearRect(0, 0, width, height);
       ctx.fillStyle = '#8b9bb4';
       ctx.font = '12px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('無足夠下注數據繪製資金圖表', width / 2, height / 2);
+      ctx.fillText('未有足夠下注數據繪製資金圖表', width / 2, height / 2);
       return;
     }
 
-    const padLeft = 45;
+    const padLeft = 52;
     const padRight = 20;
-    const padTop = 20;
-    const padBottom = 30;
+    const padTop = 22;
+    const padBottom = 34;
 
     const plotW = width - padLeft - padRight;
     const plotH = height - padTop - padBottom;
 
-    // Find min and max bankroll
     let minB = 100;
     let maxB = 100;
     curve.forEach(pt => {
@@ -1131,82 +1371,148 @@
     });
 
     const bRange = Math.max(10, maxB - minB);
-    const yMin = minB - bRange * 0.1;
-    const yMax = maxB + bRange * 0.1;
+    const yMin = Math.floor(minB - bRange * 0.12);
+    const yMax = Math.ceil(maxB + bRange * 0.12);
 
-    function getX(i) {
-      return padLeft + (i / (curve.length - 1)) * plotW;
+    function getX(i, total) {
+      return padLeft + (i / Math.max(1, total - 1)) * plotW;
     }
 
     function getY(val) {
       return padTop + plotH - ((val - yMin) / (yMax - yMin)) * plotH;
     }
 
-    // Draw Zero / Baseline (100 units)
-    const zeroY = getY(100);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.moveTo(padLeft, zeroY);
-    ctx.lineTo(width - padRight, zeroY);
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    // Baseline Label
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
-    ctx.font = '10px monospace';
-    ctx.textAlign = 'right';
-    ctx.fillText('100u', padLeft - 6, zeroY + 3);
-
-    // Gradient Area Fill under Bankroll Line
     const finalVal = curve[curve.length - 1].bankroll;
     const isProfitable = finalVal >= 100;
+    const zeroY = getY(100);
 
-    const grad = ctx.createLinearGradient(0, padTop, 0, height - padBottom);
-    if (isProfitable) {
-      grad.addColorStop(0, 'rgba(0, 255, 135, 0.28)');
-      grad.addColorStop(1, 'rgba(0, 255, 135, 0.0)');
-    } else {
-      grad.addColorStop(0, 'rgba(244, 63, 94, 0.28)');
-      grad.addColorStop(1, 'rgba(244, 63, 94, 0.0)');
+    const startTime = performance.now();
+    const duration = 400; // 400ms smooth animation
+
+    function renderFrame(now) {
+      const elapsed = now - startTime;
+      const progress = Math.min(1.0, elapsed / duration);
+      const easeProgress = 1 - Math.pow(1 - progress, 3); // cubic ease-out
+
+      const pointsToShow = Math.max(2, Math.floor(easeProgress * curve.length));
+      const partialCurve = curve.slice(0, pointsToShow);
+
+      ctx.clearRect(0, 0, width, height);
+
+      // Axes lines (Issue 18)
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      // Y-axis
+      ctx.moveTo(padLeft, padTop);
+      ctx.lineTo(padLeft, height - padBottom);
+      // X-axis
+      ctx.lineTo(width - padRight, height - padBottom);
+      ctx.stroke();
+
+      // Zero baseline (100u)
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = 'rgba(0, 229, 255, 0.4)';
+      ctx.beginPath();
+      ctx.moveTo(padLeft, zeroY);
+      ctx.lineTo(width - padRight, zeroY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Baseline label
+      ctx.fillStyle = 'rgba(0, 229, 255, 0.85)';
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText('開波本金 (100u)', width - padRight, zeroY - 5);
+
+      // Y-Ticks
+      const yTicks = [yMin, Math.round((yMin + yMax) / 2), yMax];
+      ctx.fillStyle = '#8b9bb4';
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'right';
+      yTicks.forEach(tickVal => {
+        const y = getY(tickVal);
+        ctx.fillText(`${tickVal}u`, padLeft - 6, y + 3);
+        ctx.beginPath();
+        ctx.moveTo(padLeft - 4, y);
+        ctx.lineTo(padLeft, y);
+        ctx.stroke();
+      });
+
+      // Area fill
+      const grad = ctx.createLinearGradient(0, padTop, 0, height - padBottom);
+      if (isProfitable) {
+        grad.addColorStop(0, 'rgba(0, 255, 135, 0.28)');
+        grad.addColorStop(1, 'rgba(0, 255, 135, 0.0)');
+      } else {
+        grad.addColorStop(0, 'rgba(244, 63, 94, 0.28)');
+        grad.addColorStop(1, 'rgba(244, 63, 94, 0.0)');
+      }
+
+      ctx.beginPath();
+      ctx.moveTo(getX(0, curve.length), getY(partialCurve[0].bankroll));
+      for (let i = 1; i < partialCurve.length; i++) {
+        ctx.lineTo(getX(i, curve.length), getY(partialCurve[i].bankroll));
+      }
+      ctx.lineTo(getX(partialCurve.length - 1, curve.length), height - padBottom);
+      ctx.lineTo(getX(0, curve.length), height - padBottom);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // Line
+      ctx.beginPath();
+      ctx.moveTo(getX(0, curve.length), getY(partialCurve[0].bankroll));
+      for (let i = 1; i < partialCurve.length; i++) {
+        ctx.lineTo(getX(i, curve.length), getY(partialCurve[i].bankroll));
+      }
+      ctx.strokeStyle = isProfitable ? '#00ff87' : '#f43f5e';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // X labels
+      ctx.fillStyle = '#8b9bb4';
+      ctx.textAlign = 'center';
+      ctx.fillText('開波', padLeft, height - 12);
+      ctx.fillText(`第 ${partialCurve.length - 1} 注`, width - padRight - 15, height - 12);
+
+      if (progress < 1.0) {
+        animFrameId = requestAnimationFrame(renderFrame);
+      }
     }
 
-    ctx.beginPath();
-    ctx.moveTo(getX(0), getY(curve[0].bankroll));
-    for (let i = 1; i < curve.length; i++) {
-      ctx.lineTo(getX(i), getY(curve[i].bankroll));
-    }
-    ctx.lineTo(getX(curve.length - 1), height - padBottom);
-    ctx.lineTo(getX(0), height - padBottom);
-    ctx.closePath();
-    ctx.fillStyle = grad;
-    ctx.fill();
-
-    // Bankroll Line
-    ctx.beginPath();
-    ctx.moveTo(getX(0), getY(curve[0].bankroll));
-    for (let i = 1; i < curve.length; i++) {
-      ctx.lineTo(getX(i), getY(curve[i].bankroll));
-    }
-    ctx.strokeStyle = isProfitable ? '#00ff87' : '#f43f5e';
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
-
-    // Y Axis Labels
-    ctx.fillStyle = '#8b9bb4';
-    ctx.font = '10px monospace';
-    ctx.textAlign = 'right';
-    ctx.fillText(`${yMax.toFixed(0)}u`, padLeft - 6, padTop + 10);
-    ctx.fillText(`${yMin.toFixed(0)}u`, padLeft - 6, height - padBottom);
-
-    // X Axis Labels
-    ctx.textAlign = 'center';
-    ctx.fillText('0', padLeft, height - 10);
-    ctx.fillText(`${curve.length - 1} 注`, width - padRight, height - 10);
+    animFrameId = requestAnimationFrame(renderFrame);
   }
 
-  // --- Tab 4: Teams & Standings ---
+  function renderLeagueBreakdownTable(leagueResults) {
+    const tableBody = document.getElementById('btLeagueTableBody');
+    if (!tableBody) return;
+
+    tableBody.innerHTML = '';
+    if (!leagueResults || leagueResults.length === 0) return;
+
+    leagueResults.forEach(item => {
+      const r = item.res;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong>${item.name}</strong></td>
+        <td>${r.totalBets}</td>
+        <td>${r.hitRate.toFixed(1)}%</td>
+        <td style="color:${r.profit >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">
+          ${r.profit >= 0 ? '+' : ''}${r.profit.toFixed(1)} u
+        </td>
+        <td style="color:${r.roi >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">
+          ${r.roi >= 0 ? '+' : ''}${r.roi.toFixed(1)}%
+        </td>
+        <td style="color:${r.avgCLV >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">
+          ${r.avgCLV >= 0 ? '+' : ''}${r.avgCLV.toFixed(2)}%
+        </td>
+      `;
+      tableBody.appendChild(tr);
+    });
+  }
+
+  // --- Tab 4: Teams & Standings (Issues 4 & 15: splits, alpha+beta, 贏/和/輸) ---
   function renderTeamsTab() {
     renderStandingsTable();
     renderTeamPowerCards();
@@ -1219,7 +1525,6 @@
     const leagueData = window.ODDS_DATA.leagues[state.activeLeague];
     if (!leagueData) return;
 
-    // Compute Standings from 2026-27 season matches
     const currentTeamIds = leagueData.currentTeams;
     const statsMap = {};
     currentTeamIds.forEach(id => {
@@ -1294,12 +1599,12 @@
       const team = leagueData.teams[st.id] || { zh: '球隊' };
       const gd = st.gf - st.ga;
 
-      // Last 5 matches pills
+      // Last 5 matches pills (Cantonese 贏/和/輸)
       const last5 = st.form.slice(-5);
       const pillsHtml = last5.map(f => {
         const cls = f === 'W' ? 'w' : (f === 'D' ? 'd' : 'l');
-        const txt = f === 'W' ? '勝' : (f === 'D' ? '和' : '負');
-        return `<span class="form-pill ${cls}" title="${txt}">${txt}</span>`;
+        const txt = f === 'W' ? '贏' : (f === 'D' ? '和' : '輸');
+        return `<span class="form-pill ${cls}" data-outcome="${f}">${txt}</span>`;
       }).join('');
 
       const tr = document.createElement('tr');
@@ -1314,17 +1619,21 @@
         <td>${st.ga}</td>
         <td>${gd > 0 ? '+' : ''}${gd}</td>
         <td><strong>${st.pts}</strong></td>
-        <td><div class="form-pills">${pillsHtml}</div></td>
+        <td><div class="form-pills">${pillsHtml || '<span style="color:var(--text-dim)">--</span>'}</div></td>
       `;
 
       tr.addEventListener('click', () => {
-        // Quick assign as home team and navigate to Tab 1
+        if (state.activeAwayId === st.id) {
+          state.activeAwayId = state.activeHomeId;
+        }
         state.activeHomeId = st.id;
         document.querySelector('.bottom-nav .nav-tab[data-tab="tab-match"]').click();
       });
 
       tableBody.appendChild(tr);
     });
+
+    bindPillClickListeners(tableBody);
   }
 
   function renderTeamPowerCards() {
@@ -1337,13 +1646,44 @@
     const model = getLeagueModel(state.activeLeague);
     if (!model) return;
 
+    // Calculate Home and Away splits from 2627 season matches (Issue 15)
+    const splits = {};
+    leagueData.currentTeams.forEach(id => {
+      splits[id] = {
+        homePlayed: 0, homeGf: 0, homeGa: 0,
+        awayPlayed: 0, awayGf: 0, awayGa: 0,
+        form: []
+      };
+    });
+
+    const s2627Matches = leagueData.matches.filter(m => m[7] === '2627');
+    s2627Matches.forEach(m => {
+      const h = m[1], a = m[2], hg = m[3], ag = m[4];
+      if (splits[h]) {
+        splits[h].homePlayed++;
+        splits[h].homeGf += hg;
+        splits[h].homeGa += ag;
+        splits[h].form.push(hg > ag ? 'W' : (hg === ag ? 'D' : 'L'));
+      }
+      if (splits[a]) {
+        splits[a].awayPlayed++;
+        splits[a].awayGf += ag;
+        splits[a].awayGa += hg;
+        splits[a].form.push(ag > hg ? 'W' : (ag === hg ? 'D' : 'L'));
+      }
+    });
+
+    // Issue 4: netRating is alpha + beta (beta is defensive strength)
     const currentTeams = leagueData.currentTeams.map(id => {
+      const a = model.alpha[id] || 0;
+      const b = model.beta[id] || 0;
       return {
         id,
         team: leagueData.teams[id],
-        alpha: model.alpha[id] || 0,
-        beta: model.beta[id] || 0,
-        netRating: (model.alpha[id] || 0) - (model.beta[id] || 0)
+        alpha: a,
+        beta: b,
+        netRating: a + b,
+        split: splits[id] || { homePlayed: 0, homeGf: 0, homeGa: 0, awayPlayed: 0, awayGf: 0, awayGa: 0, form: [] }
       };
     });
 
@@ -1352,8 +1692,16 @@
     grid.innerHTML = '';
     currentTeams.forEach(item => {
       const t = item.team;
+      const sp = item.split;
       const card = document.createElement('div');
       card.className = 'team-power-card';
+
+      const last5 = sp.form.slice(-5);
+      const pillsHtml = last5.map(f => {
+        const cls = f === 'W' ? 'w' : (f === 'D' ? 'd' : 'l');
+        const txt = f === 'W' ? '贏' : (f === 'D' ? '和' : '輸');
+        return `<span class="form-pill ${cls}" data-outcome="${f}">${txt}</span>`;
+      }).join('');
 
       card.innerHTML = `
         <div class="tpc-header">
@@ -1365,7 +1713,7 @@
         </div>
         <div class="tpc-ratings">
           <div class="tpc-rating-box">
-            <span>淨評分</span>
+            <span>淨評分 (α+β)</span>
             <strong style="color:${item.netRating >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">
               ${item.netRating >= 0 ? '+' : ''}${item.netRating.toFixed(2)}
             </strong>
@@ -1374,31 +1722,43 @@
             <span>進攻力 (α)</span>
             <strong>${item.alpha >= 0 ? '+' : ''}${item.alpha.toFixed(2)}</strong>
           </div>
-          <div class="tpc-rating-box">
+          <div class="tpc-rating-box" title="β越高代表對手越難入波">
             <span>防守力 (β)</span>
             <strong>${item.beta >= 0 ? '+' : ''}${item.beta.toFixed(2)}</strong>
           </div>
           <div class="tpc-rating-box">
-            <span>預期得球</span>
-            <strong>${Math.exp(model.mu + item.alpha).toFixed(2)}</strong>
+            <span>近五場走勢</span>
+            <div class="form-pills" style="justify-content:center;margin-top:2px;">${pillsHtml || '<span style="color:var(--text-dim)">--</span>'}</div>
           </div>
+        </div>
+        <div class="tpc-splits-row" style="display:flex;justify-content:space-between;padding:6px 8px;background:var(--surface-2);border-radius:var(--radius-sm);margin-top:6px;font-size:11px;color:var(--text-muted)">
+          <span>主場: ${sp.homePlayed}場 ${sp.homeGf}得/${sp.homeGa}失</span>
+          <span>作客: ${sp.awayPlayed}場 ${sp.awayGf}得/${sp.awayGa}失</span>
         </div>
       `;
 
       card.querySelector('.btn-set-home').addEventListener('click', (e) => {
         e.stopPropagation();
+        if (state.activeAwayId === item.id) {
+          state.activeAwayId = state.activeHomeId;
+        }
         state.activeHomeId = item.id;
         document.querySelector('.bottom-nav .nav-tab[data-tab="tab-match"]').click();
       });
 
       card.querySelector('.btn-set-away').addEventListener('click', (e) => {
         e.stopPropagation();
+        if (state.activeHomeId === item.id) {
+          state.activeHomeId = state.activeAwayId;
+        }
         state.activeAwayId = item.id;
         document.querySelector('.bottom-nav .nav-tab[data-tab="tab-match"]').click();
       });
 
       grid.appendChild(card);
     });
+
+    bindPillClickListeners(grid);
   }
 
   // --- Team Picker Bottom Sheet ---
@@ -1452,7 +1812,7 @@
     state.pickerTarget = target;
     const title = document.getElementById('teamPickerTitle');
     if (title) {
-      title.textContent = target === 'home' ? '選擇主隊' : '選擇客隊';
+      title.textContent = target === 'home' ? '揀主隊' : '揀客隊';
     }
 
     const searchInput = document.getElementById('teamSearchInput');
@@ -1502,15 +1862,14 @@
         if (state.pickerTarget === 'home') {
           state.activeHomeId = t.id;
           if (state.activeAwayId === t.id) {
-            // Pick an alternative for away
             const other = leagueData.currentTeams.find(id => id !== t.id);
-            state.activeAwayId = other || 0;
+            state.activeAwayId = other !== undefined ? other : 0;
           }
         } else {
           state.activeAwayId = t.id;
           if (state.activeHomeId === t.id) {
             const other = leagueData.currentTeams.find(id => id !== t.id);
-            state.activeHomeId = other || 0;
+            state.activeHomeId = other !== undefined ? other : 0;
           }
         }
         closeTeamPicker();
@@ -1521,7 +1880,7 @@
     });
   }
 
-  // --- Settings Bottom Sheet ---
+  // --- Settings Bottom Sheet (Issue 8: synchronized sliders) ---
   function setupSettingsModal() {
     const btnOpen = document.getElementById('btnOpenSettings');
     const btnClose = document.getElementById('btnCloseSettings');
@@ -1537,7 +1896,7 @@
     const halfLifeVal = document.getElementById('settingHalfLifeVal');
 
     if (btnOpen) btnOpen.addEventListener('click', () => {
-      updateSettingsUI();
+      applySettingsToDom();
       backdrop.classList.add('active');
     });
 
@@ -1577,8 +1936,9 @@
           bankroll: 10000
         };
         saveSettings();
-        state.modelCache = {}; // clear model cache
-        updateSettingsUI();
+        state.modelCache = {};
+        state.walkForwardCache = {};
+        applySettingsToDom();
         backdrop.classList.remove('active');
         renderMatchLab();
       });
@@ -1594,40 +1954,12 @@
         if (methodSel) state.settings.marginMethod = methodSel.value;
 
         saveSettings();
-        state.modelCache = {}; // clear cache so new half-life takes effect
+        state.modelCache = {};
+        state.walkForwardCache = {};
+        applySettingsToDom();
         backdrop.classList.remove('active');
         renderMatchLab();
       });
-    }
-  }
-
-  function updateSettingsUI() {
-    const edgeSlider = document.getElementById('settingEdgeSlider');
-    const edgeVal = document.getElementById('settingEdgeVal');
-    const kellySlider = document.getElementById('settingKellySlider');
-    const kellyVal = document.getElementById('settingKellyVal');
-    const halfLifeSlider = document.getElementById('settingHalfLifeSlider');
-    const halfLifeVal = document.getElementById('settingHalfLifeVal');
-    const methodSel = document.getElementById('settingMarginMethod');
-
-    if (edgeSlider && edgeVal) {
-      const pct = (state.settings.edgeThreshold * 100).toFixed(1);
-      edgeSlider.value = pct;
-      edgeVal.textContent = `${pct}%`;
-    }
-
-    if (kellySlider && kellyVal) {
-      kellySlider.value = state.settings.kellyFraction.toFixed(2);
-      kellyVal.textContent = `${state.settings.kellyFraction.toFixed(2)}x`;
-    }
-
-    if (halfLifeSlider && halfLifeVal) {
-      halfLifeSlider.value = state.settings.halfLifeDays;
-      halfLifeVal.textContent = `${state.settings.halfLifeDays}日`;
-    }
-
-    if (methodSel) {
-      methodSel.value = state.settings.marginMethod;
     }
   }
 
@@ -1654,6 +1986,86 @@
         if (e.target === backdrop) backdrop.classList.remove('active');
       });
     }
+  }
+
+  // --- Term Explanation Modal for Mobile Taps (Issue 16) ---
+  function setupTermInfoModal() {
+    const btnClose = document.getElementById('btnCloseTermInfo');
+    const backdrop = document.getElementById('termInfoBackdrop');
+
+    if (btnClose) {
+      btnClose.addEventListener('click', () => {
+        if (backdrop) backdrop.classList.remove('active');
+      });
+    }
+
+    if (backdrop) {
+      backdrop.addEventListener('click', (e) => {
+        if (e.target === backdrop) backdrop.classList.remove('active');
+      });
+    }
+  }
+
+  function showTermInfo(title, bodyHtml) {
+    const backdrop = document.getElementById('termInfoBackdrop');
+    const titleEl = document.getElementById('termInfoTitle');
+    const bodyEl = document.getElementById('termInfoBody');
+    if (!backdrop || !titleEl || !bodyEl) return;
+    titleEl.textContent = title;
+    bodyEl.innerHTML = bodyHtml;
+    backdrop.classList.add('active');
+  }
+
+  function bindPillClickListeners(container) {
+    if (!container) return;
+
+    container.querySelectorAll('.split-pill').forEach(pill => {
+      pill.style.cursor = 'pointer';
+      pill.onclick = (e) => {
+        e.stopPropagation();
+        const type = pill.getAttribute('data-split') || pill.getAttribute('title') || pill.textContent;
+        let title = '讓球盤口賽果拆解';
+        let desc = '';
+        if (type.includes('全') && type.includes('贏')) {
+          title = '全贏 (Win)';
+          desc = '<strong>全贏：</strong>淨勝球數完全越過讓球盤口，全數注碼贏取莊家賠率彩金。<br><br>例如：主隊讓半球 (-0.5)，主隊淨勝 1 球或以上，即刻全贏。';
+        } else if (type.includes('半') && type.includes('贏')) {
+          title = '贏半 (Half Win)';
+          desc = '<strong>贏半：</strong>淨勝球數剛好贏半個盤（四份一盤拆注）。一半注碼按賠率收足彩金，另一半注碼退還本金。<br><br>例如：主隊讓半一 (-0.75)，主隊剛好淨勝 1 球，即係贏半（收一半彩金，退一半本）。';
+        } else if (type.includes('走')) {
+          title = '走盤 (Push / 退本)';
+          desc = '<strong>走盤：</strong>計算讓球後雙方剛好打和。注碼全數退回，不輸不贏。<br><br>例如：主隊平手盤 (0) 打和，或者讓一球 (-1.0) 剛好淨勝 1 球。';
+        } else if (type.includes('半') && type.includes('輸')) {
+          title = '輸半 (Half Loss)';
+          desc = '<strong>輸半：</strong>淨勝球數剛好輸半個盤。輸掉一半注碼，另一半退還本金。<br><br>例如：主隊讓平半 (-0.25) 打和，買主隊就輸半（輸一半本，退一半本）。';
+        } else {
+          title = '全輸 (Loss)';
+          desc = '<strong>全輸：</strong>淨勝球數未能越過盤口，全數注碼輸掉。';
+        }
+        showTermInfo(title, desc);
+      };
+    });
+
+    container.querySelectorAll('.form-pill').forEach(pill => {
+      pill.style.cursor = 'pointer';
+      pill.onclick = (e) => {
+        e.stopPropagation();
+        const outcome = pill.getAttribute('data-outcome') || pill.textContent;
+        let title = '近五場走勢戰績';
+        let desc = '';
+        if (outcome === 'W' || outcome.includes('贏')) {
+          title = '勝仗 (贏波 - Win)';
+          desc = '<strong>贏波：</strong>該場賽事取得勝利，聯賽全取 3 分。';
+        } else if (outcome === 'D' || outcome.includes('和')) {
+          title = '和局 (打和 - Draw)';
+          desc = '<strong>打和：</strong>該場賽事雙方握手言和，聯賽各得 1 分。';
+        } else {
+          title = '敗仗 (輸波 - Loss)';
+          desc = '<strong>輸波：</strong>該場賽事未能取勝，聯賽得 0 分。';
+        }
+        showTermInfo(title, desc);
+      };
+    });
   }
 
   // Initialize on DOM ready

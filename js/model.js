@@ -388,7 +388,7 @@
     if (fraction === undefined) fraction = 0.25;
     if (cap === undefined) cap = 0.5;
     if (!odds || odds <= 1 || !prob || prob <= 0) {
-      return { fullKelly: 0, fracKelly: 0, edge: -1 };
+      return { fullKelly: 0, fracKelly: 0, edge: -1, recommendedStake: () => 0 };
     }
     const b = odds - 1;
     const q = 1 - prob;
@@ -408,13 +408,13 @@
   function calcAHKelly(ahProbs, odds, fraction, cap) {
     if (fraction === undefined) fraction = 0.25;
     if (cap === undefined) cap = 0.5;
-    if (!odds || odds <= 1) return { fullKelly: 0, fracKelly: 0, edge: -1 };
+    if (!odds || odds <= 1) return { fullKelly: 0, fracKelly: 0, edge: -1, recommendedStake: () => 0 };
 
     const { win, halfWin, push, halfLoss, loss } = ahProbs;
     const b = odds - 1;
     const ev = odds * (win + 0.5 * halfWin) + (0.5 * halfWin + push + 0.5 * halfLoss) - 1;
     if (ev <= 0) {
-      return { fullKelly: 0, fracKelly: 0, edge: ev };
+      return { fullKelly: 0, fracKelly: 0, edge: ev, recommendedStake: () => 0 };
     }
 
     // Expected log growth: g(f) = E[ln(1 + f * profit)]
@@ -467,35 +467,46 @@
   function fitDixonColes(matches, teamCount, options) {
     options = options || {};
     const halfLifeDays = options.halfLifeDays || 180;
-    const asOfDate = options.asOfDate ? new Date(options.asOfDate).getTime() : null;
-    const iterations = options.iterations || 55;
-    const lr = options.learningRate || 0.025;
-    const l2 = options.l2Reg || 0.08;
+    const iterations = options.iterations || 160;
+    const lr = options.learningRate || 0.12;
+    const tau = options.priorWeight || 8.0;
     const rho = options.rho !== undefined ? options.rho : -0.05;
-
+    const momentum = 0.6;
     const N = teamCount;
-    const alpha = new Float64Array(N);
-    const beta = new Float64Array(N);
-    let homeAdv = 0.28;
-    let mu = 0.25;
 
-    // Filter matches and compute decay weights
+    let asOfTime = null;
+    if (options.asOfDate) {
+      asOfTime = new Date(options.asOfDate).getTime();
+    } else if (options.anchorDate) {
+      asOfTime = new Date(options.anchorDate).getTime();
+    } else {
+      let maxT = 0;
+      for (let i = 0; i < matches.length; i++) {
+        const t = new Date(matches[i][0]).getTime();
+        if (t > maxT) maxT = t;
+      }
+      asOfTime = maxT || new Date('2026-10-25').getTime();
+    }
+
+    // Filter matches and compute decay weights anchored at asOfTime
     const decayConst = Math.LN2 / (halfLifeDays * 86400000);
     const validMatches = [];
+    const teamW = new Float64Array(N);
+    const pastSeasonMatches = new Int32Array(N);
+
+    // Cutoff to distinguish promoted teams without prior top-flight experience
+    const cutoff = asOfTime >= new Date('2026-08-01').getTime()
+      ? new Date('2026-08-01').getTime()
+      : (asOfTime >= new Date('2025-08-01').getTime() ? new Date('2025-08-01').getTime() : 0);
+
     for (let i = 0; i < matches.length; i++) {
       const m = matches[i];
-      // match schema: [date, home, away, fthg, ftag, ...]
       const mDate = new Date(m[0]).getTime();
-      if (asOfDate && mDate >= asOfDate) continue;
+      // Strict walk-forward holdout: matches on or after asOfDate are never used
+      if (options.asOfDate && mDate >= asOfTime) continue;
 
-      let weight = 1.0;
-      if (asOfDate) {
-        const diff = Math.max(0, asOfDate - mDate);
-        weight = Math.exp(-diff * decayConst);
-      } else {
-        // relative to newest match
-        weight = 1.0;
-      }
+      const diff = Math.max(0, asOfTime - mDate);
+      const weight = Math.exp(-diff * decayConst);
       validMatches.push({
         home: m[1],
         away: m[2],
@@ -503,25 +514,53 @@
         ftag: m[4],
         weight
       });
+      teamW[m[1]] += weight;
+      teamW[m[2]] += weight;
+
+      if (cutoff > 0 && mDate < cutoff) {
+        pastSeasonMatches[m[1]]++;
+        pastSeasonMatches[m[2]]++;
+      }
     }
 
     if (validMatches.length === 0) {
+      const emptyAlpha = new Float64Array(N);
+      const emptyBeta = new Float64Array(N);
       return {
-        alpha,
-        beta,
-        homeAdv,
-        mu,
+        alpha: emptyAlpha,
+        beta: emptyBeta,
+        homeAdv: 0.28,
+        mu: 0.25,
         rho,
-        predict: (h, a) => ({ lambdaHome: 1.35, lambdaAway: 1.15 })
+        predict: () => ({ lambdaHome: 1.35, lambdaAway: 1.15 })
       };
     }
 
-    // Optimization via gradient descent with momentum
+    // Promoted teams prior: teams with no prior top-flight history shrink toward
+    // below-average ratings (average rating of relegated/bottom-3 teams: alpha ~ -0.22, beta ~ -0.20)
+    const priorAlpha = new Float64Array(N);
+    const priorBeta = new Float64Array(N);
+    for (let i = 0; i < N; i++) {
+      if (cutoff > 0 && pastSeasonMatches[i] === 0) {
+        priorAlpha[i] = -0.22;
+        priorBeta[i] = -0.20;
+      } else {
+        priorAlpha[i] = 0.0;
+        priorBeta[i] = 0.0;
+      }
+    }
+
+    const alpha = new Float64Array(N);
+    const beta = new Float64Array(N);
+    for (let i = 0; i < N; i++) {
+      alpha[i] = priorAlpha[i];
+      beta[i] = priorBeta[i];
+    }
+
     const v_alpha = new Float64Array(N);
     const v_beta = new Float64Array(N);
-    let v_home = 0;
-    let v_mu = 0;
-    const momentum = 0.7;
+    let homeAdv = 0.25;
+    let mu = 0.20;
 
     for (let it = 0; it < iterations; it++) {
       const g_alpha = new Float64Array(N);
@@ -552,29 +591,33 @@
         g_mu += dh + da;
       }
 
-      const invW = 1 / Math.max(1, totalW);
-      // Update with momentum and L2 shrinkage towards 0 (league average)
+      mu += (lr * g_mu) / Math.max(1, totalW * 2);
+      homeAdv += (lr * g_home) / Math.max(1, totalW);
+
+      // Penalty scaled on data gradient per team: (g - tau*(param - prior)) / (teamW + tau)
       for (let i = 0; i < N; i++) {
-        const ga = g_alpha[i] * invW - l2 * alpha[i];
-        v_alpha[i] = momentum * v_alpha[i] + lr * ga;
+        const denom = teamW[i] + tau;
+        const stepA = (g_alpha[i] - tau * (alpha[i] - priorAlpha[i])) / denom;
+        const stepB = (g_beta[i] - tau * (beta[i] - priorBeta[i])) / denom;
+
+        v_alpha[i] = momentum * v_alpha[i] + lr * stepA;
         alpha[i] += v_alpha[i];
 
-        const gb = g_beta[i] * invW - l2 * beta[i];
-        v_beta[i] = momentum * v_beta[i] + lr * gb;
+        v_beta[i] = momentum * v_beta[i] + lr * stepB;
         beta[i] += v_beta[i];
       }
 
-      v_home = momentum * v_home + lr * (g_home * invW);
-      homeAdv += v_home;
-
-      v_mu = momentum * v_mu + lr * (g_mu * invW);
-      mu += v_mu;
-
-      // Re-center alpha around 0
-      let sumA = 0;
-      for (let i = 0; i < N; i++) sumA += alpha[i];
-      const meanA = sumA / N;
-      for (let i = 0; i < N; i++) alpha[i] -= meanA;
+      // Re-center alpha of established teams around 0
+      let sumEst = 0;
+      let countEst = 0;
+      for (let i = 0; i < N; i++) {
+        if (cutoff === 0 || pastSeasonMatches[i] > 0) {
+          sumEst += alpha[i];
+          countEst++;
+        }
+      }
+      const meanEst = countEst > 0 ? sumEst / countEst : 0;
+      for (let i = 0; i < N; i++) alpha[i] -= meanEst;
     }
 
     return {
@@ -602,18 +645,23 @@
 
   function runBacktest(matches, teams, options) {
     options = options || {};
-    const seasonFilter = options.season || '2526'; // '2526', '2627', or 'all'
+    const teamCount = typeof teams === 'number' ? teams : (teams && teams.length ? teams.length : 20);
+    const seasonFilter = options.season || '2526'; // '2526', '2627', '2526_2627', or 'all'
     const market = options.market || '1x2'; // '1x2', 'ah', 'ou25'
     const oddsType = options.oddsType || 'open'; // 'open' or 'close'
     const edgeThreshold = options.edgeThreshold !== undefined ? options.edgeThreshold : 0.03;
+    const maxEdge = options.maxEdge !== undefined ? options.maxEdge : 0.35; // Cap implausible Poisson tails
     const staking = options.staking || 'flat'; // 'flat' or 'kelly'
     const kellyFraction = options.kellyFraction || 0.25;
     const initialBankroll = options.initialBankroll || 100;
     const halfLifeDays = options.halfLifeDays || 180;
+    const marginMethod = options.marginMethod || 'proportional';
 
-    // Filter matches to test
+    // Filter matches to test per season filter (Issue 11: 近兩季 = 2526 + 2627)
     const testMatches = matches.filter(m => {
-      if (seasonFilter !== 'all' && m[7] !== seasonFilter) return false;
+      if (seasonFilter === '2526') return m[7] === '2526';
+      if (seasonFilter === '2627') return m[7] === '2627';
+      if (seasonFilter === '2526_2627' || seasonFilter === 'all') return m[7] === '2526' || m[7] === '2627';
       return true;
     });
 
@@ -659,16 +707,17 @@
 
       // Walk-forward refit check
       if (!currentModel || i - lastRefitIdx >= refitInterval) {
-        currentModel = fitDixonColes(matches, teams.length, {
+        currentModel = fitDixonColes(matches, teamCount, {
           asOfDate: matchDate,
           halfLifeDays,
-          iterations: 50
+          iterations: 120
         });
         lastRefitIdx = i;
       }
 
       const { lambdaHome, lambdaAway } = currentModel.predict(homeId, awayId);
-      const matrix = calcScoreMatrix(lambdaHome, lambdaAway, currentModel.rho, 8);
+      // Issue 19: Use maxGoals 10 in backtest to match the lab
+      const matrix = calcScoreMatrix(lambdaHome, lambdaAway, currentModel.rho, 10);
 
       let betPlaced = false;
       let selectionName = '';
@@ -694,10 +743,10 @@
           { name: '客勝', idx: 2, odds: bookieA, prob: m1x2.away, edge: m1x2.away * bookieA - 1 }
         ];
 
-        // Pick highest edge above threshold
+        // Pick highest edge above threshold (and cap edge if applicable to curb longshot bias)
         edges.sort((a, b) => b.edge - a.edge);
         const best = edges[0];
-        if (best.odds > 1 && best.edge >= edgeThreshold) {
+        if (best.odds > 1 && best.edge >= edgeThreshold && (maxEdge <= 0 || best.edge <= maxEdge)) {
           betPlaced = true;
           selectionName = best.name;
           takenOdds = best.odds;
@@ -708,8 +757,9 @@
         const mou = deriveOU(matrix, [2.5])[2.5];
         const bookieO = oddsType === 'open' ? match[14] : match[16];
         const bookieU = oddsType === 'open' ? match[15] : match[17];
-        const sharpCloseO = match[16] || bookieO;
-        const sharpCloseU = match[17] || bookieU;
+        // Issue 20: Use sharp closing totals if present
+        const sharpCloseO = match[27] || match[16] || bookieO;
+        const sharpCloseU = match[28] || match[17] || bookieU;
         sharpClosingOdds = [sharpCloseO, sharpCloseU];
 
         const edges = [
@@ -718,7 +768,7 @@
         ];
         edges.sort((a, b) => b.edge - a.edge);
         const best = edges[0];
-        if (best.odds > 1 && best.edge >= edgeThreshold) {
+        if (best.odds > 1 && best.edge >= edgeThreshold && (maxEdge <= 0 || best.edge <= maxEdge)) {
           betPlaced = true;
           selectionName = best.name;
           takenOdds = best.odds;
@@ -730,8 +780,9 @@
         const line = oddsType === 'open' ? match[18] : match[21];
         const bookieH = oddsType === 'open' ? match[19] : match[22];
         const bookieA = oddsType === 'open' ? match[20] : match[23];
-        const closeH = match[22] || bookieH;
-        const closeA = match[23] || bookieA;
+        // Issue 20: Use sharp closing AH odds if present
+        const closeH = match[29] || match[22] || bookieH;
+        const closeA = match[30] || match[23] || bookieA;
         sharpClosingOdds = [closeH, closeA];
 
         if (line !== null && bookieH > 1 && bookieA > 1) {
@@ -745,7 +796,7 @@
           ];
           edges.sort((a, b) => b.ev - a.ev);
           const best = edges[0];
-          if (best.ev >= edgeThreshold) {
+          if (best.ev >= edgeThreshold && (maxEdge <= 0 || best.ev <= maxEdge)) {
             betPlaced = true;
             selectionName = best.name;
             takenOdds = best.odds;
@@ -759,8 +810,7 @@
       }
 
       if (betPlaced) {
-        totalBets++;
-        // Calculate stake
+        // Issue 12: Kelly stake calculation with safe min(bankroll, stake) and drop 0.1 floor
         let stake = 1.0;
         if (staking === 'kelly') {
           if (isAHMarket) {
@@ -770,9 +820,11 @@
             const k = calcKelly(modelProb, takenOdds, kellyFraction, 0.2);
             stake = k.recommendedStake(bankroll);
           }
-          if (stake < 0.1) stake = 0.1; // minimum stake if edge exists
+          stake = Math.min(bankroll, stake);
+          if (stake <= 0) continue; // Skip bet if bankroll is depleted or stake rounds to 0
         }
 
+        totalBets++;
         totalStaked += stake;
 
         // Settlement
@@ -818,8 +870,8 @@
         const currentDrawdown = (peakBankroll - bankroll) / peakBankroll;
         if (currentDrawdown > maxDrawdown) maxDrawdown = currentDrawdown;
 
-        // Track CLV
-        const clv = calcCLV(takenOdds, sharpClosingOdds, 'proportional', selectionIdx);
+        // Track CLV with selected margin method (Issue 7)
+        const clv = calcCLV(takenOdds, sharpClosingOdds, marginMethod, selectionIdx);
         clvSum += clv;
         if (clv > 0) beatCloseCount++;
 

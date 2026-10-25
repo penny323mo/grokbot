@@ -35,7 +35,9 @@ MATCH_SCHEMA = [
     "c_ou_o", "c_ou_u",
     "o_ah_line", "o_ah_h", "o_ah_a",
     "c_ah_line", "c_ah_h", "c_ah_a",
-    "sharp_h", "sharp_d", "sharp_a"
+    "sharp_h", "sharp_d", "sharp_a",
+    "sharp_ou_o", "sharp_ou_u",
+    "sharp_ah_h", "sharp_ah_a"
 ]
 
 FIXTURE_SCHEMA = [
@@ -178,17 +180,15 @@ def build():
                     o1x2_h = parse_num(r.get("B365H")) or parse_num(r.get("AvgH"))
                     o1x2_d = parse_num(r.get("B365D")) or parse_num(r.get("AvgD"))
                     o1x2_a = parse_num(r.get("B365A")) or parse_num(r.get("AvgA"))
+                    if not (o1x2_h and o1x2_d and o1x2_a):
+                        o1x2_h, o1x2_d, o1x2_a = None, None, None
 
                     # 1X2 closing
                     c1x2_h = parse_num(r.get("B365CH")) or parse_num(r.get("AvgCH"))
                     c1x2_d = parse_num(r.get("B365CD")) or parse_num(r.get("AvgCD"))
                     c1x2_a = parse_num(r.get("B365CA")) or parse_num(r.get("AvgCA"))
-
-                    # Fallbacks if one is missing
-                    if not (o1x2_h and o1x2_d and o1x2_a):
-                        o1x2_h, o1x2_d, o1x2_a = c1x2_h, c1x2_d, c1x2_a
                     if not (c1x2_h and c1x2_d and c1x2_a):
-                        c1x2_h, c1x2_d, c1x2_a = o1x2_h, o1x2_d, o1x2_a
+                        c1x2_h, c1x2_d, c1x2_a = None, None, None
 
                     # Sharp closing 1X2: PSCH/CD/CA else BFECH/CD/CA else AvgCH/CD/CA
                     sharp_h = parse_num(r.get("PSCH")) or parse_num(r.get("BFECH")) or parse_num(r.get("AvgCH")) or c1x2_h
@@ -198,30 +198,36 @@ def build():
                     # O/U 2.5 opening
                     o_ou_o = parse_num(r.get("B365>2.5")) or parse_num(r.get("Avg>2.5"))
                     o_ou_u = parse_num(r.get("B365<2.5")) or parse_num(r.get("Avg<2.5"))
+                    if not (o_ou_o and o_ou_u):
+                        o_ou_o, o_ou_u = None, None
 
                     # O/U 2.5 closing
                     c_ou_o = parse_num(r.get("B365C>2.5")) or parse_num(r.get("AvgC>2.5"))
                     c_ou_u = parse_num(r.get("B365C<2.5")) or parse_num(r.get("AvgC<2.5"))
-
-                    if not (o_ou_o and o_ou_u):
-                        o_ou_o, o_ou_u = c_ou_o, c_ou_u
                     if not (c_ou_o and c_ou_u):
-                        c_ou_o, c_ou_u = o_ou_o, o_ou_u
+                        c_ou_o, c_ou_u = None, None
+
+                    # Sharp closing O/U (PC > BFEC > AvgC > B365C)
+                    sharp_ou_o = parse_num(r.get("PC>2.5")) or parse_num(r.get("BFEC>2.5")) or parse_num(r.get("AvgC>2.5")) or c_ou_o
+                    sharp_ou_u = parse_num(r.get("PC<2.5")) or parse_num(r.get("BFEC<2.5")) or parse_num(r.get("AvgC<2.5")) or c_ou_u
 
                     # AH opening
                     o_ah_line = parse_num(r.get("AHh")) if r.get("AHh") is not None and str(r.get("AHh")).strip() != "" else parse_num(r.get("AvgAHh"))
                     o_ah_h = parse_num(r.get("B365AHH")) or parse_num(r.get("AvgAHH"))
                     o_ah_a = parse_num(r.get("B365AHA")) or parse_num(r.get("AvgAHA"))
+                    if o_ah_line is None or not (o_ah_h and o_ah_a):
+                        o_ah_line, o_ah_h, o_ah_a = None, None, None
 
                     # AH closing
                     c_ah_line = parse_num(r.get("AHCh")) if r.get("AHCh") is not None and str(r.get("AHCh")).strip() != "" else parse_num(r.get("AvgAHCh"))
                     c_ah_h = parse_num(r.get("B365CAHH")) or parse_num(r.get("AvgCAHH"))
                     c_ah_a = parse_num(r.get("B365CAHA")) or parse_num(r.get("AvgCAHA"))
+                    if c_ah_line is None or not (c_ah_h and c_ah_a):
+                        c_ah_line, c_ah_h, c_ah_a = None, None, None
 
-                    if o_ah_line is None:
-                        o_ah_line, o_ah_h, o_ah_a = c_ah_line, c_ah_h, c_ah_a
-                    if c_ah_line is None:
-                        c_ah_line, c_ah_h, c_ah_a = o_ah_line, o_ah_h, o_ah_a
+                    # Sharp closing AH (PCA > BFECA > AvgCA > B365CA)
+                    sharp_ah_h = parse_num(r.get("PCAHH")) or parse_num(r.get("BFECAHH")) or parse_num(r.get("AvgCAHH")) or c_ah_h
+                    sharp_ah_a = parse_num(r.get("PCAHA")) or parse_num(r.get("BFECAHA")) or parse_num(r.get("AvgCAHA")) or c_ah_a
 
                     match_row = [
                         date_iso, h_idx, a_idx, fthg, ftag, hthg, htag, season,
@@ -231,7 +237,9 @@ def build():
                         c_ou_o, c_ou_u,
                         o_ah_line, o_ah_h, o_ah_a,
                         c_ah_line, c_ah_h, c_ah_a,
-                        sharp_h, sharp_d, sharp_a
+                        sharp_h, sharp_d, sharp_a,
+                        sharp_ou_o, sharp_ou_u,
+                        sharp_ah_h, sharp_ah_a
                     ]
                     matches_list.append(match_row)
 
@@ -243,12 +251,15 @@ def build():
         for r in raw_fixtures_rows:
             if r.get("Div", "").strip() != div:
                 continue
+            date_iso = parse_date(r.get("Date"))
+            if date_iso and date_iso < "2026-10-25":
+                continue
+
             h_name = (r.get("HomeTeam") or "").strip()
             a_name = (r.get("AwayTeam") or "").strip()
             h_idx = get_or_add_team(h_name)
             a_idx = get_or_add_team(a_name)
 
-            date_iso = parse_date(r.get("Date"))
             time_str = (r.get("Time") or "").strip()
 
             o1x2_h = parse_num(r.get("B365H")) or parse_num(r.get("AvgH"))
@@ -286,7 +297,7 @@ def build():
         }
 
     max_match_date = max(all_dates) if all_dates else "2026-10-21"
-    now_str = "2026-10-25 01:15:00"
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     output = {
         "generatedAt": now_str,
