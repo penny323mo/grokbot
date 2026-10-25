@@ -325,3 +325,60 @@ test('Regression: Promoted teams prior prevents overrating (Alaves vs Malaga)', 
     `Malaga fair away odds should be > 5.5, got ${m1x2.fairAway.toFixed(2)}`
   );
 });
+
+test('UK to Macau time conversion handles BST (UTC+1) and GMT (UTC+0) properly', () => {
+  // 1. Summer BST (British Summer Time = UTC+1; Macau = UTC+8 -> +7 hours difference)
+  const summer = model.convertUKToMacau('2026-08-15', '15:00');
+  assert.strictEqual(summer.macauDate, '2026-08-15');
+  assert.strictEqual(summer.macauTime, '22:00');
+  assert.strictEqual(summer.macauDisplay, '2026-08-15 22:00');
+
+  // Evening kickoff in BST crosses midnight in Macau: 20:00 BST -> 03:00 (+1 day) in Macau
+  const summerNight = model.convertUKToMacau('2026-08-15', '20:00');
+  assert.strictEqual(summerNight.macauDate, '2026-08-16');
+  assert.strictEqual(summerNight.macauTime, '03:00');
+
+  // 2. Winter GMT (Greenwich Mean Time = UTC+0; Macau = UTC+8 -> +8 hours difference)
+  const winter = model.convertUKToMacau('2026-12-15', '15:00');
+  assert.strictEqual(winter.macauDate, '2026-12-15');
+  assert.strictEqual(winter.macauTime, '23:00');
+  assert.strictEqual(winter.macauDisplay, '2026-12-15 23:00');
+
+  // 3. Fall transition day (Oct 25 2026: clocks go back 02:00 BST -> 01:00 GMT)
+  // Afternoon 14:00 UK is on GMT (+8 to Macau)
+  const transition = model.convertUKToMacau('2026-10-25', '14:00');
+  assert.strictEqual(transition.macauDate, '2026-10-25');
+  assert.strictEqual(transition.macauTime, '22:00');
+
+  // 4. ISO UTC string formatted to Macau time
+  const formatted = model.formatMacauDateTime('2026-10-25T03:22:00Z');
+  assert.strictEqual(formatted, '2026-10-25 11:22');
+});
+
+test('3-day window fixture filter excludes past matches and matches beyond 72 hours', () => {
+  // Reference now: 2026-10-25 03:00:00 UTC (11:00 AM Macau time)
+  const refNow = new Date('2026-10-25T03:00:00Z');
+
+  const testFixtures = [
+    // 0: Yesterday (past)
+    ['2026-10-24', '15:00', 0, 1],
+    // 1: Earlier today, already kicked off (e.g. 02:00 UTC)
+    ['2026-10-25', '02:00', 2, 3],
+    // 2: Today afternoon (14:00 UK / 22:00 Macau) -> IN WINDOW
+    ['2026-10-25', '14:00', 4, 5],
+    // 3: Tomorrow (2026-10-26 19:30 UK / 2026-10-27 03:30 Macau) -> IN WINDOW
+    ['2026-10-26', '19:30', 6, 7],
+    // 4: Day 2 (2026-10-27 20:00 UK / 2026-10-28 04:00 Macau) -> IN WINDOW (within 72h)
+    ['2026-10-27', '20:00', 8, 9],
+    // 5: Beyond 72h (2026-10-29 15:00 UK) -> OUT OF WINDOW
+    ['2026-10-29', '15:00', 10, 11]
+  ];
+
+  const inWindow = model.filterFixturesInWindow(testFixtures, refNow, 72);
+  assert.strictEqual(inWindow.length, 3, `Expected exactly 3 fixtures in 72h window, got ${inWindow.length}`);
+
+  // Confirm which fixtures were kept
+  assert.deepStrictEqual(inWindow[0], testFixtures[2]);
+  assert.deepStrictEqual(inWindow[1], testFixtures[3]);
+  assert.deepStrictEqual(inWindow[2], testFixtures[4]);
+});

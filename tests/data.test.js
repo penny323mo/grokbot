@@ -42,13 +42,15 @@ test('2627 teams count is 20 for E0/SP1/I1 and 18 for D1/F1, and matches have va
       `League ${div} should have ${expectedCount} current teams in 2627 season, got ${lg.currentTeams.length}`
     );
 
-    // Verify all matches have valid scores
-    assert.ok(lg.matches.length > 500, `League ${div} should have > 500 historical matches`);
+    // Verify all matches have valid scores and belong only to 2526 or 2627
+    assert.ok(lg.matches.length > 300, `League ${div} should have > 300 historical matches (2526 + 2627)`);
     for (const m of lg.matches) {
       const fthg = m[3];
       const ftag = m[4];
+      const season = m[7];
       assert.ok(Number.isInteger(fthg) && fthg >= 0, `fthg must be non-negative integer, got ${fthg}`);
       assert.ok(Number.isInteger(ftag) && ftag >= 0, `ftag must be non-negative integer, got ${ftag}`);
+      assert.ok(season === '2526' || season === '2627', `season must be 2526 or 2627, got ${season}`);
     }
 
     // Verify fixtures

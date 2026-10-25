@@ -920,6 +920,101 @@
     };
   }
 
+  // --- 9. Time & Fixture Window Helpers (UK -> Asia/Macau) ---
+
+  function parseUKTimeToDate(dateStr, timeStr) {
+    if (!dateStr) return null;
+    const dateParts = dateStr.split('-').map(Number);
+    if (dateParts.length !== 3) return null;
+    const [y, m, d] = dateParts;
+    const [hh, mm] = (timeStr || '15:00').split(':').map(Number);
+    const targetWallMinutes = hh * 60 + (isNaN(mm) ? 0 : mm);
+
+    // Initial guess assuming UTC
+    let guess = new Date(Date.UTC(y, m - 1, d, hh, isNaN(mm) ? 0 : mm));
+
+    // Check what wall clock time Europe/London displays for this UTC instant
+    const formatter = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/London',
+      hour: 'numeric',
+      minute: 'numeric',
+      hourCycle: 'h23'
+    });
+
+    const parts = formatter.formatToParts(guess);
+    let lH = 0, lM = 0;
+    for (let i = 0; i < parts.length; i++) {
+      if (parts[i].type === 'hour') lH = parseInt(parts[i].value, 10);
+      if (parts[i].type === 'minute') lM = parseInt(parts[i].value, 10);
+    }
+    const guessLondonMinutes = lH * 60 + lM;
+    let diffMinutes = guessLondonMinutes - targetWallMinutes;
+    if (diffMinutes > 720) diffMinutes -= 1440;
+    if (diffMinutes < -720) diffMinutes += 1440;
+
+    return new Date(guess.getTime() - diffMinutes * 60000);
+  }
+
+  function convertUKToMacau(dateStr, timeStr) {
+    const utcDate = parseUKTimeToDate(dateStr, timeStr);
+    if (!utcDate) return null;
+    const dtf = new Intl.DateTimeFormat('zh-HK', {
+      timeZone: 'Asia/Macau',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23'
+    });
+    const parts = dtf.formatToParts(utcDate);
+    const p = {};
+    for (let i = 0; i < parts.length; i++) p[parts[i].type] = parts[i].value;
+    return {
+      utcDate,
+      macauDate: `${p.year}-${p.month}-${p.day}`,
+      macauTime: `${p.hour}:${p.minute}`,
+      macauDisplay: `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}`
+    };
+  }
+
+  function formatMacauDateTime(isoStrOrDate) {
+    if (!isoStrOrDate) return '';
+    const d = (isoStrOrDate instanceof Date) ? isoStrOrDate : new Date(isoStrOrDate);
+    if (isNaN(d.getTime())) return String(isoStrOrDate);
+    const dtf = new Intl.DateTimeFormat('zh-HK', {
+      timeZone: 'Asia/Macau',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23'
+    });
+    const parts = dtf.formatToParts(d);
+    const p = {};
+    for (let i = 0; i < parts.length; i++) p[parts[i].type] = parts[i].value;
+    return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}`;
+  }
+
+  function filterFixturesInWindow(fixtures, nowUtc, windowHours) {
+    nowUtc = nowUtc ? (nowUtc instanceof Date ? nowUtc : new Date(nowUtc)) : new Date();
+    windowHours = windowHours !== undefined ? windowHours : 72;
+    const nowMs = nowUtc.getTime();
+    const maxMs = nowMs + windowHours * 3600 * 1000;
+
+    if (!Array.isArray(fixtures)) return [];
+
+    return fixtures.filter(f => {
+      const dateStr = Array.isArray(f) ? f[0] : f.date;
+      const timeStr = Array.isArray(f) ? f[1] : f.time;
+      const kickoff = parseUKTimeToDate(dateStr, timeStr);
+      if (!kickoff) return false;
+      const ms = kickoff.getTime();
+      return ms > nowMs && ms <= maxMs;
+    });
+  }
+
   // --- Exported API ---
 
   return {
@@ -944,6 +1039,10 @@
     calcAHKelly,
     calcCLV,
     fitDixonColes,
-    runBacktest
+    runBacktest,
+    parseUKTimeToDate,
+    convertUKToMacau,
+    formatMacauDateTime,
+    filterFixturesInWindow
   };
 });

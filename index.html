@@ -33,7 +33,8 @@
     <!-- League Selector Chips -->
     <nav class="league-bar-wrap">
       <div class="league-chips" id="leagueChips">
-        <button class="chip active" data-league="E0">英超</button>
+        <button class="chip active" data-league="all">全部</button>
+        <button class="chip" data-league="E0">英超</button>
         <button class="chip" data-league="SP1">西甲</button>
         <button class="chip" data-league="I1">意甲</button>
         <button class="chip" data-league="D1">德甲</button>
@@ -43,8 +44,39 @@
 
     <!-- Main Tab Content Area -->
     <main class="main-content">
-      <!-- TAB 1: 對賽分析 (Match Lab) -->
-      <section id="tab-match" class="tab-pane active">
+      <!-- TAB 1: 未來三日實盤 (Home Page) -->
+      <section id="tab-fixtures" class="tab-pane active">
+        <!-- Live Fixtures Hero Card -->
+        <div class="section-card live-hero-card">
+          <div class="live-hero-header">
+            <div>
+              <h2 class="live-hero-title">🔥 未來三日實盤</h2>
+              <p class="live-hero-sub">五大聯賽即將開賽賽事 · 模型公平價 × 值博率 × 讓球盤剖析</p>
+            </div>
+            <div class="live-meta-pills">
+              <span class="badge-count" id="liveFixturesCountBadge">0 場實盤</span>
+            </div>
+          </div>
+          <div class="live-update-time-row">
+            <span class="live-update-pill" id="liveDataUpdateBadge">數據更新於 --（澳門時間）</span>
+          </div>
+        </div>
+
+        <!-- Fixtures Container grouped by date -->
+        <div id="liveFixturesList" class="live-fixtures-list">
+          <!-- Dynamically populated date groups and match cards -->
+        </div>
+
+        <!-- Empty state when zero matches in 3-day window -->
+        <div id="liveEmptyState" class="empty-state-card" style="display: none;">
+          <div class="empty-icon">📅</div>
+          <h3 class="empty-title">未來三日暫時冇賽程／賠率</h3>
+          <p class="empty-desc">football-data 通常逢星期二、五更新最新賽程與盤口數據。</p>
+        </div>
+      </section>
+
+      <!-- TAB 2: 對賽分析 (Match Lab) -->
+      <section id="tab-match" class="tab-pane">
         <!-- Upcoming Fixtures Strip -->
         <div class="section-card fixtures-strip-card">
           <div class="card-header-sm">
@@ -337,9 +369,9 @@
             <div class="form-group">
               <label class="form-label">回測賽季</label>
               <select id="btSeasonSelect" class="form-select">
+                <option value="2526_2627" selected>2025-26 + 2026-27 (兩季全量)</option>
                 <option value="2526">2025-26 完整賽季</option>
                 <option value="2627">2026-27 當前賽季 (最新數據)</option>
-                <option value="2526_2627">近兩季數據 (2526 + 2627)</option>
               </select>
             </div>
 
@@ -504,13 +536,17 @@
 
     <!-- Bottom Navigation Bar -->
     <nav class="bottom-nav">
-      <button class="nav-tab active" data-tab="tab-match">
+      <button class="nav-tab active" data-tab="tab-fixtures">
+        <span class="nav-icon">🔥</span>
+        <span class="nav-text">實盤</span>
+      </button>
+      <button class="nav-tab" data-tab="tab-match">
         <span class="nav-icon">⚽</span>
-        <span class="nav-text">對賽分析</span>
+        <span class="nav-text">對賽</span>
       </button>
       <button class="nav-tab" data-tab="tab-movement">
         <span class="nav-icon">📈</span>
-        <span class="nav-text">盤口走勢</span>
+        <span class="nav-text">走勢</span>
       </button>
       <button class="nav-tab" data-tab="tab-backtest">
         <span class="nav-icon">🧪</span>

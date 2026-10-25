@@ -11,13 +11,14 @@
   // --- Global Application State ---
   const state = {
     activeLeague: 'E0',
+    selectedLeagueFilter: 'all',
     activeHomeId: null,
     activeAwayId: null,
     selectedFixtureIdx: 0,
     ouLine: 2.5,
     selectedScore: { home: 1, away: 0 },
     selectedScoreManuallySet: false,
-    activeTab: 'tab-match',
+    activeTab: 'tab-fixtures',
     pickerTarget: 'home', // 'home' or 'away'
     modelCache: {},
     walkForwardCache: {},
@@ -207,10 +208,21 @@
       return;
     }
 
-    // Set Header Data Through Date
+    // Set Header Data Date & Live Badge
+    const updateMacauTime = window.OddsModel && window.OddsModel.formatMacauDateTime
+      ? window.OddsModel.formatMacauDateTime(window.ODDS_DATA.generatedAt)
+      : '';
     const dateEl = document.getElementById('headerDataDate');
-    if (dateEl && window.ODDS_DATA.dataThrough) {
-      dateEl.textContent = `數據截至: ${window.ODDS_DATA.dataThrough}`;
+    if (dateEl) {
+      dateEl.textContent = updateMacauTime
+        ? `數據更新於 ${updateMacauTime}（澳門時間）`
+        : `數據截至: ${window.ODDS_DATA.dataThrough}`;
+    }
+    const liveUpdateBadge = document.getElementById('liveDataUpdateBadge');
+    if (liveUpdateBadge) {
+      liveUpdateBadge.textContent = updateMacauTime
+        ? `數據更新於 ${updateMacauTime}（澳門時間）`
+        : `數據截至: ${window.ODDS_DATA.dataThrough}`;
     }
 
     // Bind Navigation & Tab switching
@@ -224,8 +236,11 @@
     setupKellyCalculatorEvents();
     setupBacktestEvents();
 
-    // Default select league and initial match
+    // Default select league for secondary tabs
     selectLeague('E0');
+
+    // Render Home Page Live Fixtures
+    renderLiveFixturesTab();
   }
 
   // --- Tab Navigation ---
@@ -250,7 +265,9 @@
   }
 
   function onTabActivated(tabId) {
-    if (tabId === 'tab-match') {
+    if (tabId === 'tab-fixtures') {
+      renderLiveFixturesTab();
+    } else if (tabId === 'tab-match') {
       renderMatchLab();
     } else if (tabId === 'tab-movement') {
       renderMovementTab();
@@ -271,12 +288,23 @@
         chips.forEach(c => c.classList.remove('active'));
         chip.classList.add('active');
         const leagueId = chip.getAttribute('data-league');
-        selectLeague(leagueId);
+        state.selectedLeagueFilter = leagueId;
+
+        if (state.activeTab === 'tab-fixtures') {
+          renderLiveFixturesTab();
+        } else {
+          if (leagueId === 'all') {
+            selectLeague('E0');
+          } else {
+            selectLeague(leagueId);
+          }
+        }
       });
     });
   }
 
   function selectLeague(leagueId) {
+    if (leagueId === 'all') leagueId = 'E0';
     state.activeLeague = leagueId;
     const leagueData = window.ODDS_DATA.leagues[leagueId];
     if (!leagueData) return;
@@ -303,6 +331,447 @@
     } else if (state.activeTab === 'tab-teams') {
       renderTeamsTab();
     }
+  }
+
+  // ==========================================================================
+  // 未來三日實盤 (Home Page: Live Fixtures)
+  // ==========================================================================
+
+  function getMacauDateLabel(dateIso, now) {
+    const dtf = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Macau',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const nowDateIso = dtf.format(now);
+
+    const dtParts = dateIso.split('-').map(Number);
+    const nowParts = nowDateIso.split('-').map(Number);
+    const targetUtcMs = Date.UTC(dtParts[0], dtParts[1] - 1, dtParts[2]);
+    const nowUtcMs = Date.UTC(nowParts[0], nowParts[1] - 1, nowParts[2]);
+    const diffDays = Math.round((targetUtcMs - nowUtcMs) / 86400000);
+
+    const dow = new Date(Date.UTC(dtParts[0], dtParts[1] - 1, dtParts[2])).getUTCDay();
+    const dows = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+    const dowZh = dows[dow];
+
+    let prefix = '';
+    if (diffDays === 0) prefix = '今日 ';
+    else if (diffDays === 1) prefix = '聽日 ';
+    else if (diffDays === 2) prefix = '後日 ';
+
+    return `📅 ${prefix}${dtParts[1]}月${dtParts[2]}日 (${dowZh})`;
+  }
+
+  function generateLiveAHAnalysis(matrix, ahLine, ahH, ahA, homeName, awayName, fairLine) {
+    const fairLineZh = formatAHLineZh(fairLine);
+    if (ahLine === null) {
+      return `模型推算公平讓球盤為【${fairLineZh}】。目前莊家未開讓球盤口，可參考模型公平盤位判斷走勢。`;
+    }
+    const bookieLineZh = formatAHLineZh(ahLine);
+    const diff = fairLine - ahLine;
+
+    const ahProbs = window.OddsModel.calcAHProbs(matrix, ahLine);
+    const evH = (ahH && ahH > 1) ? ahProbs.evHome(ahH) : 0;
+    const evA = (ahA && ahA > 1) ? ahProbs.evAway(ahA) : 0;
+
+    if (diff <= -0.2) {
+      return `莊家讓步偏淺：模型公平盤為【${fairLineZh}】，莊家僅開【${bookieLineZh}】。${homeName}實力被莊家低估，主隊讓球上盤具值博空間（模型全贏率 ${(ahProbs.home.win * 100).toFixed(0)}%${evH > 0 ? `，EV +${(evH * 100).toFixed(1)}%` : ''}）。`;
+    } else if (diff >= 0.2) {
+      return `莊家深開盤口：模型公平盤為【${fairLineZh}】，莊家深開【${bookieLineZh}】。${awayName}受讓具足夠保護空間，下盤值博優勢突出（模型不敗率 ${((ahProbs.away.win + ahProbs.away.halfWin + ahProbs.away.push) * 100).toFixed(0)}%${evA > 0 ? `，EV +${(evA * 100).toFixed(1)}%` : ''}）。`;
+    } else {
+      return `盤口定位吻合：莊家開盤【${bookieLineZh}】與模型公平盤【${fairLineZh}】相符，盤口平衡客觀，宜以水位細微偏差及走勢作為注碼依據。`;
+    }
+  }
+
+  function renderLiveFixturesTab() {
+    const listEl = document.getElementById('liveFixturesList');
+    const emptyEl = document.getElementById('liveEmptyState');
+    const badgeEl = document.getElementById('liveFixturesCountBadge');
+    if (!listEl) return;
+
+    const now = window.__MOCK_NOW__ || new Date();
+    const targetLeagues = state.selectedLeagueFilter === 'all'
+      ? ['E0', 'SP1', 'I1', 'D1', 'F1']
+      : [state.selectedLeagueFilter];
+
+    const allFixtures = [];
+    targetLeagues.forEach(lgId => {
+      const lgData = window.ODDS_DATA.leagues[lgId];
+      if (!lgData || !lgData.fixtures) return;
+
+      const filtered = window.OddsModel.filterFixturesInWindow(lgData.fixtures, now, 72);
+      filtered.forEach(fix => {
+        const kickoffUtc = window.OddsModel.parseUKTimeToDate(fix[0], fix[1]);
+        const macau = window.OddsModel.convertUKToMacau(fix[0], fix[1]);
+        if (kickoffUtc && macau) {
+          allFixtures.push({
+            leagueId: lgId,
+            leagueName: lgData.name,
+            fixture: fix,
+            kickoffUtc,
+            macau
+          });
+        }
+      });
+    });
+
+    // Update count badge
+    if (badgeEl) {
+      badgeEl.textContent = `${allFixtures.length} 場實盤`;
+    }
+
+    if (allFixtures.length === 0) {
+      if (emptyEl) {
+        const lgName = state.selectedLeagueFilter === 'all'
+          ? ''
+          : (window.ODDS_DATA.leagues[state.selectedLeagueFilter]?.name || '');
+        const emptyTitle = emptyEl.querySelector('.empty-title');
+        const emptyDesc = emptyEl.querySelector('.empty-desc');
+        if (emptyTitle) {
+          emptyTitle.textContent = lgName
+            ? `${lgName}未來三日暫時冇賽程／賠率`
+            : '未來三日暫時冇賽程／賠率';
+        }
+        if (emptyDesc) {
+          emptyDesc.textContent = 'football-data 通常逢星期二、五更新最新賽程與盤口數據。';
+        }
+        emptyEl.style.display = 'block';
+      }
+      listEl.innerHTML = '';
+      listEl.style.display = 'none';
+      return;
+    }
+
+    if (emptyEl) emptyEl.style.display = 'none';
+    listEl.style.display = 'flex';
+    listEl.innerHTML = '';
+
+    // Sort by kickoff UTC ascending
+    allFixtures.sort((a, b) => a.kickoffUtc.getTime() - b.kickoffUtc.getTime());
+
+    // Group by Macau date
+    const groups = {};
+    allFixtures.forEach(item => {
+      const dKey = item.macau.macauDate;
+      if (!groups[dKey]) groups[dKey] = [];
+      groups[dKey].push(item);
+    });
+
+    const sortedDates = Object.keys(groups).sort();
+    sortedDates.forEach(dateIso => {
+      const dateItems = groups[dateIso];
+      const dateGroupEl = document.createElement('div');
+      dateGroupEl.className = 'live-date-group';
+
+      const dateHeaderEl = document.createElement('div');
+      dateHeaderEl.className = 'live-date-header';
+      dateHeaderEl.innerHTML = `
+        <span class="live-date-title">${getMacauDateLabel(dateIso, now)}</span>
+        <span class="live-date-count">${dateItems.length} 場實盤</span>
+      `;
+      dateGroupEl.appendChild(dateHeaderEl);
+
+      dateItems.forEach(item => {
+        const cardEl = renderLiveFixtureCard(item, now);
+        dateGroupEl.appendChild(cardEl);
+      });
+
+      listEl.appendChild(dateGroupEl);
+    });
+
+    // Bind deep-dive buttons
+    listEl.querySelectorAll('.btn-deep-dive').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const lg = btn.getAttribute('data-league');
+        const hId = parseInt(btn.getAttribute('data-home'), 10);
+        const aId = parseInt(btn.getAttribute('data-away'), 10);
+        switchToMatchLab(lg, hId, aId);
+      });
+    });
+  }
+
+  function renderLiveFixtureCard(item, now) {
+    const { leagueId, leagueName, fixture: fix, kickoffUtc, macau } = item;
+    const leagueData = window.ODDS_DATA.leagues[leagueId];
+    const homeTeam = leagueData.teams[fix[2]] || { zh: '主隊', name: 'Home' };
+    const awayTeam = leagueData.teams[fix[3]] || { zh: '客隊', name: 'Away' };
+
+    // Model prediction
+    const model = getLeagueModel(leagueId);
+    let lambdaHome = 1.3, lambdaAway = 1.1;
+    if (model) {
+      const pred = model.predict(fix[2], fix[3]);
+      lambdaHome = pred.lambdaHome;
+      lambdaAway = pred.lambdaAway;
+    }
+    const matrix = window.OddsModel.calcScoreMatrix(lambdaHome, lambdaAway, model ? model.rho : -0.05, 10);
+    const m1x2 = window.OddsModel.derive1X2(matrix);
+    const mOU = window.OddsModel.deriveOU(matrix, [2.5])[2.5];
+    const ahTable = window.OddsModel.calcAHTable(matrix, -2.5, 2.5, 0.25);
+    const modelFairLine = ahTable.fairLine;
+
+    // Market Odds
+    const b1x2_h = fix[4];
+    const b1x2_d = fix[5];
+    const b1x2_a = fix[6];
+    const b_ou_o = fix[8];
+    const b_ou_u = fix[9];
+    const ahLine = fix[10];
+    const b_ah_h = fix[11];
+    const b_ah_a = fix[12];
+
+    // Value calculations
+    const val1x2_h = (b1x2_h && b1x2_h > 1) ? (m1x2.home * b1x2_h - 1) : null;
+    const val1x2_d = (b1x2_d && b1x2_d > 1) ? (m1x2.draw * b1x2_d - 1) : null;
+    const val1x2_a = (b1x2_a && b1x2_a > 1) ? (m1x2.away * b1x2_a - 1) : null;
+
+    const val_ou_o = (b_ou_o && b_ou_o > 1) ? (mOU.over * b_ou_o - 1) : null;
+    const val_ou_u = (b_ou_u && b_ou_u > 1) ? (mOU.under * b_ou_u - 1) : null;
+
+    let ahProbs = null;
+    let fair_ah_h = null;
+    let fair_ah_a = null;
+    let val_ah_h = null;
+    let val_ah_a = null;
+
+    if (ahLine !== null) {
+      ahProbs = window.OddsModel.calcAHProbs(matrix, ahLine);
+      fair_ah_h = ahProbs.fairHome;
+      fair_ah_a = ahProbs.fairAway;
+      if (b_ah_h && b_ah_h > 1) val_ah_h = ahProbs.evHome(b_ah_h);
+      if (b_ah_a && b_ah_a > 1) val_ah_a = ahProbs.evAway(b_ah_a);
+    }
+
+    // Kelly Recommendation
+    const kFrac = state.settings.kellyFraction || 0.25;
+    const bankroll = state.settings.bankroll || 10000;
+    const candidateBets = [];
+
+    if (b1x2_h > 1 && val1x2_h > 0) {
+      const k = window.OddsModel.calcKelly(m1x2.home, b1x2_h, kFrac);
+      candidateBets.push({ name: `主勝 (${homeTeam.zh})`, odds: b1x2_h, edge: val1x2_h, fracKelly: k.fracKelly, stake: k.recommendedStake(bankroll) });
+    }
+    if (b1x2_d > 1 && val1x2_d > 0) {
+      const k = window.OddsModel.calcKelly(m1x2.draw, b1x2_d, kFrac);
+      candidateBets.push({ name: '和局 (X)', odds: b1x2_d, edge: val1x2_d, fracKelly: k.fracKelly, stake: k.recommendedStake(bankroll) });
+    }
+    if (b1x2_a > 1 && val1x2_a > 0) {
+      const k = window.OddsModel.calcKelly(m1x2.away, b1x2_a, kFrac);
+      candidateBets.push({ name: `客勝 (${awayTeam.zh})`, odds: b1x2_a, edge: val1x2_a, fracKelly: k.fracKelly, stake: k.recommendedStake(bankroll) });
+    }
+    if (b_ou_o > 1 && val_ou_o > 0) {
+      const k = window.OddsModel.calcKelly(mOU.over, b_ou_o, kFrac);
+      candidateBets.push({ name: '大波 (Over 2.5)', odds: b_ou_o, edge: val_ou_o, fracKelly: k.fracKelly, stake: k.recommendedStake(bankroll) });
+    }
+    if (b_ou_u > 1 && val_ou_u > 0) {
+      const k = window.OddsModel.calcKelly(mOU.under, b_ou_u, kFrac);
+      candidateBets.push({ name: '細波 (Under 2.5)', odds: b_ou_u, edge: val_ou_u, fracKelly: k.fracKelly, stake: k.recommendedStake(bankroll) });
+    }
+    if (ahLine !== null && ahProbs) {
+      if (b_ah_h > 1 && val_ah_h > 0) {
+        const k = window.OddsModel.calcAHKelly(ahProbs.home, b_ah_h, kFrac);
+        candidateBets.push({ name: `讓球主隊 (${homeTeam.zh} ${ahLine > 0 ? '+' : ''}${ahLine})`, odds: b_ah_h, edge: val_ah_h, fracKelly: k.fracKelly, stake: k.recommendedStake(bankroll) });
+      }
+      if (b_ah_a > 1 && val_ah_a > 0) {
+        const k = window.OddsModel.calcAHKelly(ahProbs.away, b_ah_a, kFrac);
+        candidateBets.push({ name: `讓球客隊 (${awayTeam.zh} ${-ahLine > 0 ? '+' : ''}${-ahLine})`, odds: b_ah_a, edge: val_ah_a, fracKelly: k.fracKelly, stake: k.recommendedStake(bankroll) });
+      }
+    }
+
+    candidateBets.sort((a, b) => b.edge - a.edge);
+    const bestBet = candidateBets.length > 0 && candidateBets[0].edge >= 0.01 ? candidateBets[0] : null;
+
+    // Relative countdown label
+    const hoursLeft = Math.max(0, Math.round((kickoffUtc.getTime() - now.getTime()) / (3600 * 1000)));
+    const relTimeText = hoursLeft < 1 ? '即將開賽' : `約 ${hoursLeft} 小時後開賽`;
+
+    const edgeThresh = state.settings.edgeThreshold || 0.03;
+
+    function formatEdgePill(edgeVal) {
+      if (edgeVal === null || isNaN(edgeVal)) {
+        return '<span class="loc-edge-pill negative">--</span>';
+      }
+      const pct = (edgeVal * 100).toFixed(1);
+      if (edgeVal >= edgeThresh) {
+        return `<span class="loc-edge-pill positive">🔥 +${pct}% 值博</span>`;
+      } else if (edgeVal > 0) {
+        return `<span class="loc-edge-pill positive">+${pct}%</span>`;
+      }
+      return `<span class="loc-edge-pill negative">${pct}%</span>`;
+    }
+
+    const card = document.createElement('div');
+    card.className = 'live-fixture-card';
+    card.innerHTML = `
+      <div class="lfc-header">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span class="lfc-badge-league ${leagueId}">${leagueName}</span>
+          <span class="lfc-kickoff">⏰ ${macau.macauTime} (澳門時間)</span>
+        </div>
+        <span class="lfc-rel-time">${relTimeText}</span>
+      </div>
+
+      <div class="lfc-teams-row">
+        <div class="lfc-team home">
+          <span class="lfc-team-name">${homeTeam.zh}</span>
+          <span class="lfc-team-en">${homeTeam.name}</span>
+        </div>
+        <div class="lfc-vs-wrap">
+          <span class="lfc-vs-text">VS</span>
+          <span class="lfc-xg-badge">xG ${lambdaHome.toFixed(2)} : ${lambdaAway.toFixed(2)}</span>
+        </div>
+        <div class="lfc-team away">
+          <span class="lfc-team-name">${awayTeam.zh}</span>
+          <span class="lfc-team-en">${awayTeam.name}</span>
+        </div>
+      </div>
+
+      <div class="lfc-markets-container">
+        <!-- 1X2 Market -->
+        <div class="lfc-market-group">
+          <div class="lfc-market-title">
+            <span>🏆 獨贏及和局 (1X2)</span>
+            <span style="font-size:10px;color:var(--text-dim);">開盤 vs 公平價</span>
+          </div>
+          <div class="lfc-market-grid-3">
+            <div class="lfc-odds-cell ${val1x2_h >= edgeThresh ? 'has-value' : ''}">
+              <div class="loc-label"><span>主勝 (1)</span></div>
+              <div class="loc-market-odds">${b1x2_h ? '@' + b1x2_h.toFixed(2) : '--'}</div>
+              <div class="loc-fair-odds">公平 @${m1x2.fairHome < 100 ? m1x2.fairHome.toFixed(2) : '--'}</div>
+              ${formatEdgePill(val1x2_h)}
+            </div>
+            <div class="lfc-odds-cell ${val1x2_d >= edgeThresh ? 'has-value' : ''}">
+              <div class="loc-label"><span>和局 (X)</span></div>
+              <div class="loc-market-odds">${b1x2_d ? '@' + b1x2_d.toFixed(2) : '--'}</div>
+              <div class="loc-fair-odds">公平 @${m1x2.fairDraw < 100 ? m1x2.fairDraw.toFixed(2) : '--'}</div>
+              ${formatEdgePill(val1x2_d)}
+            </div>
+            <div class="lfc-odds-cell ${val1x2_a >= edgeThresh ? 'has-value' : ''}">
+              <div class="loc-label"><span>客勝 (2)</span></div>
+              <div class="loc-market-odds">${b1x2_a ? '@' + b1x2_a.toFixed(2) : '--'}</div>
+              <div class="loc-fair-odds">公平 @${m1x2.fairAway < 100 ? m1x2.fairAway.toFixed(2) : '--'}</div>
+              ${formatEdgePill(val1x2_a)}
+            </div>
+          </div>
+        </div>
+
+        <!-- O/U 2.5 Market -->
+        <div class="lfc-market-group">
+          <div class="lfc-market-title">
+            <span>⚽ 入球大細 (2.5 球)</span>
+            <span style="font-size:10px;color:var(--text-dim);">總入球預期 ${(lambdaHome + lambdaAway).toFixed(2)} 球</span>
+          </div>
+          <div class="lfc-market-grid-2">
+            <div class="lfc-odds-cell ${val_ou_o >= edgeThresh ? 'has-value' : ''}">
+              <div class="loc-label"><span>大波 (Over 2.5)</span></div>
+              <div class="loc-market-odds">${b_ou_o ? '@' + b_ou_o.toFixed(2) : '--'}</div>
+              <div class="loc-fair-odds">公平 @${mOU.fairOver < 100 ? mOU.fairOver.toFixed(2) : '--'}</div>
+              ${formatEdgePill(val_ou_o)}
+            </div>
+            <div class="lfc-odds-cell ${val_ou_u >= edgeThresh ? 'has-value' : ''}">
+              <div class="loc-label"><span>細波 (Under 2.5)</span></div>
+              <div class="loc-market-odds">${b_ou_u ? '@' + b_ou_u.toFixed(2) : '--'}</div>
+              <div class="loc-fair-odds">公平 @${mOU.fairUnder < 100 ? mOU.fairUnder.toFixed(2) : '--'}</div>
+              ${formatEdgePill(val_ou_u)}
+            </div>
+          </div>
+        </div>
+
+        <!-- Asian Handicap Market -->
+        <div class="lfc-market-group">
+          <div class="lfc-market-title">
+            <span>⚖️ 亞洲讓球盤 (AH)</span>
+            <span style="font-size:10px;color:var(--accent-cyan);">模型公平盤: ${formatAHLineZh(modelFairLine)}</span>
+          </div>
+          <div class="lfc-market-grid-2">
+            <div class="lfc-odds-cell ${val_ah_h >= edgeThresh ? 'has-value' : ''}">
+              <div class="loc-label">
+                <span>主隊 ${ahLine !== null ? (ahLine > 0 ? '+' : '') + ahLine : ''}</span>
+              </div>
+              <div class="loc-market-odds">${b_ah_h ? '@' + b_ah_h.toFixed(2) : (ahLine !== null ? '--' : '未開盤')}</div>
+              <div class="loc-fair-odds">公平 @${fair_ah_h && fair_ah_h < 100 ? fair_ah_h.toFixed(2) : '--'}</div>
+              ${formatEdgePill(val_ah_h)}
+            </div>
+            <div class="lfc-odds-cell ${val_ah_a >= edgeThresh ? 'has-value' : ''}">
+              <div class="loc-label">
+                <span>客隊 ${ahLine !== null ? (-ahLine > 0 ? '+' : '') + (-ahLine) : ''}</span>
+              </div>
+              <div class="loc-market-odds">${b_ah_a ? '@' + b_ah_a.toFixed(2) : (ahLine !== null ? '--' : '未開盤')}</div>
+              <div class="loc-fair-odds">公平 @${fair_ah_a && fair_ah_a < 100 ? fair_ah_a.toFixed(2) : '--'}</div>
+              ${formatEdgePill(val_ah_a)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AH Analysis Callout -->
+      <div class="lfc-ah-card">
+        <span class="lfc-ah-icon">⚖️</span>
+        <div class="lfc-ah-content">
+          <div class="lfc-ah-headline">讓球盤剖析</div>
+          <div>${generateLiveAHAnalysis(matrix, ahLine, b_ah_h, b_ah_a, homeTeam.zh, awayTeam.zh, modelFairLine)}</div>
+        </div>
+      </div>
+
+      <!-- Kelly Recommendation Callout -->
+      <div class="lfc-kelly-card ${bestBet ? '' : 'no-edge'}">
+        <span class="lfc-kelly-icon">${bestBet ? '🎯' : '⚖️'}</span>
+        <div class="lfc-kelly-content">
+          <div class="lfc-kelly-headline ${bestBet ? '' : 'dimmed'}">
+            ${bestBet ? `最佳注碼: ${bestBet.name}` : '凱利注碼建議'}
+          </div>
+          <div>
+            ${bestBet
+              ? `值博率 +${(bestBet.edge * 100).toFixed(1)}% (@${bestBet.odds.toFixed(2)}) · 凱利建議注碼 ${(bestBet.fracKelly * 100).toFixed(1)}%（約 $${bestBet.stake.toFixed(0)}）`
+              : '目前各盤口未達值博門檻（正期望值 ≤ 0%），凱利公式建議注碼 $0（觀望略過）'
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Deep Dive Action -->
+      <button class="btn-deep-dive" data-league="${leagueId}" data-home="${fix[2]}" data-away="${fix[3]}">
+        深入盤口分析 (熱力圖/四份一盤) →
+      </button>
+    `;
+
+    return card;
+  }
+
+  function switchToMatchLab(leagueId, homeId, awayId) {
+    state.selectedLeagueFilter = leagueId;
+    state.activeLeague = leagueId;
+
+    // Update league chips
+    const chips = document.querySelectorAll('#leagueChips .chip');
+    chips.forEach(c => {
+      c.classList.toggle('active', c.getAttribute('data-league') === leagueId);
+    });
+
+    // Set home and away teams
+    state.activeHomeId = homeId;
+    state.activeAwayId = awayId;
+
+    // Switch tab
+    state.activeTab = 'tab-match';
+    document.querySelectorAll('.bottom-nav .nav-tab').forEach(b => {
+      b.classList.toggle('active', b.getAttribute('data-tab') === 'tab-match');
+    });
+    document.querySelectorAll('.tab-pane').forEach(p => {
+      p.classList.toggle('active', p.id === 'tab-match');
+    });
+
+    // Render match lab
+    const leagueData = window.ODDS_DATA.leagues[leagueId];
+    if (leagueData) {
+      renderFixturesList(leagueData);
+    }
+    renderMatchLab();
+
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   // --- Fixtures Carousel ---
@@ -1177,7 +1646,7 @@
     const slider = document.getElementById('btEdgeSlider');
 
     const leagueChoice = leagueSel ? leagueSel.value : 'CURRENT';
-    const season = seasonSel ? seasonSel.value : '2526';
+    const season = seasonSel ? seasonSel.value : '2526_2627';
     const market = marketSel ? marketSel.value : '1x2';
     const oddsType = oddsSel ? oddsSel.value : 'open';
     const staking = stakingSel ? stakingSel.value : 'flat';

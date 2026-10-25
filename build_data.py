@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 build_data.py - Builds data/data.js for Odds Lab (盤口實驗室)
-Extracts historical match data (2024-25, 2025-26, 2026-27) and upcoming fixtures
+Extracts historical match data (2025-26, 2026-27) and upcoming fixtures
 across top 5 European leagues (E0, SP1, I1, D1, F1).
 Uses only Python standard library.
 """
@@ -10,7 +10,7 @@ import csv
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from team_names import TEAM_NAMES, get_team_cantonese
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -25,7 +25,7 @@ LEAGUES = [
     {"id": "F1", "key": "ligue1", "name": "法甲", "fullName": "法國甲組聯賽"},
 ]
 
-SEASONS = ["2425", "2526", "2627"]
+SEASONS = ["2526", "2627"]
 
 MATCH_SCHEMA = [
     "date", "home", "away", "fthg", "ftag", "hthg", "htag", "season",
@@ -147,7 +147,7 @@ def build():
         for t_name in sorted(teams_2627):
             get_or_add_team(t_name)
 
-        # Process seasons 2425, 2526, 2627
+        # Process seasons 2526, 2627
         for season in SEASONS:
             csv_path = os.path.join(RAW_DIR, f"{div}_{season}.csv")
             if not os.path.exists(csv_path):
@@ -247,12 +247,17 @@ def build():
         matches_list.sort(key=lambda m: m[0])
 
         # Process upcoming fixtures for this league
+        # Filter at build time relative to build date with slack (today-1 to today+5)
+        today_utc = datetime.now(timezone.utc).date()
+        min_fixture_date = (today_utc - timedelta(days=1)).strftime("%Y-%m-%d")
+        max_fixture_date = (today_utc + timedelta(days=5)).strftime("%Y-%m-%d")
+
         league_fixtures = []
         for r in raw_fixtures_rows:
             if r.get("Div", "").strip() != div:
                 continue
             date_iso = parse_date(r.get("Date"))
-            if date_iso and date_iso < "2026-10-25":
+            if date_iso and (date_iso < min_fixture_date or date_iso > max_fixture_date):
                 continue
 
             h_name = (r.get("HomeTeam") or "").strip()
@@ -262,16 +267,23 @@ def build():
 
             time_str = (r.get("Time") or "").strip()
 
-            o1x2_h = parse_num(r.get("B365H")) or parse_num(r.get("AvgH"))
-            o1x2_d = parse_num(r.get("B365D")) or parse_num(r.get("AvgD"))
-            o1x2_a = parse_num(r.get("B365A")) or parse_num(r.get("AvgA"))
+            # Latest pre-match 1X2 odds (prefer closing if available, else opening)
+            o1x2_h = parse_num(r.get("B365CH")) or parse_num(r.get("B365H")) or parse_num(r.get("AvgCH")) or parse_num(r.get("AvgH"))
+            o1x2_d = parse_num(r.get("B365CD")) or parse_num(r.get("B365D")) or parse_num(r.get("AvgCD")) or parse_num(r.get("AvgD"))
+            o1x2_a = parse_num(r.get("B365CA")) or parse_num(r.get("B365A")) or parse_num(r.get("AvgCA")) or parse_num(r.get("AvgA"))
 
-            ou_o = parse_num(r.get("B365>2.5")) or parse_num(r.get("Avg>2.5"))
-            ou_u = parse_num(r.get("B365<2.5")) or parse_num(r.get("Avg<2.5"))
+            # Latest pre-match O/U 2.5 odds
+            ou_o = parse_num(r.get("B365C>2.5")) or parse_num(r.get("B365>2.5")) or parse_num(r.get("AvgC>2.5")) or parse_num(r.get("Avg>2.5"))
+            ou_u = parse_num(r.get("B365C<2.5")) or parse_num(r.get("B365<2.5")) or parse_num(r.get("AvgC<2.5")) or parse_num(r.get("Avg<2.5"))
 
-            ah_line = parse_num(r.get("AHh")) if r.get("AHh") is not None and str(r.get("AHh")).strip() != "" else parse_num(r.get("AvgAHh"))
-            ah_h = parse_num(r.get("B365AHH")) or parse_num(r.get("AvgAHH"))
-            ah_a = parse_num(r.get("B365AHA")) or parse_num(r.get("AvgAHA"))
+            # Latest pre-match Asian handicap
+            ah_line = parse_num(r.get("AHCh")) if r.get("AHCh") is not None and str(r.get("AHCh")).strip() != "" else (
+                parse_num(r.get("AHh")) if r.get("AHh") is not None and str(r.get("AHh")).strip() != "" else (
+                    parse_num(r.get("AvgAHCh")) or parse_num(r.get("AvgAHh"))
+                )
+            )
+            ah_h = parse_num(r.get("B365CAHH")) or parse_num(r.get("B365AHH")) or parse_num(r.get("AvgCAHH")) or parse_num(r.get("AvgAHH"))
+            ah_a = parse_num(r.get("B365CAHA")) or parse_num(r.get("B365AHA")) or parse_num(r.get("AvgCAHA")) or parse_num(r.get("AvgAHA"))
 
             fix_row = [
                 date_iso, time_str, h_idx, a_idx,
@@ -297,7 +309,7 @@ def build():
         }
 
     max_match_date = max(all_dates) if all_dates else "2026-10-21"
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     output = {
         "generatedAt": now_str,
