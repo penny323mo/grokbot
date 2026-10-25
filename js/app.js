@@ -857,7 +857,7 @@
     }
 
     bodyEl.innerHTML = html;
-    backdrop.classList.add('open');
+    backdrop.classList.add('active');
   }
 
   // --- v4 Bookmaker Comparison Tab ---
@@ -1103,10 +1103,10 @@
     const backdropModal = document.getElementById('matchDetailBackdrop');
     if (btnCloseModal && backdropModal) {
       btnCloseModal.addEventListener('click', () => {
-        backdropModal.classList.remove('open');
+        backdropModal.classList.remove('active');
       });
       backdropModal.addEventListener('click', (e) => {
-        if (e.target === backdropModal) backdropModal.classList.remove('open');
+        if (e.target === backdropModal) backdropModal.classList.remove('active');
       });
     }
   }
