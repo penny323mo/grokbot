@@ -1,13 +1,13 @@
 {
   "status": "healthy",
-  "checked_at": "2026-10-25T12:35:31Z",
+  "checked_at": "2026-10-25T13:04:23Z",
   "issues": [],
   "sources": {
     "macau_slot": {
       "status": "healthy",
-      "last_fetch": "2026-10-25T12:35:31Z",
-      "events_count": 26,
-      "message": "Fetched 26 events"
+      "last_fetch": "2026-10-25T13:04:23Z",
+      "events_count": 25,
+      "message": "Fetched 25 events"
     },
     "the_odds_api": {
       "status": "healthy",
