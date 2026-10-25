@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Prompt 工作室 — 專業 AI 圖像與影片提示詞工作室</title>
+  
+  <meta name="description" content="專為 iPhone 設計的頂級 AI 圖像與影片提示詞工作室。廣東話介面，一鍵生成好萊塢級高質英文 Prompt。">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Prompt工作室">
+  <meta name="theme-color" content="#0a0714">
+
+  <!-- Favicon & PWA Icons -->
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- App Container -->
+  <div id="app" class="app-container">
+
+    <!-- Top Navigation Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="brand-logo" aria-hidden="true">
+          <svg viewBox="0 0 40 40" width="28" height="28">
+            <defs>
+              <linearGradient id="logoG" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#f59e0b"/>
+                <stop offset="50%" stop-color="#ec4899"/>
+                <stop offset="100%" stop-color="#8b5cf6"/>
+              </linearGradient>
+            </defs>
+            <rect width="40" height="40" rx="10" fill="#130b24" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+            <circle cx="20" cy="20" r="11" fill="none" stroke="url(#logoG)" stroke-width="2.5"/>
+            <path d="M 20 12 Q 20 20 28 20 Q 20 20 20 28 Q 20 20 12 20 Q 20 20 20 12 Z" fill="#ffffff"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1 class="brand-title">Prompt 工作室</h1>
+          <span class="brand-badge" id="modeIndicator">圖片模式</span>
+        </div>
+      </div>
+
+      <!-- Segmented Mode Control (Image / Video) -->
+      <div class="header-center">
+        <div class="segmented-control" role="group" aria-label="生成模式">
+          <button type="button" class="segment-btn active" id="btnModeImage" data-mode="image" aria-pressed="true">
+            <span class="seg-icon">🖼️</span>
+            <span class="seg-label">圖片</span>
+          </button>
+          <button type="button" class="segment-btn" id="btnModeVideo" data-mode="video" aria-pressed="false">
+            <span class="seg-icon">🎬</span>
+            <span class="seg-label">影片</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Header Quick Actions -->
+      <div class="header-right">
+        <button type="button" class="btn-icon" id="btnHeaderRandom" title="隨機嚟一個靈感" aria-label="隨機生成靈感">
+          <span class="icon">🎲</span>
+        </button>
+        <button type="button" class="btn-icon" id="btnHeaderClear" title="清空所有選項" aria-label="清空選項">
+          <span class="icon">🧹</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Tab Panes -->
+    <main class="app-main">
+
+      <!-- ================= TAB 1: 創作 (BUILD) ================= -->
+      <section id="tab-build" class="tab-pane active" role="tabpanel" aria-labelledby="nav-tab-build">
+        <div class="builder-scroll-content">
+
+          <!-- Accordion Section 1: 主體 (Subject) -->
+          <div class="accordion-card" id="card-subject">
+            <div class="accordion-header" tabindex="0" role="button" aria-expanded="true">
+              <div class="acc-title-wrap">
+                <span class="acc-icon">👤</span>
+                <div class="acc-titles">
+                  <span class="acc-title">主體人物 / 焦點</span>
+                  <span class="acc-summary" id="summary-subject">未設定主體</span>
+                </div>
+              </div>
+              <div class="acc-header-actions">
+                <button type="button" class="btn-section-dice" data-dice="subject" title="隨機揀主體" aria-label="隨機主體">🎲</button>
+                <span class="acc-chevron">▼</span>
+              </div>
+            </div>
+            <div class="accordion-body">
+              <div class="form-group">
+                <label for="inputSubject" class="form-label">輸入主體描述（支援中英雙語）：</label>
+                <div class="input-with-clear">
+                  <textarea id="inputSubject" class="form-textarea" rows="2" placeholder="例如：穿著深色風衣、在微雨中回眸的年輕女子..."></textarea>
+                  <button type="button" class="btn-input-clear" id="btnClearSubject" title="清除文字" style="display:none;">✕</button>
+                </div>
+              </div>
+              <div class="chips-group-label">或者直接揀靈感主體類型：</div>
+              <div class="chips-container" id="containerSubjectChips">
+                <!-- Dynamically populated from DATA.subjectCategories -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Accordion Section 2: 場景 (Scene) -->
+          <div class="accordion-card" id="card-scene">
+            <div class="accordion-header" tabindex="0" role="button" aria-expanded="false">
+              <div class="acc-title-wrap">
+                <span class="acc-icon">🏞️</span>
+                <div class="acc-titles">
+                  <span class="acc-title">場景環境</span>
+                  <span class="acc-summary" id="summary-scene">未揀場景</span>
+                </div>
+              </div>
+              <div class="acc-header-actions">
+                <button type="button" class="btn-section-dice" data-dice="scene" title="隨機揀場景" aria-label="隨機場景">🎲</button>
+                <span class="acc-chevron">▼</span>
+              </div>
+            </div>
+            <div class="accordion-body">
+              <div class="chips-container" id="containerSceneChips">
+                <!-- Dynamically populated from DATA.scenes -->
+              </div>
+              <div class="form-group mt-3">
+                <label for="inputSceneCustom" class="form-label">自訂場景補充細節（選填）：</label>
+                <input type="text" id="inputSceneCustom" class="form-input" placeholder="例如：地上有泛著金光的落葉、遠處有摩天輪...">
+              </div>
+            </div>
+          </div>
+
+          <!-- Accordion Section 3: 風格 (Style) - Visual Swatch Cards -->
+          <div class="accordion-card" id="card-style">
+            <div class="accordion-header" tabindex="0" role="button" aria-expanded="true">
+              <div class="acc-title-wrap">
+                <span class="acc-icon">🎨</span>
+                <div class="acc-titles">
+                  <span class="acc-title">藝術風格與美學</span>
+                  <span class="acc-summary" id="summary-style">電影感寫實</span>
+                </div>
+              </div>
+              <div class="acc-header-actions">
+                <button type="button" class="btn-section-dice" data-dice="style" title="隨機揀風格" aria-label="隨機風格">🎲</button>
+                <span class="acc-chevron">▼</span>
+              </div>
+            </div>
+            <div class="accordion-body">
+              <div class="style-grid" id="containerStyleGrid">
+                <!-- Dynamically populated 16+ visual cards from DATA.styles -->
+              </div>
+              
+              <div class="form-divider"></div>
+              <div class="chips-group-label">額外細節修飾詞（可多選）：</div>
+              <div class="chips-container" id="containerStyleModifiers">
+                <!-- Dynamically populated from DATA.styleModifiers -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Accordion Section 4: 光線 (Lighting) -->
+          <div class="accordion-card" id="card-lighting">
+            <div class="accordion-header" tabindex="0" role="button" aria-expanded="false">
+              <div class="acc-title-wrap">
+                <span class="acc-icon">💡</span>
+                <div class="acc-titles">
+                  <span class="acc-title">光影氛圍</span>
+                  <span class="acc-summary" id="summary-lighting">黃金時刻</span>
+                </div>
+              </div>
+              <div class="acc-header-actions">
+                <button type="button" class="btn-section-dice" data-dice="lighting" title="隨機揀光線" aria-label="隨機光線">🎲</button>
+                <span class="acc-chevron">▼</span>
+              </div>
+            </div>
+            <div class="accordion-body">
+              <div class="chips-container" id="containerLightingChips">
+                <!-- Dynamically populated from DATA.lightings -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Accordion Section 5: 鏡頭與相機 (Camera) -->
+          <div class="accordion-card" id="card-camera">
+            <div class="accordion-header" tabindex="0" role="button" aria-expanded="false">
+              <div class="acc-title-wrap">
+                <span class="acc-icon">📷</span>
+                <div class="acc-titles">
+                  <span class="acc-title">鏡頭與視角</span>
+                  <span class="acc-summary" id="summary-camera">中景 · 平視 · 35mm</span>
+                </div>
+              </div>
+              <div class="acc-header-actions">
+                <button type="button" class="btn-section-dice" data-dice="camera" title="隨機鏡頭" aria-label="隨機鏡頭">🎲</button>
+                <span class="acc-chevron">▼</span>
+              </div>
+            </div>
+            <div class="accordion-body">
+              <div class="subgroup-title">景別大小 (Shot Size)</div>
+              <div class="chips-container" id="containerShotSizes"></div>
+
+              <div class="subgroup-title mt-3">拍攝角度 (Angle)</div>
+              <div class="chips-container" id="containerAngles"></div>
+
+              <div class="subgroup-title mt-3">鏡頭焦段 (Lens)</div>
+              <div class="chips-container" id="containerLenses"></div>
+
+              <div class="subgroup-title mt-3">光圈景深 (Aperture)</div>
+              <div class="chips-container" id="containerApertures"></div>
+            </div>
+          </div>
+
+          <!-- Accordion Section 6: 構圖 (Composition) -->
+          <div class="accordion-card" id="card-composition">
+            <div class="accordion-header" tabindex="0" role="button" aria-expanded="false">
+              <div class="acc-title-wrap">
+                <span class="acc-icon">📐</span>
+                <div class="acc-titles">
+                  <span class="acc-title">構圖美學</span>
+                  <span class="acc-summary" id="summary-composition">三分法則</span>
+                </div>
+              </div>
+              <div class="acc-header-actions">
+                <button type="button" class="btn-section-dice" data-dice="composition" title="隨機構圖" aria-label="隨機構圖">🎲</button>
+                <span class="acc-chevron">▼</span>
+              </div>
+            </div>
+            <div class="accordion-body">
+              <div class="chips-container" id="containerCompositionChips">
+                <!-- Dynamically populated from DATA.compositions -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Accordion Section 7: 氛圍 (Mood) -->
+          <div class="accordion-card" id="card-mood">
+            <div class="accordion-header" tabindex="0" role="button" aria-expanded="false">
+              <div class="acc-title-wrap">
+                <span class="acc-icon">✨</span>
+                <div class="acc-titles">
+                  <span class="acc-title">情緒與氛圍</span>
+                  <span class="acc-summary" id="summary-mood">夢幻空靈</span>
+                </div>
+              </div>
+              <div class="acc-header-actions">
+                <button type="button" class="btn-section-dice" data-dice="mood" title="隨機氛圍" aria-label="隨機氛圍">🎲</button>
+                <span class="acc-chevron">▼</span>
+              </div>
+            </div>
+            <div class="accordion-body">
+              <div class="chips-container" id="containerMoodChips">
+                <!-- Dynamically populated from DATA.moods -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Accordion Section 8: 色調 (Palette) - Color Dots Swatches -->
+          <div class="accordion-card" id="card-palette">
+            <div class="accordion-header" tabindex="0" role="button" aria-expanded="false">
+              <div class="acc-title-wrap">
+                <span class="acc-icon">🌈</span>
+                <div class="acc-titles">
+                  <span class="acc-title">色彩基調</span>
+                  <span class="acc-summary" id="summary-palette">青橙對比電影色</span>
+                </div>
+              </div>
+              <div class="acc-header-actions">
+                <button type="button" class="btn-section-dice" data-dice="palette" title="隨機色板" aria-label="隨機色板">🎲</button>
+                <span class="acc-chevron">▼</span>
+              </div>
+            </div>
+            <div class="accordion-body">
+              <div class="palette-grid" id="containerPaletteGrid">
+                <!-- Dynamically populated from DATA.palettes -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Accordion Section 9: 比例 (Aspect Ratio) -->
+          <div class="accordion-card" id="card-aspect">
+            <div class="accordion-header" tabindex="0" role="button" aria-expanded="false">
+              <div class="acc-title-wrap">
+                <span class="acc-icon">🖼️</span>
+                <div class="acc-titles">
+                  <span class="acc-title">畫面比例</span>
+                  <span class="acc-summary" id="summary-aspect">16:9（橫向闊銀幕）</span>
+                </div>
+              </div>
+              <div class="acc-header-actions">
+                <button type="button" class="btn-section-dice" data-dice="aspectRatio" title="隨機比例" aria-label="隨機比例">🎲</button>
+                <span class="acc-chevron">▼</span>
+              </div>
+            </div>
+            <div class="accordion-body">
+              <div class="ar-grid" id="containerAspectGrid">
+                <!-- Dynamically populated from DATA.aspectRatios -->
+              </div>
+              <div class="ar-suffix-row mt-3">
+                <label class="switch-control">
+                  <input type="checkbox" id="checkArSuffix">
+                  <span class="switch-slider"></span>
+                  <span class="switch-label">附加 Midjourney 格式尾碼 (例如：<code>--ar 16:9</code>)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Accordion Section 10: 影片專屬 (Video Only) -->
+          <div class="accordion-card video-only-card" id="card-video" style="display: none;">
+            <div class="accordion-header" tabindex="0" role="button" aria-expanded="true">
+              <div class="acc-title-wrap">
+                <span class="acc-icon">🎥</span>
+                <div class="acc-titles">
+                  <span class="acc-title">影片運鏡與分鏡</span>
+                  <span class="acc-summary" id="summary-video">緩慢推進 · 5秒 · 平穩流暢</span>
+                </div>
+              </div>
+              <div class="acc-header-actions">
+                <button type="button" class="btn-section-dice" data-dice="videoMovement" title="隨機運鏡" aria-label="隨機運鏡">🎲</button>
+                <span class="acc-chevron">▼</span>
+              </div>
+            </div>
+            <div class="accordion-body">
+              <div class="subgroup-title">主鏡頭運動 (Camera Movement)</div>
+              <div class="chips-container" id="containerVideoMovements"></div>
+
+              <div class="subgroup-title mt-3">片段長度 (Duration)</div>
+              <div class="chips-container" id="containerVideoDurations"></div>
+
+              <div class="subgroup-title mt-3">動作節奏 (Pacing)</div>
+              <div class="chips-container" id="containerVideoPacings"></div>
+
+              <div class="form-group mt-3">
+                <label for="inputSubjectMotion" class="form-label">主體動態細節描述（選填）：</label>
+                <input type="text" id="inputSubjectMotion" class="form-input" placeholder="例如：主角緩緩轉身凝視鏡頭、蒸汽緩慢飄散...">
+              </div>
+
+              <!-- Shot List Storyboard -->
+              <div class="storyboard-section mt-4">
+                <div class="storyboard-header">
+                  <div>
+                    <h4 class="storyboard-title">🎬 分鏡故事板 (Shot List)</h4>
+                    <span class="storyboard-sub">最多設定 6 個短片鏡頭，自動計算時間軸</span>
+                  </div>
+                  <button type="button" class="btn-sm btn-accent" id="btnAddShot">＋ 新增鏡頭</button>
+                </div>
+                <div class="shot-items-list" id="containerShotList">
+                  <!-- Dynamically populated shots -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Accordion Section 11: 負面提示詞 (Negative Prompt) -->
+          <div class="accordion-card" id="card-negative">
+            <div class="accordion-header" tabindex="0" role="button" aria-expanded="false">
+              <div class="acc-title-wrap">
+                <span class="acc-icon">🚫</span>
+                <div class="acc-titles">
+                  <span class="acc-title">負面過濾提示詞 (Negative)</span>
+                  <span class="acc-summary" id="summary-negative">已啟用 4 項過濾</span>
+                </div>
+              </div>
+              <div class="acc-header-actions">
+                <span class="acc-chevron">▼</span>
+              </div>
+            </div>
+            <div class="accordion-body">
+              <div class="chips-group-label">點擊切換常見避免瑕疵：</div>
+              <div class="chips-container" id="containerNegativeChips">
+                <!-- Dynamically populated negative chips -->
+              </div>
+              <div class="form-group mt-3">
+                <label for="inputNegativeCustom" class="form-label">自訂排除詞（英文逗號分隔）：</label>
+                <input type="text" id="inputNegativeCustom" class="form-input" placeholder="例如：extra limbs, double heads, glowing eyes...">
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom spacing cushion for sticky sheet -->
+          <div class="builder-bottom-cushion"></div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 2: 靈感配方 (RECIPES) ================= -->
+      <section id="tab-recipes" class="tab-pane" role="tabpanel" aria-labelledby="nav-tab-recipes">
+        <div class="recipes-content">
+          <div class="recipes-hero-card">
+            <div class="rh-badge">💡 頂級靈感庫</div>
+            <h2 class="rh-title">大師級 AI 提示詞配方</h2>
+            <p class="rh-desc">精選 10 套好萊塢寫實、吉卜力動畫、產品大片與影片運鏡模板，撳一下即可載入工作室隨意客製化。</p>
+          </div>
+
+          <!-- Recipe Filter Chips -->
+          <div class="recipes-filter-bar">
+            <div class="chips-container" id="containerRecipeFilterChips">
+              <button type="button" class="chip active" data-recipe-filter="all">全部靈感</button>
+              <button type="button" class="chip" data-recipe-filter="image">🖼️ 圖片配方</button>
+              <button type="button" class="chip" data-recipe-filter="video">🎬 影片運鏡</button>
+              <button type="button" class="chip" data-recipe-filter="cinematic">電影大片</button>
+              <button type="button" class="chip" data-recipe-filter="anime">動漫美學</button>
+            </div>
+          </div>
+
+          <!-- Recipe Cards List -->
+          <div class="recipes-grid" id="containerRecipesGrid">
+            <!-- Dynamically populated from DATA.recipes -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 3: 我的庫 (LIBRARY) ================= -->
+      <section id="tab-library" class="tab-pane" role="tabpanel" aria-labelledby="nav-tab-library">
+        <div class="library-content">
+          <!-- Library Header Bar -->
+          <div class="library-toolbar">
+            <div class="search-input-wrap">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="inputLibrarySearch" class="search-input" placeholder="搜尋已儲存的提示詞或標籤...">
+              <button type="button" id="btnClearLibrarySearch" class="btn-clear-search" style="display:none;">✕</button>
+            </div>
+            <div class="library-action-btns">
+              <button type="button" class="btn-lib-action" id="btnExportJSON" title="匯出全部 JSON">
+                <span class="btn-icon-symbol">📤</span>
+                <span class="btn-label">匯出</span>
+              </button>
+              <button type="button" class="btn-lib-action" id="btnImportJSON" title="匯入 JSON">
+                <span class="btn-icon-symbol">📥</span>
+                <span class="btn-label">匯入</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Filter tags & mode chips -->
+          <div class="library-filter-chips">
+            <div class="chips-container" id="containerLibFilterChips">
+              <button type="button" class="chip active" data-lib-filter="all">全部 (<span id="countLibAll">0</span>)</button>
+              <button type="button" class="chip" data-lib-filter="favorite">★ 最愛 (<span id="countLibFav">0</span>)</button>
+              <button type="button" class="chip" data-lib-filter="image">🖼️ 圖片 (<span id="countLibImg">0</span>)</button>
+              <button type="button" class="chip" data-lib-filter="video">🎬 影片 (<span id="countLibVid">0</span>)</button>
+            </div>
+          </div>
+
+          <!-- Library Items Cards -->
+          <div class="library-cards-list" id="containerLibraryList">
+            <!-- Dynamically populated from PromptStore.loadLibrary() -->
+          </div>
+
+          <!-- Empty Library State -->
+          <div class="empty-state-card" id="libEmptyState" style="display: none;">
+            <div class="empty-icon">📚</div>
+            <h3 class="empty-title">暫時未有儲存的提示詞</h3>
+            <p class="empty-desc">喺「創作」頁面撳「儲存至庫」，即可隨時保存專屬提示詞，唔會丟失任何靈感。</p>
+            <button type="button" class="btn-primary" id="btnEmptyGoBuild">即刻去創作</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ================= STICKY BOTTOM PROMPT PREVIEW SHEET ================= -->
+    <aside class="prompt-sheet" id="promptSheet" aria-label="即時提示詞預覽">
+      <div class="sheet-drag-handle" id="sheetDragHandle" title="點擊展開/收起預覽">
+        <span class="handle-bar"></span>
+      </div>
+
+      <div class="sheet-header">
+        <div class="sheet-title-row">
+          <div class="sheet-title-wrap">
+            <span class="sheet-sparkle">✨</span>
+            <span class="sheet-heading">即時 Prompt 預覽</span>
+            <span class="char-count-pill" id="promptCharCount">0 字</span>
+          </div>
+          <div class="sheet-header-actions">
+            <button type="button" class="btn-sheet-toggle" id="btnToggleSheet" title="展開或收起" aria-label="切換預覽視圖">
+              <span class="toggle-arrow" id="sheetToggleArrow">▲</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sheet-body" id="sheetBody">
+        <!-- English Prompt Box -->
+        <div class="prompt-box-wrap">
+          <div class="prompt-box-header">
+            <span class="box-tag">🇬🇧 英文提示詞 (Prompt)</span>
+            <button type="button" class="btn-copy-chip" id="btnCopyPrompt" title="複製英文 Prompt">
+              <span class="copy-icon">📋</span>
+              <span class="copy-text">複製 Prompt</span>
+            </button>
+          </div>
+          <div class="prompt-display-card" id="promptDisplay">
+            <!-- Live generated English prompt -->
+          </div>
+        </div>
+
+        <!-- Cantonese Explanation Collapsible -->
+        <details class="explanation-details" id="detailsExplanation">
+          <summary class="explanation-summary">
+            <span class="exp-icon">🇭🇰</span>
+            <span class="exp-title">中文廣東話解析</span>
+            <span class="exp-chevron">▼</span>
+          </summary>
+          <div class="explanation-content" id="explanationDisplay">
+            <!-- Live generated Cantonese explanation -->
+          </div>
+        </details>
+
+        <!-- Negative Prompt Box (if present) -->
+        <details class="negative-details" id="detailsNegative">
+          <summary class="negative-summary">
+            <span class="neg-icon">🚫</span>
+            <span class="neg-title">負面提示詞 (Negative Prompt)</span>
+            <span class="neg-chevron">▼</span>
+          </summary>
+          <div class="negative-content">
+            <div class="negative-text-box" id="negativeDisplay"></div>
+            <div class="negative-action-row">
+              <button type="button" class="btn-copy-neg" id="btnCopyNegative">複製負面提示詞</button>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <!-- Sheet Footer Fixed Action Buttons -->
+      <div class="sheet-footer">
+        <button type="button" class="btn-footer-primary" id="btnSheetCopyMain">
+          <span class="icon">📋</span>
+          <span class="text">複製 Prompt</span>
+        </button>
+        <button type="button" class="btn-footer-secondary" id="btnSheetSave">
+          <span class="icon">💾</span>
+          <span class="text">儲存至庫</span>
+        </button>
+        <button type="button" class="btn-footer-secondary" id="btnSheetSurprise">
+          <span class="icon">🎲</span>
+          <span class="text">隨機</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ================= FIXED BOTTOM TAB BAR ================= -->
+    <nav class="bottom-tab-bar" aria-label="底部分頁欄">
+      <button type="button" class="tab-nav-btn active" id="nav-tab-build" data-tab="tab-build" aria-selected="true" role="tab">
+        <span class="tab-nav-icon">🎨</span>
+        <span class="tab-nav-label">創作</span>
+      </button>
+      <button type="button" class="tab-nav-btn" id="nav-tab-recipes" data-tab="tab-recipes" aria-selected="false" role="tab">
+        <span class="tab-nav-icon">💡</span>
+        <span class="tab-nav-label">靈感</span>
+      </button>
+      <button type="button" class="tab-nav-btn" id="nav-tab-library" data-tab="tab-library" aria-selected="false" role="tab">
+        <span class="tab-nav-icon">📚</span>
+        <span class="tab-nav-label">我的庫</span>
+      </button>
+    </nav>
+
+    <!-- ================= MODALS & SHEETS ================= -->
+
+    <!-- Save to Library Modal -->
+    <div class="modal-backdrop" id="modalSave" style="display:none;" aria-hidden="true" role="dialog">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 class="modal-title">💾 儲存至提示詞庫</h3>
+          <button type="button" class="btn-modal-close" id="btnCloseSaveModal" aria-label="關閉">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="inputSaveName" class="form-label">項目名稱：</label>
+            <input type="text" id="inputSaveName" class="form-input" placeholder="例如：澳門雨夜霓虹人像 #1">
+          </div>
+          <div class="form-group">
+            <label for="inputSaveTags" class="form-label">標籤（逗號分隔）：</label>
+            <input type="text" id="inputSaveTags" class="form-input" placeholder="例如：電影感, 街頭, 雨夜">
+          </div>
+          <div class="quick-tags-wrap">
+            <span class="quick-tag-label">常用標籤：</span>
+            <div class="quick-tags-chips">
+              <button type="button" class="btn-quick-tag" data-tag="電影感">電影感</button>
+              <button type="button" class="btn-quick-tag" data-tag="寫實人像">寫實人像</button>
+              <button type="button" class="btn-quick-tag" data-tag="賽博朋克">賽博朋克</button>
+              <button type="button" class="btn-quick-tag" data-tag="治癒動漫">治癒動漫</button>
+              <button type="button" class="btn-quick-tag" data-tag="商業廣告">商業廣告</button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="btnCancelSave">取消</button>
+          <button type="button" class="btn-primary" id="btnConfirmSave">確認儲存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recipe Detail Modal -->
+    <div class="modal-backdrop" id="modalRecipe" style="display:none;" aria-hidden="true" role="dialog">
+      <div class="modal-card recipe-modal-card">
+        <div class="modal-header">
+          <div class="recipe-modal-header-titles">
+            <span class="recipe-modal-badge" id="modalRecipeBadge">圖片配方</span>
+            <h3 class="modal-title" id="modalRecipeTitle">配方名稱</h3>
+          </div>
+          <button type="button" class="btn-modal-close" id="btnCloseRecipeModal" aria-label="關閉">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="recipe-modal-thumb" id="modalRecipeThumb"></div>
+          <p class="recipe-modal-desc" id="modalRecipeDesc"></p>
+          <div class="recipe-modal-prompt-box">
+            <div class="box-tag">預設英文 Prompt 預覽：</div>
+            <div class="modal-prompt-text" id="modalRecipePromptText"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="btnCancelRecipe">返回</button>
+          <button type="button" class="btn-primary" id="btnApplyRecipe">🔥 用呢個配方</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Import JSON Modal -->
+    <div class="modal-backdrop" id="modalImport" style="display:none;" aria-hidden="true" role="dialog">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 class="modal-title">📥 匯入提示詞庫 (JSON)</h3>
+          <button type="button" class="btn-modal-close" id="btnCloseImportModal" aria-label="關閉">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-tip">請選擇由 Prompt 工作室匯出的 <code>.json</code> 檔案，或直接粘貼 JSON 內容：</p>
+          <div class="form-group">
+            <input type="file" id="fileImportInput" accept=".json,application/json" class="form-file-input">
+          </div>
+          <div class="form-group">
+            <label for="textareaImportJSON" class="form-label">或在此貼上 JSON 文字：</label>
+            <textarea id="textareaImportJSON" class="form-textarea" rows="4" placeholder='{"app":"prompt-studio", "version":1, ...}'></textarea>
+          </div>
+          <div class="import-error-msg" id="importErrorMsg" style="display:none;"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="btnCancelImport">取消</button>
+          <button type="button" class="btn-primary" id="btnConfirmImport">確認匯入</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/prompt.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
