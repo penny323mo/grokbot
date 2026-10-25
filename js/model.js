@@ -492,12 +492,20 @@
     const decayConst = Math.LN2 / (halfLifeDays * 86400000);
     const validMatches = [];
     const teamW = new Float64Array(N);
-    const pastSeasonMatches = new Int32Array(N);
 
-    // Cutoff to distinguish promoted teams without prior top-flight experience
-    const cutoff = asOfTime >= new Date('2026-08-01').getTime()
-      ? new Date('2026-08-01').getTime()
-      : (asOfTime >= new Date('2025-08-01').getTime() ? new Date('2025-08-01').getTime() : 0);
+    // Identify teams present in season 2526 (the baseline season in dataset after dropping 2425)
+    const teamsIn2526 = new Uint8Array(N);
+    const season2627Start = new Date('2026-08-01').getTime();
+    for (let i = 0; i < matches.length; i++) {
+      const m = matches[i];
+      const mDate = new Date(m[0]).getTime();
+      if (m[7] === '2526' || mDate < season2627Start) {
+        teamsIn2526[m[1]] = 1;
+        teamsIn2526[m[2]] = 1;
+      }
+    }
+
+    const isSeason2627 = asOfTime >= season2627Start;
 
     for (let i = 0; i < matches.length; i++) {
       const m = matches[i];
@@ -516,11 +524,6 @@
       });
       teamW[m[1]] += weight;
       teamW[m[2]] += weight;
-
-      if (cutoff > 0 && mDate < cutoff) {
-        pastSeasonMatches[m[1]]++;
-        pastSeasonMatches[m[2]]++;
-      }
     }
 
     if (validMatches.length === 0) {
@@ -536,15 +539,18 @@
       };
     }
 
-    // Promoted teams prior: teams with no prior top-flight history shrink toward
-    // below-average ratings (average rating of relegated/bottom-3 teams: alpha ~ -0.22, beta ~ -0.20)
+    // Promoted teams prior:
+    // With 2425 dropped, 2526 teams start at league average (0.0, 0.0), with the first ~6 rounds acting as burn-in.
+    // In 2627, only true newcomers (teams with 0 matches in 2526, e.g. Coventry, Malaga) get the promoted prior (-0.22, -0.20).
     const priorAlpha = new Float64Array(N);
     const priorBeta = new Float64Array(N);
     for (let i = 0; i < N; i++) {
-      if (cutoff > 0 && pastSeasonMatches[i] === 0) {
+      if (isSeason2627 && teamsIn2526[i] === 0) {
+        // True newcomer promoted in 2627
         priorAlpha[i] = -0.22;
         priorBeta[i] = -0.20;
       } else {
+        // Teams present in 2526 start at league average (0.0)
         priorAlpha[i] = 0.0;
         priorBeta[i] = 0.0;
       }
@@ -611,7 +617,8 @@
       let sumEst = 0;
       let countEst = 0;
       for (let i = 0; i < N; i++) {
-        if (cutoff === 0 || pastSeasonMatches[i] > 0) {
+        const isEstablished = !isSeason2627 || teamsIn2526[i] === 1;
+        if (isEstablished && teamW[i] > 0) {
           sumEst += alpha[i];
           countEst++;
         }
@@ -830,37 +837,34 @@
         // Settlement
         let payout = 0;
         let isWin = false;
+        let mult = 0;
 
         if (market === '1x2') {
           const matchResult = fthg > ftag ? 0 : (fthg === ftag ? 1 : 2);
           if (selectionIdx === matchResult) {
-            payout = stake * takenOdds;
             isWin = true;
+            mult = takenOdds;
             wins++;
           }
         } else if (market === 'ou25') {
           const totalGoals = fthg + ftag;
           const isOver = totalGoals > 2.5;
           if ((selectionIdx === 0 && isOver) || (selectionIdx === 1 && !isOver)) {
-            payout = stake * takenOdds;
             isWin = true;
+            mult = takenOdds;
             wins++;
           }
         } else if (market === 'ah') {
           const goalDiff = fthg - ftag;
           if (selectionIdx === 0) {
-            // Home bet
-            const mult = settleAH(goalDiff, ahLine, takenOdds);
-            payout = stake * mult;
-            if (mult > 1.0) wins++;
+            mult = settleAH(goalDiff, ahLine, takenOdds);
           } else {
-            // Away bet: diff from away perspective is -goalDiff, line is -ahLine
-            const mult = settleAH(-goalDiff, -ahLine, takenOdds);
-            payout = stake * mult;
-            if (mult > 1.0) wins++;
+            mult = settleAH(-goalDiff, -ahLine, takenOdds);
           }
+          if (mult > 1.0) wins++;
         }
 
+        payout = stake * mult;
         const netProfit = payout - stake;
         totalReturn += payout;
         bankroll += netProfit;
@@ -893,7 +897,13 @@
           stake,
           payout,
           profit: netProfit,
-          clv: Math.round(clv * 1000) / 10
+          clv: Math.round(clv * 1000) / 10,
+          modelProb,
+          isAHMarket,
+          ahLine,
+          ahProbs,
+          payoutMult: mult,
+          selectionIdx
         });
       }
     }

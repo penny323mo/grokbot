@@ -77,16 +77,16 @@
         const parsed = JSON.parse(saved);
         state.settings = Object.assign(state.settings, parsed);
       }
-    } catch (e) {
-      console.warn('Could not load settings from localStorage', e);
+    } catch (_) {
+      // Ignore storage errors in restricted contexts
     }
   }
 
   function saveSettings() {
     try {
       localStorage.setItem('odds_lab_settings', JSON.stringify(state.settings));
-    } catch (e) {
-      console.warn('Could not save settings to localStorage', e);
+    } catch (_) {
+      // Ignore storage errors in restricted contexts
     }
   }
 
@@ -303,25 +303,33 @@
     });
   }
 
+  function getFilteredFixtures(leagueData) {
+    if (!leagueData || !leagueData.fixtures) return [];
+    const now = window.__MOCK_NOW__ || new Date();
+    return window.OddsModel.filterFixturesInWindow(leagueData.fixtures, now, 72);
+  }
+
   function selectLeague(leagueId) {
     if (leagueId === 'all') leagueId = 'E0';
     state.activeLeague = leagueId;
     const leagueData = window.ODDS_DATA.leagues[leagueId];
     if (!leagueData) return;
 
-    // Load upcoming fixtures for this league
-    renderFixturesList(leagueData);
-
-    // Pick first upcoming fixture or default first two current teams
-    if (leagueData.fixtures && leagueData.fixtures.length > 0) {
-      loadFixture(0);
+    const filtered = getFilteredFixtures(leagueData);
+    if (filtered.length > 0) {
+      state.activeHomeId = filtered[0][2];
+      state.activeAwayId = filtered[0][3];
+      state.selectedFixtureIdx = 0;
     } else {
       const curr = leagueData.currentTeams;
       state.activeHomeId = curr[0] || 0;
       state.activeAwayId = curr[1] || 1;
       state.selectedFixtureIdx = -1;
-      renderMatchLab();
     }
+
+    // Load upcoming fixtures for this league
+    renderFixturesList(leagueData);
+    renderMatchLab();
 
     // Populate team select in movement tab
     populateMovementTeamSelect();
@@ -780,9 +788,19 @@
     const countEl = document.getElementById('fixturesCount');
     if (!listEl) return;
 
-    const fixtures = leagueData.fixtures || [];
+    const fixtures = getFilteredFixtures(leagueData);
     if (countEl) countEl.textContent = `${fixtures.length} 場`;
     listEl.innerHTML = '';
+
+    // Match selectedFixtureIdx based on current active teams
+    let foundIdx = -1;
+    for (let i = 0; i < fixtures.length; i++) {
+      if (fixtures[i][2] === state.activeHomeId && fixtures[i][3] === state.activeAwayId) {
+        foundIdx = i;
+        break;
+      }
+    }
+    state.selectedFixtureIdx = foundIdx;
 
     fixtures.forEach((fix, idx) => {
       const hTeam = leagueData.teams[fix[2]];
@@ -810,10 +828,12 @@
 
   function loadFixture(idx) {
     const leagueData = window.ODDS_DATA.leagues[state.activeLeague];
-    if (!leagueData || !leagueData.fixtures || !leagueData.fixtures[idx]) return;
+    if (!leagueData) return;
+    const fixtures = getFilteredFixtures(leagueData);
+    if (!fixtures || !fixtures[idx]) return;
 
     state.selectedFixtureIdx = idx;
-    const fix = leagueData.fixtures[idx];
+    const fix = fixtures[idx];
     state.activeHomeId = fix[2];
     state.activeAwayId = fix[3];
 
@@ -823,6 +843,7 @@
       c.classList.toggle('selected', i === idx);
     });
 
+    state.selectedScoreManuallySet = false;
     renderMatchLab();
   }
 
@@ -1473,29 +1494,66 @@
       const preModel = getWalkForwardModel(state.activeLeague, m[0]);
       let modelProbThisTeam = 0.35;
       let modelFairThisTeam = 2.85;
+      let m1x2 = null;
       if (preModel) {
         const pred = preModel.predict(m[1], m[2]);
         const mat = window.OddsModel.calcScoreMatrix(pred.lambdaHome, pred.lambdaAway, preModel.rho, 10);
-        const m1x2 = window.OddsModel.derive1X2(mat);
+        m1x2 = window.OddsModel.derive1X2(mat);
         modelProbThisTeam = isHome ? m1x2.home : m1x2.away;
         modelFairThisTeam = isHome ? m1x2.fairHome : m1x2.fairAway;
       }
 
-      // CLV using settings.marginMethod (Issue 7)
+      // MAJOR 3: CLV of a hypothetical bet on the model's preferred side (highest pre-match edge)
+      const open1x2 = [m[8], m[9], m[10]];
       const sharpClosing = [m[24], m[25], m[26]];
-      const selIdx = isHome ? 0 : 2;
-      const clv = (openOdds && openOdds > 1)
-        ? window.OddsModel.calcCLV(openOdds, sharpClosing, state.settings.marginMethod, selIdx)
+      let modelSelIdx = isHome ? 0 : 2;
+      let modelSelName = isHome ? '主勝' : '客勝';
+      let modelSelOdds = openOdds;
+
+      if (m1x2 && open1x2[0] && open1x2[1] && open1x2[2]) {
+        const edge0 = open1x2[0] > 1 ? (m1x2.home * open1x2[0] - 1) : -1;
+        const edge1 = open1x2[1] > 1 ? (m1x2.draw * open1x2[1] - 1) : -1;
+        const edge2 = open1x2[2] > 1 ? (m1x2.away * open1x2[2] - 1) : -1;
+
+        if (edge1 > edge0 && edge1 > edge2) {
+          modelSelIdx = 1;
+          modelSelName = '和局';
+          modelSelOdds = open1x2[1];
+        } else if (edge2 > edge0 && edge2 > edge1) {
+          modelSelIdx = 2;
+          modelSelName = '客勝';
+          modelSelOdds = open1x2[2];
+        } else {
+          modelSelIdx = 0;
+          modelSelName = '主勝';
+          modelSelOdds = open1x2[0];
+        }
+      }
+
+      const clv = (modelSelOdds && modelSelOdds > 1)
+        ? window.OddsModel.calcCLV(modelSelOdds, sharpClosing, state.settings.marginMethod, modelSelIdx)
         : 0;
       const clvPct = clv * 100;
 
-      // Odds movement & Sparkline
+      // Odds movement & Sparkline (Minor 10: de-vigged fair probability)
       let oddsMoveText = '冇變過';
       let sparklineHtml = '';
       if (closeOdds && openOdds) {
-        const openImp = (1 / openOdds) * 100;
-        const closeImp = (1 / closeOdds) * 100;
-        sparklineHtml = createSparklineSvg(openImp, closeImp);
+        let openProb = (1 / openOdds) * 100;
+        let closeProb = (1 / closeOdds) * 100;
+
+        if (open1x2[0] && open1x2[1] && open1x2[2]) {
+          const devigOpen = window.OddsModel.removeMargin(open1x2, state.settings.marginMethod);
+          if (devigOpen) openProb = devigOpen[isHome ? 0 : 2] * 100;
+        }
+
+        const close1x2 = [m[11], m[12], m[13]];
+        if (close1x2[0] && close1x2[1] && close1x2[2]) {
+          const devigClose = window.OddsModel.removeMargin(close1x2, state.settings.marginMethod);
+          if (devigClose) closeProb = devigClose[isHome ? 0 : 2] * 100;
+        }
+
+        sparklineHtml = createSparklineSvg(openProb, closeProb);
 
         if (closeOdds < openOdds) {
           oddsMoveText = `<span class="arrow-down">↘ 降水 (${openOdds.toFixed(2)} → ${closeOdds.toFixed(2)})</span>`;
@@ -1524,7 +1582,7 @@
       card.innerHTML = `
         <div class="mov-header">
           <span>${m[0]} (${isHome ? '主場' : '作客'})</span>
-          <span class="clv-pill ${clvPct > 0 ? 'pos' : (clvPct < 0 ? 'neg' : '')}">CLV: ${clvPct > 0 ? '+' : ''}${clvPct.toFixed(1)}%</span>
+          <span class="clv-pill ${clvPct > 0 ? 'pos' : (clvPct < 0 ? 'neg' : '')}" title="模型方向：${modelSelName} (開盤 @${modelSelOdds ? modelSelOdds.toFixed(2) : '--'})">模型方向 (${modelSelName}) CLV: ${clvPct > 0 ? '+' : ''}${clvPct.toFixed(1)}%</span>
         </div>
         <div class="mov-teams-row">
           <span>${isHome ? thisTeam.zh : oppTeam.zh} ${fthg} - ${ftag} ${isHome ? oppTeam.zh : thisTeam.zh}</span>
@@ -1662,9 +1720,54 @@
     }
 
     const leagueResults = [];
-    let allBets = [];
 
+    // CRITICAL 1 Fix: If single league, directly run runBacktest with actual staking
+    if (targetLeagues.length === 1) {
+      const lgId = targetLeagues[0];
+      const lgData = window.ODDS_DATA.leagues[lgId];
+      if (!lgData) return;
+
+      const res = window.OddsModel.runBacktest(lgData.matches, lgData.teams, {
+        season,
+        market,
+        oddsType,
+        edgeThreshold,
+        staking,
+        kellyFraction: state.settings.kellyFraction,
+        initialBankroll: 100,
+        halfLifeDays: state.settings.halfLifeDays,
+        marginMethod: state.settings.marginMethod
+      });
+
+      leagueResults.push({
+        id: lgId,
+        name: lgData.name,
+        res
+      });
+
+      state.backtestResult = {
+        totalBets: res.totalBets,
+        hitRate: res.hitRate,
+        profit: res.profit,
+        roi: res.roi,
+        maxDrawdown: res.maxDrawdown,
+        avgCLV: res.avgCLV,
+        beatCloseRate: res.beatCloseRate,
+        totalStaked: res.totalStaked,
+        bankrollCurve: res.bankrollCurve,
+        leagueResults,
+        bets: res.bets
+      };
+
+      renderBacktestResults(state.backtestResult);
+      return;
+    }
+
+    // Multiple leagues ("ALL"): collect candidate bets and simulate combined chronological bankroll
+    let allBets = [];
+    const perLeagueStats = {};
     targetLeagues.forEach(lgId => {
+      perLeagueStats[lgId] = { totalBets: 0, totalStaked: 0, totalReturn: 0, wins: 0, clvSum: 0, beatCloseCount: 0 };
       const lgData = window.ODDS_DATA.leagues[lgId];
       if (!lgData) return;
 
@@ -1696,7 +1799,7 @@
     // Sort all bets chronologically by match date (Issue 10)
     allBets.sort((a, b) => a.date.localeCompare(b.date));
 
-    // Simulate combined bankroll chronologically
+    // Simulate combined bankroll chronologically with NO lookahead and exact AH multipliers
     const initialBankroll = 100;
     let bankroll = initialBankroll;
     let peak = initialBankroll;
@@ -1713,19 +1816,23 @@
       let stake = 1.0;
       if (staking === 'kelly') {
         const kFrac = state.settings.kellyFraction || 0.25;
-        const odds = b.odds;
-        const prob = (b.profit > 0 ? (b.payout / odds) : 0.35); // fallback prob
-        const k = window.OddsModel.calcKelly(prob, odds, kFrac, 0.2);
-        stake = k.recommendedStake(bankroll);
+        if (b.isAHMarket && b.ahProbs) {
+          const k = window.OddsModel.calcAHKelly(b.ahProbs, b.odds, kFrac, 0.2);
+          stake = k.recommendedStake(bankroll);
+        } else {
+          const k = window.OddsModel.calcKelly(b.modelProb || 0.35, b.odds, kFrac, 0.2);
+          stake = k.recommendedStake(bankroll);
+        }
         stake = Math.min(bankroll, stake);
         if (stake <= 0) return;
       }
 
       totalStakedAll += stake;
-      const isWin = b.profit > 0;
-      const payout = isWin ? stake * b.odds : 0;
+      const mult = b.payoutMult !== undefined ? b.payoutMult : (b.payout / (b.stake || 1.0));
+      const payout = stake * mult;
       const netProfit = payout - stake;
       totalReturnAll += payout;
+      const isWin = mult > 1.0;
       if (isWin) winsAll++;
 
       bankroll += netProfit;
@@ -1736,8 +1843,21 @@
       clvSumAll += (b.clv || 0) / 100;
       if (b.clv > 0) beatCloseAll++;
 
+      if (perLeagueStats[b.leagueId]) {
+        perLeagueStats[b.leagueId].totalBets++;
+        perLeagueStats[b.leagueId].totalStaked += stake;
+        perLeagueStats[b.leagueId].totalReturn += payout;
+        if (isWin) perLeagueStats[b.leagueId].wins++;
+        perLeagueStats[b.leagueId].clvSum += (b.clv || 0) / 100;
+        if (b.clv > 0) perLeagueStats[b.leagueId].beatCloseCount++;
+      }
+
+      b.stake = stake;
+      b.payout = payout;
+      b.profit = netProfit;
+
       combinedCurve.push({
-        index: idx + 1,
+        index: combinedCurve.length,
         date: b.date,
         bankroll: Math.round(bankroll * 100) / 100,
         profit: Math.round((bankroll - initialBankroll) * 100) / 100
@@ -1750,6 +1870,22 @@
     const avgClvAll = allBets.length > 0 ? (clvSumAll / allBets.length) * 100 : 0;
     const beatCloseRateAll = allBets.length > 0 ? (beatCloseAll / allBets.length) * 100 : 0;
 
+    // Synchronize league breakdown table with replayed results
+    leagueResults.forEach(lr => {
+      const s = perLeagueStats[lr.id];
+      if (s) {
+        const p = s.totalReturn - s.totalStaked;
+        lr.res.totalBets = s.totalBets;
+        lr.res.totalStaked = Math.round(s.totalStaked * 100) / 100;
+        lr.res.totalReturn = Math.round(s.totalReturn * 100) / 100;
+        lr.res.profit = Math.round(p * 100) / 100;
+        lr.res.roi = s.totalStaked > 0 ? Math.round((p / s.totalStaked) * 1000) / 10 : 0;
+        lr.res.hitRate = s.totalBets > 0 ? Math.round((s.wins / s.totalBets) * 1000) / 10 : 0;
+        lr.res.avgCLV = s.totalBets > 0 ? Math.round((s.clvSum / s.totalBets) * 10000) / 100 : 0;
+        lr.res.beatCloseRate = s.totalBets > 0 ? Math.round((s.beatCloseCount / s.totalBets) * 1000) / 10 : 0;
+      }
+    });
+
     state.backtestResult = {
       totalBets: allBets.length,
       hitRate: hitRateAll,
@@ -1760,7 +1896,8 @@
       beatCloseRate: beatCloseRateAll,
       totalStaked: totalStakedAll,
       bankrollCurve: combinedCurve,
-      leagueResults
+      leagueResults,
+      bets: allBets
     };
 
     renderBacktestResults(state.backtestResult);

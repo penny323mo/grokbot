@@ -776,15 +776,24 @@ input, button, select, textarea {
 
 .split-pill-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
-  font-size: 10px;
+  align-items: center;
+  font-size: 11px;
 }
 
 .split-pill {
-  padding: 1px 4px;
-  border-radius: 3px;
+  padding: 6px 8px;
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
   background: var(--surface-3);
   color: var(--text-muted);
+  cursor: pointer;
+  box-sizing: border-box;
 }
 
 /* --- Score Heatmap --- */
@@ -1031,10 +1040,10 @@ input, button, select, textarea {
 
 /* --- Tab 2: Market Movement & CLV --- */
 .inline-select {
-  max-width: 150px;
-  padding: 4px 8px;
-  min-height: 32px;
-  font-size: 12px;
+  max-width: 160px;
+  padding: 8px 12px;
+  min-height: 44px;
+  font-size: 13px;
 }
 
 .movement-list {
