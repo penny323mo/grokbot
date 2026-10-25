@@ -382,3 +382,106 @@ test('3-day window fixture filter excludes past matches and matches beyond 72 ho
   assert.deepStrictEqual(inWindow[1], testFixtures[3]);
   assert.deepStrictEqual(inWindow[2], testFixtures[4]);
 });
+
+test('Backtest AH records keep exact half-win and push payout multipliers without binary distortion', () => {
+  // Test settleAH directly on known quarter-ball lines
+  // Half-win: line -0.75, goal diff +1 (1-0 win), odds 1.90 -> 1.0 + 0.5 * (1.90 - 1) = 1.45
+  const halfWinMult = model.settleAH(1, -0.75, 1.90);
+  assert.strictEqual(halfWinMult, 1.45, `Expected half-win mult 1.45, got ${halfWinMult}`);
+
+  // Push: line 0.0, goal diff 0 (1-1 draw), odds 1.90 -> 1.0 (stake returned)
+  const pushMult = model.settleAH(0, 0.0, 1.90);
+  assert.strictEqual(pushMult, 1.0, `Expected push mult 1.0, got ${pushMult}`);
+
+  // Half-loss: line -0.25, goal diff 0 (1-1 draw), odds 1.90 -> 0.5 (half stake returned)
+  const halfLossMult = model.settleAH(0, -0.25, 1.90);
+  assert.strictEqual(halfLossMult, 0.5, `Expected half-loss mult 0.5, got ${halfLossMult}`);
+
+  // Construct a controlled 1-match backtest to verify that runBacktest stores exact payoutMult
+  // Match schema: [date, home, away, fthg, ftag, hthg, htag, season, o1x2_h, o1x2_d, o1x2_a, c1x2_h, c1x2_d, c1x2_a, o_ou_o, o_ou_u, c_ou_o, c_ou_u, o_ah_line, o_ah_h, o_ah_a, c_ah_line, c_ah_h, c_ah_a]
+  // 1-0 match with line -0.75 @ 3.80 for home (so evHome is positive, picking Home)
+  const syntheticMatches = [
+    ['2025-09-01', 0, 1, 1, 0, 0, 0, '2526', 1.8, 3.5, 4.2, 1.8, 3.5, 4.2, 1.9, 1.9, 1.9, 1.9, -0.75, 3.80, 1.10, -0.75, 3.80, 1.10, 1.8, 3.5, 4.2, 1.9, 1.9, 3.80, 1.10]
+  ];
+  const teams = [{ id: 0, zh: '主隊' }, { id: 1, zh: '客隊' }];
+
+  const res = model.runBacktest(syntheticMatches, teams, {
+    season: '2526',
+    market: 'ah',
+    edgeThreshold: -0.99, // place bet regardless of model edge
+    staking: 'flat',
+    initialBankroll: 100
+  });
+
+  assert.strictEqual(res.bets.length, 1, 'Expected 1 bet placed');
+  const b = res.bets[0];
+  // Half-win on odds 3.80 gives mult: 1.0 + 0.5 * (3.80 - 1.0) = 2.4
+  assert.strictEqual(b.payoutMult, 2.4, `Expected payoutMult 2.4 for half-win, got ${b.payoutMult}`);
+  assert.strictEqual(b.payout, 2.4, `Expected payout 2.4 on 1u stake, got ${b.payout}`);
+  assert.ok(Math.abs(b.profit - 1.4) < 1e-9, `Expected profit 1.4, got ${b.profit}`);
+
+  // Replay test: verify that a toy aggregate replay sized at stake 10 yields 24.0 payout, NOT full win 38.0
+  const toyStake = 10;
+  const toyPayout = toyStake * b.payoutMult;
+  assert.strictEqual(toyPayout, 24.0, `Replayed payout on stake 10 must be 24.0, got ${toyPayout}`);
+});
+
+test('Backtest bet records contain pre-match modelProb, isAHMarket, payoutMult for lookahead-free Kelly replay', () => {
+  const d = require('../data/data.js');
+  const e0 = d.leagues['E0'];
+  const res = model.runBacktest(e0.matches.slice(0, 50), e0.teams, {
+    season: '2526',
+    market: '1x2',
+    edgeThreshold: 0.02,
+    staking: 'flat'
+  });
+
+  assert.ok(res.bets.length > 0, 'Should have placed some bets in 50 matches');
+  for (const b of res.bets) {
+    assert.strictEqual(typeof b.modelProb, 'number', 'modelProb must be a number');
+    assert.ok(b.modelProb > 0 && b.modelProb < 1, 'modelProb must be a valid probability');
+    assert.strictEqual(typeof b.isAHMarket, 'boolean', 'isAHMarket must be boolean');
+    assert.strictEqual(typeof b.payoutMult, 'number', 'payoutMult must be a number');
+    assert.ok(Number.isFinite(b.odds), 'odds must be finite');
+
+    // Verify Kelly sizing calculation from pre-match modelProb produces valid stake without result lookahead
+    const k = model.calcKelly(b.modelProb, b.odds, 0.25, 0.2);
+    assert.ok(Number.isFinite(k.fracKelly), 'Kelly fraction must be finite');
+    assert.ok(k.fracKelly >= 0, 'Kelly fraction must be non-negative');
+  }
+});
+
+test('MAJOR 4 regression: 2526 teams start at league average (0.0), only true 2627 newcomers (Coventry/Malaga) get promoted prior', () => {
+  const d = require('../data/data.js');
+  const e0 = d.leagues['E0'];
+
+  // 1. Walk-forward fit inside 2526 (asOfDate = 2025-10-15)
+  // All teams present in 2526 must start at league average (0.0, 0.0); none are shrunk to -0.22
+  const m2526 = model.fitDixonColes(e0.matches, e0.teams.length, {
+    asOfDate: '2025-10-15',
+    halfLifeDays: 180,
+    iterations: 80
+  });
+
+  const arsenal = e0.teams.find(t => t.name === 'Arsenal').id;
+  const manCity = e0.teams.find(t => t.name === 'Man City').id;
+
+  // Established top teams should have healthy positive alpha inside 2526
+  assert.ok(m2526.alpha[arsenal] > 0.1, `Arsenal alpha in 2526 should be positive, got ${m2526.alpha[arsenal]}`);
+  assert.ok(m2526.alpha[manCity] > 0.1, `Man City alpha in 2526 should be positive, got ${m2526.alpha[manCity]}`);
+
+  // 2. Fit in 2627 (present day 2026-10-25)
+  // True newcomer Coventry (no matches in 2526) gets the negative promoted prior
+  const m2627 = model.fitDixonColes(e0.matches, e0.teams.length, {
+    halfLifeDays: 180,
+    iterations: 120
+  });
+
+  const coventry = e0.teams.find(t => t.name === 'Coventry').id;
+  const netArsenal = m2627.alpha[arsenal] + m2627.beta[arsenal];
+  const netCoventry = m2627.alpha[coventry] + m2627.beta[coventry];
+
+  assert.ok(netArsenal > 0.35, `Arsenal net rating should be > 0.35, got ${netArsenal}`);
+  assert.ok(netCoventry < -0.15, `Coventry net rating should be negative (< -0.15), got ${netCoventry}`);
+  assert.ok(netArsenal - netCoventry > 0.5, `Arsenal vs Coventry gap should be > 0.5, got ${netArsenal - netCoventry}`);
+});

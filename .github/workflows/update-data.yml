@@ -46,7 +46,8 @@ jobs:
             UTC_TIME=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
             git add data/data.js
             git commit -m "data: auto update ${UTC_TIME}"
-            git push
+            git pull --rebase origin ${{ github.ref_name }} || git pull --rebase || true
+            git push origin HEAD:${{ github.ref_name }}
             echo "Successfully committed and pushed updated data/data.js"
 
             echo "Triggering GitHub Pages rebuild..."

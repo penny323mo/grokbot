@@ -15,32 +15,36 @@ download_and_verify() {
   echo "Downloading ${url} -> ${dest}..."
   rm -f "${tmp_file}"
 
-  if ! curl --retry 3 --retry-delay 2 -fsSL -A "Mozilla/5.0" "${url}" -o "${tmp_file}"; then
-    echo "ERROR: Failed to download ${url}" >&2
-    rm -f "${tmp_file}"
-    return 1
-  fi
+  local max_attempts=4
+  local attempt=1
+  local delay=1
+  local success=0
 
-  # Check that file exists and is not empty
-  if [ ! -s "${tmp_file}" ]; then
-    echo "ERROR: Downloaded file is empty: ${url}" >&2
-    rm -f "${tmp_file}"
-    return 1
-  fi
+  while [ $attempt -le $max_attempts ]; do
+    if curl -fsSL -A "Mozilla/5.0" "${url}" -o "${tmp_file}"; then
+      # Check that file exists and is not empty
+      if [ -s "${tmp_file}" ]; then
+        # Verify file is CSV
+        local first_line
+        first_line=$(head -n 2 "${tmp_file}" | tr -d '\r')
+        if [[ "${first_line}" == *","* ]] && ! [[ "${first_line}" =~ ^\<(!DOCTYPE|html|HTML) ]]; then
+          success=1
+          break
+        else
+          echo "Warning: Downloaded content is not valid CSV on attempt ${attempt}." >&2
+        fi
+      fi
+    fi
 
-  # Verify file is CSV (check header line for comma or known columns)
-  local first_line
-  first_line=$(head -n 2 "${tmp_file}" | tr -d '\r')
-  if [[ "${first_line}" != *","* ]]; then
-    echo "ERROR: Downloaded file does not appear to be CSV: ${url}" >&2
-    echo "First line was: ${first_line}" >&2
+    echo "Attempt ${attempt} failed for ${url}, retrying in ${delay}s..." >&2
+    sleep "${delay}"
+    delay=$((delay * 2))
+    attempt=$((attempt + 1))
     rm -f "${tmp_file}"
-    return 1
-  fi
+  done
 
-  # Check if response was an HTML error page despite 200/302
-  if [[ "${first_line}" =~ ^\<(!DOCTYPE|html|HTML) ]]; then
-    echo "ERROR: Downloaded file is HTML, not CSV: ${url}" >&2
+  if [ $success -ne 1 ]; then
+    echo "ERROR: Failed to download and verify valid CSV from ${url} after ${max_attempts} attempts." >&2
     rm -f "${tmp_file}"
     return 1
   fi
