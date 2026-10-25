@@ -1,0 +1,32 @@
+[ROUND v4-R1 · agy BUILD] Work ONLY in /workspace/nightly/2026-10-25-odds-lab (repo penny323mo/odds-lab, GitHub Pages static site, no backend). Read SPEC.md, CHANGELOG.md, build_data.py, scripts/fetch_data.sh, .github/workflows/update-data.yml, js/, tests/ first. Build Odds Lab v4. Commit after each milestone (git add/commit; push to origin main when tests pass). NEVER print secrets; the Odds API key is in env ODDS_API_KEY locally and repo secret ODDS_API_KEY in Actions.
+
+DATA SOURCES
+1) Macau Slot (public, no login; only plain POSTs the public page itself makes). Headers: User-Agent browser, X-Requested-With: XMLHttpRequest, Referer https://www.macau-slot.com/content/soccer/coming_bet.html, content-type form-urlencoded.
+ - List: POST https://www.macau-slot.com/event-api/cn/D/FB/coming/all/-/threeinone/-  body request_data=%7B%7D&token=   -> data.events[] (ev_id, start_time GMT+8, home_team/away_team in CN; translateName {CN,SC,EN}; eventType.translateName.EN league e.g. "England Premier League","Spain LALIGA","Italy Serie A","Germany Bundesliga","France Ligue 1", UEFA cups). Also data.event_types/days.
+ - Prices: POST https://www.macau-slot.com/event-api/cn/D/FB/markets/coming/all/threeinone  body request_data={"events":"id1,id2,..."}&token= (urlencoded; batch ~25 ids). markets[] with translateName.EN "Win/Draw/Win","Asian Handicap","Over/Under" (+first half; ignore), hcap_disp e.g. "-0.5/-1" (quarter lines = split stakes), outcomes[] with rate (decimal odds), fb_result (H/D/A or over/under codes), lp_num/lp_den. Inspect real responses yourself and save raw samples. Be polite: few requests, timeouts, retries.
+ Filter to top-5 leagues + UCL/UEL/UECL, next 3 days.
+2) The Odds API (api.the-odds-api.com/v4) once per day ONLY: sports soccer_epl, soccer_spain_la_liga, soccer_italy_serie_a, soccer_germany_bundesliga, soccer_france_ligue_one, soccer_uefa_champs_league, soccer_uefa_europa_league, soccer_uefa_europa_conference_league; markets=h2h,totals; regions=eu; oddsFormat=decimal. First call free /v4/sports and skip inactive keys. Budget 500 credits/month: guard so it runs at most once per UTC day (state file data/odds_api_state.json records last run + x-requests-remaining/used); abort if remaining < 40. Log credit usage into data so the UI can show it.
+3) football-data.co.uk fixtures.csv (existing) as sharp reference (Pinnacle PS* columns, Avg/Max).
+
+PIPELINE (Python, build_data.py or new modules)
+- Snapshots: append each fetch to data/snapshots/ (compact JSON, prune >14 days) -> line movement per match/market for Macau Slot & consensus.
+- Cross-source match mapping: kickoff within ±3h + normalized team names (extend team_names.py with Macau EN/CN names and Odds API names; fuzzy fallback with logging of unmatched to data/unmatched.json).
+- Consensus: de-vig each bookmaker (multiplicative/power), Pinnacle-weighted if present else median across books; for totals convert to the Macau line via Poisson/Dixon-Coles expected goals fitted to consensus where lines differ.
+- Fair probs = blend consensus (weight ~0.7) with existing Dixon-Coles model (~0.3); document.
+- Classify every Macau Slot price: 1X2, Asian handicap at Macau's exact line (handle 0, ±0.25 quarter, ±0.5, ±0.75 split settlement, push), O/U at Macau line incl. quarter lines. EV% = fair_prob-adjusted expected return -1. Labels: 值博 EV>+3%, 一般 -3%..+3%, 唔值博 < -3%. Also show Macau margin (overround).
+- Bookmaker discrepancy: per match, each book's price vs consensus, highlight outliers, show best price.
+- Record tracking: store every 值博 flag at first detection with price; after kickoff record closing Macau price & consensus (CLV), after result (football-data results or Odds API /scores free-ish — prefer football-data to save credits) settle profit at 1u flat. Persist data/track_record.json; show ROI, CLV avg, hit rate.
+- Schema check: validate Macau and Odds API responses; on failure keep last good data, write data/health.json with error, and make the workflow open/update a GitHub issue (gh issue) labelled data-alert (no spam: update one issue).
+
+WORKFLOW (.github/workflows/update-data.yml)
+- Macau Slot fetch 4x/day (e.g. cron 0 0,6,12,18 UTC... choose so one run ~ Macau morning), Odds API step only in first run of UTC day via guard. Commit data, trigger Pages build. Keep tests. Add a step that logs how many Macau events were fetched (to verify GitHub IPs are allowed).
+
+UI (Traditional Chinese, Cantonese tone, mobile-first iPhone 390px, high quality, no toy look)
+- New default tab「澳門盤值博」: next 3 days grouped by day, each match card: league, kickoff (澳門時間), Macau 1X2/讓球/大細 with fair price, EV%, colored badge 值博/一般/唔值博, movement arrow/sparkline, data freshness. Filters: 只睇值博, league, market. Tap card -> detail: all books table vs consensus, discrepancy, movement chart, model vs market.
+- Tab「莊家比較」and「戰績追蹤」(record, ROI, CLV). Keep existing tabs if useful but simplify.
+- Status bar: last updated times per source, Odds API credits remaining, health warnings.
+- Prominent disclaimer: 只供參考，唔保證贏錢，請量力而為，只限合法年齡人士。
+- Large tap targets, no horizontal scroll, fast.
+
+TESTS: extend tests (node --test tests/ and python tests) for AH quarter-line settlement, de-vig, mapping, classification thresholds, schema check. Run locally with real fetch (Macau + one Odds API run is OK, mind credits: one run ~16 credits max). Take 390px screenshots into screenshots/v4/. Write reviews/agy-v4-r1.md summarizing what you did, then commit + push. Then reply DONE-v4-R1.
+- Local key: in shell commands use ODDS_API_KEY=$(cat /workspace/.odds_api_key) — never cat/echo it to output, never commit it.

@@ -2212,3 +2212,432 @@ strong, .th-price, .stat-num, .kpi-val, .m-val, .td-num, .hm-prob-txt, .edge-pil
   margin: 0 auto;
 }
 
+/* ==========================================================================
+   Odds Lab v4 Custom Styles
+   - Real-time Status Bar
+   - Prominent Disclaimer
+   - Value Filters & Toggle Button
+   - EV Classification Badges (值博, 一般, 唔值博)
+   - Match Spotlight & Markets Comparison Grid
+   - Bookmaker Margin Comparison
+   - Discrepancy Matrix
+   - Track Record Scorecards & Bet List
+   - Match Detail Modal with All Books Table
+   ========================================================================== */
+
+/* --- v4 Real-time Status Bar --- */
+.app-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #0d1117;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;
+}
+.app-status-bar::-webkit-scrollbar { display: none; }
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-1);
+  padding: 5px 9px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+}
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-dim);
+}
+.status-dot.healthy {
+  background: var(--accent-green);
+  box-shadow: 0 0 6px rgba(0, 255, 135, 0.7);
+}
+.status-dot.warning {
+  background: var(--accent-yellow);
+  box-shadow: 0 0 6px rgba(251, 191, 36, 0.7);
+}
+.status-label {
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.status-val {
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+/* --- Prominent Disclaimer Banner --- */
+.app-disclaimer-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(251, 191, 36, 0.08);
+  border-bottom: 1px solid rgba(251, 191, 36, 0.25);
+  padding: 8px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fde68a;
+  text-align: center;
+}
+
+/* --- Value Filters Bar & Toggle Button --- */
+.fixtures-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.value-toggle-btn {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.value-toggle-btn.active {
+  background: rgba(0, 255, 135, 0.16);
+  border-color: var(--accent-green);
+  color: #fff;
+  box-shadow: 0 0 14px var(--accent-green-glow);
+}
+.toggle-badge {
+  background: var(--surface-3);
+  color: var(--accent-green);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 10px;
+}
+.value-toggle-btn.active .toggle-badge {
+  background: var(--accent-green);
+  color: #000;
+}
+.market-chips-wrap {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+/* --- EV Classification Badges --- */
+.badge-val-pos {
+  background: rgba(0, 255, 135, 0.16);
+  color: var(--accent-green);
+  border: 1px solid rgba(0, 255, 135, 0.4);
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.badge-val-neutral {
+  background: rgba(139, 155, 180, 0.12);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+}
+.badge-val-neg {
+  background: rgba(244, 63, 94, 0.1);
+  color: var(--accent-red);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+}
+
+/* --- Match Spotlight Banner --- */
+.match-spotlight-bar {
+  background: linear-gradient(90deg, rgba(0, 255, 135, 0.16), rgba(56, 189, 248, 0.1));
+  border: 1px solid rgba(0, 255, 135, 0.4);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.spotlight-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.spotlight-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
+}
+.spotlight-desc {
+  font-size: 11px;
+  color: var(--accent-green);
+  font-weight: 600;
+}
+
+/* --- Markets Comparison Grid in Match Card --- */
+.match-markets-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.market-row-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+}
+.mkt-header-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.mkt-name {
+  font-weight: 700;
+  color: var(--text-main);
+}
+.mkt-margin-pill {
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--surface-1);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+.mkt-odds-line {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+.odds-choice-box {
+  flex: 1;
+  background: var(--surface-1);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.odds-choice-box.highlight {
+  border-color: var(--accent-green);
+  background: rgba(0, 255, 135, 0.08);
+}
+.oc-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.oc-macau-odds {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-main);
+}
+.oc-fair-odds {
+  font-size: 10px;
+  color: var(--accent-cyan);
+}
+.oc-ev {
+  font-size: 10px;
+  font-weight: 700;
+}
+.oc-ev.pos { color: var(--accent-green); }
+.oc-ev.neg { color: var(--text-dim); }
+
+/* --- Compare Tab: Margin Bars --- */
+.margin-bars-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.margin-bar-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mb-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+}
+.mb-track {
+  width: 100%;
+  height: 12px;
+  background: var(--surface-3);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.mb-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.4s ease;
+}
+.mb-fill.pinnacle { background: #38bdf8; }
+.mb-fill.bet365 { background: #10b981; }
+.mb-fill.market { background: #fbbf24; }
+.mb-fill.macau { background: #f43f5e; }
+
+/* --- Discrepancy Rows --- */
+.discrepancy-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.discrepancy-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  gap: 10px;
+}
+.disc-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.disc-match {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+.disc-mkt {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.disc-price-box {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.disc-odds {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--accent-green);
+}
+.disc-edge {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+/* --- Track Record Cards --- */
+.record-kpi-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.record-filter-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.record-bets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.record-bet-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rb-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.rb-match {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+.rb-details-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+.rb-pills {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.rb-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+.rb-pill.win { background: rgba(0, 255, 135, 0.2); color: var(--accent-green); }
+.rb-pill.half_win { background: rgba(0, 255, 135, 0.15); color: #86efac; }
+.rb-pill.push { background: rgba(251, 191, 36, 0.15); color: var(--accent-yellow); }
+.rb-pill.half_loss { background: rgba(244, 63, 94, 0.15); color: #fda4af; }
+.rb-pill.loss { background: rgba(244, 63, 94, 0.2); color: var(--accent-red); }
+.rb-pill.pending { background: rgba(56, 189, 248, 0.15); color: var(--accent-cyan); }
+
+/* --- Books Table in Modal --- */
+.books-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+.books-compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: right;
+}
+.books-compare-table th, .books-compare-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.books-compare-table th {
+  background: var(--surface-3);
+  color: var(--text-muted);
+  font-weight: 700;
+}
+.books-compare-table td:first-child, .books-compare-table th:first-child {
+  text-align: left;
+}
+.books-compare-table td.best-price {
+  color: var(--accent-green);
+  font-weight: 800;
+}
+

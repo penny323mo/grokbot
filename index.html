@@ -30,6 +30,30 @@
       </div>
     </header>
 
+    <!-- v4 Real-time Status Bar (Sources, Quota, Health) -->
+    <div class="app-status-bar" id="appStatusBar">
+      <div class="status-item" id="statusMacau" title="澳門彩票實時盤口狀態">
+        <span class="status-dot healthy"></span>
+        <span class="status-label">🇲🇴 澳彩:</span>
+        <span class="status-val" id="statusMacauVal">實盤 26場</span>
+      </div>
+      <div class="status-item" id="statusConsensus" title="國際尖端莊家共識與配額">
+        <span class="status-dot healthy"></span>
+        <span class="status-label">🌐 國際共識:</span>
+        <span class="status-val" id="statusConsensusVal">配額 484/500</span>
+      </div>
+      <div class="status-item" id="statusHealth" title="數據健康檢查狀態">
+        <span class="status-dot healthy" id="statusHealthDot"></span>
+        <span class="status-val" id="statusHealthVal">系統正常</span>
+      </div>
+    </div>
+
+    <!-- Prominent Disclaimer Banner -->
+    <div class="app-disclaimer-banner">
+      <span class="disclaimer-icon">⚠️</span>
+      <span class="disclaimer-text">只供參考，唔保證贏錢，請量力而為，只限合法年齡人士。</span>
+    </div>
+
     <!-- League Selector Chips -->
     <nav class="league-bar-wrap">
       <div class="league-chips" id="leagueChips">
@@ -50,8 +74,8 @@
         <div class="section-card live-hero-card">
           <div class="live-hero-header">
             <div>
-              <h2 class="live-hero-title">🔥 未來三日實盤</h2>
-              <p class="live-hero-sub">五大聯賽即將開賽賽事 · 模型公平價 × 值博率 × 讓球盤剖析</p>
+              <h2 class="live-hero-title">🔥 澳門盤值博剖析</h2>
+              <p class="live-hero-sub">未來三日實盤 · 澳門彩票實時盤口 × 國際共識公平價 × 值博率</p>
             </div>
             <div class="live-meta-pills">
               <span class="badge-count" id="liveFixturesCountBadge">0 場實盤</span>
@@ -59,6 +83,23 @@
           </div>
           <div class="live-update-time-row">
             <span class="live-update-pill" id="liveDataUpdateBadge">數據更新於 --（澳門時間）</span>
+          </div>
+        </div>
+
+        <!-- Live Fixtures Filters Bar -->
+        <div class="fixtures-filter-bar">
+          <div class="filter-switch-wrap">
+            <button class="value-toggle-btn" id="btnToggleOnlyValue" aria-pressed="false">
+              <span class="toggle-icon">🔥</span>
+              <span class="toggle-text">只睇值博</span>
+              <span class="toggle-badge" id="valMatchesCountBadge">0</span>
+            </button>
+          </div>
+          <div class="market-chips-wrap">
+            <button class="chip chip-sm active" data-mkt-filter="all">全部盤口</button>
+            <button class="chip chip-sm" data-mkt-filter="1X2">獨贏 (1X2)</button>
+            <button class="chip chip-sm" data-mkt-filter="AH">讓球盤 (AH)</button>
+            <button class="chip chip-sm" data-mkt-filter="OU">大細波 (OU)</button>
           </div>
         </div>
 
@@ -71,7 +112,91 @@
         <div id="liveEmptyState" class="empty-state-card" style="display: none;">
           <div class="empty-icon">📅</div>
           <h3 class="empty-title">未來三日暫時冇賽程／賠率</h3>
-          <p class="empty-desc">football-data 通常逢星期二、五更新最新賽程與盤口數據。</p>
+          <p class="empty-desc">football-data 通常逢星期二、五更新，澳門彩票逢賽前一至兩日開盤。</p>
+        </div>
+      </section>
+
+      <!-- TAB 2: 莊家比較 (Bookmaker Comparison) -->
+      <section id="tab-compare" class="tab-pane">
+        <div class="section-card compare-hero-card">
+          <div class="card-header-sm">
+            <span class="card-title-sm">⚖️ 全市場莊家抽水與賠率對比</span>
+            <span class="badge-count" id="compareBooksCountBadge">尖端 vs 澳彩</span>
+          </div>
+          <p class="section-subtext" style="margin-top:6px;">
+            尖端莊家（如 Pinnacle）超低抽水（約 2%–3%）是國際市場公認最準確之定價標竿；澳門彩票抽水通常高達 10%–12%，唯有捕捉「值博率 > +3%」之正期望值盤口方可長期致勝。
+          </p>
+        </div>
+
+        <!-- Overround Comparison Visualizer Card -->
+        <div class="section-card margin-compare-card">
+          <h3 class="card-subtitle" style="margin-bottom:12px;">📊 主流莊家平均抽水率 (Overround)</h3>
+          <div class="margin-bars-list" id="marginBarsList">
+            <!-- Dynamic margin comparison bars -->
+          </div>
+        </div>
+
+        <!-- Discrepancy & Outliers Matrix -->
+        <div class="section-card discrepancy-card">
+          <div class="card-header-sm">
+            <span class="card-title-sm">⚡ 國際莊家最大破綻與偏差清單</span>
+            <span class="badge-count" id="discrepancyCountBadge">0 個破綻</span>
+          </div>
+          <p class="section-subtext" style="margin-bottom:12px;">
+            即時對比國際莊家與尖端共識線之偏離度（偏離 > +4% 即屬重大破綻），迅速定位最高回報賠率。
+          </p>
+          <div id="discrepancyList" class="discrepancy-list">
+            <!-- Dynamic discrepancy rows -->
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: 戰績追蹤 (Track Record) -->
+      <section id="tab-record" class="tab-pane">
+        <div class="section-card record-hero-card">
+          <div class="card-header-sm">
+            <span class="card-title-sm">🏆 澳門盤實盤值博戰績追蹤</span>
+            <span class="live-update-pill" id="recordDataUpdateBadge">1u 均注驗證</span>
+          </div>
+          <p class="section-subtext" style="margin-top:6px;">
+            嚴格以「初見值博率 > +3%」為觸發條件，自動存入追蹤庫，紀錄初見賠率、收市價與收市值 (CLV)，賽後按每注 1 單位 (1u) 平注結算。
+          </p>
+        </div>
+
+        <!-- Performance KPI Scorecards -->
+        <div class="kpi-grid record-kpi-grid">
+          <div class="kpi-card">
+            <span class="kpi-label">總推薦場次</span>
+            <span class="kpi-val" id="recTotalBets">0</span>
+            <span class="kpi-sub" id="recPendingCount">0 場進行中</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">勝率 (Hit Rate)</span>
+            <span class="kpi-val" id="recHitRate">0.0%</span>
+            <span class="kpi-sub" id="recWinLossDetail">0贏 0和 0輸</span>
+          </div>
+          <div class="kpi-card highlight-card">
+            <span class="kpi-label">累積淨利潤 (1u)</span>
+            <span class="kpi-val" id="recNetProfit">+0.00u</span>
+            <span class="kpi-sub" id="recStakedTotal">總下注 0.0u</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">投資回報率 (ROI)</span>
+            <span class="kpi-val" id="recRoi">0.0%</span>
+            <span class="kpi-sub" id="recAvgClv">平均 CLV: +0.0%</span>
+          </div>
+        </div>
+
+        <!-- Bets Filter and List -->
+        <div class="section-card record-list-card">
+          <div class="record-filter-row">
+            <button class="chip chip-sm active" data-rec-filter="all">全部注碼</button>
+            <button class="chip chip-sm" data-rec-filter="pending">⏳ 進行中</button>
+            <button class="chip chip-sm" data-rec-filter="settled">✅ 已完場</button>
+          </div>
+          <div class="record-bets-list" id="recordBetsList">
+            <!-- Dynamic tracked bets list -->
+          </div>
         </div>
       </section>
 
@@ -538,23 +663,23 @@
     <nav class="bottom-nav">
       <button class="nav-tab active" data-tab="tab-fixtures">
         <span class="nav-icon">🔥</span>
-        <span class="nav-text">實盤</span>
+        <span class="nav-text">澳彩值博</span>
+      </button>
+      <button class="nav-tab" data-tab="tab-compare">
+        <span class="nav-icon">⚖️</span>
+        <span class="nav-text">莊家比較</span>
+      </button>
+      <button class="nav-tab" data-tab="tab-record">
+        <span class="nav-icon">🏆</span>
+        <span class="nav-text">戰績追蹤</span>
       </button>
       <button class="nav-tab" data-tab="tab-match">
         <span class="nav-icon">⚽</span>
         <span class="nav-text">對賽</span>
       </button>
-      <button class="nav-tab" data-tab="tab-movement">
-        <span class="nav-icon">📈</span>
-        <span class="nav-text">走勢</span>
-      </button>
       <button class="nav-tab" data-tab="tab-backtest">
         <span class="nav-icon">🧪</span>
         <span class="nav-text">回測</span>
-      </button>
-      <button class="nav-tab" data-tab="tab-teams">
-        <span class="nav-icon">🛡️</span>
-        <span class="nav-text">球隊</span>
       </button>
     </nav>
 
@@ -688,6 +813,23 @@
         </div>
         <div class="sheet-body" id="termInfoBody" style="padding:16px;line-height:1.6;font-size:14px;color:var(--text-main)">
           <!-- Dynamic explanation -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Sheet / Modal: Match All Books & Discrepancy Detail (v4) -->
+    <div class="bottom-sheet-backdrop" id="matchDetailBackdrop">
+      <div class="bottom-sheet" id="matchDetailSheet" style="max-height: 85vh;">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+          <div>
+            <h3 class="sheet-title" id="matchDetailTitle">賽事全莊家深度剖析</h3>
+            <span class="sheet-subtitle" id="matchDetailSub" style="font-size:12px;color:var(--text-muted);display:block;margin-top:2px;">--</span>
+          </div>
+          <button class="close-sheet-btn" id="btnCloseMatchDetail">✕</button>
+        </div>
+        <div class="sheet-body match-detail-body" id="matchDetailBody" style="padding: 16px;">
+          <!-- Dynamically populated detail sections -->
         </div>
       </div>
     </div>

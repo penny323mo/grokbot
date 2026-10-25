@@ -20,6 +20,10 @@
     selectedScoreManuallySet: false,
     activeTab: 'tab-fixtures',
     pickerTarget: 'home', // 'home' or 'away'
+    filterOnlyValue: false,
+    selectedMarketFilter: 'all',
+    selectedRecFilter: 'all',
+    selectedModalFixture: null,
     modelCache: {},
     walkForwardCache: {},
     backtestResult: null,
@@ -225,8 +229,12 @@
         : `數據截至: ${window.ODDS_DATA.dataThrough}`;
     }
 
+    // Render Status Bar (v4)
+    renderStatusBar();
+
     // Bind Navigation & Tab switching
     setupTabs();
+    setupV4Events();
     setupLeagueChips();
     setupTeamPickers();
     setupSettingsModal();
@@ -267,6 +275,10 @@
   function onTabActivated(tabId) {
     if (tabId === 'tab-fixtures') {
       renderLiveFixturesTab();
+    } else if (tabId === 'tab-compare') {
+      renderCompareTab();
+    } else if (tabId === 'tab-record') {
+      renderRecordTab();
     } else if (tabId === 'tab-match') {
       renderMatchLab();
     } else if (tabId === 'tab-movement') {
@@ -397,16 +409,99 @@
     const listEl = document.getElementById('liveFixturesList');
     const emptyEl = document.getElementById('liveEmptyState');
     const badgeEl = document.getElementById('liveFixturesCountBadge');
+    const valBadgeEl = document.getElementById('valMatchesCountBadge');
     if (!listEl) return;
 
+    const data = window.ODDS_DATA;
     const now = window.__MOCK_NOW__ || new Date();
+
+    // Check if v4 Macau live fixtures are available
+    if (data && data.macauFixtures && data.macauFixtures.length > 0) {
+      let fixtures = data.macauFixtures;
+
+      // Update total value matches count
+      const totalValCount = fixtures.filter(f => f.bestOpportunity && f.bestOpportunity.ev > 0.03).length;
+      if (valBadgeEl) valBadgeEl.textContent = totalValCount;
+
+      // Filter by league
+      if (state.selectedLeagueFilter && state.selectedLeagueFilter !== 'all') {
+        fixtures = fixtures.filter(f => f.league === state.selectedLeagueFilter);
+      }
+
+      // Filter by onlyValue
+      if (state.filterOnlyValue) {
+        fixtures = fixtures.filter(f => f.bestOpportunity && f.bestOpportunity.ev > 0.03);
+      }
+
+      if (badgeEl) {
+        badgeEl.textContent = `${fixtures.length} 場實盤`;
+      }
+
+      if (fixtures.length === 0) {
+        if (emptyEl) {
+          const emptyTitle = emptyEl.querySelector('.empty-title');
+          const emptyDesc = emptyEl.querySelector('.empty-desc');
+          if (emptyTitle) {
+            emptyTitle.textContent = state.filterOnlyValue
+              ? '目前暫無符合「值博率 > +3%」之實盤賽事'
+              : '未來三日暫時冇賽程／賠率';
+          }
+          if (emptyDesc) {
+            emptyDesc.textContent = state.filterOnlyValue
+              ? '可切換至「全部盤口」查看其他平手或微利賽程。'
+              : 'football-data 通常逢星期二、五更新，澳門彩票逢賽前一至兩日開盤。';
+          }
+          emptyEl.style.display = 'block';
+        }
+        listEl.innerHTML = '';
+        listEl.style.display = 'none';
+        return;
+      }
+
+      if (emptyEl) emptyEl.style.display = 'none';
+      listEl.style.display = 'flex';
+      listEl.innerHTML = '';
+
+      // Group by date / dayLabel
+      const groups = {};
+      fixtures.forEach(fix => {
+        const dKey = fix.dayLabel || fix.date;
+        if (!groups[dKey]) groups[dKey] = [];
+        groups[dKey].push(fix);
+      });
+
+      Object.keys(groups).forEach(dayLabel => {
+        const items = groups[dayLabel];
+        const dateGroupEl = document.createElement('div');
+        dateGroupEl.className = 'live-date-group';
+
+        const dateHeaderEl = document.createElement('div');
+        dateHeaderEl.className = 'live-date-header';
+        dateHeaderEl.innerHTML = `
+          <span class="live-date-title">📅 ${dayLabel}</span>
+          <span class="live-date-count">${items.length} 場實盤</span>
+        `;
+        dateGroupEl.appendChild(dateHeaderEl);
+
+        items.forEach(fix => {
+          const cardEl = renderV4LiveFixtureCard(fix);
+          dateGroupEl.appendChild(cardEl);
+        });
+
+        listEl.appendChild(dateGroupEl);
+      });
+
+      return;
+    }
+
+    // Fallback to v3 rendering if macauFixtures is absent
     const targetLeagues = state.selectedLeagueFilter === 'all'
       ? ['E0', 'SP1', 'I1', 'D1', 'F1']
       : [state.selectedLeagueFilter];
 
     const allFixtures = [];
     targetLeagues.forEach(lgId => {
-      const lgData = window.ODDS_DATA.leagues[lgId];
+      const lgData = window.ODDS_DATA?.leagues ? window.ODDS_DATA.leagues[lgId] : null;
       if (!lgData || !lgData.fixtures) return;
 
       const filtered = window.OddsModel.filterFixturesInWindow(lgData.fixtures, now, 72);
@@ -425,26 +520,12 @@
       });
     });
 
-    // Update count badge
     if (badgeEl) {
       badgeEl.textContent = `${allFixtures.length} 場實盤`;
     }
 
     if (allFixtures.length === 0) {
       if (emptyEl) {
-        const lgName = state.selectedLeagueFilter === 'all'
-          ? ''
-          : (window.ODDS_DATA.leagues[state.selectedLeagueFilter]?.name || '');
-        const emptyTitle = emptyEl.querySelector('.empty-title');
-        const emptyDesc = emptyEl.querySelector('.empty-desc');
-        if (emptyTitle) {
-          emptyTitle.textContent = lgName
-            ? `${lgName}未來三日暫時冇賽程／賠率`
-            : '未來三日暫時冇賽程／賠率';
-        }
-        if (emptyDesc) {
-          emptyDesc.textContent = 'football-data 通常逢星期二、五更新最新賽程與盤口數據。';
-        }
         emptyEl.style.display = 'block';
       }
       listEl.innerHTML = '';
@@ -456,10 +537,7 @@
     listEl.style.display = 'flex';
     listEl.innerHTML = '';
 
-    // Sort by kickoff UTC ascending
     allFixtures.sort((a, b) => a.kickoffUtc.getTime() - b.kickoffUtc.getTime());
-
-    // Group by Macau date
     const groups = {};
     allFixtures.forEach(item => {
       const dKey = item.macau.macauDate;
@@ -467,37 +545,570 @@
       groups[dKey].push(item);
     });
 
-    const sortedDates = Object.keys(groups).sort();
-    sortedDates.forEach(dateIso => {
+    Object.keys(groups).sort().forEach(dateIso => {
       const dateItems = groups[dateIso];
       const dateGroupEl = document.createElement('div');
       dateGroupEl.className = 'live-date-group';
-
-      const dateHeaderEl = document.createElement('div');
-      dateHeaderEl.className = 'live-date-header';
-      dateHeaderEl.innerHTML = `
-        <span class="live-date-title">${getMacauDateLabel(dateIso, now)}</span>
-        <span class="live-date-count">${dateItems.length} 場實盤</span>
+      dateGroupEl.innerHTML = `
+        <div class="live-date-header">
+          <span class="live-date-title">${getMacauDateLabel(dateIso, now)}</span>
+          <span class="live-date-count">${dateItems.length} 場實盤</span>
+        </div>
       `;
-      dateGroupEl.appendChild(dateHeaderEl);
-
       dateItems.forEach(item => {
         const cardEl = renderLiveFixtureCard(item, now);
         dateGroupEl.appendChild(cardEl);
       });
-
       listEl.appendChild(dateGroupEl);
     });
+  }
 
-    // Bind deep-dive buttons
-    listEl.querySelectorAll('.btn-deep-dive').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const lg = btn.getAttribute('data-league');
-        const hId = parseInt(btn.getAttribute('data-home'), 10);
-        const aId = parseInt(btn.getAttribute('data-away'), 10);
-        switchToMatchLab(lg, hId, aId);
+  // --- v4 Macau Live Fixture Card Rendering ---
+  function renderV4LiveFixtureCard(fix) {
+    const card = document.createElement('div');
+    card.className = 'live-fixture-card';
+    card.setAttribute('data-fixture-id', fix.id);
+
+    // Spotlight banner for best opportunity
+    let spotlightHtml = '';
+    if (fix.bestOpportunity) {
+      const opp = fix.bestOpportunity;
+      const isPos = opp.ev > 0.03;
+      spotlightHtml = `
+        <div class="match-spotlight-bar" style="${isPos ? '' : 'background:rgba(255,255,255,0.03);border-color:var(--border-subtle);'}">
+          <div class="spotlight-info">
+            <span class="spotlight-title">
+              <span class="${opp.badge.badgeClass}">${opp.badge.label} ${opp.badge.ev_pct >= 0 ? '+' : ''}${opp.badge.ev_pct}%</span>
+              ${opp.selection_name} @ ${opp.macau_odds}
+            </span>
+            <span class="spotlight-desc" style="${isPos ? '' : 'color:var(--text-muted);'}">
+              公平價 @${opp.fair_odds} · 建議注碼 ${opp.kelly.stake_units}u (${opp.kelly.fraction_pct}%)
+            </span>
+          </div>
+        </div>
+      `;
+    }
+
+    // Markets Grid (Filtered by state.selectedMarketFilter)
+    const mktFilter = state.selectedMarketFilter || 'all';
+    let marketsHtml = '<div class="match-markets-grid">';
+
+    // 1X2 Market
+    if (fix.macau && fix.macau.odds_1x2 && (mktFilter === 'all' || mktFilter === '1X2')) {
+      const m1 = fix.macau.odds_1x2;
+      marketsHtml += `
+        <div class="market-row-card">
+          <div class="mkt-header-line">
+            <span class="mkt-name">🏆 獨贏及和局 (1X2)</span>
+            <span class="mkt-margin-pill">澳彩抽水 ${(m1.margin * 100).toFixed(1)}%</span>
+          </div>
+          <div class="mkt-odds-line">
+            <div class="odds-choice-box ${m1.best_sel === 'H' && m1.ev_h > 3 ? 'highlight' : ''}">
+              <span class="oc-label">主勝 (1)</span>
+              <span class="oc-macau-odds">@${m1.h}</span>
+              <span class="oc-fair-odds">公平 @${m1.fair_h}</span>
+              <span class="oc-ev ${m1.ev_h >= 0 ? 'pos' : 'neg'}">${m1.ev_h >= 0 ? '+' : ''}${m1.ev_h}%</span>
+            </div>
+            <div class="odds-choice-box ${m1.best_sel === 'D' && m1.ev_d > 3 ? 'highlight' : ''}">
+              <span class="oc-label">和局 (X)</span>
+              <span class="oc-macau-odds">@${m1.d}</span>
+              <span class="oc-fair-odds">公平 @${m1.fair_d}</span>
+              <span class="oc-ev ${m1.ev_d >= 0 ? 'pos' : 'neg'}">${m1.ev_d >= 0 ? '+' : ''}${m1.ev_d}%</span>
+            </div>
+            <div class="odds-choice-box ${m1.best_sel === 'A' && m1.ev_a > 3 ? 'highlight' : ''}">
+              <span class="oc-label">客勝 (2)</span>
+              <span class="oc-macau-odds">@${m1.a}</span>
+              <span class="oc-fair-odds">公平 @${m1.fair_a}</span>
+              <span class="oc-ev ${m1.ev_a >= 0 ? 'pos' : 'neg'}">${m1.ev_a >= 0 ? '+' : ''}${m1.ev_a}%</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Asian Handicap Market
+    if (fix.macau && fix.macau.main_ah && (mktFilter === 'all' || mktFilter === 'AH')) {
+      const mah = fix.macau.main_ah;
+      marketsHtml += `
+        <div class="market-row-card">
+          <div class="mkt-header-line">
+            <span class="mkt-name">⚖️ 亞洲讓球盤 (${mah.hcap_disp})</span>
+            <span class="mkt-margin-pill">澳彩抽水 ${(mah.margin * 100).toFixed(1)}%</span>
+          </div>
+          <div class="mkt-odds-line">
+            <div class="odds-choice-box ${mah.best_sel === 'H' && mah.ev_h > 3 ? 'highlight' : ''}">
+              <span class="oc-label">上盤 (${fix.homeZh})</span>
+              <span class="oc-macau-odds">@${mah.h}</span>
+              <span class="oc-fair-odds">公平 @${mah.fair_h}</span>
+              <span class="oc-ev ${mah.ev_h >= 0 ? 'pos' : 'neg'}">${mah.ev_h >= 0 ? '+' : ''}${mah.ev_h}%</span>
+            </div>
+            <div class="odds-choice-box ${mah.best_sel === 'A' && mah.ev_a > 3 ? 'highlight' : ''}">
+              <span class="oc-label">下盤 (${fix.awayZh})</span>
+              <span class="oc-macau-odds">@${mah.a}</span>
+              <span class="oc-fair-odds">公平 @${mah.fair_a}</span>
+              <span class="oc-ev ${mah.ev_a >= 0 ? 'pos' : 'neg'}">${mah.ev_a >= 0 ? '+' : ''}${mah.ev_a}%</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Over/Under Market
+    if (fix.macau && fix.macau.main_ou && (mktFilter === 'all' || mktFilter === 'OU')) {
+      const mou = fix.macau.main_ou;
+      marketsHtml += `
+        <div class="market-row-card">
+          <div class="mkt-header-line">
+            <span class="mkt-name">⚽ 入球大細 (${mou.hcap_disp}球)</span>
+            <span class="mkt-margin-pill">澳彩抽水 ${(mou.margin * 100).toFixed(1)}%</span>
+          </div>
+          <div class="mkt-odds-line">
+            <div class="odds-choice-box ${mou.best_sel === 'Over' && mou.ev_o > 3 ? 'highlight' : ''}">
+              <span class="oc-label">大波 (>${mou.hcap_disp})</span>
+              <span class="oc-macau-odds">@${mou.over}</span>
+              <span class="oc-fair-odds">公平 @${mou.fair_o}</span>
+              <span class="oc-ev ${mou.ev_o >= 0 ? 'pos' : 'neg'}">${mou.ev_o >= 0 ? '+' : ''}${mou.ev_o}%</span>
+            </div>
+            <div class="odds-choice-box ${mou.best_sel === 'Under' && mou.ev_u > 3 ? 'highlight' : ''}">
+              <span class="oc-label">細波 (<${mou.hcap_disp})</span>
+              <span class="oc-macau-odds">@${mou.under}</span>
+              <span class="oc-fair-odds">公平 @${mou.fair_u}</span>
+              <span class="oc-ev ${mou.ev_u >= 0 ? 'pos' : 'neg'}">${mou.ev_u >= 0 ? '+' : ''}${mou.ev_u}%</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    marketsHtml += '</div>';
+
+    card.innerHTML = `
+      <div class="lfc-header">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span class="lfc-badge-league ${fix.league}">${fix.leagueName}</span>
+          <span class="lfc-kickoff">⏰ ${fix.time} (澳門時間)</span>
+        </div>
+        <span class="lfc-rel-time" style="color:var(--accent-green);font-size:11px;">🟢 澳彩實時盤口</span>
+      </div>
+
+      <div class="lfc-teams-row">
+        <div class="lfc-team home">
+          <span class="lfc-team-name">${fix.homeZh}</span>
+          <span class="lfc-team-en">${fix.home}</span>
+        </div>
+        <div class="lfc-vs-wrap">
+          <span class="lfc-vs-text">VS</span>
+          <span class="lfc-xg-badge">xG ${fix.xg.home} : ${fix.xg.away}</span>
+        </div>
+        <div class="lfc-team away">
+          <span class="lfc-team-name">${fix.awayZh}</span>
+          <span class="lfc-team-en">${fix.away}</span>
+        </div>
+      </div>
+
+      ${spotlightHtml}
+      ${marketsHtml}
+
+      <button class="btn-deep-dive btn-open-detail" data-fixture-id="${fix.id}">
+        📊 查看全莊家對比與盤口剖析 →
+      </button>
+    `;
+
+    // Click handler to open detail modal
+    card.addEventListener('click', () => {
+      openMatchDetailModal(fix);
+    });
+
+    return card;
+  }
+
+  // --- v4 Match Detail Modal ---
+  function openMatchDetailModal(fix) {
+    state.selectedModalFixture = fix;
+    const backdrop = document.getElementById('matchDetailBackdrop');
+    const titleEl = document.getElementById('matchDetailTitle');
+    const subEl = document.getElementById('matchDetailSub');
+    const bodyEl = document.getElementById('matchDetailBody');
+    if (!backdrop || !bodyEl) return;
+
+    if (titleEl) titleEl.textContent = `${fix.homeZh} vs ${fix.awayZh}`;
+    if (subEl) subEl.textContent = `${fix.leagueName} · ${fix.dayLabel} ${fix.time} (澳門時間) · 澳彩 vs 國際共識`;
+
+    let html = '';
+
+    // 1. Consensus Fair Price & Model Probability
+    html += `
+      <div class="section-card" style="margin-bottom:12px;background:var(--surface-2);border-color:var(--border-color);">
+        <h4 style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">🎯 國際尖端共識線 vs 模型預測概率</h4>
+        <div style="display:flex;justify-content:space-between;gap:8px;text-align:center;">
+          <div style="flex:1;background:var(--surface-1);padding:6px;border-radius:6px;">
+            <div style="font-size:10px;color:var(--text-muted);">主勝 (${fix.homeZh})</div>
+            <div style="font-size:14px;font-weight:800;color:var(--accent-green);">${fix.consensus.prob_1x2.h}%</div>
+            <div style="font-size:10px;color:var(--text-dim);">公平價 @${fix.consensus.fair_1x2.h}</div>
+          </div>
+          <div style="flex:1;background:var(--surface-1);padding:6px;border-radius:6px;">
+            <div style="font-size:10px;color:var(--text-muted);">和局 (X)</div>
+            <div style="font-size:14px;font-weight:800;color:var(--accent-yellow);">${fix.consensus.prob_1x2.d}%</div>
+            <div style="font-size:10px;color:var(--text-dim);">公平價 @${fix.consensus.fair_1x2.d}</div>
+          </div>
+          <div style="flex:1;background:var(--surface-1);padding:6px;border-radius:6px;">
+            <div style="font-size:10px;color:var(--text-muted);">客勝 (${fix.awayZh})</div>
+            <div style="font-size:14px;font-weight:800;color:var(--accent-cyan);">${fix.consensus.prob_1x2.a}%</div>
+            <div style="font-size:10px;color:var(--text-dim);">公平價 @${fix.consensus.fair_1x2.a}</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // 2. All Books Table
+    const books = fix.booksList || [];
+    let bestH = fix.macau?.odds_1x2?.h || 0;
+    let bestD = fix.macau?.odds_1x2?.d || 0;
+    let bestA = fix.macau?.odds_1x2?.a || 0;
+    books.forEach(b => {
+      const b1 = b["1x2"] || {};
+      if (b1.h > bestH) bestH = b1.h;
+      if (b1.d > bestD) bestD = b1.d;
+      if (b1.a > bestA) bestA = b1.a;
+    });
+
+    html += `
+      <div class="section-card" style="margin-bottom:12px;background:var(--surface-2);border-color:var(--border-color);">
+        <h4 style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">⚖️ 全市場主流莊家賠率對比表 (綠色為全場最高)</h4>
+        <div class="books-table-wrap">
+          <table class="books-compare-table">
+            <thead>
+              <tr>
+                <th>莊家</th>
+                <th>主勝</th>
+                <th>和局</th>
+                <th>客勝</th>
+                <th>抽水率</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Macau Slot row -->
+              <tr style="background:rgba(244,63,94,0.06);">
+                <td style="font-weight:700;color:#fda4af;">🇲🇴 澳門彩票</td>
+                <td class="${fix.macau?.odds_1x2?.h === bestH ? 'best-price' : ''}">${fix.macau?.odds_1x2?.h || '--'}</td>
+                <td class="${fix.macau?.odds_1x2?.d === bestD ? 'best-price' : ''}">${fix.macau?.odds_1x2?.d || '--'}</td>
+                <td class="${fix.macau?.odds_1x2?.a === bestA ? 'best-price' : ''}">${fix.macau?.odds_1x2?.a || '--'}</td>
+                <td style="color:#fda4af;">${fix.macau?.odds_1x2 ? (fix.macau.odds_1x2.margin * 100).toFixed(1) + '%' : '--'}</td>
+              </tr>
+    `;
+
+    books.forEach(b => {
+      const b1 = b["1x2"] || {};
+      const isPin = b.key === 'pinnacle';
+      html += `
+        <tr style="${isPin ? 'background:rgba(56,189,248,0.06);' : ''}">
+          <td style="font-weight:${isPin ? '700' : '400'};color:${isPin ? 'var(--accent-cyan)' : 'var(--text-main)'};">
+            ${isPin ? '⭐ ' : ''}${b.title}
+          </td>
+          <td class="${b1.h === bestH ? 'best-price' : ''}">${b1.h || '--'}</td>
+          <td class="${b1.d === bestD ? 'best-price' : ''}">${b1.d || '--'}</td>
+          <td class="${b1.a === bestA ? 'best-price' : ''}">${b1.a || '--'}</td>
+          <td>${b1.margin ? b1.margin.toFixed(1) + '%' : '--'}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    // 3. Discrepancies & Outliers
+    if (fix.outliers && fix.outliers.length > 0) {
+      html += `
+        <div class="section-card" style="margin-bottom:12px;background:var(--surface-2);border-color:var(--border-color);">
+          <h4 style="font-size:12px;color:var(--accent-yellow);margin-bottom:6px;">⚡ 本場重大賠率破綻 (偏離共識 > +4%)</h4>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+      `;
+      fix.outliers.forEach(ot => {
+        html += `
+          <div style="display:flex;justify-content:space-between;background:var(--surface-1);padding:6px 10px;border-radius:6px;font-size:12px;">
+            <span><strong>${ot.book}</strong> · ${ot.selection === 'H' ? fix.homeZh : (ot.selection === 'D' ? '和局' : fix.awayZh)}</span>
+            <span style="color:var(--accent-green);font-weight:700;">@${ot.odds} (+${ot.discrepancy_pct}% 偏差)</span>
+          </div>
+        `;
+      });
+      html += `
+          </div>
+        </div>
+      `;
+    }
+
+    // 4. Quick Kelly Calculator
+    if (fix.bestOpportunity) {
+      const opp = fix.bestOpportunity;
+      html += `
+        <div class="section-card" style="background:var(--surface-2);border-color:var(--border-color);">
+          <h4 style="font-size:12px;color:var(--accent-green);margin-bottom:6px;">💡 最佳值博投注建議</h4>
+          <p style="font-size:13px;font-weight:700;margin-bottom:4px;">
+            ${opp.selection_name} @ ${opp.macau_odds} (公平價 @ ${opp.fair_odds})
+          </p>
+          <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
+            值博率: <strong>+${(opp.ev * 100).toFixed(1)}%</strong> · 建議注碼: <strong>${opp.kelly.stake_units}u (${opp.kelly.fraction_pct}%)</strong>
+          </p>
+        </div>
+      `;
+    }
+
+    bodyEl.innerHTML = html;
+    backdrop.classList.add('open');
+  }
+
+  // --- v4 Bookmaker Comparison Tab ---
+  function renderCompareTab() {
+    const listEl = document.getElementById('marginBarsList');
+    const discEl = document.getElementById('discrepancyList');
+    const discBadge = document.getElementById('discrepancyCountBadge');
+    if (!listEl) return;
+
+    // 1. Margin comparison bars
+    const margins = [
+      { name: '⭐ Pinnacle (尖端標竿)', pct: 2.4, class: 'pinnacle', desc: '國際最準線位，超低抽水' },
+      { name: '🌐 Bet365 (主流巨頭)', pct: 6.2, class: 'bet365', desc: '綜合型主流莊家標準抽水' },
+      { name: '📊 歐洲莊家平均', pct: 7.5, class: 'market', desc: '全市場數十間莊家平均水準' },
+      { name: '🇲🇴 澳門彩票 (本站對象)', pct: 10.9, class: 'macau', desc: '抽水最厚，非值博盤絕不可買' }
+    ];
+
+    listEl.innerHTML = margins.map(m => `
+      <div class="margin-bar-item">
+        <div class="mb-header">
+          <span>${m.name}</span>
+          <span style="font-weight:800;color:var(--text-main);">${m.pct.toFixed(1)}% 抽水</span>
+        </div>
+        <div class="mb-track">
+          <div class="mb-fill ${m.class}" style="width:${(m.pct / 15.0) * 100}%;"></div>
+        </div>
+        <span style="font-size:10px;color:var(--text-dim);">${m.desc}</span>
+      </div>
+    `).join('');
+
+    // 2. Discrepancy Matrix
+    const fixtures = window.ODDS_DATA.macauFixtures || [];
+    const allOutliers = [];
+    fixtures.forEach(fix => {
+      if (fix.outliers && fix.outliers.length > 0) {
+        fix.outliers.forEach(ot => {
+          allOutliers.push({
+            fix,
+            outlier: ot
+          });
+        });
+      }
+    });
+
+    if (discBadge) {
+      discBadge.textContent = `${allOutliers.length} 個破綻`;
+    }
+
+    if (!discEl) return;
+    if (allOutliers.length === 0) {
+      discEl.innerHTML = `
+        <div class="empty-state-card" style="padding:20px;">
+          <p style="font-size:12px;color:var(--text-muted);">目前未有偏離共識超過 +4% 之顯著破綻，盤口處於高度均衡狀態。</p>
+        </div>
+      `;
+      return;
+    }
+
+    discEl.innerHTML = allOutliers.map(item => {
+      const { fix, outlier: ot } = item;
+      const selName = ot.selection === 'H' ? fix.homeZh : (ot.selection === 'D' ? '和局' : fix.awayZh);
+      return `
+        <div class="discrepancy-row" data-match-id="${fix.id}">
+          <div class="disc-info">
+            <span class="disc-match">${fix.homeZh} vs ${fix.awayZh}</span>
+            <span class="disc-mkt">${fix.leagueName} · ${selName} · <strong>${ot.book}</strong></span>
+          </div>
+          <div class="disc-price-box">
+            <span class="disc-odds">@${ot.odds}</span>
+            <span class="disc-edge">+${ot.discrepancy_pct}% 偏差</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    discEl.querySelectorAll('.discrepancy-row').forEach(row => {
+      row.addEventListener('click', () => {
+        const mId = row.getAttribute('data-match-id');
+        const fix = fixtures.find(f => f.id === mId);
+        if (fix) openMatchDetailModal(fix);
       });
     });
+  }
+
+  // --- v4 Track Record Tab ---
+  function renderRecordTab() {
+    const data = window.ODDS_DATA;
+    if (!data || !data.trackRecord) return;
+    const { summary, bets } = data.trackRecord;
+
+    // Scorecards
+    const recTotal = document.getElementById('recTotalBets');
+    const recPending = document.getElementById('recPendingCount');
+    const recHit = document.getElementById('recHitRate');
+    const recWinLoss = document.getElementById('recWinLossDetail');
+    const recProfit = document.getElementById('recNetProfit');
+    const recStaked = document.getElementById('recStakedTotal');
+    const recRoi = document.getElementById('recRoi');
+    const recClv = document.getElementById('recAvgClv');
+
+    if (recTotal) recTotal.textContent = summary.total_bets || 0;
+    if (recPending) recPending.textContent = `${summary.pending_bets || 0} 場進行中`;
+    if (recHit) recHit.textContent = `${summary.hit_rate || 0.0}%`;
+    if (recWinLoss) recWinLoss.textContent = `${summary.won || 0}贏 ${summary.half_won || 0}半贏 ${summary.pushed || 0}走 ${summary.lost || 0}輸`;
+    if (recProfit) {
+      const p = summary.total_profit || 0.0;
+      recProfit.textContent = `${p >= 0 ? '+' : ''}${p.toFixed(2)}u`;
+      recProfit.style.color = p >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+    }
+    if (recStaked) recStaked.textContent = `總下注 ${(summary.total_staked || 0.0).toFixed(1)}u`;
+    if (recRoi) {
+      const r = summary.roi || 0.0;
+      recRoi.textContent = `${r >= 0 ? '+' : ''}${r.toFixed(1)}%`;
+      recRoi.style.color = r >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+    }
+    if (recClv) recClv.textContent = `平均 CLV: ${summary.avg_clv >= 0 ? '+' : ''}${summary.avg_clv || 0.0}%`;
+
+    // Filter bets
+    const listEl = document.getElementById('recordBetsList');
+    if (!listEl) return;
+
+    const filter = state.selectedRecFilter || 'all';
+    const filteredBets = (bets || []).filter(b => {
+      if (filter === 'pending') return b.status === 'pending';
+      if (filter === 'settled') return b.status === 'settled';
+      return true;
+    });
+
+    if (filteredBets.length === 0) {
+      listEl.innerHTML = `
+        <div class="empty-state-card" style="padding:24px;">
+          <p style="font-size:13px;color:var(--text-muted);">目前未有符合篩選條件之推薦注碼。</p>
+        </div>
+      `;
+      return;
+    }
+
+    listEl.innerHTML = filteredBets.map(b => {
+      const isSettled = b.status === 'settled';
+      let outcomePill = '';
+      if (!isSettled) {
+        outcomePill = `<span class="rb-pill pending">⏳ 進行中</span>`;
+      } else if (b.outcome === 'win') {
+        outcomePill = `<span class="rb-pill win">✅ 贏 (+${b.profit_1u}u)</span>`;
+      } else if (b.outcome === 'half_win') {
+        outcomePill = `<span class="rb-pill half_win">✨ 贏半 (+${b.profit_1u}u)</span>`;
+      } else if (b.outcome === 'push') {
+        outcomePill = `<span class="rb-pill push">➖ 走盤 (0.00u)</span>`;
+      } else if (b.outcome === 'half_loss') {
+        outcomePill = `<span class="rb-pill half_loss">⚠️ 輸半 (-0.50u)</span>`;
+      } else {
+        outcomePill = `<span class="rb-pill loss">❌ 輸 (-1.00u)</span>`;
+      }
+
+      const clvText = b.clv !== null && b.clv !== undefined
+        ? `<span style="color:${b.clv >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'};font-weight:700;">CLV ${b.clv >= 0 ? '+' : ''}${(b.clv * 100).toFixed(1)}%</span>`
+        : '--';
+
+      return `
+        <div class="record-bet-card">
+          <div class="rb-header">
+            <span>${b.league_name || b.league} · ${b.kickoff}</span>
+            ${outcomePill}
+          </div>
+          <div class="rb-match">${b.home_zh || b.home} vs ${b.away_zh || b.away}</div>
+          <div class="rb-details-line">
+            <span style="font-weight:600;color:var(--text-main);">${b.selection_name}</span>
+            <span style="font-weight:700;color:var(--accent-cyan);">澳彩 @${b.initial_macau_odds}</span>
+          </div>
+          <div class="rb-details-line" style="font-size:11px;color:var(--text-muted);">
+            <span>初見 EV: <strong style="color:var(--accent-green);">+${(b.initial_ev * 100).toFixed(1)}%</strong></span>
+            <span>${clvText}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // --- v4 Real-time Status Bar ---
+  function renderStatusBar() {
+    const data = window.ODDS_DATA;
+    if (!data) return;
+
+    // Macau Slot status
+    const statusMacauVal = document.getElementById('statusMacauVal');
+    if (statusMacauVal) {
+      const count = data.macauFixtures ? data.macauFixtures.length : 0;
+      statusMacauVal.textContent = `實盤 ${count}場`;
+    }
+
+    // Consensus / The Odds API status
+    const statusConsensusVal = document.getElementById('statusConsensusVal');
+    if (statusConsensusVal) {
+      const rem = data.sourcesStatus?.the_odds_api?.requests_remaining;
+      statusConsensusVal.textContent = rem !== undefined && rem !== null ? `配額 ${rem}/500` : `共識正常`;
+    }
+
+    // Overall Health status
+    const statusHealthVal = document.getElementById('statusHealthVal');
+    const statusHealthDot = document.getElementById('statusHealthDot');
+    if (statusHealthVal && statusHealthDot) {
+      const isHealthy = data.health?.status === 'healthy';
+      statusHealthVal.textContent = isHealthy ? '系統正常' : '有警報';
+      statusHealthDot.className = isHealthy ? 'status-dot healthy' : 'status-dot warning';
+    }
+  }
+
+  // --- v4 Event Bindings ---
+  function setupV4Events() {
+    // Value toggle
+    const btnToggleVal = document.getElementById('btnToggleOnlyValue');
+    if (btnToggleVal) {
+      btnToggleVal.addEventListener('click', () => {
+        state.filterOnlyValue = !state.filterOnlyValue;
+        btnToggleVal.classList.toggle('active', state.filterOnlyValue);
+        btnToggleVal.setAttribute('aria-pressed', state.filterOnlyValue ? 'true' : 'false');
+        renderLiveFixturesTab();
+      });
+    }
+
+    // Market filter chips
+    document.querySelectorAll('.market-chips-wrap .chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.market-chips-wrap .chip').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        state.selectedMarketFilter = btn.getAttribute('data-mkt-filter') || 'all';
+        renderLiveFixturesTab();
+      });
+    });
+
+    // Record filter chips
+    document.querySelectorAll('.record-filter-row .chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.record-filter-row .chip').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        state.selectedRecFilter = btn.getAttribute('data-rec-filter') || 'all';
+        renderRecordTab();
+      });
+    });
+
+    // Match detail modal close buttons
+    const btnCloseModal = document.getElementById('btnCloseMatchDetail');
+    const backdropModal = document.getElementById('matchDetailBackdrop');
+    if (btnCloseModal && backdropModal) {
+      btnCloseModal.addEventListener('click', () => {
+        backdropModal.classList.remove('open');
+      });
+      backdropModal.addEventListener('click', (e) => {
+        if (e.target === backdropModal) backdropModal.classList.remove('open');
+      });
+    }
   }
 
   function renderLiveFixtureCard(item, now) {

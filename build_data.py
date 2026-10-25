@@ -14,6 +14,13 @@ from datetime import datetime, timezone, timedelta
 from team_names import TEAM_NAMES, get_team_cantonese
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+SCRIPTS_DIR = os.path.join(SCRIPT_DIR, "scripts")
+if SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, SCRIPTS_DIR)
+
+from pipeline import run_pipeline
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 RAW_DIR = os.path.join(SCRIPT_DIR, "raw")
 DATA_DIR = os.path.join(SCRIPT_DIR, "data")
 
@@ -311,9 +318,16 @@ def build():
     max_match_date = max(all_dates) if all_dates else "2026-10-21"
     now_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
+    print("[build_data] Running v4 live data pipeline (Macau Slot + Consensus + Track Record)...")
+    v4_data = run_pipeline()
+
     output = {
         "generatedAt": now_str,
         "dataThrough": max_match_date,
+        "health": v4_data.get("health", {}),
+        "sourcesStatus": v4_data.get("sourcesStatus", {}),
+        "macauFixtures": v4_data.get("macauFixtures", []),
+        "trackRecord": v4_data.get("trackRecord", {}),
         "matchSchema": MATCH_SCHEMA,
         "fixtureSchema": FIXTURE_SCHEMA,
         "leagues": league_data
