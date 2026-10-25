@@ -230,5 +230,54 @@
 - 自動化健康檢查與 GitHub Issue 警報（標籤 `data-alert`），異常時保持最後完好數據並不洗版更新單一 Issue。
 - 數據變更時自動提交推送並調用 GitHub Pages rebuild。
 
+## v4 R2 fixes
+
+針對 `reviews/grok-v4-r1.md` 所列出嘅全部 20 項問題（P0、P1、P2）進行徹底修正與覆蓋測試：
+
+### 1. P0 致命缺陷修復 (Critical Fixes)
+- **P0-1 (戰績追蹤跨季賽果污染防禦)**：
+  - 修復 `pipeline.py` 與 `record_tracker.py` 原本僅以 `(home, away)` 對齊導致即將開賽賽事誤撞 2025/26 舊比分結算嘅問題。
+  - 完場賽果改以 `(date_iso, home, away)` 精準鍵值儲存，嚴格判定 `kickoff < now` 且比賽日期相符（$\pm 1$ 日時區公差）方進行結算；歷史跨季賽果絕不參與。已將舊有錯誤結算記錄重置為 `pending`。
+- **P0-2 (客隊亞洲讓球盤結算視角校正)**：
+  - 修復 `record_tracker.py` 結算讓球盤時原本一律以主隊視角計算嘅重大錯誤。
+  - 現當投注為下盤客隊（`sel == "A"`）時，精準以客隊淨勝球 `ftag - fthg` 與反向盤口 `-line` 進行結算；例如主隊 2-0 獲勝，讓半球盤客隊下盤注碼正確結算為輸全（`outcome="loss"`, `profit_1u=-1.0`），而非錯誤之全贏。
+- **P0-3 (讓球盤 0.7 共識線 + 0.3 模型混合與極端破綻防禦)**：
+  - 依督導指示，讓球盤不再單純依賴 Dixon-Coles 或固定 1.95 基準，而是透過數值二分法由共識 1X2 + 2.5 大細盤口反向擬合出泊松/Dixon-Coles 預期進球參數 $(\lambda_h, \lambda_a)$，生成尖端共識讓球分佈，並優先結合 `fixtures.csv` 中尖端莊家 Pinnacle / Bet365 之讓球盤口，嚴格執行 0.7 市場共識 + 0.3 Dixon-Coles 加權混合。
+  - 對讓球盤 EV 增設 $\pm 15\%$ 防禦閾值，杜絕模型偏離引發之過度膨脹值博；平衡讓球盤（1.90 / 1.90）在均衡期望下嚴格歸類為「一般」或「唔值博」，絕不誤標「值博」。
+
+### 2. P1 重大缺陷修復 (Major Fixes)
+- **P1-4 (澳門彩票繁體中文譯名徹底修復)**：
+  - 請求標頭加入 `Accept-Language: zh-HK,zh-TW,zh;q=0.9`，解析時全面校驗 CJK 字符集（`[\u4e00-\u9fff]`）且杜絕包含 `?`。
+  - 缺失時無縫回退至 `team_names.py` 之標準粵語譯名庫，並以 `ensure_ascii=False` 輸出 UTF-8 JSON，全站賽事卡片與戰績追蹤徹底消除 `???` 亂碼。
+- **P1-5 (盤口走勢快照鍵值修正與 Sparkline 激活)**：
+  - 修復 `snapshots_tracker.py` 與 `pipeline.py` 間駝峰命名（`matchKey`, `league`, `home`）與結構不一致導致快照折疊為單一 `None_None_None` 空鍵之問題。
+  - 現每次快照均輸出全體賽事獨立鍵值與 1X2 / 讓球 / 大細實時賠率結構，走勢歷史 Sparkline 恢復正常。
+- **P1-6 (Actions 工作流快取檔提交守護)**：
+  - 於 `.github/workflows/update-data.yml` 提交清單中正式加入 `data/odds_api_cache.json`，確保後續 06/12/18 UTC 任務能如實讀取當日快取，避免因找不到快取而降級或重覆扣費。
+- **P1-7 (數據架構校驗、歷史好數據保留與警報去重)**：
+  - 新增 `validate_macau_response` 與 `validate_odds_api_response` 完整結構檢驗。
+  - 遇網絡異常或架構損壞時，主動記錄 `health.status = "error"`，並從既有 `data/data.js` 中保留上一輪完好賽程與戰績，杜絕空頁或崩潰。
+  - GitHub Actions 透過 `gh issue list/create/comment` 對標籤 `data-alert` 進行單一 Issue 更新，絕不洗版。
+- **P1-8 (CLV 開賽鎖定、公式校正與純完場統計)**：
+  - 開賽前持續追蹤收盤澳門價與共識價，開賽當刻永久鎖定（`closing_frozen: True`）。
+  - CLV 計算公式標準化為 `initial_macau_odds / closing_macau_odds - 1.0`（同一方向賠率對比）與 `initial / closing_consensus_fair - 1.0`。
+  - 總結卡之 `avg_clv` 嚴格僅對已結算之完場賽事实施統計，杜絕未開賽賽事以 0 稀釋。
+- **P1-9 (球隊嚴格特徵識別與同城碰撞防禦)**：
+  - 修正 `team_names.py` 去雜詞邏輯，嚴格禁止剔除 `city`, `united`, `madrid`, `sociedad` 等核心實體識別詞。
+  - 廢除任意子字串匹配（`n1 in n2`），要求必須為完全規範化詞組一致或經官方譯名庫映射；徹底防止「曼城 = 曼聯」、「皇家馬德里 = 皇家蘇斯達」等致命碰撞。
+
+### 3. P2 次要與體驗優化 (Minor Improvements)
+- **P2-10**：Pinnacle 加權共識由 `0.6 * Pinnacle + 0.4 * other_books_median` 嚴格將 Pinnacle 排除於中位數計算池之外，避免重複計權。
+- **P2-11**：於 `math_engine.py` 增設統一去水接口 `remove_margin(odds, method="multiplicative")`，完整支援比例均攤與指數冪次（Shin-lite）演算法。
+- **P2-12**：莊家比較標籤頁之柱狀圖抽水率由原先固定靜態數值升級為讀取當前賽事各莊家實時盤口（Macau, Pinnacle, Bet365, 歐洲平均）之動態加權平均值。
+- **P2-13**：首頁聯賽切換晶片（Chips）補全歐洲三大盃賽（歐聯 UCL、歐霸 UEL、歐協聯 UECL）。
+- **P2-14**：設定與對賽次級按鈕 `.secondary-btn` 最小觸控高度提升至 44px，滿足流動端無障礙操作標準。
+- **P2-15**：大細球凱利建議注碼採用泊松模型精確折算之實質勝率，修正原先假定之 `0.50 + 0.5 * ev` 估算值。
+- **P2-16**：`fetch_odds_api.py` 僅在實際成功取得聯賽數據時方更新 `last_run_utc`；若網絡全數拋出異常則標記為 `error` 並保留既有快取，允許當日安全重試。
+- **P2-17**：值博注碼 ID 升級為 `{date}_{ev_id}_{market}_{selection}_{line}` 格式，徹底杜絕因截取前四字母引發之鍵值衝突。
+- **P2-18**：新增並通過 13 項 Python 單元測試與 25 項 Node.js 單元測試，全面覆蓋客隊讓球結算、開賽日期門檻、同城球隊識別、快照鍵值、廣東話譯名、CLV 鎖定與結構檢驗等關鍵路徑。
+- **P2-19**：詳細文檔說明 Dixon-Coles 低比分相關參數 $\rho = -0.05$ 之統計校準原理。
+- **P2-20**：管線優先讀取 `fixtures.csv` 中尖端莊家之實際讓球盤口與澳門盤檔位比對，直接進行銳利度去水共識。
+
 
 

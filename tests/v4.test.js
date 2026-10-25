@@ -25,19 +25,64 @@ test('v4 Schema: ODDS_DATA contains rich macauFixtures, trackRecord, sourcesStat
   assert.ok(data.health.status === 'healthy' || data.health.status === 'warning');
 });
 
-test('v4 Macau Fixtures: structure, classification badges, and Cantonese team names', () => {
-  const f0 = data.macauFixtures[0];
-  assert.ok(f0.id, 'id required');
-  assert.ok(f0.home && f0.away, 'home and away required');
-  assert.ok(f0.homeZh && f0.awayZh, 'Cantonese team names required');
-  assert.ok(f0.dayLabel, 'dayLabel required');
-  assert.ok(f0.macau, 'macau odds object required');
-  assert.ok(f0.consensus, 'consensus object required');
+test('v4 Macau Fixtures: structure, classification badges, and genuine Cantonese team names', () => {
+  const cjkRegex = /[\u4e00-\u9fff]/;
 
   for (const fix of data.macauFixtures) {
+    assert.ok(fix.id, 'id required');
+    assert.ok(fix.home && fix.away, 'home and away required');
+    // P1-4: Must contain genuine CJK characters and no literal '?'
+    assert.ok(cjkRegex.test(fix.homeZh), `homeZh '${fix.homeZh}' for ${fix.home} must contain CJK`);
+    assert.ok(cjkRegex.test(fix.awayZh), `awayZh '${fix.awayZh}' for ${fix.away} must contain CJK`);
+    assert.ok(!fix.homeZh.includes('?'), `homeZh '${fix.homeZh}' must not contain '?'`);
+    assert.ok(!fix.awayZh.includes('?'), `awayZh '${fix.awayZh}' must not contain '?'`);
+
+    assert.ok(fix.dayLabel, 'dayLabel required');
+    assert.ok(fix.macau, 'macau odds object required');
+    assert.ok(fix.consensus, 'consensus object required');
+
     if (fix.bestOpportunity) {
       assert.ok(['值博', '一般', '唔值博'].includes(fix.bestOpportunity.badge.label));
       assert.ok(['value', 'neutral', 'avoid'].includes(fix.bestOpportunity.badge.tier));
+    }
+  }
+});
+
+test('v4 Snapshots: compact snapshots have distinct match keys and valid numeric odds (P1-5)', () => {
+  const fs = require('node:fs');
+  const glob = fs.readdirSync(path.join(__dirname, '../data/snapshots'))
+    .filter(f => f.startsWith('snapshot_') && f.endsWith('.json'))
+    .sort();
+  assert.ok(glob.length > 0, 'At least one snapshot file must exist');
+
+  const latestFile = path.join(__dirname, '../data/snapshots', glob[glob.length - 1]);
+  const content = JSON.parse(fs.readFileSync(latestFile, 'utf8'));
+
+  assert.ok(content.matches, 'matches dictionary required in snapshot');
+  const matchKeys = Object.keys(content.matches);
+  assert.ok(matchKeys.length >= 10, `Expected at least 10 match keys, got ${matchKeys.length}`);
+  assert.ok(!matchKeys.includes('None_None_None'), "matchKey must not be 'None_None_None'");
+
+  const firstRec = content.matches[matchKeys[0]];
+  assert.ok(firstRec.time, 'snapshot record must have timestamp');
+  if (firstRec.macau_1x2) {
+    assert.ok(typeof firstRec.macau_1x2.h === 'number', 'Macau 1X2 H must be numeric');
+    assert.ok(typeof firstRec.macau_1x2.d === 'number', 'Macau 1X2 D must be numeric');
+    assert.ok(typeof firstRec.macau_1x2.a === 'number', 'Macau 1X2 A must be numeric');
+  }
+});
+
+test('v4 Track Record: upcoming fixtures remain pending without historical cross-season contamination (P0-1)', () => {
+  const tr = data.trackRecord;
+  assert.ok(tr && tr.bets, 'trackRecord.bets must be present');
+
+  for (const bet of tr.bets) {
+    const kickoff = new Date(bet.kickoff.replace(' ', 'T') + '+08:00');
+    const now = new Date();
+    if (kickoff.getTime() > now.getTime()) {
+      assert.equal(bet.status, 'pending', `Bet ${bet.id} with future kickoff (${bet.kickoff}) must not be settled`);
+      assert.equal(bet.score, null, `Pending bet must not have historical score`);
+      assert.equal(bet.profit_1u, null, `Pending bet must not have profit`);
     }
   }
 });

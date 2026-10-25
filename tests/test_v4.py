@@ -141,5 +141,230 @@ class TestOddsLabV4(unittest.TestCase):
         self.assertIn("macau_slot", h["sources"])
         self.assertIn("the_odds_api", h["sources"])
 
+    # --- P0 / P1 Targeted Test Cases ---
+
+    def test_p0_1_track_record_kickoff_date_gating(self):
+        """
+        P0-1: A bet dated 2026-10-28 must stay 'pending' when the only CSV match
+        is from a previous season (e.g. 2025-11-24).
+        """
+        from record_tracker import update_track_record
+        from datetime import datetime, timezone
+        test_file = "/tmp/test_track_record_p0_1.json"
+        if os.path.exists(test_file):
+            os.remove(test_file)
+
+        value_bets = [{
+            "id": "2026-10-28_test_Torino_Como_AH_A_0.75",
+            "league": "I1",
+            "league_name": "意甲",
+            "home": "Torino",
+            "away": "Como",
+            "kickoff": "2026-10-28 03:45:00",
+            "market": "AH",
+            "market_name": "讓球",
+            "selection": "A",
+            "selection_name": "下盤 (科木)",
+            "line": 0.75,
+            "macau_odds": 1.97,
+            "fair_odds": 1.90,
+            "ev": 0.0368
+        }]
+
+        # Finished match from last season (2025-11-24)
+        finished_matches = [{
+            "date": "2025-11-24",
+            "home": "Torino",
+            "away": "Como",
+            "fthg": 1,
+            "ftag": 5
+        }]
+
+        # Current time before kickoff (e.g. 2026-10-25)
+        current_time = datetime(2026, 10, 25, 12, 0, 0, tzinfo=timezone.utc)
+        rec = update_track_record(value_bets, finished_matches=finished_matches, filepath=test_file, current_time_utc=current_time)
+
+        bet = rec["bets"][0]
+        self.assertEqual(bet["status"], "pending", "Upcoming match must stay pending, not settle with last season score")
+        self.assertIsNone(bet["score"])
+        self.assertIsNone(bet["profit_1u"])
+        self.assertEqual(rec["summary"]["settled_bets"], 0)
+
+        # Now simulate actual matchday finish on 2026-10-28
+        actual_finished = [{
+            "date": "2026-10-28",
+            "home": "Torino",
+            "away": "Como",
+            "fthg": 0,
+            "ftag": 1
+        }]
+        after_kickoff_time = datetime(2026, 10, 28, 6, 0, 0, tzinfo=timezone.utc)
+        rec2 = update_track_record([], finished_matches=actual_finished, filepath=test_file, current_time_utc=after_kickoff_time)
+        bet2 = rec2["bets"][0]
+        self.assertEqual(bet2["status"], "settled")
+        self.assertEqual(bet2["score"], "0-1")
+        # Line 0.75 away is -0.75; 1-0 win is a half-win on a quarter handicap
+        self.assertEqual(bet2["outcome"], "half_win")
+
+    def test_p0_2_away_asian_handicap_settlement(self):
+        """
+        P0-2: Away Asian Handicap selection ('A') must be settled from the away perspective.
+        Home wins 2-0, home line is -0.5:
+        Home bet wins (payoff odds). Away bet loses (payoff 0.0), NOT 2.0.
+        """
+        from record_tracker import update_track_record
+        from datetime import datetime, timezone
+        test_file = "/tmp/test_track_record_p0_2.json"
+        if os.path.exists(test_file):
+            os.remove(test_file)
+
+        value_bets = [
+            {
+                "id": "2026-10-25_test_Liverpool_Brighton_AH_A",
+                "league": "E0",
+                "home": "Liverpool",
+                "away": "Brighton",
+                "kickoff": "2026-10-25 20:00:00",
+                "market": "AH",
+                "selection": "A",
+                "line": -0.5,  # Liverpool -0.5, Brighton +0.5
+                "macau_odds": 2.00,
+                "fair_odds": 1.90,
+                "ev": 0.05
+            },
+            {
+                "id": "2026-10-25_test_Liverpool_Brighton_AH_H",
+                "league": "E0",
+                "home": "Liverpool",
+                "away": "Brighton",
+                "kickoff": "2026-10-25 20:00:00",
+                "market": "AH",
+                "selection": "H",
+                "line": -0.5,
+                "macau_odds": 1.90,
+                "fair_odds": 1.80,
+                "ev": 0.05
+            }
+        ]
+
+        # Liverpool 2 - 0 Brighton
+        finished = [{
+            "date": "2026-10-25",
+            "home": "Liverpool",
+            "away": "Brighton",
+            "fthg": 2,
+            "ftag": 0
+        }]
+
+        post_match_time = datetime(2026, 10, 25, 23, 0, 0, tzinfo=timezone.utc)
+        rec = update_track_record(value_bets, finished_matches=finished, filepath=test_file, current_time_utc=post_match_time)
+
+        away_bet = next(b for b in rec["bets"] if b["selection"] == "A")
+        home_bet = next(b for b in rec["bets"] if b["selection"] == "H")
+
+        self.assertEqual(away_bet["outcome"], "loss", "Brighton +0.5 vs Liverpool 2-0 must be a loss")
+        self.assertEqual(away_bet["profit_1u"], -1.0)
+
+        self.assertEqual(home_bet["outcome"], "win", "Liverpool -0.5 vs Brighton 2-0 must be a win")
+        self.assertAlmostEqual(home_bet["profit_1u"], 0.90)
+
+    def test_p0_3_ah_consensus_blend_prevents_unrealistic_ev(self):
+        """
+        P0-3: Balanced 1.90/1.90 Macau AH with balanced consensus expectations
+        must classify as 一般, not 值博.
+        """
+        from math_engine import (
+            calc_dc_matrix, fit_lambdas_from_consensus,
+            derive_ah_fair_from_matrix, blend_ah_distributions, classify_ev
+        )
+        # Evenly matched consensus: 37% H, 28% D, 35% A, Over 2.5 = 50%
+        cons_lh, cons_la = fit_lambdas_from_consensus(0.37, 0.28, 0.35, 0.50)
+        cons_mat = calc_dc_matrix(cons_lh, cons_la)
+        cons_ah = derive_ah_fair_from_matrix(cons_mat, 0.0)
+
+        # Dixon-Coles model has mild home preference
+        dc_mat = calc_dc_matrix(1.4, 1.2)
+        dc_ah = derive_ah_fair_from_matrix(dc_mat, 0.0)
+
+        blended_ah = blend_ah_distributions(cons_ah, dc_ah, weight_consensus=0.7)
+
+        # Macau balanced line 1.90 / 1.90 at line 0
+        m_h = 1.90
+        m_a = 1.90
+        er_h = blended_ah["p_win"] * m_h + blended_ah["p_push"] * 1.0 + blended_ah["p_loss"] * 0.0
+        ev_h = er_h - 1.0
+
+        badge = classify_ev(ev_h)
+        self.assertNotEqual(badge["label"], "值博", "Balanced 1.90/1.90 must not classify as 值博")
+        self.assertIn(badge["label"], ["一般", "唔值博"])
+
+    def test_p1_8_clv_freeze_and_calculation(self):
+        """
+        P1-8: Two-step update test: First detect @ 2.10, later close @ 2.00 -> CLV +5.0%.
+        Average CLV must be averaged over settled bets only.
+        """
+        from record_tracker import update_track_record
+        from datetime import datetime, timezone
+        test_file = "/tmp/test_track_record_p1_8.json"
+        if os.path.exists(test_file):
+            os.remove(test_file)
+
+        t1 = datetime(2026, 10, 25, 10, 0, 0, tzinfo=timezone.utc)
+        bet_step1 = [{
+            "id": "2026-10-25_test_clv_bet",
+            "league": "E0",
+            "home": "Arsenal",
+            "away": "Chelsea",
+            "kickoff": "2026-10-25 23:00:00",
+            "market": "1X2",
+            "selection": "H",
+            "macau_odds": 2.10,
+            "fair_odds": 1.95,
+            "ev": 0.0769
+        }]
+        rec1 = update_track_record(bet_step1, filepath=test_file, current_time_utc=t1)
+        self.assertEqual(rec1["bets"][0]["clv"], 0.0)
+        self.assertEqual(rec1["summary"]["avg_clv"], 0.0)
+
+        # Step 2: Odds drop to 2.00 before kickoff
+        t2 = datetime(2026, 10, 25, 14, 0, 0, tzinfo=timezone.utc)
+        bet_step2 = [{
+            "id": "2026-10-25_test_clv_bet",
+            "macau_odds": 2.00,
+            "fair_odds": 1.95,
+            "ev": 0.025
+        }]
+        rec2 = update_track_record(bet_step2, filepath=test_file, current_time_utc=t2)
+        # 2.10 / 2.00 - 1 = +0.05 (+5%)
+        self.assertAlmostEqual(rec2["bets"][0]["clv"], 0.05, places=3)
+
+        # Now settle the bet after kickoff
+        t3 = datetime(2026, 10, 25, 21, 0, 0, tzinfo=timezone.utc)
+        finished = [{
+            "date": "2026-10-25",
+            "home": "Arsenal",
+            "away": "Chelsea",
+            "fthg": 2,
+            "ftag": 1
+        }]
+        rec3 = update_track_record([], finished_matches=finished, filepath=test_file, current_time_utc=t3)
+        self.assertEqual(rec3["summary"]["settled_bets"], 1)
+        self.assertAlmostEqual(rec3["summary"]["avg_clv"], 5.0, places=1)
+
+    def test_p1_9_strict_team_matching_no_collisions(self):
+        """
+        P1-9: Teams match must NOT treat Man City = Man United or Real Madrid = Real Sociedad.
+        """
+        self.assertFalse(teams_match("Man City", "Man United"))
+        self.assertFalse(teams_match("Manchester City", "Manchester United"))
+        self.assertFalse(teams_match("Manchester City", "Manchester Utd"))
+        self.assertFalse(teams_match("Real Madrid", "Real Sociedad"))
+        self.assertFalse(teams_match("Real Madrid", "Sociedad"))
+
+        # Valid aliases must continue to match
+        self.assertTrue(teams_match("Brighton", "Brighton Hove Albion"))
+        self.assertTrue(teams_match("Athletic Bilbao", "Athletic Club"))
+        self.assertTrue(teams_match("PSG", "Paris Saint-Germain"))
+
 if __name__ == "__main__":
     unittest.main()
