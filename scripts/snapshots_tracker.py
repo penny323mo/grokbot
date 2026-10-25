@@ -29,14 +29,16 @@ def save_snapshot(fixtures, base_data_dir="data"):
 
     snapshot_records = {}
     for f in fixtures:
-        match_key = f.get("match_key") or f"{f.get('league_code')}_{f.get('home_en')}_{f.get('away_en')}"
+        match_key = f.get("matchKey") or f.get("match_key") or f"{f.get('league')}_{f.get('home')}_{f.get('away')}"
+        macau_obj = f.get("macau", {}) if isinstance(f.get("macau"), dict) else {}
+        consensus_obj = f.get("consensus", {}) if isinstance(f.get("consensus"), dict) else {}
         snapshot_records[match_key] = {
             "time": now_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "macau_1x2": f.get("odds_1x2"),
-            "macau_ah": f.get("main_ah"),
-            "macau_ou": f.get("main_ou"),
-            "consensus_1x2": f.get("consensus_1x2"),
-            "consensus_ou25": f.get("consensus_ou25"),
+            "macau_1x2": macau_obj.get("odds_1x2") or f.get("odds_1x2"),
+            "macau_ah": macau_obj.get("main_ah") or f.get("main_ah"),
+            "macau_ou": macau_obj.get("main_ou") or f.get("main_ou"),
+            "consensus_1x2": consensus_obj.get("fair_1x2") or f.get("consensus_1x2"),
+            "consensus_ou25": consensus_obj.get("prob_ou25") or f.get("consensus_ou25"),
         }
 
     with open(filepath, "w", encoding="utf-8") as fp:

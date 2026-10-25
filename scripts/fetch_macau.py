@@ -8,9 +8,14 @@ import json
 import os
 import sys
 import time
+import re
 import urllib.request
 import urllib.parse
 from datetime import datetime, timezone, timedelta
+
+# Ensure parent directory is in sys.path for team_names import
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from team_names import get_team_cantonese
 
 MACAU_LIST_URL = "https://www.macau-slot.com/event-api/cn/D/FB/coming/all/-/threeinone/-"
 MACAU_MARKETS_URL = "https://www.macau-slot.com/event-api/cn/D/FB/markets/coming/all/threeinone"
@@ -19,7 +24,8 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "X-Requested-With": "XMLHttpRequest",
     "Referer": "https://www.macau-slot.com/content/soccer/coming_bet.html",
-    "Content-Type": "application/x-www-form-urlencoded"
+    "Content-Type": "application/x-www-form-urlencoded",
+    "Accept-Language": "zh-HK,zh-TW,zh;q=0.9"
 }
 
 COMPETITION_MAP = {
@@ -118,6 +124,18 @@ def fetch_macau_data(sample_save_dir=None):
             continue
 
         if window_start <= match_dt <= window_end:
+            h_en = ev.get("translateName", {}).get("homeTeam", {}).get("EN") or ev.get("home_team") or ""
+            a_en = ev.get("translateName", {}).get("awayTeam", {}).get("EN") or ev.get("away_team") or ""
+
+            raw_h_zh = ev.get("translateName", {}).get("homeTeam", {}).get("ZHT") or ev.get("translateName", {}).get("homeTeam", {}).get("ZH") or ""
+            raw_a_zh = ev.get("translateName", {}).get("awayTeam", {}).get("ZHT") or ev.get("translateName", {}).get("awayTeam", {}).get("ZH") or ""
+
+            has_cjk_h = bool(re.search(r"[\u4e00-\u9fff]", raw_h_zh)) and "?" not in raw_h_zh
+            has_cjk_a = bool(re.search(r"[\u4e00-\u9fff]", raw_a_zh)) and "?" not in raw_a_zh
+
+            h_zh = raw_h_zh if has_cjk_h else get_team_cantonese(h_en)
+            a_zh = raw_a_zh if has_cjk_a else get_team_cantonese(a_en)
+
             target_events.append({
                 "ev_id": str(ev.get("ev_id")),
                 "start_time": start_time_str,
@@ -125,10 +143,10 @@ def fetch_macau_data(sample_save_dir=None):
                 "league_en": league_en,
                 "league_code": COMPETITION_MAP[league_en]["code"],
                 "league_zh": COMPETITION_MAP[league_en]["name"],
-                "home_en": ev.get("translateName", {}).get("homeTeam", {}).get("EN") or ev.get("home_team"),
-                "away_en": ev.get("translateName", {}).get("awayTeam", {}).get("EN") or ev.get("away_team"),
-                "home_zh": ev.get("translateName", {}).get("homeTeam", {}).get("ZHT") or ev.get("translateName", {}).get("homeTeam", {}).get("ZH"),
-                "away_zh": ev.get("translateName", {}).get("awayTeam", {}).get("ZHT") or ev.get("translateName", {}).get("awayTeam", {}).get("ZH"),
+                "home_en": h_en,
+                "away_en": a_en,
+                "home_zh": h_zh,
+                "away_zh": a_zh,
             })
 
     print(f"[MacauSlot] Filtered to {len(target_events)} matches in target competitions within 3 days.")

@@ -82,7 +82,7 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             UTC_TIME=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
-            git add data/data.js data/health.json data/track_record.json data/odds_api_state.json data/snapshots/ data/unmatched.json
+            git add data/data.js data/health.json data/track_record.json data/odds_api_state.json data/odds_api_cache.json data/snapshots/ data/unmatched.json
             git commit -m "data: auto update ${UTC_TIME}"
             git pull --rebase origin ${{ github.ref_name }} || git pull --rebase || true
             git push origin HEAD:${{ github.ref_name }}

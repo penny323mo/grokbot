@@ -1230,7 +1230,7 @@ input, button, select, textarea {
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
   cursor: pointer;
-  min-height: 42px;
+  min-height: 44px;
 }
 
 .secondary-btn:active {

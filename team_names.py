@@ -421,20 +421,19 @@ def normalize_team_name(name: str) -> str:
     - strips accents
     - lowercases
     - removes non-alphanumeric noise
-    - strips club type noise (fc, cf, afc, sc, ac, as, utd, etc.)
+    - strips club type noise (fc, cf, afc, sc, ac, as, etc.)
+    Does NOT strip identity words (city, united, madrid, etc.).
     """
     if not name:
         return ""
     s = strip_accents(name).lower()
     # Replace separators with spaces
     s = re.sub(r"[\./\-_']", " ", s)
-    # Remove standard noise words
+    # Remove standard non-identifying noise words only
     noise_tokens = {
         "fc", "cf", "afc", "sc", "ac", "as", "cd", "ud", "rcd", "rc", "tsg", "fsv",
         "vfb", "vfl", "sv", "fk", "sk", "bsc", "hsc", "1", "04", "05", "1899", "1907",
-        "club", "calcio", "de", "del", "la", "le", "hove", "albion", "and", "hotspur",
-        "wanderers", "united", "utd", "city", "town", "saint", "st", "germain",
-        "lisbon", "piraeus", "madrid"
+        "club", "calcio", "de", "del", "la", "le", "and"
     }
     tokens = [t for t in s.split() if t and t not in noise_tokens]
     return " ".join(tokens) if tokens else s.strip()
@@ -457,19 +456,25 @@ def get_team_cantonese(name: str) -> str:
     return name
 
 def teams_match(name1: str, name2: str) -> bool:
-    """Determines whether two team name strings refer to the same team."""
+    """
+    Determines whether two team name strings refer to the same team.
+    Requires exact match, matching canonical Cantonese translation, or exact normalized match.
+    Disallows loose substring matches to prevent collisions (e.g. Man City != Man Utd, Real Madrid != Real Sociedad).
+    """
     if not name1 or not name2:
         return False
     if name1 == name2:
         return True
+    if strip_accents(name1).strip().lower() == strip_accents(name2).strip().lower():
+        return True
     # Cantonese comparison
     zh1 = get_team_cantonese(name1)
     zh2 = get_team_cantonese(name2)
-    if zh1 and zh2 and zh1 == zh2 and zh1 != name1:
+    if zh1 and zh2 and zh1 == zh2 and zh1 != name1 and bool(re.search(r"[\u4e00-\u9fff]", zh1)):
         return True
-    # Normalized comparison
+    # Normalized comparison (exact token match)
     n1 = normalize_team_name(name1)
     n2 = normalize_team_name(name2)
-    if n1 and n2 and (n1 == n2 or n1 in n2 or n2 in n1):
+    if n1 and n2 and n1 == n2:
         return True
     return False

@@ -3,18 +3,18 @@
 pipeline.py - Orchestrates the entire Odds Lab v4 data pipeline:
 1. Fetches or loads Macau Slot live data (next 3 days, top 5 + UEFA cups)
 2. Fetches or loads The Odds API data (guarded daily run, 500/mo budget)
-3. Loads football-data historical matches & fixtures
+3. Loads football-data historical matches & upcoming sharp AH fixtures
 4. Fits Dixon-Coles model on top-5 leagues
-5. Cross-source matches fixtures with normalized team names
-6. Calculates consensus (Pinnacle-weighted, median)
-7. Converts totals lines via Poisson expected goals solver
-8. Blends consensus (0.7) with Dixon-Coles model (0.3)
-9. Classifies every Macau Slot market (1X2, Asian handicap, Over/Under) with EV% and Cantonese badges
+5. Cross-source matches fixtures with normalized team names (strictly avoiding collisions)
+6. Calculates consensus: Pinnacle-weighted (0.6 Pinnacle + 0.4 other books median)
+7. Fits Poisson/DC lambda goal expectations to consensus 1X2 + totals
+8. Blends consensus (0.7) with Dixon-Coles model (0.3) for 1X2, Over/Under, AND Asian Handicap
+9. Classifies Macau Slot markets with EV% and Cantonese badges (guarding against outlier edge)
 10. Builds bookmaker discrepancy matrix and best price highlights
-11. Records and updates snapshots in data/snapshots/
-12. Updates track record in data/track_record.json
+11. Records and updates snapshots in data/snapshots/ (with valid match keys and sparklines)
+12. Updates track record in data/track_record.json (freezing CLV at kickoff, strictly date-gated results)
 13. Performs schema validation and writes health status to data/health.json
-14. Produces rich data/data.js
+14. Preserves last-good data on failure and triggers single de-duped data-alert issue in CI
 """
 
 import csv
@@ -22,9 +22,16 @@ import json
 import math
 import os
 import sys
+import re
 from datetime import datetime, timezone, timedelta
 
 # Import helper modules
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PARENT_DIR = os.path.dirname(CURRENT_DIR)
+for p in (CURRENT_DIR, PARENT_DIR):
+    if p not in sys.path:
+        sys.path.insert(0, p)
+
 from team_names import TEAM_NAMES, get_team_cantonese, teams_match, normalize_team_name
 from fetch_macau import fetch_macau_data, COMPETITION_MAP
 from fetch_odds_api import fetch_odds_api
@@ -32,13 +39,14 @@ from math_engine import (
     remove_margin_multiplicative, remove_margin_power,
     solve_poisson_lambda_for_ou25, convert_ou_line_probs,
     calc_ou_expected_return, settle_ah_single, settle_ou_single,
-    blend_probabilities, classify_ev, calc_kelly_stake
+    blend_probabilities, classify_ev, calc_kelly_stake,
+    calc_dc_matrix, fit_lambdas_from_consensus,
+    derive_ah_fair_from_matrix, blend_ah_distributions
 )
 from snapshots_tracker import save_snapshot, load_snapshots_history
 from record_tracker import update_track_record, load_track_record
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
+ROOT_DIR = PARENT_DIR
 DATA_DIR = os.path.join(ROOT_DIR, "data")
 RAW_DIR = os.path.join(ROOT_DIR, "raw")
 
@@ -50,127 +58,194 @@ LEAGUES_TOP5 = [
     {"id": "F1", "key": "ligue1", "name": "法甲", "fullName": "法國甲組聯賽"},
 ]
 
-def format_day_label(date_str, now_macau=None):
-    """
-    Formats a YYYY-MM-DD date into Cantonese day label:
-    e.g. 今日 10月25日 (日), 聽日 10月26日 (一), 後日 10月27日 (二)
-    """
-    if now_macau is None:
-        now_macau = datetime.now(timezone(timedelta(hours=8))).date()
+def load_previous_fixtures_from_data_js(data_js_path):
+    """Extracts last known good macauFixtures from data/data.js."""
+    if not os.path.exists(data_js_path):
+        return []
     try:
-        dt = datetime.strptime(date_str, "%Y-%m-%d").date()
+        with open(data_js_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        m = re.search(r"const\s+ODDS_DATA\s*=\s*(\{.*?\});\s*(?:if|$)", content, re.DOTALL)
+        if m:
+            data = json.loads(m.group(1))
+            return data.get("macauFixtures", [])
+    except Exception as e:
+        print(f"[Pipeline] Warning: failed to load previous fixtures from data.js: {e}")
+    return []
+
+def validate_macau_response(macau_result):
+    """Schema check for Macau Slot API response."""
+    if not isinstance(macau_result, dict):
+        return False, "Macau result is not a dictionary"
+    events = macau_result.get("events")
+    if events is None or not isinstance(events, list):
+        return False, "Macau result missing 'events' list"
+    required_keys = ["ev_id", "start_time", "league_code", "home_en", "away_en"]
+    for idx, ev in enumerate(events):
+        for k in required_keys:
+            if k not in ev or not ev[k]:
+                return False, f"Event at index {idx} missing required key '{k}'"
+    return True, "OK"
+
+def validate_odds_api_response(api_matches):
+    """Schema check for The Odds API response."""
+    if not isinstance(api_matches, list):
+        return False, "The Odds API matches must be a list"
+    for idx, m in enumerate(api_matches):
+        if not isinstance(m, dict):
+            return False, f"Match at index {idx} is not a dictionary"
+        for k in ["id", "sport_key", "commence_time", "home_team", "away_team"]:
+            if k not in m:
+                return False, f"Match at index {idx} missing required key '{k}'"
+    return True, "OK"
+
+def load_football_data_ah_fixtures(csv_path):
+    """
+    Loads upcoming fixtures with Pinnacle and Bet365 Asian Handicap odds from football-data fixtures.csv.
+    Returns dict: (home, away) -> {"line": float, "h": float, "a": float, "book": str}
+    """
+    if not os.path.exists(csv_path):
+        return {}
+    ah_map = {}
+    try:
+        with open(csv_path, "r", encoding="utf-8-sig", errors="replace") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                h = (row.get("HomeTeam") or "").strip()
+                a = (row.get("AwayTeam") or "").strip()
+                if not h or not a:
+                    continue
+                line_str = row.get("AHh") or row.get("AHCh")
+                if not line_str:
+                    continue
+                try:
+                    line = float(line_str)
+                except ValueError:
+                    continue
+
+                pcahh = row.get("PCAHH") or row.get("PAHH")
+                pcaha = row.get("PCAHA") or row.get("PAHA")
+                b365ahh = row.get("B365CAHH") or row.get("B365AHH")
+                b365aha = row.get("B365CAHA") or row.get("B365AHA")
+                avgahh = row.get("AvgCAHH") or row.get("AvgAHH")
+                avgaha = row.get("AvgCAHA") or row.get("AvgAHA")
+
+                h_odds = None
+                a_odds = None
+                book = None
+
+                if pcahh and pcaha:
+                    try:
+                        h_val, a_val = float(pcahh), float(pcaha)
+                        if h_val > 1.0 and a_val > 1.0:
+                            h_odds, a_odds, book = h_val, a_val, "Pinnacle"
+                    except ValueError:
+                        pass
+                if not h_odds and b365ahh and b365aha:
+                    try:
+                        h_val, a_val = float(b365ahh), float(b365aha)
+                        if h_val > 1.0 and a_val > 1.0:
+                            h_odds, a_odds, book = h_val, a_val, "Bet365"
+                    except ValueError:
+                        pass
+                if not h_odds and avgahh and avgaha:
+                    try:
+                        h_val, a_val = float(avgahh), float(avgaha)
+                        if h_val > 1.0 and a_val > 1.0:
+                            h_odds, a_odds, book = h_val, a_val, "MarketAvg"
+                    except ValueError:
+                        pass
+
+                if h_odds and a_odds:
+                    ah_map[(h, a)] = {"line": line, "h": h_odds, "a": a_odds, "book": book}
+    except Exception as e:
+        print(f"[Pipeline] Warning reading fixtures.csv AH: {e}")
+    return ah_map
+
+def format_day_label(date_str, now_date):
+    """Returns friendly Cantonese date grouping label."""
+    try:
+        match_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        diff_days = (match_date - now_date).days
+        if diff_days == 0:
+            return "今日 (Today)"
+        elif diff_days == 1:
+            return "聽日 (Tomorrow)"
+        elif diff_days == 2:
+            return "後日 (Day After)"
+        else:
+            return f"{match_date.strftime('%m月%d日')} ({diff_days}日後)"
     except Exception:
         return date_str
 
-    diff = (dt - now_macau).days
-    weekdays_zh = ["一", "二", "三", "四", "五", "六", "日"]
-    wd_str = weekdays_zh[dt.weekday()]
-
-    if diff == 0:
-        prefix = "今日"
-    elif diff == 1:
-        prefix = "聽日"
-    elif diff == 2:
-        prefix = "後日"
-    elif diff < 0:
-        prefix = "早前"
-    else:
-        prefix = f"{diff}日後"
-
-    return f"{prefix} {dt.month}月{dt.day}日 (星期{wd_str})"
-
-def fit_dixon_coles_python(matches_list, teams_list, as_of_ts, half_life_days=180):
+def fit_dixon_coles_python(matches, teams, as_of_ts, half_life_days=365):
     """
-    Fast Poisson / Dixon-Coles model fitting in Python for a league.
-    Returns: attack alpha dict, defense beta dict, home advantage gamma
+    Fits Dixon-Coles parameters (attack alpha, defence beta, home advantage gamma)
+    using iterative re-weighted least squares / Newton-Raphson approximation.
     """
-    team_ids = [t["id"] for t in teams_list]
-    if not team_ids or not matches_list:
+    n_teams = len(teams)
+    if n_teams == 0 or len(matches) == 0:
         return {}, {}, 0.25
 
-    lambda_decay = math.log(2.0) / (half_life_days * 86400.0)
-    alpha = {t: 0.0 for t in team_ids}
-    beta = {t: 0.0 for t in team_ids}
+    xi = math.log(2.0) / (half_life_days * 86400.0)
+
+    alpha = {t["id"]: 0.0 for t in teams}
+    beta = {t["id"]: 0.0 for t in teams}
     gamma = 0.25
 
-    # Filter matches before as_of_ts
-    valid_matches = []
-    for m in matches_list:
-        # m: [date, h_idx, a_idx, fthg, ftag, ...]
-        try:
-            m_dt = datetime.strptime(m[0], "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    for iteration in range(15):
+        grad_alpha = {t["id"]: 0.0 for t in teams}
+        grad_beta = {t["id"]: 0.0 for t in teams}
+        hess_alpha = {t["id"]: 1e-4 for t in teams}
+        hess_beta = {t["id"]: 1e-4 for t in teams}
+        grad_gamma = 0.0
+        hess_gamma = 1e-4
+
+        for m in matches:
+            date_iso, h_id, a_id, fthg, ftag = m[0], m[1], m[2], m[3], m[4]
+            m_dt = datetime.strptime(date_iso, "%Y-%m-%d").replace(tzinfo=timezone.utc)
             m_ts = m_dt.timestamp()
-            if m_ts < as_of_ts:
-                valid_matches.append((m[1], m[2], m[3], m[4], m_ts))
-        except Exception:
-            continue
 
-    if not valid_matches:
-        return alpha, beta, gamma
-
-    for _ in range(15):
-        goals_for = {t: 0.0 for t in team_ids}
-        exp_for = {t: 0.001 for t in team_ids}
-        goals_against = {t: 0.0 for t in team_ids}
-        exp_against = {t: 0.001 for t in team_ids}
-
-        for h, a, fthg, ftag, mts in valid_matches:
-            if h not in alpha or a not in alpha:
+            if m_ts >= as_of_ts:
                 continue
-            dt = max(0.0, as_of_ts - mts)
-            w = math.exp(-lambda_decay * dt)
-            lh = math.exp(alpha[h] - beta[a] + gamma)
-            la = math.exp(alpha[a] - beta[h])
-            goals_for[h] += w * fthg
-            exp_for[h] += w * lh
-            goals_against[h] += w * ftag
-            exp_against[h] += w * la
-            goals_for[a] += w * ftag
-            exp_for[a] += w * la
-            goals_against[a] += w * fthg
-            exp_against[a] += w * lh
 
-        for t in team_ids:
-            alpha[t] += 0.5 * math.log(max(0.05, goals_for[t]) / max(0.05, exp_for[t]))
-            beta[t] -= 0.5 * math.log(max(0.05, goals_against[t]) / max(0.05, exp_against[t]))
+            dt_sec = as_of_ts - m_ts
+            w = math.exp(-xi * dt_sec) if dt_sec > 0 else 1.0
 
-        mean_alpha = sum(alpha.values()) / len(team_ids)
-        for t in team_ids:
-            alpha[t] -= mean_alpha
+            log_lh = alpha[h_id] - beta[a_id] + gamma
+            log_la = alpha[a_id] - beta[h_id]
+
+            lh = math.exp(max(-4.0, min(3.0, log_lh)))
+            la = math.exp(max(-4.0, min(3.0, log_la)))
+
+            gh = w * (fthg - lh)
+            ga = w * (ftag - la)
+
+            grad_alpha[h_id] += gh
+            grad_beta[a_id] -= gh
+            grad_gamma += gh
+            hess_alpha[h_id] += w * lh
+            hess_beta[a_id] += w * lh
+            hess_gamma += w * lh
+
+            grad_alpha[a_id] += ga
+            grad_beta[h_id] -= ga
+            hess_alpha[a_id] += w * la
+            hess_beta[h_id] += w * la
+
+        # Newton updates
+        for tid in alpha:
+            alpha[tid] += grad_alpha[tid] / (hess_alpha[tid] + 1.0)
+            beta[tid] += grad_beta[tid] / (hess_beta[tid] + 1.0)
+        gamma += grad_gamma / (hess_gamma + 1.0)
+        gamma = max(0.05, min(0.60, gamma))
+
+        # Constraint: sum(alpha) == 0
+        mean_alpha = sum(alpha.values()) / n_teams
+        for tid in alpha:
+            alpha[tid] -= mean_alpha
 
     return alpha, beta, gamma
-
-def calc_dc_matrix(lh, la, rho=-0.05, max_goals=10):
-    """Generates 11x11 score matrix with low-score tau correction and normalizes to 1.0."""
-    lh = max(0.05, lh)
-    la = max(0.05, la)
-    pH = [(math.exp(-lh) * (lh ** i)) / math.factorial(i) for i in range(max_goals + 1)]
-    pA = [(math.exp(-la) * (la ** i)) / math.factorial(i) for i in range(max_goals + 1)]
-
-    matrix = []
-    tot = 0.0
-    for h in range(max_goals + 1):
-        row = []
-        for a in range(max_goals + 1):
-            tau = 1.0
-            if h == 0 and a == 0:
-                tau = 1.0 - lh * la * rho
-            elif h == 0 and a == 1:
-                tau = 1.0 + lh * rho
-            elif h == 1 and a == 0:
-                tau = 1.0 + la * rho
-            elif h == 1 and a == 1:
-                tau = 1.0 - rho
-            val = max(0.0, tau) * pH[h] * pA[a]
-            row.append(val)
-            tot += val
-        matrix.append(row)
-
-    if tot > 0:
-        for h in range(max_goals + 1):
-            for a in range(max_goals + 1):
-                matrix[h][a] /= tot
-    return matrix
 
 def derive_probs_from_matrix(matrix):
     """Derives 1X2, Over 2.5, and Expected Goals from matrix."""
@@ -202,49 +277,6 @@ def derive_probs_from_matrix(matrix):
         "xg_h": round(xg_h, 2), "xg_a": round(xg_a, 2)
     }
 
-def derive_ah_fair_from_matrix(matrix, line):
-    """Computes fair prices for Asian handicap at line from matrix."""
-    max_goals = len(matrix) - 1
-    p_win = 0.0
-    p_hw = 0.0
-    p_push = 0.0
-    p_hl = 0.0
-    p_loss = 0.0
-
-    for h in range(max_goals + 1):
-        for a in range(max_goals + 1):
-            prob = matrix[h][a]
-            mult = settle_ah_single(h - a, line, 2.0)
-            if mult == 2.0:
-                p_win += prob
-            elif mult == 1.5:
-                p_hw += prob
-            elif mult == 1.0:
-                p_push += prob
-            elif mult == 0.5:
-                p_hl += prob
-            else:
-                p_loss += prob
-
-    home_w = p_win + 0.5 * p_hw
-    home_r = 0.5 * p_hw + p_push + 0.5 * p_hl
-    fair_h = (1.0 - home_r) / home_w if home_w > 0.001 else 99.0
-
-    away_w = p_loss + 0.5 * p_hl
-    away_r = 0.5 * p_hl + p_push + 0.5 * p_hw
-    fair_a = (1.0 - away_r) / away_w if away_w > 0.001 else 99.0
-
-    return {
-        "line": line,
-        "fair_h": round(fair_h, 2),
-        "fair_a": round(fair_a, 2),
-        "p_win": p_win,
-        "p_hw": p_hw,
-        "p_push": p_push,
-        "p_hl": p_hl,
-        "p_loss": p_loss
-    }
-
 def run_pipeline(force_odds_api=False):
     """Main execution method for Odds Lab v4 pipeline."""
     now_utc = datetime.now(timezone.utc)
@@ -263,15 +295,27 @@ def run_pipeline(force_odds_api=False):
     macau_result = {"events": []}
     try:
         macau_result = fetch_macau_data(sample_save_dir=os.path.join(DATA_DIR, "raw_samples"))
-        health_status["sources"]["macau_slot"] = {
-            "status": "healthy",
-            "last_fetch": now_iso_utc,
-            "events_count": len(macau_result.get("events", [])),
-            "message": f"Fetched {len(macau_result.get('events', []))} events"
-        }
+        valid_macau, err_macau = validate_macau_response(macau_result)
+        if not valid_macau:
+            print(f"[Pipeline] ERROR: Macau Slot schema validation failed: {err_macau}", file=sys.stderr)
+            health_status["status"] = "error"
+            health_status["issues"].append(f"Macau schema error: {err_macau}")
+            health_status["sources"]["macau_slot"] = {
+                "status": "error",
+                "last_fetch": now_iso_utc,
+                "events_count": len(macau_result.get("events", [])),
+                "message": f"Schema validation failed: {err_macau}"
+            }
+        else:
+            health_status["sources"]["macau_slot"] = {
+                "status": "healthy",
+                "last_fetch": now_iso_utc,
+                "events_count": len(macau_result.get("events", [])),
+                "message": f"Fetched {len(macau_result.get('events', []))} events"
+            }
     except Exception as e:
         print(f"[Pipeline] ERROR in Macau Slot fetch: {e}", file=sys.stderr)
-        health_status["status"] = "warning"
+        health_status["status"] = "error"
         health_status["issues"].append(f"Macau Slot fetch failure: {e}")
         health_status["sources"]["macau_slot"] = {
             "status": "error",
@@ -294,6 +338,12 @@ def run_pipeline(force_odds_api=False):
     odds_api_res = fetch_odds_api(data_dir=DATA_DIR, force=force_odds_api)
     api_matches = odds_api_res.get("matches", [])
     api_state = odds_api_res.get("state", {})
+
+    valid_odds, err_odds = validate_odds_api_response(api_matches)
+    if not valid_odds and len(api_matches) > 0:
+        health_status["status"] = "error"
+        health_status["issues"].append(f"Odds API schema error: {err_odds}")
+
     health_status["sources"]["the_odds_api"] = {
         "status": "healthy" if api_state.get("status") in ("success", "skipped") else "warning",
         "last_fetch": api_state.get("last_run_timestamp", now_iso_utc),
@@ -307,7 +357,7 @@ def run_pipeline(force_odds_api=False):
     print("[Pipeline] 3/7 Loading historical data and fitting Dixon-Coles models...")
     dc_models = {}
     league_teams_map = {}
-    finished_matches_for_tracker = {}
+    finished_matches_for_tracker = []
 
     for lg in LEAGUES_TOP5:
         div = lg["id"]
@@ -349,7 +399,14 @@ def run_pipeline(force_odds_api=False):
                     date_iso = f"{int(parts[2]):04d}-{int(parts[1]):02d}-{int(parts[0]):02d}" if len(parts) == 3 else date_raw
 
                     matches_list.append([date_iso, h_idx, a_idx, fthg, ftag])
-                    finished_matches_for_tracker[(h, a)] = (fthg, ftag)
+                    # Strictly store finished matches with calendar date (P0-1)
+                    finished_matches_for_tracker.append({
+                        "date": date_iso,
+                        "home": h,
+                        "away": a,
+                        "fthg": fthg,
+                        "ftag": ftag
+                    })
 
         league_teams_map[div] = (teams_map, teams_list)
         as_of_ts = now_utc.timestamp()
@@ -361,9 +418,13 @@ def run_pipeline(force_odds_api=False):
             "teams_map": teams_map
         }
 
+    # Load upcoming sharp AH data from fixtures.csv (P2-20)
+    sharp_ah_fixtures = load_football_data_ah_fixtures(os.path.join(RAW_DIR, "fixtures.csv"))
+
     health_status["sources"]["football_data"] = {
         "status": "healthy",
-        "finished_matches_count": len(finished_matches_for_tracker)
+        "finished_matches_count": len(finished_matches_for_tracker),
+        "sharp_ah_count": len(sharp_ah_fixtures)
     }
 
     # Step 4: Cross-source match mapping & Consensus generation
@@ -384,9 +445,19 @@ def run_pipeline(force_odds_api=False):
         lg_code = mev["league_code"]
         ev_id = mev["ev_id"]
 
+        # Ensure Cantonese team names are 100% valid CJK (P1-4)
+        h_zh = mev.get("home_zh") or ""
+        a_zh = mev.get("away_zh") or ""
+        if not re.search(r"[\u4e00-\u9fff]", h_zh) or "?" in h_zh:
+            h_zh = get_team_cantonese(h_m)
+        if not re.search(r"[\u4e00-\u9fff]", a_zh) or "?" in a_zh:
+            a_zh = get_team_cantonese(a_m)
+        mev["home_zh"] = h_zh
+        mev["away_zh"] = a_zh
+
         match_key = f"{lg_code}_{h_m}_{a_m}"
 
-        # Match against The Odds API
+        # Match against The Odds API (strict collision-free matcher)
         found_odds_match = None
         for om in api_matches:
             try:
@@ -403,6 +474,7 @@ def run_pipeline(force_odds_api=False):
         books_list = []
         pinnacle_book = None
         all_1x2_probs = {"h": [], "d": [], "a": []}
+        other_1x2_probs = {"h": [], "d": [], "a": []}
         all_ou25_probs = {"over": [], "under": []}
 
         if found_odds_match:
@@ -435,6 +507,11 @@ def run_pipeline(force_odds_api=False):
                             all_1x2_probs["h"].append(devig_probs[0])
                             all_1x2_probs["d"].append(devig_probs[1])
                             all_1x2_probs["a"].append(devig_probs[2])
+                            # P2-10: Collect non-Pinnacle probabilities separately for median
+                            if b_key != "pinnacle":
+                                other_1x2_probs["h"].append(devig_probs[0])
+                                other_1x2_probs["d"].append(devig_probs[1])
+                                other_1x2_probs["a"].append(devig_probs[2])
 
                     elif mkt.get("key") == "totals":
                         rates = {}
@@ -470,17 +547,19 @@ def run_pipeline(force_odds_api=False):
                 "away": a_m
             })
 
-        # Consensus 1X2 Probabilities (Pinnacle-weighted or median)
+        # Consensus 1X2 Probabilities (Pinnacle-weighted 0.6 / 0.4 other books median)
         if pinnacle_book and pinnacle_book.get("1x2"):
-            # Heavy weight to Pinnacle
             pin_1x2 = pinnacle_book["1x2"]
             p_pin_h = pin_1x2["prob_h"]
             p_pin_d = pin_1x2["prob_d"]
             p_pin_a = pin_1x2["prob_a"]
-            # Median of other books
-            med_h = sorted(all_1x2_probs["h"])[len(all_1x2_probs["h"]) // 2] if all_1x2_probs["h"] else p_pin_h
-            med_d = sorted(all_1x2_probs["d"])[len(all_1x2_probs["d"]) // 2] if all_1x2_probs["d"] else p_pin_d
-            med_a = sorted(all_1x2_probs["a"])[len(all_1x2_probs["a"]) // 2] if all_1x2_probs["a"] else p_pin_a
+            # Median of other (non-Pinnacle) books (P2-10)
+            med_pool_h = other_1x2_probs["h"] if other_1x2_probs["h"] else [p_pin_h]
+            med_pool_d = other_1x2_probs["d"] if other_1x2_probs["d"] else [p_pin_d]
+            med_pool_a = other_1x2_probs["a"] if other_1x2_probs["a"] else [p_pin_a]
+            med_h = sorted(med_pool_h)[len(med_pool_h) // 2]
+            med_d = sorted(med_pool_d)[len(med_pool_d) // 2]
+            med_a = sorted(med_pool_a)[len(med_pool_a) // 2]
             raw_c_h = 0.6 * p_pin_h + 0.4 * med_h
             raw_c_d = 0.6 * p_pin_d + 0.4 * med_d
             raw_c_a = 0.6 * p_pin_a + 0.4 * med_a
@@ -489,7 +568,6 @@ def run_pipeline(force_odds_api=False):
             raw_c_d = sorted(all_1x2_probs["d"])[len(all_1x2_probs["d"]) // 2]
             raw_c_a = sorted(all_1x2_probs["a"])[len(all_1x2_probs["a"]) // 2]
         elif mev.get("odds_1x2"):
-            # Fallback to Macau Slot de-vigged
             m1x2 = mev["odds_1x2"]
             dev, _ = remove_margin_multiplicative([m1x2["h"], m1x2["d"], m1x2["a"]])
             raw_c_h, raw_c_d, raw_c_a = dev[0], dev[1], dev[2]
@@ -505,7 +583,6 @@ def run_pipeline(force_odds_api=False):
         if all_ou25_probs["over"]:
             cons_p_o25 = sorted(all_ou25_probs["over"])[len(all_ou25_probs["over"]) // 2]
         elif mev.get("main_ou"):
-            # Estimate from Macau OU line
             m_ou = mev["main_ou"]
             line = m_ou["line"]
             dev, _ = remove_margin_multiplicative([m_ou["over"], m_ou["under"]])
@@ -524,7 +601,6 @@ def run_pipeline(force_odds_api=False):
             beta = model["beta"]
             gamma = model["gamma"]
 
-            # Lookup team IDs
             h_id = None
             a_id = None
             for name, tid in t_map.items():
@@ -539,7 +615,7 @@ def run_pipeline(force_odds_api=False):
                 dc_matrix = calc_dc_matrix(lh, la)
                 dc_probs = derive_probs_from_matrix(dc_matrix)
 
-        # Blend Consensus (0.7) with Dixon-Coles (0.3)
+        # Blend Consensus (0.7) with Dixon-Coles (0.3) for 1X2 and Totals
         if dc_probs:
             blended_1x2 = blend_probabilities(
                 [cons_p_h, cons_p_d, cons_p_a],
@@ -562,10 +638,10 @@ def run_pipeline(force_odds_api=False):
         fair_odds_a = round(1.0 / fair_p_a, 2)
 
         # Step 5: Classify Macau Slot Markets
-        # 1X2 Classification
-        macau_1x2_classified = None
         match_opportunities = []
 
+        # 1. 1X2 Classification
+        macau_1x2_classified = None
         if mev.get("odds_1x2"):
             m_h = mev["odds_1x2"]["h"]
             m_d = mev["odds_1x2"]["d"]
@@ -609,7 +685,7 @@ def run_pipeline(force_odds_api=False):
                 "kelly": {"fraction_pct": k_frac, "stake_units": k_units}
             })
 
-        # Asian Handicap Classification
+        # 2. Asian Handicap Classification (P0-3, P2-20: 0.7 Consensus + 0.3 Dixon-Coles)
         macau_ah_classified = None
         if mev.get("main_ah"):
             mah = mev["main_ah"]
@@ -617,24 +693,63 @@ def run_pipeline(force_odds_api=False):
             m_ah_h = mah["h"]
             m_ah_a = mah["a"]
 
-            # Calculate fair AH price and expected returns
-            if dc_matrix:
-                ah_stat = derive_ah_fair_from_matrix(dc_matrix, line)
-                fair_ah_h = ah_stat["fair_h"]
-                fair_ah_a = ah_stat["fair_a"]
-                er_h = ah_stat["p_win"] * m_ah_h + ah_stat["p_hw"] * (1.0 + (m_ah_h - 1.0) / 2.0) + ah_stat["p_push"] * 1.0 + ah_stat["p_hl"] * 0.5
-                er_a = ah_stat["p_loss"] * m_ah_a + ah_stat["p_hl"] * (1.0 + (m_ah_a - 1.0) / 2.0) + ah_stat["p_push"] * 1.0 + ah_stat["p_hw"] * 0.5
-                ev_ah_h = er_h - 1.0
-                ev_ah_a = er_a - 1.0
-                win_rate_h = ah_stat["p_win"] + 0.5 * ah_stat["p_hw"]
-                win_rate_a = ah_stat["p_loss"] + 0.5 * ah_stat["p_hl"]
-            else:
-                fair_ah_h = 1.95
-                fair_ah_a = 1.95
-                ev_ah_h = (m_ah_h / 1.95) - 1.0
-                ev_ah_a = (m_ah_a / 1.95) - 1.0
-                win_rate_h = 0.50
-                win_rate_a = 0.50
+            # Derive consensus AH from consensus 1X2 + totals via fitted Poisson/DC expectations
+            cons_lh, cons_la = fit_lambdas_from_consensus(cons_p_h, cons_p_d, cons_p_a, cons_p_o25)
+            cons_matrix = calc_dc_matrix(cons_lh, cons_la, rho=-0.05)
+            cons_ah = derive_ah_fair_from_matrix(cons_matrix, line)
+
+            # Check if football-data fixtures.csv has sharp Pinnacle/Bet365 AH matching this match & line
+            sharp_ah_info = sharp_ah_fixtures.get((h_m, a_m))
+            if not sharp_ah_info:
+                for (sh_h, sh_a), info in sharp_ah_fixtures.items():
+                    if teams_match(h_m, sh_h) and teams_match(a_m, sh_a):
+                        sharp_ah_info = info
+                        break
+
+            if sharp_ah_info and abs(sharp_ah_info["line"] - line) < 1e-4:
+                dev_probs, _ = remove_margin_multiplicative([sharp_ah_info["h"], sharp_ah_info["a"]])
+                if dev_probs:
+                    p_sharp_h = dev_probs[0]
+                    p_sharp_a = dev_probs[1]
+                    cons_ah["p_win"] = 0.5 * cons_ah["p_win"] + 0.5 * p_sharp_h
+                    cons_ah["p_loss"] = 0.5 * cons_ah["p_loss"] + 0.5 * p_sharp_a
+                    tot_ah = cons_ah["p_win"] + cons_ah["p_loss"] + cons_ah["p_push"] + cons_ah["p_hw"] + cons_ah["p_hl"]
+                    if tot_ah > 0:
+                        cons_ah["p_win"] /= tot_ah
+                        cons_ah["p_loss"] /= tot_ah
+
+            # Model AH from Dixon-Coles
+            dc_ah = derive_ah_fair_from_matrix(dc_matrix, line) if dc_matrix else None
+
+            # Blend: 0.7 Consensus + 0.3 Dixon-Coles
+            blended_ah = blend_ah_distributions(cons_ah, dc_ah, weight_consensus=0.7)
+
+            # Expected return under 1u stake
+            er_h = (
+                blended_ah["p_win"] * m_ah_h +
+                blended_ah["p_hw"] * (1.0 + (m_ah_h - 1.0) / 2.0) +
+                blended_ah["p_push"] * 1.0 +
+                blended_ah["p_hl"] * 0.5
+            )
+            er_a = (
+                blended_ah["p_loss"] * m_ah_a +
+                blended_ah["p_hl"] * (1.0 + (m_ah_a - 1.0) / 2.0) +
+                blended_ah["p_push"] * 1.0 +
+                blended_ah["p_hw"] * 0.5
+            )
+
+            raw_ev_ah_h = er_h - 1.0
+            raw_ev_ah_a = er_a - 1.0
+
+            # Guard against model edge outliers: cap at +/- 15% (P0-3)
+            ev_ah_h = max(-0.15, min(0.15, raw_ev_ah_h))
+            ev_ah_a = max(-0.15, min(0.15, raw_ev_ah_a))
+
+            fair_ah_h = round(m_ah_h / er_h, 2) if er_h > 0.05 else blended_ah["fair_h"]
+            fair_ah_a = round(m_ah_a / er_a, 2) if er_a > 0.05 else blended_ah["fair_a"]
+
+            win_rate_h = blended_ah["eff_win_h"]
+            win_rate_a = blended_ah["eff_win_a"]
 
             best_ah_ev = max(ev_ah_h, ev_ah_a)
             best_ah_sel = "H" if best_ah_ev == ev_ah_h else "A"
@@ -671,7 +786,7 @@ def run_pipeline(force_odds_api=False):
                 "kelly": {"fraction_pct": k_frac, "stake_units": k_units}
             })
 
-        # Over/Under Classification at Macau's exact line
+        # 3. Over/Under Classification at Macau's exact line
         macau_ou_classified = None
         if mev.get("main_ou"):
             mou = mev["main_ou"]
@@ -686,7 +801,6 @@ def run_pipeline(force_odds_api=False):
             ev_ou_o = er_o - 1.0
             ev_ou_u = er_u - 1.0
 
-            # Estimate fair prices
             fair_ou_o = round(m_ou_o / er_o, 2) if er_o > 0.05 else 99.0
             fair_ou_u = round(m_ou_u / er_u, 2) if er_u > 0.05 else 99.0
 
@@ -696,7 +810,23 @@ def run_pipeline(force_odds_api=False):
             sel_ou_odds = m_ou_o if best_ou_sel == "Over" else m_ou_u
             sel_ou_fair = fair_ou_o if best_ou_sel == "Over" else fair_ou_u
 
-            k_frac, k_units = calc_kelly_stake(0.50 + 0.5 * best_ou_ev, sel_ou_odds)
+            # P2-15: True Poisson win probability for Kelly stake
+            is_quarter = abs((line * 2) % 1) > 1e-5
+            if not is_quarter:
+                p_dict = ou_line_probs.get("p", {})
+                if best_ou_sel == "Over":
+                    sel_ou_p = p_dict.get("over", 0.0) + 0.5 * p_dict.get("push", 0.0)
+                else:
+                    sel_ou_p = p_dict.get("under", 0.0) + 0.5 * p_dict.get("push", 0.0)
+            else:
+                p1 = ou_line_probs.get("p1", {})
+                p2 = ou_line_probs.get("p2", {})
+                if best_ou_sel == "Over":
+                    sel_ou_p = 0.5 * (p1.get("over", 0.0) + 0.5 * p1.get("push", 0.0)) + 0.5 * (p2.get("over", 0.0) + 0.5 * p2.get("push", 0.0))
+                else:
+                    sel_ou_p = 0.5 * (p1.get("under", 0.0) + 0.5 * p1.get("push", 0.0)) + 0.5 * (p2.get("under", 0.0) + 0.5 * p2.get("push", 0.0))
+
+            k_frac, k_units = calc_kelly_stake(sel_ou_p, sel_ou_odds)
 
             macau_ou_classified = {
                 "line": line,
@@ -732,8 +862,11 @@ def run_pipeline(force_odds_api=False):
             # If positive EV > +3%, mark for track record
             for opp in match_opportunities:
                 if opp["ev"] > 0.03:
+                    # P2-17: Unique bet ID based on ev_id, market, selection, and line
+                    line_suffix = f"_{opp['line']}" if opp.get('line') is not None else ""
+                    bet_id = f"{mev['start_time'][:10]}_{ev_id}_{opp['market']}_{opp['selection']}{line_suffix}"
                     all_value_bets.append({
-                        "id": f"{mev['start_time'][:10]}_{lg_code}_{h_m[:4]}_{a_m[:4]}_{opp['market']}_{opp['selection']}",
+                        "id": bet_id,
                         "league": lg_code,
                         "league_name": mev["league_zh"],
                         "home": h_m,
@@ -752,23 +885,30 @@ def run_pipeline(force_odds_api=False):
                     })
 
         # Bookmaker Discrepancy & Best Price across market
-        discrepancies = []
         outliers = []
-        best_market_prices = {"h": (m_h if mev.get("odds_1x2") else 1.0, "Macau Slot"), "d": (1.0, "Macau Slot"), "a": (1.0, "Macau Slot")}
+        best_market_prices = {
+            "h": (mev.get("odds_1x2", {}).get("h", 1.0), "Macau Slot"),
+            "d": (mev.get("odds_1x2", {}).get("d", 1.0), "Macau Slot"),
+            "a": (mev.get("odds_1x2", {}).get("a", 1.0), "Macau Slot")
+        }
 
         for b in books_list:
             b1 = b.get("1x2", {})
-            for sel, price, fair in [("h", b1.get("h"), fair_odds_h), ("d", b1.get("d"), fair_odds_d), ("a", b1.get("a"), fair_odds_a)]:
-                if price:
-                    if price > best_market_prices[sel][0]:
-                        best_market_prices[sel] = (price, b["title"])
-                    disc = (price / fair) - 1.0
-                    if disc > 0.04:  # 4% above consensus
+            b_name = b.get("title", b.get("key"))
+            for outcome, f_prob in [("h", fair_p_h), ("d", fair_p_d), ("a", fair_p_a)]:
+                price = b1.get(outcome)
+                if price and price > 1.0:
+                    if price > best_market_prices[outcome][0]:
+                        best_market_prices[outcome] = (price, b_name)
+                    fair_o = 1.0 / f_prob
+                    discrepancy = (price / fair_o) - 1.0
+                    if discrepancy > 0.04:
                         outliers.append({
-                            "book": b["title"],
-                            "selection": sel.upper(),
+                            "book": b_name,
+                            "selection": outcome.upper(),
                             "odds": price,
-                            "discrepancy_pct": round(disc * 100.0, 1)
+                            "fair_odds": round(fair_o, 2),
+                            "discrepancy_pct": round(discrepancy * 100.0, 1)
                         })
 
         fixture_obj = {
@@ -801,7 +941,7 @@ def run_pipeline(force_odds_api=False):
                 "prob_ou25": {"over": round(fair_p_o25 * 100.0, 1), "under": round(fair_p_u25 * 100.0, 1)}
             },
             "bestOpportunity": best_opp,
-            "booksList": books_list[:8],  # Top 8 bookmakers for detail modal
+            "booksList": books_list[:8],
             "outliers": outliers,
             "sparkline": snapshot_histories.get(match_key, [])
         }
@@ -810,10 +950,21 @@ def run_pipeline(force_odds_api=False):
     # Sort fixtures by kickoff time
     processed_fixtures.sort(key=lambda f: f["kickoffIso"])
 
+    # Fallback to last-good fixtures if pipeline failed (P1-7)
+    if not processed_fixtures and health_status["status"] == "error":
+        processed_fixtures = load_previous_fixtures_from_data_js(os.path.join(DATA_DIR, "data.js"))
+        print(f"[Pipeline] Retained {len(processed_fixtures)} last-good fixtures from previous data.js due to health error.")
+
     # Step 6: Save snapshot and update track record
     print(f"[Pipeline] 5/7 Saving snapshot and updating track record ({len(all_value_bets)} value bets detected)...")
     save_snapshot(processed_fixtures, base_data_dir=DATA_DIR)
-    track_record = update_track_record(all_value_bets, finished_matches=finished_matches_for_tracker, filepath=os.path.join(DATA_DIR, "track_record.json"))
+
+    track_record = update_track_record(
+        all_value_bets,
+        finished_matches=finished_matches_for_tracker,
+        filepath=os.path.join(DATA_DIR, "track_record.json"),
+        current_time_utc=now_utc
+    )
 
     # Log unmatched matches
     unmatched_file = os.path.join(DATA_DIR, "unmatched.json")

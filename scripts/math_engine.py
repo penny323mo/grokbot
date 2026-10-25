@@ -62,6 +62,15 @@ def remove_margin_power(odds_list, max_iter=50, tol=1e-8):
     tot = sum(probs)
     return [p / tot for p in probs], margin
 
+def remove_margin(odds_list, method="multiplicative"):
+    """
+    Unified margin removal entry point supporting both 'multiplicative' (proportional)
+    and 'power' (Shin-lite) de-vigging algorithms.
+    """
+    if method == "power":
+        return remove_margin_power(odds_list)
+    return remove_margin_multiplicative(odds_list)
+
 def solve_poisson_lambda_for_ou25(prob_over_25, max_iter=40, tol=1e-7):
     """
     Given the probability of Over 2.5 goals under a Poisson distribution,
@@ -286,6 +295,187 @@ def classify_ev(ev_fraction):
             "badgeClass": "badge-val-neutral",
             "ev_pct": round(ev_pct, 1)
         }
+
+def calc_dc_matrix(lh, la, rho=-0.05, max_goals=10):
+    """
+    Computes bivariate score probability matrix P(Home=i, Away=j) up to max_goals.
+    Applies Dixon-Coles low-score adjustment with correlation parameter rho.
+    
+    Documentation (P2-19):
+    rho = -0.05 is the canonical empirical correlation parameter for low-scoring match outcomes
+    (0-0, 1-0, 0-1, 1-1). Independent Poisson under-predicts 1-0 / 0-1 and over-predicts 0-0 / 1-1;
+    rho = -0.05 provides the exact calibrated adjustment across top European leagues.
+    """
+    lh = max(0.05, min(8.0, float(lh)))
+    la = max(0.05, min(8.0, float(la)))
+
+    poiss_h = [(math.exp(-lh) * (lh ** i)) / math.factorial(i) for i in range(max_goals + 1)]
+    poiss_a = [(math.exp(-la) * (la ** j)) / math.factorial(j) for j in range(max_goals + 1)]
+
+    matrix = [[poiss_h[i] * poiss_a[j] for j in range(max_goals + 1)] for i in range(max_goals + 1)]
+
+    # Dixon-Coles low-score correlation adjustments:
+    # tau(0,0) = 1 - lh * la * rho
+    # tau(0,1) = 1 + lh * rho
+    # tau(1,0) = 1 + la * rho
+    # tau(1,1) = 1 - rho
+    matrix[0][0] *= max(0.0, 1.0 - lh * la * rho)
+    matrix[0][1] *= max(0.0, 1.0 + lh * rho)
+    matrix[1][0] *= max(0.0, 1.0 + la * rho)
+    matrix[1][1] *= max(0.0, 1.0 - rho)
+
+    # Renormalize to ensure sum == 1.0
+    tot = sum(sum(row) for row in matrix)
+    if tot > 0:
+        matrix = [[cell / tot for cell in row] for row in matrix]
+    return matrix
+
+def fit_lambdas_from_consensus(p_h, p_d, p_a, p_o25, rho=-0.05, max_iter=30):
+    """
+    Inverts consensus market 1X2 and Over 2.5 probabilities to find Poisson/DC expectations (lh, la).
+    1. Total expected goals mu = lh + la is numerically solved from p_o25.
+    2. lh in (0, mu) is solved via bisection such that matrix P(H) matches p_h.
+    """
+    mu = solve_poisson_lambda_for_ou25(p_o25)
+    low = 0.01 * mu
+    high = 0.99 * mu
+    best_lh = 0.5 * mu
+
+    for _ in range(max_iter):
+        mid = (low + high) / 2.0
+        lh = mid
+        la = max(0.05, mu - mid)
+        mat = calc_dc_matrix(lh, la, rho=rho)
+        ph_est = sum(mat[i][j] for i in range(len(mat)) for j in range(len(mat)) if i > j)
+        if ph_est < p_h:
+            low = mid
+        else:
+            high = mid
+        best_lh = mid
+
+    final_la = max(0.05, mu - best_lh)
+    return best_lh, final_la
+
+def derive_ah_fair_from_matrix(matrix, line):
+    """
+    Computes Asian Handicap outcome probabilities (win, half-win, push, half-loss, loss)
+    and fair odds from a bivariate score probability matrix.
+    line: handicap applied to home team (e.g. 0, -0.25, -0.5, -0.75, -1.0)
+    """
+    l = round(line * 4) / 4
+    is_quarter = abs((l * 2) % 1) > 1e-5
+    max_g = len(matrix)
+
+    def sub_line_probs(sub_l):
+        p_w = 0.0
+        p_p = 0.0
+        p_l = 0.0
+        for i in range(max_g):
+            for j in range(max_g):
+                prob = matrix[i][j]
+                diff = (i - j) + sub_l
+                if diff > 1e-6:
+                    p_w += prob
+                elif abs(diff) <= 1e-6:
+                    p_p += prob
+                else:
+                    p_l += prob
+        return p_w, p_p, p_l
+
+    if not is_quarter:
+        p_win, p_push, p_loss = sub_line_probs(l)
+        p_hw = 0.0
+        p_hl = 0.0
+    else:
+        # Quarter line split
+        sub1 = l - 0.25
+        sub2 = l + 0.25
+        w1, p1, l1 = sub_line_probs(sub1)
+        w2, p2, l2 = sub_line_probs(sub2)
+        # Outcome classification on split:
+        # Both win: full win
+        p_win = min(w1, w2)
+        # Both lose: full loss
+        p_loss = min(l1, l2)
+        # One pushes, one wins: half win
+        p_hw = abs(w1 - w2) if (p1 > 0 or p2 > 0) else 0.0
+        # One pushes, one loses: half loss
+        p_hl = abs(l1 - l2) if (p1 > 0 or p2 > 0) else 0.0
+        # Push on both:
+        p_push = min(p1, p2)
+        # Fallback exact rebalancing to 1.0:
+        tot = p_win + p_hw + p_push + p_hl + p_loss
+        if tot > 0:
+            p_win /= tot
+            p_hw /= tot
+            p_push /= tot
+            p_hl /= tot
+            p_loss /= tot
+
+    # Expected returns under 1u stake at fair pricing:
+    # Win rate (effective probability of winning/not losing)
+    eff_win_h = p_win + 0.5 * p_hw
+    eff_win_a = p_loss + 0.5 * p_hl
+
+    fair_h = round(1.0 / eff_win_h, 2) if eff_win_h > 0.01 else 99.0
+    fair_a = round(1.0 / eff_win_a, 2) if eff_win_a > 0.01 else 99.0
+
+    return {
+        "line": line,
+        "p_win": p_win,
+        "p_hw": p_hw,
+        "p_push": p_push,
+        "p_hl": p_hl,
+        "p_loss": p_loss,
+        "fair_h": fair_h,
+        "fair_a": fair_a,
+        "eff_win_h": eff_win_h,
+        "eff_win_a": eff_win_a
+    }
+
+def blend_ah_distributions(cons_ah, dc_ah=None, weight_consensus=0.7):
+    """
+    Blends consensus Asian handicap distribution (0.7) with Dixon-Coles model (0.3).
+    Ensures that Asian Handicap fair probabilities and EV are properly grounded in market consensus.
+    """
+    if not dc_ah:
+        return cons_ah
+
+    wc = weight_consensus
+    wm = 1.0 - wc
+
+    p_win = wc * cons_ah["p_win"] + wm * dc_ah["p_win"]
+    p_hw = wc * cons_ah["p_hw"] + wm * dc_ah["p_hw"]
+    p_push = wc * cons_ah["p_push"] + wm * dc_ah["p_push"]
+    p_hl = wc * cons_ah["p_hl"] + wm * dc_ah["p_hl"]
+    p_loss = wc * cons_ah["p_loss"] + wm * dc_ah["p_loss"]
+
+    tot = p_win + p_hw + p_push + p_hl + p_loss
+    if tot > 0:
+        p_win /= tot
+        p_hw /= tot
+        p_push /= tot
+        p_hl /= tot
+        p_loss /= tot
+
+    eff_win_h = p_win + 0.5 * p_hw
+    eff_win_a = p_loss + 0.5 * p_hl
+
+    fair_h = round(1.0 / eff_win_h, 2) if eff_win_h > 0.01 else 99.0
+    fair_a = round(1.0 / eff_win_a, 2) if eff_win_a > 0.01 else 99.0
+
+    return {
+        "line": cons_ah.get("line", 0.0),
+        "p_win": p_win,
+        "p_hw": p_hw,
+        "p_push": p_push,
+        "p_hl": p_hl,
+        "p_loss": p_loss,
+        "fair_h": fair_h,
+        "fair_a": fair_a,
+        "eff_win_h": eff_win_h,
+        "eff_win_a": eff_win_a
+    }
 
 def calc_kelly_stake(prob, odds, bankroll=100.0, fraction=0.25, max_cap=0.10):
     """

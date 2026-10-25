@@ -867,12 +867,45 @@
     const discBadge = document.getElementById('discrepancyCountBadge');
     if (!listEl) return;
 
-    // 1. Margin comparison bars
+    // 1. Margin comparison bars (computed dynamically across active fixtures - P2-12)
+    const fixtures = window.ODDS_DATA.macauFixtures || [];
+    let pinSum = 0, pinCnt = 0;
+    let b365Sum = 0, b365Cnt = 0;
+    let euSum = 0, euCnt = 0;
+    let macauSum = 0, macauCnt = 0;
+
+    fixtures.forEach(fix => {
+      if (fix.macau && fix.macau.odds_1x2 && fix.macau.odds_1x2.margin) {
+        macauSum += fix.macau.odds_1x2.margin * 100;
+        macauCnt++;
+      }
+      (fix.booksList || []).forEach(b => {
+        const m = b["1x2"] && b["1x2"].margin;
+        if (m && m > 0) {
+          if (b.key === 'pinnacle') {
+            pinSum += m;
+            pinCnt++;
+          } else if (b.key === 'bet365') {
+            b365Sum += m;
+            b365Cnt++;
+          } else {
+            euSum += m;
+            euCnt++;
+          }
+        }
+      });
+    });
+
+    const pinAvg = pinCnt > 0 ? (pinSum / pinCnt) : 2.4;
+    const b365Avg = b365Cnt > 0 ? (b365Sum / b365Cnt) : 6.2;
+    const euAvg = euCnt > 0 ? (euSum / euCnt) : 7.5;
+    const macauAvg = macauCnt > 0 ? (macauSum / macauCnt) : 10.9;
+
     const margins = [
-      { name: '⭐ Pinnacle (尖端標竿)', pct: 2.4, class: 'pinnacle', desc: '國際最準線位，超低抽水' },
-      { name: '🌐 Bet365 (主流巨頭)', pct: 6.2, class: 'bet365', desc: '綜合型主流莊家標準抽水' },
-      { name: '📊 歐洲莊家平均', pct: 7.5, class: 'market', desc: '全市場數十間莊家平均水準' },
-      { name: '🇲🇴 澳門彩票 (本站對象)', pct: 10.9, class: 'macau', desc: '抽水最厚，非值博盤絕不可買' }
+      { name: '⭐ Pinnacle (尖端標竿)', pct: pinAvg, class: 'pinnacle', desc: '國際最準線位，超低抽水' },
+      { name: '🌐 Bet365 (主流巨頭)', pct: b365Avg, class: 'bet365', desc: '綜合型主流莊家標準抽水' },
+      { name: '📊 歐洲莊家平均', pct: euAvg, class: 'market', desc: '全市場數十間莊家平均水準' },
+      { name: '🇲🇴 澳門彩票 (本站對象)', pct: macauAvg, class: 'macau', desc: '抽水最厚，非值博盤絕不可買' }
     ];
 
     listEl.innerHTML = margins.map(m => `
@@ -889,7 +922,6 @@
     `).join('');
 
     // 2. Discrepancy Matrix
-    const fixtures = window.ODDS_DATA.macauFixtures || [];
     const allOutliers = [];
     fixtures.forEach(fix => {
       if (fix.outliers && fix.outliers.length > 0) {

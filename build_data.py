@@ -321,19 +321,34 @@ def build():
     print("[build_data] Running v4 live data pipeline (Macau Slot + Consensus + Track Record)...")
     v4_data = run_pipeline()
 
+    macau_fixtures = v4_data.get("macauFixtures", [])
+    out_file = os.path.join(DATA_DIR, "data.js")
+
+    # Safeguard (P1-7): On error, preserve last known good fixtures if current is empty
+    if not macau_fixtures and os.path.exists(out_file):
+        try:
+            import re
+            with open(out_file, "r", encoding="utf-8") as fp:
+                prev_content = fp.read()
+            m = re.search(r"const\s+ODDS_DATA\s*=\s*(\{.*?\});\s*(?:if|$)", prev_content, re.DOTALL)
+            if m:
+                prev_data = json.loads(m.group(1))
+                macau_fixtures = prev_data.get("macauFixtures", [])
+                print(f"[build_data] Preserved {len(macau_fixtures)} fixtures from previous data.js.")
+        except Exception as e:
+            print(f"[build_data] Warning: Could not preserve previous fixtures: {e}")
+
     output = {
         "generatedAt": now_str,
         "dataThrough": max_match_date,
         "health": v4_data.get("health", {}),
         "sourcesStatus": v4_data.get("sourcesStatus", {}),
-        "macauFixtures": v4_data.get("macauFixtures", []),
+        "macauFixtures": macau_fixtures,
         "trackRecord": v4_data.get("trackRecord", {}),
         "matchSchema": MATCH_SCHEMA,
         "fixtureSchema": FIXTURE_SCHEMA,
         "leagues": league_data
     }
-
-    out_file = os.path.join(DATA_DIR, "data.js")
     json_str = json.dumps(output, ensure_ascii=False, separators=(',', ':'))
     with open(out_file, "w", encoding="utf-8") as fp:
         fp.write("/* 盤口實驗室 ODDS_DATA */\n")

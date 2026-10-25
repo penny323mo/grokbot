@@ -170,17 +170,24 @@ def fetch_odds_api(data_dir="data", force=False):
             print(f"[TheOddsAPI] Error fetching {sp}: {e}", file=sys.stderr)
 
     now_utc_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    state["last_run_utc"] = today_utc
-    state["last_run_timestamp"] = now_utc_str
-    state["status"] = "success"
-    state["message"] = f"Successfully fetched {len(all_matches)} matches across {len(fetched_sports)} leagues"
-    state["cached_events_count"] = len(all_matches)
-
-    save_json(state_file, state)
-    save_json(cache_file, all_matches)
-
-    print(f"[TheOddsAPI] Completed fetch: {len(all_matches)} total matches cached. Remaining credits: {state.get('requests_remaining')}")
-    return {"status": "ok", "state": state, "matches": all_matches}
+    if fetched_sports:
+        state["last_run_utc"] = today_utc
+        state["last_run_timestamp"] = now_utc_str
+        state["status"] = "success"
+        state["message"] = f"Successfully fetched {len(all_matches)} matches across {len(fetched_sports)} leagues"
+        state["cached_events_count"] = len(all_matches)
+        save_json(state_file, state)
+        save_json(cache_file, all_matches)
+        print(f"[TheOddsAPI] Completed fetch: {len(all_matches)} total matches cached. Remaining credits: {state.get('requests_remaining')}")
+        return {"status": "ok", "state": state, "matches": all_matches}
+    else:
+        state["last_run_timestamp"] = now_utc_str
+        state["status"] = "error"
+        state["message"] = "Failed to fetch any sports: all network requests failed"
+        save_json(state_file, state)
+        existing_cached = load_json(cache_file) or []
+        print(f"[TheOddsAPI] Error: no sports fetched. Retaining {len(existing_cached)} existing cached matches.", file=sys.stderr)
+        return {"status": "error", "message": state["message"], "state": state, "matches": existing_cached}
 
 if __name__ == "__main__":
     fetch_odds_api()
