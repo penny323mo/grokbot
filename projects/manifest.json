@@ -1,6 +1,17 @@
 {
   "projects": [
     {
+      "id": "lantern-watch",
+      "title": "燈籠小鎮守夜人",
+      "subtitle": "Lantern Watch",
+      "category": "策略遊戲",
+      "description": "戰棋加卡牌嘅溫馨守夜冒險：排兵佈陣、砌牌組，守住小鎮燈籠。",
+      "accent": "#D9822B",
+      "path": "projects/lantern-watch/",
+      "added": "2026-10-26",
+      "cover": "projects/lantern-watch/cover/cover.webp"
+    },
+    {
       "id": "prompt-studio",
       "title": "Prompt 工作室",
       "subtitle": "Prompt Studio",

@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#FAF6EE">
+  <title>燈籠小鎮守夜人 (Lantern Watch)</title>
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+  <div class="app-viewport" id="appViewport">
+    <!-- Top Navigation Bar -->
+    <header class="top-nav">
+      <div class="nav-left">
+        <button type="button" class="btn-icon-nav" id="btnNavHome" title="返回主選單" aria-label="返回主選單">
+          <svg viewBox="0 0 24 24" style="width:20px;height:20px;"><path d="M3 11 L12 3 L21 11 L21 21 L15 21 L15 14 L9 14 L9 21 L3 21 Z" fill="#F4EEDF" stroke="#2C2621" stroke-width="2" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="resource-pill" id="pillCoins">
+          <span class="res-icon">
+            <svg viewBox="0 0 24 24" style="width:16px;height:16px;vertical-align:middle;"><circle cx="12" cy="12" r="9" fill="#FFB84D" stroke="#2C2621" stroke-width="2"/><rect x="9.5" y="9.5" width="5" height="5" fill="#FAF6EE" stroke="#2C2621" stroke-width="1.5"/></svg>
+          </span>
+          <span id="txtCoins">50</span>
+        </div>
+        <div class="resource-pill" id="pillStars">
+          <span class="res-icon">
+            <svg viewBox="0 0 24 24" style="width:16px;height:16px;vertical-align:middle;"><polygon points="12,2 15,9 22,12 15,15 12,22 9,15 2,12 9,9" fill="#FFB84D" stroke="#2C2621" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          </span>
+          <span id="txtStars">0</span>
+        </div>
+      </div>
+      <div class="nav-right">
+        <button type="button" class="btn-icon-nav" id="btnUndo" title="悔棋 (Undo)" aria-label="悔棋" style="display:none;">
+          <svg viewBox="0 0 24 24" style="width:20px;height:20px;"><path d="M8 8 L3 12 L8 16" fill="none" stroke="#2C2621" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12 Q12 10 18 14 Q21 16 21 20" fill="none" stroke="#2C2621" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </button>
+        <button type="button" class="btn-icon-nav" id="btnToggleMusic" title="音樂開關" aria-label="音樂開關">
+          <svg viewBox="0 0 24 24" style="width:18px;height:18px;"><path d="M9 18 A3 3 0 1 1 6 15 L6 4 L18 2 L18 14 A3 3 0 1 1 15 11" fill="#2C2621"/></svg>
+        </button>
+        <button type="button" class="btn-icon-nav" id="btnToggleSfx" title="音效開關" aria-label="音效開關">
+          <svg viewBox="0 0 24 24" style="width:18px;height:18px;"><path d="M12 3 C8 3 6 8 6 13 L4 16 L20 16 L18 13 C18 8 16 3 12 3 Z" fill="#FFB84D" stroke="#2C2621" stroke-width="2"/><circle cx="12" cy="19" r="2" fill="#2C2621"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- SCREEN 1: TITLE SCREEN -->
+    <main class="screen active" id="screenTitle">
+      <div class="title-content">
+        <div class="title-hero-art" id="titleHeroArt">
+          <!-- Filled with Lantern Craft SVG -->
+        </div>
+        <h1 class="title-main">燈籠小鎮守夜人</h1>
+        <p class="title-sub">溫馨戰棋卡牌 · 守護夜色燈火</p>
+
+        <div class="title-buttons">
+          <button type="button" class="btn-main" id="btnStartAdventure">
+            <span style="display:inline-flex;width:20px;height:20px;">
+              <svg viewBox="0 0 24 24"><rect x="7" y="6" width="10" height="12" rx="4" fill="#FFB84D" stroke="#2C2621" stroke-width="2"/><line x1="12" y1="2" x2="12" y2="6" stroke="#2C2621" stroke-width="2"/><line x1="12" y1="18" x2="12" y2="22" stroke="#C74B4B" stroke-width="2"/></svg>
+            </span>
+            <span>啟程守夜</span>
+          </button>
+
+          <button type="button" class="btn-secondary" id="btnContinueRun" style="display:none;">
+            <span style="display:inline-flex;width:20px;height:20px;">
+              <svg viewBox="0 0 24 24"><path d="M14 3 C7 4 4 11 7 18 C10 22 17 23 21 18 C13 18 10 11 14 3 Z" fill="#FFE2A8" stroke="#2C2621" stroke-width="2" stroke-linejoin="round"/></svg>
+            </span>
+            <span>繼續當前冒險</span>
+          </button>
+
+          <button type="button" class="btn-secondary" id="btnOpenTown">
+            <span style="display:inline-flex;width:20px;height:20px;">
+              <svg viewBox="0 0 24 24"><polygon points="3,11 7,7 11,11" fill="#C74B4B" stroke="#2C2621" stroke-width="1.5"/><rect x="4" y="11" width="6" height="8" fill="#F4EEDF" stroke="#2C2621" stroke-width="1.5"/><polygon points="13,9 18,4 23,9" fill="#6E8B75" stroke="#2C2621" stroke-width="1.5"/><rect x="14" y="9" width="8" height="10" fill="#F4EEDF" stroke="#2C2621" stroke-width="1.5"/></svg>
+            </span>
+            <span>建設小鎮</span>
+          </button>
+
+          <button type="button" class="btn-secondary" id="btnOpenCompendium">
+            <span style="display:inline-flex;width:20px;height:20px;">
+              <svg viewBox="0 0 24 24"><path d="M4 19 C7 18 10 18 12 20 C14 18 17 18 20 19 L20 5 C17 4 14 4 12 6 C10 4 7 4 4 5 Z" fill="#FAF6EE" stroke="#2C2621" stroke-width="2" stroke-linejoin="round"/><line x1="12" y1="6" x2="12" y2="20" stroke="#2C2621" stroke-width="2"/></svg>
+            </span>
+            <span>守夜圖鑑</span>
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- SCREEN 2: DIFFICULTY & ASCENSION SELECTION -->
+    <section class="screen" id="screenDifficulty">
+      <div class="title-content">
+        <h2 class="title-main" style="font-size: 24px;">選擇守夜難度</h2>
+        <p class="title-sub">按你的節奏享受這場守護之旅</p>
+
+        <div class="title-buttons" style="gap: 10px;">
+          <button type="button" class="btn-secondary" data-diff="relaxed" style="text-align: left; padding: 12px;">
+            <div><strong>悠閒 (Relaxed)</strong></div>
+            <div style="font-size: 12px; color: var(--ink-muted); margin-top: 2px;">燈籠4血 · 敵軍路徑簡明 · 無限悔棋</div>
+          </button>
+
+          <button type="button" class="btn-main" data-diff="standard" style="text-align: left; padding: 12px;">
+            <div><strong>標準 (Standard)</strong></div>
+            <div style="font-size: 12px; color: #FFF; margin-top: 2px;">原汁原味守夜冒險 · 戰棋巧思</div>
+          </button>
+
+          <button type="button" class="btn-secondary" data-diff="challenging" style="text-align: left; padding: 12px;">
+            <div><strong>挑戰 (Challenging)</strong></div>
+            <div style="font-size: 12px; color: var(--ink-muted); margin-top: 2px;">燈籠2血 · 敵軍增援增加 · 步步為營</div>
+          </button>
+        </div>
+
+        <!-- Starting Deck Selector (Unlocked via Pavilion) -->
+        <div id="deckChoiceWrap" style="margin-top: 14px; width: 100%; max-width: 280px; display: none;">
+          <div style="font-size: 13px; font-weight: 800; margin-bottom: 6px;">初始牌組流派 (Starting Deck)</div>
+          <select id="selectStartingDeck" style="width: 100%; height: 44px; border: var(--ink-border-thin); border-radius: 10px; padding: 0 10px; font-size: 14px; background: var(--paper-card); font-family: inherit;">
+            <option value="standard">標準：小鎮巡邏隊 (貓/茶/燈/草)</option>
+            <option value="blazing">解鎖：烈焰燈火流 (小龍/燈匠/爆炎)</option>
+          </select>
+        </div>
+
+        <!-- Ascension Selector (Unlocked after win) -->
+        <div id="ascensionWrap" style="margin-top: 14px; width: 100%; max-width: 280px; display: none;">
+          <div style="font-size: 13px; font-weight: 800; margin-bottom: 6px;">進階難度 (Ascension)</div>
+          <select id="selectAscension" style="width: 100%; height: 44px; border: var(--ink-border-thin); border-radius: 10px; padding: 0 10px; font-size: 14px; background: var(--paper-card); font-family: inherit;">
+            <option value="0">進階 0：無額外負面效果</option>
+            <option value="1">進階 1：濃霧蔓延 (+1 行視野遮蔽)</option>
+            <option value="2">進階 2：凶煞凶靈 (全體霧怪攻擊力 +1)</option>
+            <option value="3">進階 3：殘燭難續 (燈火卡牌能量消耗 +1)</option>
+            <option value="4">進階 4：強敵環伺 (精英與Boss生命 +25%)</option>
+            <option value="5">進階 5：夜深霜重 (第1回合手牌 -1)</option>
+          </select>
+        </div>
+
+        <button type="button" class="btn-secondary" id="btnBackFromDiff" style="margin-top: 20px; width: 100%; max-width: 280px;">
+          <span>← 返回</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- SCREEN 3: MAP SCREEN -->
+    <section class="screen" id="screenMap">
+      <div class="map-screen-content">
+        <div class="town-banner" style="background: var(--paper-card); color: var(--ink-primary);">
+          <div>
+            <div style="font-size: 16px; font-weight: 900;">守夜夜路地圖</div>
+            <div style="font-size: 12px; color: var(--ink-muted);">共 8 個夜晚，向著黎明前進</div>
+          </div>
+          <div class="resource-pill">
+            <span id="txtCurrentNight">第 1 夜</span>
+          </div>
+        </div>
+
+        <div class="map-night-nodes" id="containerMapNodes">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </section>
+
+    <!-- SCREEN 4: BATTLE SCREEN -->
+    <section class="screen battle-screen" id="screenBattle">
+      <!-- Battle Top Info Bar -->
+      <div class="battle-header-bar">
+        <div class="night-badge" id="battleNightBadge">第 1 夜 · 初臨霧夜</div>
+        <div class="lanterns-status" id="containerLanternStatus">
+          <!-- 3 Lantern HP Badges -->
+        </div>
+      </div>
+
+      <!-- Tag Resonance Bar -->
+      <div class="tag-resonances-bar" id="containerTagResonances">
+        <!-- Tag resonance chips -->
+      </div>
+
+      <!-- 5x6 Board Container -->
+      <div class="board-container">
+        <div class="tactics-grid" id="tacticsGrid">
+          <!-- 30 Grid Tiles -->
+        </div>
+      </div>
+
+      <!-- Bottom Hand & Action Area -->
+      <div class="battle-controls">
+        <div class="battle-action-row">
+          <div class="energy-display">
+            <div class="energy-orb" id="displayEnergy">3</div>
+            <div class="energy-label">能量</div>
+          </div>
+          <div style="font-size: 12px; color: var(--ink-muted); text-align: center;">
+            點擊卡牌選擇，再點擊格子施放
+          </div>
+          <button type="button" class="btn-end-turn" id="btnEndTurn">
+            <span>結束回合</span>
+            <span>❯</span>
+          </button>
+        </div>
+
+        <!-- Hand Cards Carousel -->
+        <div class="cards-hand-row" id="containerHand">
+          <!-- Rendered Hand Cards -->
+        </div>
+      </div>
+    </section>
+
+    <!-- SCREEN 5: REWARD SCREEN -->
+    <section class="screen" id="screenReward">
+      <div class="title-content" style="padding-top: 40px;">
+        <h2 class="title-main" style="font-size: 26px; color: var(--amber-primary);">守夜大捷！</h2>
+        <p class="title-sub">霧怪散去，為小鎮守住了一夜安寧</p>
+
+        <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+          <div class="resource-pill" style="font-size: 14px; padding: 6px 14px;">
+            <span>獲得銅錢: +</span><span id="rewardCoins">20</span>
+          </div>
+          <div class="resource-pill" style="font-size: 14px; padding: 6px 14px;">
+            <span>獲得星燈: +</span><span id="rewardStars">3</span>
+          </div>
+        </div>
+
+        <div style="font-size: 14px; font-weight: 800; margin-bottom: 10px;">請挑選 1 張新卡牌加入牌組：</div>
+        <div id="rewardCardsRow" style="display: flex; gap: 8px; justify-content: center; width: 100%; margin-bottom: 20px;">
+          <!-- 3 Reward Cards -->
+        </div>
+
+        <button type="button" class="btn-main" id="btnClaimReward" style="width: 100%; max-width: 280px;">
+          <span>確認並前進 ❯</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- SCREEN 6: TEA HOUSE / SHOP (茶館) -->
+    <section class="screen" id="screenShop">
+      <div class="town-screen-content">
+        <div class="town-banner">
+          <div>
+            <div style="font-size: 16px; font-weight: 900;">老街茶館</div>
+            <div style="font-size: 12px; opacity: 0.85;">買好茶品、購新信物、精簡牌組</div>
+          </div>
+          <div class="resource-pill" style="color: #FFF; background: rgba(255,255,255,0.2); border: none;">
+            <span>銅錢: </span><span id="shopCoins">50</span>
+          </div>
+        </div>
+
+        <div style="font-size: 14px; font-weight: 800; margin-top: 6px;">茶館精選卡牌</div>
+        <div id="shopCardsList" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px;"></div>
+
+        <div style="font-size: 14px; font-weight: 800; margin-top: 6px;">珍奇信物 (Relics)</div>
+        <div id="shopRelicsList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+
+        <div class="building-card" style="margin-top: 8px;">
+          <div>
+            <div class="bldg-name">精簡牌組 (刪除卡牌)</div>
+            <div class="bldg-desc" id="txtRemoveCardDesc">費用：50 銅錢</div>
+          </div>
+          <button type="button" class="btn-build" id="btnShopRemoveCard">刪除 1 張牌</button>
+        </div>
+
+        <button type="button" class="btn-main" id="btnLeaveShop" style="margin-top: 14px;">
+          <span>離開茶館 ❯</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- SCREEN 7: HOT SPRING / REST (溫泉暖湯) -->
+    <section class="screen" id="screenRest">
+      <div class="title-content" style="padding-top: 40px;">
+        <h2 class="title-main" style="font-size: 26px; color: var(--water-teal);">溫泉暖湯</h2>
+        <p class="title-sub">白霧裊裊，泡個熱湯舒緩守夜疲憊</p>
+
+        <div class="title-buttons" style="gap: 14px;">
+          <button type="button" class="btn-main" id="btnRestRepairLantern" style="background: var(--amber-primary);">
+            <div><strong>修復燈籠</strong></div>
+            <div style="font-size: 12px; margin-top: 2px;">全體燈籠回復 2 點生命耐久</div>
+          </button>
+
+          <button type="button" class="btn-secondary" id="btnRestUpgradeCard">
+            <div><strong>磨礪心境 (升級卡牌)</strong></div>
+            <div style="font-size: 12px; color: var(--ink-muted); margin-top: 2px;">選擇牌組中 1 張卡牌永久強化為 + 版</div>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCREEN 8: EVENT (荒野神龕) -->
+    <section class="screen" id="screenEvent">
+      <div class="title-content" style="padding-top: 40px;">
+        <h2 class="title-main" id="eventTitle" style="font-size: 24px;">荒野神龕</h2>
+        <p class="title-sub" id="eventDesc" style="line-height: 1.5; margin-bottom: 24px;">
+          你穿過竹林深處，見到一座長滿青苔的古老石龕，裏面供奉著微弱的赤色火種。
+        </p>
+
+        <div class="title-buttons" id="containerEventChoices" style="gap: 12px;">
+          <!-- Event choice buttons -->
+        </div>
+      </div>
+    </section>
+
+    <!-- SCREEN 9: TOWN META PROGRESSION (建設小鎮) -->
+    <section class="screen" id="screenTown">
+      <div class="town-screen-content">
+        <div class="town-banner">
+          <div>
+            <div style="font-size: 16px; font-weight: 900;">小鎮建設</div>
+            <div style="font-size: 12px; opacity: 0.85;">用守夜獲得的星燈振興小鎮，解鎖全新力量</div>
+          </div>
+          <div class="resource-pill" style="color: #FFF; background: rgba(255,255,255,0.2); border: none;">
+            <span>星燈: </span><span id="townStars">0</span>
+          </div>
+        </div>
+
+        <div class="town-grid" id="containerTownBuildings">
+          <!-- 10 Buildings Rendered Here -->
+        </div>
+
+        <button type="button" class="btn-secondary" id="btnBackFromTown" style="margin-top: 10px;">
+          <span>← 返回主選單</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- SCREEN 10: COMPENDIUM / COLLECTION (守夜圖鑑) -->
+    <section class="screen" id="screenCompendium">
+      <div class="town-screen-content">
+        <div class="town-banner" style="background: var(--night-deep);">
+          <div>
+            <div style="font-size: 16px; font-weight: 900;">守夜圖鑑</div>
+            <div style="font-size: 12px; opacity: 0.85;">小鎮守護者與霧怪生態紀錄</div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 4px;">
+          <button type="button" class="btn-secondary" id="tabCompGuardians" style="flex:1;">守護者 (10)</button>
+          <button type="button" class="btn-secondary" id="tabCompEnemies" style="flex:1;">霧怪 (11)</button>
+        </div>
+
+        <div id="compendiumList" style="display: flex; flex-direction: column; gap: 10px;">
+          <!-- Items populated dynamically -->
+        </div>
+
+        <button type="button" class="btn-secondary" id="btnBackFromComp" style="margin-top: 10px;">
+          <span>← 返回主選單</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- MODAL 1: UNIT & ENEMY INFO SHEET -->
+    <div class="modal-overlay" id="modalUnitInfo">
+      <div class="info-sheet">
+        <div class="info-header">
+          <div class="info-title-group">
+            <div id="sheetSvg" style="width: 48px; height: 48px;"></div>
+            <div>
+              <div class="info-name" id="sheetName">貓巡邏員</div>
+              <div style="font-size: 12px; color: var(--ink-muted);" id="sheetTitle">矯捷夜行者</div>
+            </div>
+          </div>
+          <button type="button" class="btn-icon-nav" id="btnCloseSheet" aria-label="關閉">✕</button>
+        </div>
+
+        <div class="info-stats-row">
+          <div class="info-stat-box">生命: <span id="sheetHp">8/8</span></div>
+          <div class="info-stat-box">攻擊: <span id="sheetAtk">3</span></div>
+          <div class="info-stat-box">射程: <span id="sheetRange">1</span></div>
+          <div class="info-stat-box">移動: <span id="sheetMove">2</span></div>
+        </div>
+
+        <div class="info-skill-box">
+          <div class="info-skill-title" id="sheetSkillName">夜行雙爪</div>
+          <div class="info-skill-desc" id="sheetSkillDesc">若本回合移動超過 1 格後攻擊，連續揮爪攻擊 2 次。</div>
+        </div>
+
+        <div style="font-size: 12px; font-style: italic; color: var(--ink-muted);" id="sheetFlavor">
+          「喵嗚！今晚小鎮嘅南街由我罩住！」
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 2: INTERACTIVE TUTORIAL (SKIPPABLE) -->
+    <div class="modal-overlay" id="modalTutorial">
+      <div class="info-sheet" style="border-radius: 20px; margin: auto; max-height: 90vh; overflow-y: auto;">
+        <div class="info-header">
+          <div class="info-name" style="font-size: 20px;">守夜入門指引</div>
+          <button type="button" class="btn-icon-nav" id="btnSkipTutorial" aria-label="關閉">✕</button>
+        </div>
+
+        <div style="font-size: 14px; line-height: 1.6; color: var(--ink-secondary); display: flex; flex-direction: column; gap: 10px;">
+          <p><strong>1. 守護目標：</strong>每晚霧怪會從上方逼近，企圖熄滅底部 3 盞小鎮燈籠。只要守住燈籠，黎明便會降臨！</p>
+          <p><strong>2. 點擊出牌：</strong>每回合擁有 3 點能量。點擊手牌，棋盤上的有效格子會泛起金色光芒，點擊格子即可召喚守護者或施放法術。</p>
+          <p><strong>3. 戰術走位：</strong>點擊未移動的友軍，金色格子為可走範圍；點擊目標格即可移動，再次點擊同一單位可查看詳情。</p>
+          <p><strong>4. 敵方意圖：</strong>所有霧怪頭頂會標註下回合意圖（攻擊傷害與紅色目標格、行進箭頭），助你未雨綢繆！</p>
+          <p><strong>5. 陣法共鳴：</strong>在場上召喚 2 位相同標籤（光/毛/守/術）的守護者，可觸發強力的雙重共鳴效果！</p>
+          <p><strong>6. 隨時悔棋：</strong>出錯牌時，點擊右上角「悔棋」按鈕即可撤銷上一步操作。</p>
+        </div>
+
+        <button type="button" class="btn-main" id="btnCloseTutorial" style="margin-top: 16px; width: 100%;">
+          <span>明白了，開始守夜！</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- MODAL 3: CARD UPGRADE SELECTOR -->
+    <div class="modal-overlay" id="modalUpgradeCard">
+      <div class="info-sheet" style="max-height: 85vh; overflow-y: auto;">
+        <div class="info-header">
+          <div class="info-name">選擇要強化的卡牌</div>
+          <button type="button" class="btn-icon-nav" id="btnCloseUpgradeModal" aria-label="關閉">✕</button>
+        </div>
+        <div id="upgradeCardsGrid" style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 10px 0;"></div>
+      </div>
+    </div>
+
+    <!-- MODAL 4: IN-GAME PICTURE-BOOK ALERT SHEET -->
+    <div class="modal-overlay" id="modalAlert">
+      <div class="info-sheet" style="max-width: 320px; text-align: center; border-radius: 18px; padding: 22px;">
+        <div class="info-name" id="alertModalTitle" style="font-size: 18px; margin-bottom: 8px;">提示</div>
+        <div id="alertModalMessage" style="font-size: 14px; line-height: 1.5; color: var(--ink-secondary); margin-bottom: 18px;"></div>
+        <div style="display: flex; gap: 10px; justify-content: center;">
+          <button type="button" class="btn-secondary" id="btnAlertCancel" style="display: none; min-width: 80px;">取消</button>
+          <button type="button" class="btn-main" id="btnAlertConfirm" style="min-width: 100px;">好</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Grokbot Integration Script Required -->
+  <script src="../_shared/back.js" defer></script>
+  <!-- Main Application Script -->
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

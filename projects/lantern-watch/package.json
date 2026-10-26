@@ -1,0 +1,10 @@
+{
+  "name": "lantern-watch",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "燈籠小鎮守夜人 (Lantern Watch) - Cozy Tactics Card Game",
+  "scripts": {
+    "test": "node tests/rules.test.mjs && node tests/intents.test.mjs && node tests/save_load.test.mjs && node tests/bot_run.test.mjs",
+    "screenshots": "node scripts/capture_screenshots.mjs"
+  }
+}
