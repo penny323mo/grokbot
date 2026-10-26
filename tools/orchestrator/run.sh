@@ -86,7 +86,7 @@ run_tests() {
 commit() {
   [ -d "$P/.git" ] || { git -C "$P" init -q -b main && log "git init"; }
   printf '.orch/pid\n.orch/heartbeat\n' > "$P/.git/info/exclude"
-  git -C "$P" config user.email >/dev/null || { git -C "$P" config user.name "Grok Bot orchestrator"; git -C "$P" config user.email "orchestrator@grokbot.local"; }
+  git -C "$P" config user.email >/dev/null || { git -C "$P" config user.name "penny323mo"; git -C "$P" config user.email "penny323mo@users.noreply.github.com"; }
   git -C "$P" add -A && git -C "$P" commit -qm "orch: $1" >/dev/null 2>&1 && log "committed: $1"
   git -C "$P" remote get-url origin >/dev/null 2>&1 && { git -C "$P" push -q origin HEAD 2>&1 | redact | tail -2 >> "$ORCH/log.txt" || true; }
 }
