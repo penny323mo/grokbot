@@ -1,0 +1,19 @@
+I'll review the launcher as a senior product designer: source plus the existing 390px screenshots, then write ranked findings. No servers, no source edits.The r1 issues look addressed in code. I'll read the r2 screenshots next and check what still fails at 390px.The light frame’s last cover is a flat fallback color, and the 3:4 crop buries the title. I’ll write the ranked findings with exact fixes.Wrote the review to `reviews/grok-review-r2.md`. Source files were not edited.
+
+**P0**
+
+- Light frame of 你估得贏莊家嗎？ is a flat tan panel, `rgb(242, 221, 185)`, which is the 24% amber fallback. The dark frame shows the green cover. `loading="eager"` still loses because the images are inserted only after the manifest fetch. Decode the covers before painting the cards.
+- The 3:4 stage is 475px tall, so at 390×740 the first screen has no project title, and Odds Lab’s own chip row (with 法甲 cut off) sits under the launcher chips. Use `aspect-ratio: 41 / 20` so the title lands in the first screen and that league row is outside the crop.
+
+**P1**
+
+- Radios are announced, but every chip stays in the tab order and arrow keys do nothing.
+- The cover `alt` repeats the card title inside the link name.
+- Filters are not sticky, and `overflow-x: hidden` on `body` will stop a sticky bar from sticking.
+- Empty-state and error-title copy slips into formal written Chinese. 「食譜」 reads as a cooking recipe.
+
+**P2**
+
+- The amber category dot is 2.04:1 on white. The bookie line reserves a blank second line. A few spacings miss the 8px grid. Small accessibility leftovers are listed with exact fixes.
+
+Text contrast tokens from the last round still clear 4.5:1, and the chip row no longer cuts 「3D 遊戲」.
