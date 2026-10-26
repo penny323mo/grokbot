@@ -1,0 +1,10 @@
+# Orchestrator browser check after round 0 (headless Chrome 390x844)
+Passed: 0 console errors; no horizontal overflow; style card tap changes the prompt; copy toast + clipboard OK; save → library card; reload keeps the draft + library; video shots appear in the prompt; 10 recipes; applying a recipe works.
+Problems seen:
+1. Lighting: tapping the first lighting chip (黃金時刻) while the summary shows 自然光 → the prompt contains neither "golden hour" nor any lighting phrase, and the chip's aria-pressed is null. Lighting selection looks broken or unclear. All toggle chips/cards need aria-pressed="true/false".
+2. The 中文解說 (#explanationDisplay) is empty or hidden by default (innerText ""). The Chinese explanation should be visible in the live preview, not buried.
+3. A new shot's description input starts with the real value "新鏡頭描述" (not a placeholder), so typing appends to it ("wide shot of the harbour新鏡頭描述") and Chinese text leaks into the English prompt. Default it to empty with a placeholder.
+4. Shot list render: "Storyboard [Shot 1 (0–3s): ..." reads like a raw dump. Render it as clean sentences: "Shot 1 (0–3s): ... Shot 2 (3–6s): ...".
+5. Recipe "澳門雨夜霓虹街頭" puts a Chinese subject into the English prompt ("一名撐著黑色雨傘的女子..."). Recipes must carry an English subject for the prompt (keep the Chinese for display). In general, when the user types Chinese in the subject, keep it but consider a hint saying English works best.
+6. Tap targets under 44px: #btnModeImage/#btnModeVideo 65x32, #btnHeaderRandom/#btnHeaderClear 36x36, .btn-section-dice 32x32, #btnClearSubject 26x26, the shot up/down/delete buttons. Make every one ≥44x44 (the visual can stay small, but the hit area must be ≥44).
+7. The default state is pre-filled with many choices (medium shot, 35mm, rule of thirds, dreamy, teal & orange...) even with no subject, so the first prompt starts with "Studio Ghibli style..." and no subject. Consider a cleaner default (a sensible starter subject or fewer preselected options), and make sure the prompt always leads with the subject when there is one.

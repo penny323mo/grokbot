@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bgGlow" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#2e1065"/>
+      <stop offset="50%" stop-color="#0f0728"/>
+      <stop offset="100%" stop-color="#070414"/>
+    </radialGradient>
+    <linearGradient id="goldViolet" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="40%" stop-color="#ec4899"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="ringGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="50%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Background rounded squircle -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGlow)"/>
+  <rect width="512" height="512" rx="112" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/>
+
+  <!-- Aperture / Magic Studio Rings -->
+  <g filter="url(#softGlow)" transform="translate(256, 256)">
+    <!-- Outer Orbit Ring -->
+    <circle r="160" fill="none" stroke="url(#ringGrad)" stroke-width="6" stroke-dasharray="16 12" opacity="0.6"/>
+    <circle r="128" fill="rgba(139, 92, 246, 0.08)" stroke="url(#goldViolet)" stroke-width="10"/>
+
+    <!-- Aperture Blades -->
+    <path d="M 0 -100 L 70 -50 L 0 0 Z" fill="url(#goldViolet)" opacity="0.85" transform="rotate(0)"/>
+    <path d="M 0 -100 L 70 -50 L 0 0 Z" fill="url(#goldViolet)" opacity="0.85" transform="rotate(60)"/>
+    <path d="M 0 -100 L 70 -50 L 0 0 Z" fill="url(#goldViolet)" opacity="0.85" transform="rotate(120)"/>
+    <path d="M 0 -100 L 70 -50 L 0 0 Z" fill="url(#goldViolet)" opacity="0.85" transform="rotate(180)"/>
+    <path d="M 0 -100 L 70 -50 L 0 0 Z" fill="url(#goldViolet)" opacity="0.85" transform="rotate(240)"/>
+    <path d="M 0 -100 L 70 -50 L 0 0 Z" fill="url(#goldViolet)" opacity="0.85" transform="rotate(300)"/>
+
+    <!-- Central Glowing Core -->
+    <circle r="46" fill="#0f0728" stroke="url(#goldViolet)" stroke-width="6"/>
+
+    <!-- Central Sparkle Star -->
+    <path d="M 0 -32 Q 0 0 32 0 Q 0 0 0 32 Q 0 0 -32 0 Q 0 0 0 -32 Z" fill="#ffffff" filter="drop-shadow(0 0 8px #f59e0b)"/>
+  </g>
+
+  <!-- Little Accent Sparkles -->
+  <path d="M 390 120 Q 390 136 406 136 Q 390 136 390 152 Q 390 136 374 136 Q 390 136 390 120 Z" fill="#f59e0b" opacity="0.9"/>
+  <path d="M 120 370 Q 120 382 132 382 Q 120 382 120 394 Q 120 382 108 382 Q 120 382 120 370 Z" fill="#06b6d4" opacity="0.8"/>
+</svg>
