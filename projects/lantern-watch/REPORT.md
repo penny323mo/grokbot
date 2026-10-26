@@ -120,3 +120,10 @@
 - CSS: 1px gold hairline borders, inset double-rule card frames, translucent board tiles over painted board.
 - Screenshots: screenshots/v3/*.png. Tests pass.
 - Weaknesses: building thumbnails all reuse same town crop; header icons (home/music/bell) still old line SVGs; some portraits (rat, fog) darker; paper ghost/tactical swap contain pseudo-glyphs; reposition card more photoreal.
+
+## v3b (2026-10-26)
+- Battle board: painted street (board.webp) shows through; tiles are hairline gold grid, soft glow targets, red wash intents, amber lantern pools.
+- Painted glowing lantern tokens (CSS-dimmed for damaged/extinguished); round portrait unit tokens with gold (guardian) / red (enemy) ring.
+- 10 distinct building illustrations; header icons are gold serif glyphs (宅 錢 星 樂 鐘).
+- Regenerated shadow rat, fog blob, paper ghost, reposition and tactical swap art.
+- Known weakness: courier building art contains pseudo-text signboard.

@@ -1,7 +1,7 @@
 /**
  * scripts/capture_screenshots.mjs
  * Puppeteer-core screenshot generation at 390x844 (iPhone Safari viewport).
- * Verifies 0 console errors and saves screenshots into screenshots/v3/:
+ * Verifies 0 console errors and saves screenshots into screenshots/v3b/:
  * - title.png
  * - map.png
  * - battle.png
@@ -22,7 +22,7 @@ const puppeteer = require("/workspace/nightly/shotkit/node_modules/puppeteer-cor
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, "..");
-const SCREENSHOT_DIR = path.resolve(ROOT_DIR, "screenshots/v3");
+const SCREENSHOT_DIR = path.resolve(ROOT_DIR, "screenshots/v3b");
 const PORT = 8891;
 
 fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
@@ -184,7 +184,7 @@ async function run() {
     await new Promise((r) => setTimeout(r, 400));
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, "tutorial.png") });
 
-    console.log("\nAll 7 screenshots captured successfully into screenshots/v3/!");
+    console.log("\nAll 7 screenshots captured successfully into screenshots/v3b/!");
     console.log(`Console Errors count: ${consoleErrors.length}`);
     if (consoleErrors.length > 0) {
       console.error("Console Errors encountered:", consoleErrors);

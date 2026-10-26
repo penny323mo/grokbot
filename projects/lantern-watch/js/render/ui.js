@@ -57,7 +57,7 @@ export class UIRenderer {
     lanterns.forEach((l) => {
       const chip = document.createElement("div");
       chip.className = `lantern-hp-chip ${l.hp <= 0 ? "extinguished" : ""}`;
-      chip.innerHTML = `<span style="display:inline-flex;width:14px;height:14px;vertical-align:middle;">${SVG_ART.icons.lantern}</span><span>${l.hp}/${l.maxHp}</span>`;
+      chip.innerHTML = `<img src="assets/art/lantern.webp" alt="" style="width:16px;height:16px;border-radius:50%;object-fit:cover;vertical-align:middle;box-shadow:0 0 6px rgba(255,190,90,.7);"><span>${l.hp}/${l.maxHp}</span>`;
       container.appendChild(chip);
     });
   }

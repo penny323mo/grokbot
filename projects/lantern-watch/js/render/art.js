@@ -1678,10 +1678,10 @@ SVG_ART.victoryBackdrop = img("reward", "art-img art-scene");
 SVG_ART.skyline = img("board", "art-img art-scene");
 SVG_ART.townStreetPanorama = () => img("town", "art-img art-scene");
 const BPOS = ["5% 60%","18% 50%","30% 55%","42% 45%","55% 60%","66% 50%","78% 55%","90% 45%","50% 80%","70% 20%"];
-Object.keys(SVG_ART.buildings).forEach((k, i) => { SVG_ART.buildings[k] = img("town", "art-img art-bldg", BPOS[i % BPOS.length]); });
+Object.keys(SVG_ART.buildings).forEach((k) => { SVG_ART.buildings[k] = img(k, "art-img art-bldg"); });
 // Lantern states: typographic seal marks instead of cartoon drawings
-SVG_ART.lantern_full = `<span class="glyph glyph-lantern lit">燈</span>`;
-SVG_ART.lantern_damaged = `<span class="glyph glyph-lantern dim">燈</span>`;
-SVG_ART.lantern_extinguished = `<span class="glyph glyph-lantern out">燼</span>`;
+SVG_ART.lantern_full = `<div class="lantern-token lit">${img("lantern","art-img")}</div>`;
+SVG_ART.lantern_damaged = `<div class="lantern-token dim">${img("lantern","art-img")}</div>`;
+SVG_ART.lantern_extinguished = `<div class="lantern-token out">${img("lantern","art-img")}</div>`;
 const GLYPHS = { home: "宅", coin: "錢", star: "✦", undo: "↺", music: "樂", sfx: "音", lantern: "燈", moon: "月", town: "鎮", book: "書", tea: "茶", sword: "戰", boss: "首", hotspring: "泉", shrine: "祠", attack: "攻", move: "移", spawn: "召", aoe: "範", frozen: "凍", check: "✓" };
 for (const k of Object.keys(SVG_ART.icons)) SVG_ART.icons[k] = `<span class="glyph">${GLYPHS[k] || "·"}</span>`;
