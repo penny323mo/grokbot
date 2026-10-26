@@ -36,17 +36,17 @@ export const CHAPTERS = [
       { x: 8, y: 1, radius: 2 }
     ],
     deployTiles: [
-      { x: 0, y: 11 }, { x: 1, y: 11 }, { x: 2, y: 11 },
-      { x: 0, y: 12 }, { x: 1, y: 12 }, { x: 2, y: 12 }
+      { x: 0, y: 11 }, { x: 1, y: 11 }, { x: 2, y: 11 }, { x: 3, y: 12 },
+      { x: 1, y: 12 }, { x: 2, y: 12 }
     ],
     npcSpawns: [
       { id: 'lantern_cart', x: 1, y: 10 }
     ],
     enemySpawns: [
       { id: 'fog_rider', x: 4, y: 3, facing: -1 },
-      { id: 'fog_rider', x: 7, y: 3, facing: -1 },
+      { id: 'fog_rider', x: 5, y: 1, facing: -1 },
       { id: 'fog_rider', x: 6, y: 2, facing: -1 },
-      { id: 'fog_rider', x: 6, y: 1, facing: -1 },
+      { id: 'fog_rider', x: 7, y: 3, facing: -1 },
       { id: 'shadow_archer', x: 7, y: 9, facing: -1 }, // on hill
       { id: 'shadow_archer', x: 8, y: 10, facing: -1 } // on hill
     ],
@@ -61,9 +61,9 @@ export const CHAPTERS = [
       "wwfr#fffrf", // 1
       "www##fff.f", // 2
       ".wwww.frff", // 3
-      "..wwbbb.ff", // 4: Bridge cols 4-6
+      "..wwbbbwff", // 4: Bridge cols 4-6, deep water col 7
       "..rbbb..rf", // 5: Bridge arch cols 3-5
-      "...w..ssw#", // 6: Stepping stones shallows cols 6-7
+      "...wssssw#", // 6: Stepping stones shallows cols 4-7, water col 3 & 8
       "..wwssswww", // 7: Stepping stones cols 4-6
       "...wssshhh", // 8: Shallows to hill base cols 7-9
       "...ww.hhhh", // 9: Stone platform left, hill cols 6-9
@@ -94,15 +94,15 @@ export const CHAPTERS = [
     ],
     deployTiles: [
       { x: 4, y: 7 }, { x: 5, y: 7 },
-      { x: 3, y: 8 }, { x: 4, y: 8 }, { x: 5, y: 8 }, { x: 6, y: 8 }
+      { x: 3, y: 8 }, { x: 6, y: 8 }, { x: 2, y: 8 }, { x: 7, y: 8 }
     ],
     enemySpawns: [
-      { id: 'paper_ghost', x: 3, y: 2, facing: 1 }, // water-type
+      { id: 'shield_guard', x: 4, y: 3, facing: -1 },
+      { id: 'paper_ghost', x: 3, y: 2, facing: 1 },
       { id: 'paper_ghost', x: 5, y: 2, facing: -1 },
-      { id: 'paper_ghost', x: 6, y: 2, facing: -1 },
       { id: 'fog_rider', x: 4, y: 1, facing: 1 },
-      { id: 'fog_rider', x: 5, y: 0, facing: -1 },
-      { id: 'mist_shaman', x: 5, y: 3, facing: -1 } // healer behind
+      { id: 'mist_sorcerer', x: 6, y: 1, facing: -1 },
+      { id: 'mist_shaman', x: 5, y: 3, facing: -1 }
     ],
     storyBefore: [
       { speaker: 'bear_guard', mood: 'angry', text: '「關門乃全鎮屏障！只要俺的盾還在，誰也過不去！」' },
@@ -152,12 +152,12 @@ export const CHAPTERS = [
       { id: 'market_lantern', x: 4, y: 6 }
     ],
     enemySpawns: [
-      { id: 'shadow_rat', x: 1, y: 3, facing: 1 }, // shrouded
+      { id: 'mist_scout', x: 1, y: 3, facing: 1 },
       { id: 'shadow_rat', x: 2, y: 2, facing: 1 },
-      { id: 'shadow_rat', x: 7, y: 2, facing: -1 },
-      { id: 'shadow_rat', x: 6, y: 10, facing: -1 },
-      { id: 'shadow_archer', x: 1, y: 8, facing: 1 }, // rooftop
-      { id: 'shadow_archer', x: 8, y: 3, facing: -1 }  // canal edge
+      { id: 'mist_scout', x: 7, y: 2, facing: -1 },
+      { id: 'fire_archer', x: 6, y: 10, facing: -1 },
+      { id: 'shadow_archer', x: 1, y: 8, facing: 1 },
+      { id: 'shield_guard', x: 8, y: 3, facing: -1 }
     ],
     storyBefore: [
       { speaker: 'lantern_crafter', mood: 'calm', text: '「市集幽深巷道極多，那些匿鼠藏身在暗處伺機而動！」' },
@@ -209,7 +209,8 @@ export const CHAPTERS = [
     ],
     enemySpawns: [
       { id: 'iron_general', x: 4, y: 2, facing: -1 }, // holds the dam bridge!
-      { id: 'mist_shaman', x: 2, y: 2, facing: 1 },
+      { id: 'shield_guard', x: 5, y: 2, facing: -1 },
+      { id: 'mist_sorcerer', x: 2, y: 2, facing: 1 },
       { id: 'mist_shaman', x: 7, y: 2, facing: -1 },
       { id: 'shadow_archer', x: 1, y: 7, facing: 1 }, // cliff outcrop
       { id: 'shadow_archer', x: 8, y: 7, facing: -1 }  // cliff outcrop

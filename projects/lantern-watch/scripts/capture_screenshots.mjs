@@ -1,19 +1,19 @@
 /**
  * scripts/capture_screenshots.mjs
- * Captures 10 deterministic screenshots at 390x844 (deviceScaleFactor: 2) into screenshots/v4/
+ * Captures fresh deterministic screenshots at 390x844 (deviceScaleFactor: 2) into screenshots/v5/
  * Uses Puppeteer-core + Google Chrome.
  *
  * Screenshots list:
- * - 00-title.png
- * - 01-tutorial.png
- * - 02-select-move-range.png
- * - 03-action-menu.png
- * - 04-attack-preview.png
- * - 05-enemy-turn.png
- * - 06-world-map.png
- * - 07-prebattle.png
- * - 08-detail-sheet.png
- * - 09-dialogue.png
+ * - 00-title.png (Title screen)
+ * - 01-tutorial.png (Concise tactics tutorial modal)
+ * - 02-select-move-range.png (Move range, grounded figures, zero Grokbot overlap)
+ * - 03-action-menu.png (Tactics action menu)
+ * - 04-attack-preview.png (Attack preview with counterattack & back-attack bonus)
+ * - 05-spell-vfx.png (Spell VFX mid-frame with damage floater)
+ * - 06-new-enemy-type.png (New enemy archetype: shield_guard with frontal shield reduction)
+ * - 07-chapter2-board.png (Chapter 2 Gate defense board with new enemy archetypes)
+ * - 08-level-up.png (Level-up 1-of-3 perk choice screen)
+ * - 09-prebattle.png (Pre-battle screen with all enemy intel and no Grokbot overlap)
  */
 
 import http from "node:http";
@@ -28,7 +28,7 @@ const puppeteer = require("/workspace/nightly/shotkit/node_modules/puppeteer-cor
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, "..");
-const SCREENSHOT_DIR = path.resolve(ROOT_DIR, "screenshots/v4");
+const SCREENSHOT_DIR = path.resolve(ROOT_DIR, "screenshots/v5");
 const PORT = 8892;
 
 fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
@@ -38,14 +38,12 @@ function startServer() {
     let reqPath = req.url.split("?")[0];
     if (reqPath === "/") reqPath = "/index.html";
 
-    // Handle favicon.ico
     if (reqPath === "/favicon.ico") {
       res.writeHead(204);
       res.end();
       return;
     }
 
-    // Handle shared back.js
     if (reqPath.startsWith("/_shared/")) {
       const sharedPath = path.join("/workspace/grokbot/projects", reqPath);
       if (fs.existsSync(sharedPath)) {
@@ -120,7 +118,7 @@ async function capture() {
   await page.goto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: "networkidle0" });
   await page.waitForFunction(() => !!window.__lt);
 
-  console.log("Ready to capture screenshots in screenshots/v4/...");
+  console.log("Ready to capture screenshots in screenshots/v5/...");
 
   // 1. 00-title.png
   await closeAllModals(page);
@@ -131,58 +129,17 @@ async function capture() {
   await page.screenshot({ path: path.join(SCREENSHOT_DIR, "00-title.png") });
   console.log("Captured 00-title.png");
 
-  // 2. 01-tutorial.png
+  // 2. 01-tutorial.png (Concise tactics tutorial modal over dimmed board)
   await page.evaluate(() => {
-    window.__lt.showTutorial(0);
+    window.__lt.launchBattle(1);
+    window.__lt.showTacticsTutorial();
   });
   await new Promise(r => setTimeout(r, 400));
   await page.screenshot({ path: path.join(SCREENSHOT_DIR, "01-tutorial.png") });
   console.log("Captured 01-tutorial.png");
   await closeAllModals(page);
 
-  // 3. 06-world-map.png
-  await page.evaluate(() => {
-    window.__lt.openWorldMap();
-  });
-  await new Promise(r => setTimeout(r, 400));
-  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "06-world-map.png") });
-  console.log("Captured 06-world-map.png");
-
-  // 4. 07-prebattle.png
-  await page.evaluate(() => {
-    window.__lt.openPreBattle(1);
-  });
-  await new Promise(r => setTimeout(r, 400));
-  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "07-prebattle.png") });
-  console.log("Captured 07-prebattle.png");
-
-  // 4b. 10-deploy.png
-  await page.evaluate(() => {
-    window.__lt.openDeployPhase(1);
-  });
-  await new Promise(r => setTimeout(r, 400));
-  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "10-deploy.png") });
-  console.log("Captured 10-deploy.png");
-
-  // 5. 09-dialogue.png
-  await page.evaluate(() => {
-    window.__lt.showDialogue(1);
-  });
-  await new Promise(r => setTimeout(r, 400));
-  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "09-dialogue.png") });
-  console.log("Captured 09-dialogue.png");
-  await closeAllModals(page);
-
-  // 6. 08-detail-sheet.png
-  await page.evaluate(() => {
-    window.__lt.showDetailSheet('cat_patrol');
-  });
-  await new Promise(r => setTimeout(r, 400));
-  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "08-detail-sheet.png") });
-  console.log("Captured 08-detail-sheet.png");
-  await closeAllModals(page);
-
-  // 7. 02-select-move-range.png
+  // 3. 02-select-move-range.png (Move range on battle board with safe insets & hairline on walkable only)
   await page.evaluate(() => {
     window.__lt.launchBattle(1);
     window.__lt.selectUnit('cat_patrol');
@@ -191,14 +148,14 @@ async function capture() {
   await page.screenshot({ path: path.join(SCREENSHOT_DIR, "02-select-move-range.png") });
   console.log("Captured 02-select-move-range.png");
 
-  // 8. 03-action-menu.png
+  // 4. 03-action-menu.png (Tactics action menu: 攻擊/計策/法術/待命 clear of unit)
   await page.evaluate(() => {
     const app = window.__lt.app;
     const cat = app.battle.allies.find(a => a.id === 'cat_patrol');
     if (cat) {
       app.selectedUnit = cat;
-      app.battle.moveUnit(cat, 0, 9);
-      app.stagedMoveTile = { x: 0, y: 9 };
+      app.battle.moveUnit(cat, 4, 4);
+      app.stagedMoveTile = { x: 4, y: 4 };
       app.openActionMenuForUnit(cat);
       app.refreshBattleUI();
       app.ui.centerCameraOn(cat.x, cat.y);
@@ -208,7 +165,7 @@ async function capture() {
   await page.screenshot({ path: path.join(SCREENSHOT_DIR, "03-action-menu.png") });
   console.log("Captured 03-action-menu.png");
 
-  // 9. 04-attack-preview.png
+  // 5. 04-attack-preview.png (Attack preview with counterattack & rightmost unit fully in frame)
   await page.evaluate(() => {
     const app = window.__lt.app;
     app.ui.hideActionMenu();
@@ -230,16 +187,56 @@ async function capture() {
   await new Promise(r => setTimeout(r, 500));
   await page.screenshot({ path: path.join(SCREENSHOT_DIR, "04-attack-preview.png") });
   console.log("Captured 04-attack-preview.png");
+  await closeAllModals(page);
 
-  // 10. 05-enemy-turn.png
+  // 6. 05-spell-vfx.png (Spell VFX mid-frame with distinct silhouette & pure Chinese floater)
   await page.evaluate(() => {
     const app = window.__lt.app;
     app.ui.hideTargetPreview();
-    window.__lt.showEnemyTurnBanner();
+    app.launchBattleInstance(app.activeChapter);
+    window.__lt.triggerSpellVfx('thunder');
   });
-  await new Promise(r => setTimeout(r, 350));
-  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "05-enemy-turn.png") });
-  console.log("Captured 05-enemy-turn.png");
+  await new Promise(r => setTimeout(r, 160)); // capture mid-strike showing jagged lightning bolt & attribute weakness
+  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "05-spell-vfx.png") });
+  console.log("Captured 05-spell-vfx.png");
+  await closeAllModals(page);
+
+  // 7. 06-new-enemy-type.png (New enemy archetype detail sheet: shield_guard with custom lore & no relic equip)
+  await page.evaluate(() => {
+    window.__lt.showDetailSheet('shield_guard');
+  });
+  await new Promise(r => setTimeout(r, 400));
+  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "06-new-enemy-type.png") });
+  console.log("Captured 06-new-enemy-type.png");
+  await closeAllModals(page);
+
+  // 8. 07-chapter2-board.png (Chapter 2 Gate defense board with all units fully inside top/bottom frame)
+  await page.evaluate(() => {
+    window.__lt.launchBattle(2);
+    const app = window.__lt.app;
+    app.ui.centerCameraOn(4, 4);
+  });
+  await new Promise(r => setTimeout(r, 500));
+  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "07-chapter2-board.png") });
+  console.log("Captured 07-chapter2-board.png");
+  await closeAllModals(page);
+
+  // 9. 08-level-up.png (Level-up to Lv.2 with unit portrait and 2 perk choices)
+  await page.evaluate(() => {
+    window.__lt.showLevelUp('cat_patrol');
+  });
+  await new Promise(r => setTimeout(r, 400));
+  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "08-level-up.png") });
+  console.log("Captured 08-level-up.png");
+  await closeAllModals(page);
+
+  // 10. 09-prebattle.png (Chapter 3 pre-battle showing all new archetypes & 鼓舞 fully visible)
+  await page.evaluate(() => {
+    window.__lt.openPreBattle(3);
+  });
+  await new Promise(r => setTimeout(r, 400));
+  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "09-prebattle.png") });
+  console.log("Captured 09-prebattle.png");
 
   await browser.close();
   server.close();
@@ -248,7 +245,7 @@ async function capture() {
     console.error(`[Screenshot Script] Errors detected during run (${consoleErrors.length}):`, consoleErrors);
     process.exit(1);
   } else {
-    console.log("[Screenshot Script] All 10 screenshots captured successfully with 0 console errors!");
+    console.log("[Screenshot Script] All 10 screenshots captured successfully into screenshots/v5/ with 0 console errors!");
     process.exit(0);
   }
 }

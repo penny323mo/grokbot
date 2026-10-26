@@ -27,14 +27,21 @@ export function decideEnemyTurn(enemy, battleState, rng) {
   switch (role) {
     case 'commander':
       return decideCommanderAction(enemy, reachableList, playerUnits, board, rng);
+    case 'shield_guard':
+      return decideShieldGuardAction(enemy, reachableList, playerUnits, board, rng);
     case 'healer':
       return decideHealerAction(enemy, reachableList, enemyUnits, playerUnits, board, rng);
     case 'archer':
       return decideArcherAction(enemy, reachableList, playerUnits, board, rng);
+    case 'fire_archer':
+      return decideFireArcherAction(enemy, reachableList, playerUnits, board, rng);
     case 'cavalry':
       return decideCavalryAction(enemy, reachableList, playerUnits, board, rng);
     case 'shrouded':
-      return decideShroudedAction(enemy, reachableList, playerUnits, board, rng);
+    case 'scout':
+      return decideScoutAction(enemy, reachableList, playerUnits, board, rng);
+    case 'sorcerer':
+      return decideSorcererAction(enemy, reachableList, playerUnits, board, rng);
     case 'boss':
       return decideBossAction(enemy, reachableList, playerUnits, board, rng);
     default:
@@ -381,6 +388,252 @@ function decideBossAction(enemy, reachableList, playerUnits, board, rng) {
 
   // Otherwise pick strongest single target attack
   return decideDefaultAction(enemy, reachableList, playerUnits, board, rng);
+}
+
+/**
+ * Shield Guard: Holds choke points / advances steadily, always turns facing to directly face nearest threat
+ */
+function decideShieldGuardAction(enemy, reachableList, playerUnits, board, rng) {
+  // Find nearest player unit
+  let nearestDist = Infinity;
+  let nearestUnit = null;
+  for (const p of playerUnits) {
+    const d = Board.manhattan(enemy.x, enemy.y, p.x, p.y);
+    if (d < nearestDist) {
+      nearestDist = d;
+      nearestUnit = p;
+    }
+  }
+
+  // Always orient facing toward the nearest player unit so frontal block (70%) is active
+  const newFacing = nearestUnit && nearestUnit.x < enemy.x ? -1 : 1;
+
+  let bestAction = null;
+  let bestScore = -Infinity;
+
+  for (const m of reachableList) {
+    for (const p of playerUnits) {
+      if (!canTargetUnit(enemy, p, board)) continue;
+      const dist = Board.manhattan(m.x, m.y, p.x, p.y);
+      if (dist === 1) {
+        const combat = calculateCombat(enemy, p, board, { attackerX: m.x, attackerY: m.y });
+        let score = combat.expectedDamage;
+        if (combat.willKill) score += 50;
+        // Face the attacked target
+        const facingTowardsTarget = p.x < m.x ? -1 : 1;
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestAction = {
+            type: 'attack',
+            move: m,
+            target: p,
+            newFacing: facingTowardsTarget
+          };
+        }
+      }
+    }
+  }
+
+  if (bestAction) return bestAction;
+
+  // Move toward nearest player unit while keeping facing toward them
+  let bestMove = reachableList[0];
+  let minD = Infinity;
+  for (const m of reachableList) {
+    for (const p of playerUnits) {
+      const d = Board.manhattan(m.x, m.y, p.x, p.y);
+      if (d < minD) {
+        minD = d;
+        bestMove = m;
+      }
+    }
+  }
+
+  return { type: 'wait', move: bestMove, newFacing };
+}
+
+/**
+ * Sorcerer: Casts AoE thunder spell when >=2 players cluster within range, else magic attack
+ */
+function decideSorcererAction(enemy, reachableList, playerUnits, board, rng) {
+  // Check for clusters of >= 2 units within range 2
+  let bestClusterMove = null;
+  let maxClusterCount = 0;
+  let bestClusterTargets = [];
+
+  for (const m of reachableList) {
+    const targetsInAoe = playerUnits.filter(p => Board.manhattan(m.x, m.y, p.x, p.y) <= 2 && canTargetUnit(enemy, p, board));
+    if (targetsInAoe.length > maxClusterCount) {
+      maxClusterCount = targetsInAoe.length;
+      bestClusterMove = m;
+      bestClusterTargets = targetsInAoe;
+    }
+  }
+
+  // If cluster of >= 2 units and MP available (>= 4), unleash AoE magic
+  if (maxClusterCount >= 2 && enemy.mp >= 4) {
+    return {
+      type: 'aoe',
+      move: bestClusterMove,
+      targets: bestClusterTargets,
+      damage: 10,
+      element: 'thunder',
+      mpCost: 4
+    };
+  }
+
+  // Otherwise perform single-target magic attack (range 1-2)
+  let bestAction = null;
+  let bestScore = -Infinity;
+
+  for (const m of reachableList) {
+    // Keep 2 tiles distance from melee attackers if possible
+    let minDistToPlayer = Infinity;
+    for (const p of playerUnits) {
+      minDistToPlayer = Math.min(minDistToPlayer, Board.manhattan(m.x, m.y, p.x, p.y));
+    }
+
+    for (const p of playerUnits) {
+      if (!canTargetUnit(enemy, p, board)) continue;
+      const dist = Board.manhattan(m.x, m.y, p.x, p.y);
+      if (dist >= 1 && dist <= 2) {
+        const combat = calculateCombat(enemy, p, board, {
+          attackerX: m.x,
+          attackerY: m.y,
+          actionType: 'magic'
+        });
+        let score = combat.expectedDamage;
+        if (combat.willKill) score += 50;
+        if (minDistToPlayer >= 2) score += 15; // Prefers staying at range
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestAction = {
+            type: 'magic',
+            move: m,
+            target: p,
+            element: 'thunder',
+            newFacing: p.x < m.x ? -1 : 1
+          };
+        }
+      }
+    }
+  }
+
+  if (bestAction) return bestAction;
+
+  // Move keeping distance (dist ~ 2) from nearest player
+  let bestMove = reachableList[0];
+  let bestScoreMove = -Infinity;
+  for (const m of reachableList) {
+    let minDist = Infinity;
+    for (const p of playerUnits) {
+      minDist = Math.min(minDist, Board.manhattan(m.x, m.y, p.x, p.y));
+    }
+    const score = minDist === 2 ? 20 : (minDist > 2 ? 10 - minDist : -10);
+    if (score > bestScoreMove) {
+      bestScoreMove = score;
+      bestMove = m;
+    }
+  }
+
+  return { type: 'wait', move: bestMove };
+}
+
+/**
+ * Fire Archer: Attacks at range 2-3, prioritizes targets standing in forest ('f')
+ */
+function decideFireArcherAction(enemy, reachableList, playerUnits, board, rng) {
+  let bestAction = null;
+  let bestScore = -Infinity;
+
+  for (const m of reachableList) {
+    for (const p of playerUnits) {
+      if (!canTargetUnit(enemy, p, board)) continue;
+      const dist = Board.manhattan(m.x, m.y, p.x, p.y);
+      if (dist >= 2 && dist <= 3) {
+        const defTerrain = board.getTerrain(p.x, p.y);
+        const combat = calculateCombat(enemy, p, board, {
+          attackerX: m.x,
+          attackerY: m.y,
+          actionType: 'attack'
+        });
+        let score = combat.expectedDamage;
+        if (defTerrain.char === 'f') score += 30; // High priority to ignite forest!
+        if (combat.willKill) score += 50;
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestAction = {
+            type: 'attack',
+            move: m,
+            target: p,
+            element: 'fire',
+            newFacing: p.x < m.x ? -1 : 1
+          };
+        }
+      }
+    }
+  }
+
+  if (bestAction) return bestAction;
+
+  // Fallback kite
+  return decideArcherAction(enemy, reachableList, playerUnits, board, rng);
+}
+
+/**
+ * Scout / Shrouded Assassin: Prioritizes objective units (cart/lantern) and lowest-DEF units
+ */
+function decideScoutAction(enemy, reachableList, playerUnits, board, rng) {
+  let bestAction = null;
+  let bestScore = -Infinity;
+
+  for (const m of reachableList) {
+    for (const p of playerUnits) {
+      if (!canTargetUnit(enemy, p, board)) continue;
+      const dist = Board.manhattan(m.x, m.y, p.x, p.y);
+      if (dist === 1) {
+        const combat = calculateCombat(enemy, p, board, { attackerX: m.x, attackerY: m.y });
+        let score = combat.expectedDamage * 2;
+        if (p.id === 'lantern_cart' || p.role === 'objective' || p.role === 'npc') {
+          score += 80; // High priority: attack lantern cart / objective
+        }
+        if (combat.isBackAttack) score += 20;
+        if (combat.willKill) score += 60;
+        score += (30 - (p.def || 0)) * 4;
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestAction = {
+            type: 'attack',
+            move: m,
+            target: p,
+            newFacing: p.x < m.x ? -1 : 1
+          };
+        }
+      }
+    }
+  }
+
+  if (bestAction) return bestAction;
+
+  // Move towards objective or lowest-DEF unit
+  const objectiveUnit = playerUnits.find(p => p.id === 'lantern_cart' || p.role === 'objective');
+  const targetUnit = objectiveUnit || [...playerUnits].sort((a, b) => (a.def || 0) - (b.def || 0))[0];
+
+  let bestMove = reachableList[0];
+  let minTargetDist = Infinity;
+  for (const m of reachableList) {
+    const dist = Board.manhattan(m.x, m.y, targetUnit.x, targetUnit.y);
+    if (dist < minTargetDist) {
+      minTargetDist = dist;
+      bestMove = m;
+    }
+  }
+
+  return { type: 'wait', move: bestMove };
 }
 
 /**

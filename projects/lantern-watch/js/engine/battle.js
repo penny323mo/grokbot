@@ -471,14 +471,18 @@ export class Battle {
         enemy.facing = decision.newFacing;
       }
 
-      if (decision.type === 'attack' && decision.target) {
+      if ((decision.type === 'attack' || decision.type === 'magic') && decision.target) {
         executeCombat(enemy, decision.target, this.board, this.rng, {
-          actionType: 'attack',
+          actionType: decision.type,
+          element: decision.element || null,
           movedTiles: decision.movedTiles || 0
         });
       } else if (decision.type === 'heal' && decision.target) {
         decision.target.hp = Math.min(decision.target.maxHp, decision.target.hp + (decision.healAmount || 8));
-      } else if (decision.type === 'aoe_skill' && decision.targets) {
+      } else if ((decision.type === 'aoe' || decision.type === 'aoe_skill') && decision.targets) {
+        if (decision.mpCost && enemy.mp) {
+          enemy.mp = Math.max(0, enemy.mp - decision.mpCost);
+        }
         for (const t of decision.targets) {
           t.hp = Math.max(0, t.hp - (decision.damage || 10));
         }

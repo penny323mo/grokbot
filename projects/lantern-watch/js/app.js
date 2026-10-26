@@ -6,7 +6,7 @@
 
 import { GAME } from './config.js';
 import { CHAPTERS } from './data/maps.js';
-import { GUARDIAN_PROTOS, RELICS } from './data/units.js';
+import { GUARDIAN_PROTOS, ENEMY_PROTOS, RELICS } from './data/units.js';
 import { CampaignManager } from './engine/campaign.js';
 import { Battle } from './engine/battle.js';
 import { Board } from './engine/board.js';
@@ -29,6 +29,7 @@ class LanternTacticsApp {
     this.selectedSquadIds = ['cat_patrol', 'lantern_crafter', 'bear_guard', 'tea_master'];
     this.activeStratagemId = null;
     this.battle = null;
+    this.battleSpeed = 1;
 
     // Deploy Phase State
     this.isDeploying = false;
@@ -79,8 +80,19 @@ class LanternTacticsApp {
 
     document.getElementById('btnHelp').onclick = () => {
       this.sound?.playSfx('tap');
-      this.startTutorialFlow(0);
+      this.ui.showTacticsTutorialModal();
     };
+
+    const btnSpeed = document.getElementById('btnBattleSpeed');
+    if (btnSpeed) {
+      btnSpeed.onclick = () => {
+        this.battleSpeed = this.battleSpeed === 1 ? 2 : 1;
+        const txt = document.getElementById('txtBattleSpeed');
+        if (txt) txt.textContent = `${this.battleSpeed}x`;
+        btnSpeed.classList.toggle('fast', this.battleSpeed === 2);
+        this.sound?.playSfx('tap');
+      };
+    }
 
     const btnMusic = document.getElementById('btnToggleMusic');
     if (btnMusic) {
@@ -112,7 +124,7 @@ class LanternTacticsApp {
 
     document.getElementById('btnOpenTutorial').onclick = () => {
       this.sound?.playSfx('tap');
-      this.startTutorialFlow(0);
+      this.ui.showTacticsTutorialModal();
     };
 
     // Battle Top HUD
@@ -665,12 +677,38 @@ class LanternTacticsApp {
   confirmActionExecution(actionType, target = null, options = {}) {
     if (!this.battle || !this.selectedUnit) return;
 
-    const res = this.battle.confirmAction(this.selectedUnit, actionType, target, options);
+    const actingUnit = this.selectedUnit;
+    const res = this.battle.confirmAction(actingUnit, actionType, target, options);
     this.sound?.playSfx('hit');
 
+    // Extract combat hit event
+    const hitEv = res.events?.find(e => e.type === 'hit');
+    const isMiss = res.events?.some(e => e.type === 'miss');
+    const combatInfo = {
+      actionType,
+      element: options.skill?.element || actingUnit.element || (actionType === 'magic' ? 'thunder' : null),
+      damage: hitEv?.damage ?? 10,
+      isCrit: hitEv?.isCrit || false,
+      isBackAttack: hitEv?.isBackAttack || false,
+      isFrontBlocked: target?.role === 'shield_guard' && hitEv?.direction === 'front',
+      isHeal: actionType === 'skill' && actingUnit.skill?.isHeal,
+      healAmount: 8,
+      isMiss
+    };
+
+    if (target) {
+      this.ui.playCombatVfx(actingUnit, target, combatInfo, this.battleSpeed, () => {
+        this.afterActionResolved(res, actingUnit);
+      });
+    } else {
+      this.afterActionResolved(res, actingUnit);
+    }
+  }
+
+  afterActionResolved(res, actingUnit) {
     // Check level up
     if (res.levelUp?.leveledUp) {
-      const uId = this.selectedUnit.id;
+      const uId = actingUnit.id;
       const uInst = this.campaign.getUnitInstance(uId);
       setTimeout(() => {
         this.ui.showLevelUpModal(uInst, (perkType) => {
@@ -863,12 +901,30 @@ class LanternTacticsApp {
         }
       },
       showTutorial: (step = 0) => this.startTutorialFlow(step),
+      showTacticsTutorial: () => this.ui.showTacticsTutorialModal(),
+      showLevelUp: (unitId = 'cat_patrol') => {
+        const inst = this.campaign.getUnitInstance(unitId);
+        const newLevel = Math.max(2, (inst.level || 1) + 1);
+        inst.level = newLevel;
+        this.ui.showLevelUpModal(inst, newLevel, () => {});
+      },
+      triggerSpellVfx: (element = 'fire') => {
+        const target = this.battle?.enemies[0] || { id: 'dummy', x: 5, y: 3 };
+        const attacker = this.battle?.allies[0] || { id: 'dummy_atk', x: 4, y: 3 };
+        this.ui.playCombatVfx(attacker, target, {
+          actionType: 'magic',
+          element,
+          damage: 14,
+          isCrit: element === 'fire',
+          isWeakness: element === 'thunder'
+        }, 1);
+      },
       showDialogue: (chId = 1) => {
         const ch = CHAPTERS.find(c => c.id === chId) || CHAPTERS[0];
         this.ui.showStoryDialogue(ch.storyBefore);
       },
       showDetailSheet: (unitId = 'cat_patrol') => {
-        const inst = this.campaign.getUnitInstance(unitId);
+        const inst = this.campaign.getUnitInstance(unitId) || ENEMY_PROTOS[unitId];
         this.ui.showDetailSheet(inst, this.campaign);
       },
       showEnemyTurnBanner: () => {

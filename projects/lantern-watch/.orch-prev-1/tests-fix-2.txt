@@ -1,0 +1,179 @@
+
+> lantern-tactics@4.0.0 test
+> node tests/rules.test.mjs && node tests/ai.test.mjs && node tests/objectives.test.mjs && node tests/name.test.mjs && node tests/encounters.sim.test.mjs
+
+TAP version 13
+# Subtest: Rules: Movement costs, impassable tiles, and flyer traversal
+ok 1 - Rules: Movement costs, impassable tiles, and flyer traversal
+  ---
+  duration_ms: 1.974303
+  ...
+# Subtest: Rules: Cavalry ZOC interception by bear_guard (spear_wall)
+ok 2 - Rules: Cavalry ZOC interception by bear_guard (spear_wall)
+  ---
+  duration_ms: 0.361499
+  ...
+# Subtest: Rules: Facing and Back-attack damage modifiers
+ok 3 - Rules: Facing and Back-attack damage modifiers
+  ---
+  duration_ms: 0.498273
+  ...
+# Subtest: Rules: Counter-attack by melee defender
+ok 4 - Rules: Counter-attack by melee defender
+  ---
+  duration_ms: 0.188221
+  ...
+# Subtest: Rules: Water immunity and thunder weakness for paper_ghost
+ok 5 - Rules: Water immunity and thunder weakness for paper_ghost
+  ---
+  duration_ms: 0.17707
+  ...
+# Subtest: Rules: Shrouded targeting rules for shadow_rat
+ok 6 - Rules: Shrouded targeting rules for shadow_rat
+  ---
+  duration_ms: 0.225562
+  ...
+# Subtest: Rules: Knockback into water instant KO
+ok 7 - Rules: Knockback into water instant KO
+  ---
+  duration_ms: 0.38294
+  ...
+# Subtest: Rules: Fox fire (狐火) AoE cross hits multi-targets and deals x0 vs water type
+ok 8 - Rules: Fox fire (狐火) AoE cross hits multi-targets and deals x0 vs water type
+  ---
+  duration_ms: 1.174586
+  ...
+# Subtest: Rules: MP resource cost deduction on skill/magic
+ok 9 - Rules: MP resource cost deduction on skill/magic
+  ---
+  duration_ms: 0.419336
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 19.368502
+TAP version 13
+# Subtest: AI: Archer kites away when player unit is adjacent
+ok 1 - AI: Archer kites away when player unit is adjacent
+  ---
+  duration_ms: 3.72557
+  ...
+# Subtest: AI: Healer stays >=2 tiles back and heals lowest-HP ally
+ok 2 - AI: Healer stays >=2 tiles back and heals lowest-HP ally
+  ---
+  duration_ms: 0.552342
+  ...
+# Subtest: AI: Cavalry targets exposed backline unit with charge
+ok 3 - AI: Cavalry targets exposed backline unit with charge
+  ---
+  duration_ms: 3.015283
+  ...
+# Subtest: AI: Commander holds position and only attacks adjacent
+ok 4 - AI: Commander holds position and only attacks adjacent
+  ---
+  duration_ms: 0.480013
+  ...
+# Subtest: AI: Shrouded assassin targets lowest-DEF player unit
+ok 5 - AI: Shrouded assassin targets lowest-DEF player unit
+  ---
+  duration_ms: 0.632632
+  ...
+# Subtest: AI: Boss triggers AoE mist blast when >=2 player units cluster
+ok 6 - AI: Boss triggers AoE mist blast when >=2 player units cluster
+  ---
+  duration_ms: 0.383292
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 21.104789
+TAP version 13
+# Subtest: Objectives: Escort chapter (River Bridge)
+ok 1 - Objectives: Escort chapter (River Bridge)
+  ---
+  duration_ms: 1.398522
+  ...
+# Subtest: Objectives: Hold Gate chapter
+ok 2 - Objectives: Hold Gate chapter
+  ---
+  duration_ms: 0.209875
+  ...
+# Subtest: Objectives: Protect Lantern chapter
+ok 3 - Objectives: Protect Lantern chapter
+  ---
+  duration_ms: 0.197025
+  ...
+# Subtest: Objectives: Mountain chapter (defeat boss or reach shrine)
+ok 4 - Objectives: Mountain chapter (defeat boss or reach shrine)
+  ---
+  duration_ms: 0.194397
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 13.279136
+TAP version 13
+# Subtest: Branding: GAME config matches spec
+ok 1 - Branding: GAME config matches spec
+  ---
+  duration_ms: 1.090883
+  ...
+# Subtest: Branding: No occurrences of old name in js/ and index.html
+ok 2 - Branding: No occurrences of old name in js/ and index.html
+  ---
+  duration_ms: 2.465256
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 13.814031
+
+================ ENCOUNTER SIMULATION RESULTS ================
+| Chapter | Comp Name | Squad | Stratagem | Result | Turns |
+|---------|-----------|-------|-----------|--------|-------|
+| Ch 1    | Solution A | 熊岳+茶翁+燈娘+墨影 | 鼓舞 | WIN  | 8 回合 |
+| Ch 1    | Solution B | 墨影+鶴羽+熊岳+茶翁 | 佯攻 | WIN  | 10 回合 |
+| Ch 2    | Solution A | 雷狸+熊岳+茶翁+墨影+燈娘 | 鼓舞 | WIN  | 4 回合 |
+| Ch 2    | Solution B | 墨影+鶴羽+熊岳+茶翁+雷狸 | 夜襲 | WIN  | 4 回合 |
+| Ch 3    | Solution A | 燈娘+狐火+熊岳+茶翁+墨影 | 鼓舞 | WIN  | 10 回合 |
+| Ch 3    | Solution B | 熊岳+茶翁+墨影+燈娘+鶴羽 | 火攻 | WIN  | 3 回合 |
+| Ch 4    | Solution A | 熊岳+墨影+鶴羽+茶翁+雷狸+燈娘 | 鼓舞 | WIN  | 4 回合 |
+| Ch 4    | Solution B | 鶴羽+墨影+熊岳+茶翁+狐火+雷狸 | 水淹 | WIN  | 4 回合 |
+==============================================================
+
+[Validation] Naive bot failed tactical challenge as expected (Ch1: FAIL, Ch2: FAIL)
+TAP version 13
+# Subtest: Simulation: Encounters heuristic bot test table & naive failure check
+ok 1 - Simulation: Encounters heuristic bot test table & naive failure check
+  ---
+  duration_ms: 76.742896
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 95.799177

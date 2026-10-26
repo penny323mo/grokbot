@@ -153,6 +153,9 @@
             <span class="battle-obj-ticker" id="hudObjectiveTicker">護送燈車抵達北岸</span>
           </div>
           <div class="hud-right">
+            <button type="button" class="btn-hud-speed" id="btnBattleSpeed" title="戰鬥速度切換">
+              <span id="txtBattleSpeed">1x</span>
+            </button>
             <button type="button" class="btn-hud-action" id="btnUndoMove" style="display:none;" title="悔棋撤銷移動">
               <span>悔棋</span>
             </button>
@@ -173,6 +176,8 @@
             <div class="figures-layer" id="figuresLayer"></div>
             <!-- Placed Lanterns Layer -->
             <div class="lanterns-layer" id="lanternsLayer"></div>
+            <!-- Visual Effects Layer -->
+            <div class="vfx-layer" id="vfxLayer"></div>
 
             <!-- Action Menu Popover (Anchored on Board Stage beside Unit) -->
             <div class="action-menu-popover" id="actionMenuPopover" style="display:none;">
@@ -181,10 +186,10 @@
                   <span class="action-txt">攻擊</span>
                 </button>
                 <button type="button" class="btn-action-tactics" id="btnActionSkill" data-action="skill">
-                  <span class="action-txt">技能</span>
+                  <span class="action-txt">計策</span>
                 </button>
                 <button type="button" class="btn-action-tactics" id="btnActionMagic" data-action="magic">
-                  <span class="action-txt">魔法</span>
+                  <span class="action-txt">法術</span>
                 </button>
                 <button type="button" class="btn-action-tactics bond" id="btnActionBond" data-action="bond" style="display:none;">
                   <span class="action-txt">合擊</span>
@@ -311,20 +316,27 @@
       </div>
     </div>
 
-    <!-- MODAL 2: TACTICAL TUTORIAL (3 STEPS) -->
+    <!-- MODAL 2: CONCISE TACTICS TUTORIAL (4 STEPS) -->
     <div class="modal-overlay" id="modalTutorial" style="display:none;">
       <div class="tutorial-card">
         <div class="tutorial-header">
-          <h3 class="tutorial-title" id="tutorialHeaderTitle">軍略指引 · 基礎兵法</h3>
-          <span class="tutorial-step-indicator" id="tutorialStepIndicator">第 1 / 3 步</span>
+          <div class="tutorial-title-row">
+            <h3 class="tutorial-title" id="tutorialHeaderTitle">軍略指引 · 基礎兵法</h3>
+            <span class="tutorial-step-indicator" id="tutorialStepIndicator">第 1 / 4 步</span>
+          </div>
+          <button type="button" class="btn-tutorial-close" id="btnCloseTutorialModal" aria-label="關閉">✕</button>
         </div>
-        <div class="tutorial-body">
+        <div class="tutorial-body" id="tutorialBodyContent">
           <div class="tutorial-visual-icon" id="tutorialIcon">⚑</div>
-          <p class="tutorial-instruction" id="tutorialInstruction">① 「撳角色 → 藍格係可以行嘅位」</p>
+          <h4 class="tutorial-step-title" id="tutorialStepTitle">【步法前進】</h4>
+          <p class="tutorial-instruction" id="tutorialInstruction">點擊我方將士，腳下藍色格為合法移動範圍。再次點選藍格即可率軍挺進。</p>
         </div>
         <div class="tutorial-footer">
+          <button type="button" class="btn-brush-secondary" id="btnTutorialPrev" style="display:none;">
+            <span>上一步</span>
+          </button>
           <button type="button" class="btn-brush-main" id="btnTutorialNext">
-            <span id="btnTutorialTxt">明白</span>
+            <span id="btnTutorialTxt">下一步 ▶</span>
           </button>
         </div>
       </div>
@@ -382,18 +394,23 @@
 
         <div class="detailsheet-section lore">
           <div class="section-label">人物列傳</div>
-          <p class="section-content" id="detailLore">巡夜客中的獨行俠，身手矯健，習慣於暗處一擊制敵。</p>
+          <p class="section-content" id="detailLore">軍中獨行俠，身手矯健，習慣於暗處一擊制敵。</p>
         </div>
       </div>
     </div>
 
-    <!-- MODAL 4: LEVEL UP PERK CHOICE (1-OF-3) -->
+    <!-- MODAL 4: LEVEL UP PERK CHOICE (2 PICKS) -->
     <div class="modal-overlay" id="modalLevelUp" style="display:none;">
       <div class="levelup-card">
-        <h3 class="levelup-title">將士升級突破！</h3>
-        <p class="levelup-desc" id="levelUpUnitPrompt">墨影 晉升至 Lv.2！請選取一項兵法強化：</p>
+        <div class="levelup-header">
+          <img src="" alt="" class="levelup-unit-por" id="levelUpUnitPor">
+          <div class="levelup-header-text">
+            <h3 class="levelup-title">將士升級突破！</h3>
+            <p class="levelup-desc" id="levelUpUnitPrompt">墨影 晉升至 Lv.2！請選取一項突破：</p>
+          </div>
+        </div>
         <div class="levelup-choices-grid" id="levelUpChoicesGrid">
-          <!-- 3 choices generated dynamically -->
+          <!-- 2 choices generated dynamically -->
         </div>
       </div>
     </div>

@@ -12,7 +12,7 @@ export function checkBattleStatus(chapter, battleState) {
 
   // Universal loss: all controllable player units defeated
   if (livingAllies.length === 0) {
-    return { finished: true, victory: false, reason: '我方全軍覆沒，守夜失敗！' };
+    return { finished: true, victory: false, reason: '我方全軍覆沒，戰陣失守！' };
   }
 
   // Check objective-specific rules
@@ -82,7 +82,7 @@ export function checkBattleStatus(chapter, battleState) {
       const boss = enemies.find(u => u.id === (chapter.bossId || 'iron_general'));
       // Boss defeated condition
       if (boss && boss.hp <= 0) {
-        return { finished: true, victory: true, reason: '玄鐵巨將已被斬落陣前，守夜人威震群峰！' };
+        return { finished: true, victory: true, reason: '玄鐵巨將已被斬落陣前，三軍軍威大振，群峰破霧！' };
       }
 
       // Reach shrine exit condition
@@ -90,7 +90,7 @@ export function checkBattleStatus(chapter, battleState) {
       for (const ally of livingAllies) {
         for (const e of exitTiles) {
           if (ally.x === e.x && ally.y === e.y) {
-            return { finished: true, victory: true, reason: '守夜先鋒突破重圍，成功登頂神壇出口！' };
+            return { finished: true, victory: true, reason: '先鋒將士突破重圍，成功登頂神壇出口！' };
           }
         }
       }

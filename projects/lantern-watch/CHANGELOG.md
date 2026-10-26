@@ -133,3 +133,105 @@
   - Added automated capture of 10-deploy.png showing the golden deploy tiles, squad deployment tray, and Grokbot clearance.
 - **MINOR #12 (Documentation & Changelog Hygiene)**:
   - Removed obsolete v1 card-game entries from CHANGELOG.md; documented all Round 1 and Round 2 fixes.
+
+---
+
+## Improve round 1
+
+### Critical Improvements
+- **CRITICAL #1 (Legacy Card-Game Copy & Dead Code Elimination)**:
+  - Completely excised all residual v1 card-game modals, copy, and strings (手牌, 能量, 守夜, 霧怪, 共鳴).
+  - Removed dead v1 engine modules (`cards.js`, `units.js`, `relics.js`, `map.js`, `constants.js`, `bot.js`, `town.js`).
+  - Implemented concise 4-step tactics tutorial modal (`#modalTutorial`) matching current tactical controls: unit selection & blue movement tiles, tactical action menu (攻擊/技能/魔法/待命), directional back-attacks & damage forecast preview, and terrain bonuses.
+  - Verified 0 regex matches across `index.html`, `js/`, and `css/`.
+
+### Major Board & Art Alignment
+- **MAJOR #2 (Figure Overlap, Anchoring & Grid Alignment)**:
+  - Standardized figure dimensions to `max-width: 64px; height: 76px; bottom: 2px;` (~1.18x cell height), firmly anchoring feet at tile bottom-center.
+  - Implemented dynamic CSS row z-sorting (`z-index: calc(var(--row, 0) * 10 + 5)`) so units in higher rows naturally sit behind units in lower rows.
+  - Added soft ground shadow and glowing team base rings (warm gold for allies, crimson for enemies).
+  - Eliminated bottom-left Grokbot occlusion: removed `(0, 12)` from deployment and reserved a >=58px safe inset.
+  - Staggered starting ally and enemy spawn positions across columns (in Chapters 1 and 2) to eliminate column-stacking.
+  - Expanded board stage boundaries to 656×872 with camera clamp padding so units along the right and bottom edges are never clipped.
+
+### Gameplay Depth & Archetypes
+- **MAJOR #3 (New Enemy Archetypes & Varied Chapter Tactics)**:
+  - Created 4 distinct enemy archetypes with custom painted figures and portraits in `assets/art/v4/`:
+    - `shield_guard` (玄甲盾衛): Frontal shield blocks 70% damage, forcing tactical flanking and back-attacks; AI maintains defensive facing.
+    - `mist_sorcerer` (幻霧妖術師): AoE elemental thunder magic, penalizing tight player formations and requiring rush tactics.
+    - `fire_archer` (赤焰弓手): Inflicts bonus burn damage on targets in forest terrain, making forest cover a double-edged sword.
+    - `mist_scout` (影匿斥候): Stealth infiltrator that bypasses frontline tanks to threaten the lantern cart.
+  - Enriched Chapters 2 (Gate), 3 (Market), and 4 (Mountain) with these archetypes.
+  - Upgraded pre-battle intel to display all enemy types in the chapter with pure Chinese role labels (`騎兵/弓手/盾衛/術士/斥候/鬼魅/主將`) and tactical counter hints.
+
+### Combat Feel & Spell VFX
+- **MAJOR #4 (Per-Element Spell VFX & Combat Juice)**:
+  - Added vibrant per-element visual effects in CSS and `#vfxLayer`:
+    - Fire burst (`vfx-fire-burst`) with blazing ember particles.
+    - Thunder strike (`vfx-thunder-strike`) with jagged gold-cyan lightning.
+    - Water burst (`vfx-water-burst`) with cascading azure ripples.
+    - Wind slash (`vfx-wind-slash`) with sweeping emerald gale arcs.
+    - Heal light (`vfx-heal-light`) with soothing jade recovery aura.
+  - Integrated slash trail animations, screen/unit hit shake (`anim-hit-shake`), and watercolor ink-dissolve defeat animation (`anim-ink-dissolve`).
+  - Added floating combat tags for crits (`暴擊 CRIT!`), back attacks (`背擊 BACK!`), shield blocks (`格擋 BLOCK -70%`), elemental weaknesses (`破綻 WEAK!`), and counterattacks (`反擊`).
+  - Added a top HUD speed toggle (`1x`/`2x`) to halve animation durations for fast-paced play.
+
+### Progression & Pre-Battle UI Polish
+- **MAJOR #5 (Progression Loop & Pre-Battle Layout Polish)**:
+  - Post-battle progression awards XP to surviving deployed units, leading to level-ups with a choice of 3 perk picks (銳意進取 +3 ATK, 迅捷如風 +1 MOV, 固若金湯 +2 DEF & +6 HP).
+  - Rewards equipment treasure drops and triggers narrative story dialogue with painted portraits.
+  - Resolved pre-battle layout overlap: added `padding-left: 116px` to `.prebattle-footer` so the CTA button clears the Grokbot back button, and `padding-bottom: 100px` to `.prebattle-body-scroll` to prevent occlusion of the 鼓舞 stratagem card.
+
+### Verification & Automated Testing
+- **AUTOMATION**:
+  - Added 5 new automated unit tests in `tests/rules.test.mjs` and `tests/ai.test.mjs` validating shield block reduction, fire archer forest bonuses, and AI role behaviors.
+  - All 27 unit tests pass cleanly in under 100ms.
+  - Captured fresh 390×844 screenshots in `screenshots/v5/` (00 through 09) verifying clean visual layout, zero overlaps, zero clipping, and complete elimination of legacy card-game elements.
+
+---
+
+## Round 1 fixes
+
+### Major Issues Resolved (Grok Review Round 1)
+- **MAJOR #1 (Camera Clamping & Right-Edge / Top-HUD Safe Insets)**:
+  - Fixed unit clipping where right-column cavalry in Chapter 1 (`04-attack-preview.png`) and top-row defenders/enemies (`02-select-move-range.png`, `07-chapter2-board.png`) were partially cut off by the 390px viewport fold and HUD chrome.
+  - In `js/render/ui.js` (`centerCameraOn`), enhanced clamping logic: when focusing on col >= 4, clamps `scrollX >= 160` ensuring columns 4 through 8 remain fully inside the viewport with >=48px safe right inset; for row >= 10, clamps `scrollY >= 155` to prevent bottom grokbot clipping; for row <= 7, limits `scrollY <= (y - 1) * 64` so northern units never suffer sliced HP slivers beneath the top HUD.
+  - Widened `.battle-board-stage` to 704×880 with 64px right and 48px bottom padding to comfortably accommodate 76px sprites and glowing auras.
+- **MAJOR #2 (Water Terrain Matrix Alignment & Hairline Grid Eradication)**:
+  - Re-aligned Chapter 1 terrain matrix in `js/data/maps.js` with painted river art: row 4 col 7 set to deep water (`w`), row 6 cols 4-7 set to shallows (`s`) and cols 3 & 8 to deep water (`w`), accurately reflecting navigable bridge and stepping stone paths while keeping bot heuristic simulations 100% winning.
+  - Refined `renderBoardGrid` in `js/render/ui.js` so `.walkable` grid hairline borders are strictly painted on tiles where `!battle.board.isImpassable(c, r, false)`, completely eradicating gold hairlines over deep water channels.
+- **MAJOR #3 (Pre-Battle Stratagem Layout & Unclipped 鼓舞)**:
+  - Resolved vertical clipping on pre-battle screen (`09-prebattle.png`) at 390×844: converted squad roster (`.squad-roster-grid`) into a horizontal flex scroll row, saving ~85px of vertical space.
+  - Refactored `.stratagem-picker` into a compact 2-column grid with full-width 5th tile (`鼓舞`), sitting fully visible and unclipped well above the CTA footer.
+  - Removed `-webkit-line-clamp` on `.stratagem-desc` so the full 3×3 target area rule for 火攻 is clearly readable without truncation.
+  - Updated pre-battle screen capture to display Chapter 3 scouting intel featuring new enemy archetypes (`斥候` and `匿鼠`).
+- **MAJOR #4 (Level-Up Modal Lv.2 Promotion & Choice of 2)**:
+  - Fixed level-up display bug where screenshot showed 「晉升至 Lv.1」 with 3 perk choices.
+  - Updated `showLevelUpModal` in `js/render/ui.js` and `showLevelUp` debug hook in `js/app.js` to increment level (`Math.max(2, (inst.level || 1) + 1)`) so the modal accurately announces promotion to Lv.2.
+  - Added unit portrait icon (`#levelUpUnitPor`) to `.levelup-header`.
+  - Streamlined perk selection to exactly 2 distinct strategic choices matching the brief: 銳意進取 (ATK +3, Armor Pierce) vs 固若金湯 (DEF +2, Max HP +6).
+- **MAJOR #5 (Per-Element Spell VFX Silhouettes & Pure Chinese Tags)**:
+  - Overhauled spell VFX from generic radial wash to distinct geometric silhouettes:
+    - `.vfx-thunder-strike`: Jagged lightning bolt polygon (`clip-path: polygon(...)`) with high-voltage cyan-gold flash and drop shadow.
+    - `.vfx-fire-burst`: Dynamic flame cluster with orbiting radiant ember sparks (`@keyframes emberFly`).
+    - `.vfx-water-burst`: Expanding frost-ring ripple with crystalline azure border.
+    - `.vfx-wind-slash`: Sweeping crescent emerald blade arcs.
+    - `.vfx-heal-light`: Ascending warm jade recovery aura.
+  - Recaptured `05-spell-vfx.png` at the hold frame demonstrating distinctive lightning bolt silhouette and pure Chinese floating combat feedback (`屬性克制！ -14`).
+
+### Minor Issues Resolved
+- **MINOR #6 (Dimmed Board Tutorial Capture)**:
+  - Recaptured `01-tutorial.png` showing the 4-step tactical tutorial modal overlaid on top of the dimmed live Chapter 1 battlefield.
+- **MINOR #7 (Action Menu Button Nomenclature & Positioning)**:
+  - Renamed action menu buttons in `index.html` and `js/render/ui.js` to match the exact design brief: 攻擊 (Attack), 計策 (Stratagem/Skill), 法術 (Spell/Magic), 待命 (Wait).
+  - Recaptured `03-action-menu.png` positioned adjacent to unit without obscuring the warrior figure.
+- **MINOR #8 (Enemy Shield Guard Detail Sheet Lore & Button Visibility)**:
+  - Added dedicated Chinese backstory and tactical hints for `shield_guard` (玄甲盾衛), `mist_sorcerer` (幻霧妖術師), `fire_archer` (赤焰弓手), and `mist_scout` (影匿斥候) in `js/data/units.js`.
+  - In `showGuardianDetailSheet`, dynamically hid the relic change button (`#detailRelicChangeBtn`) for enemy units and displayed appropriate fallback text.
+- **MINOR #9 (Complete Eradication of Residual 巡夜 References)**:
+  - Replaced all legacy `巡夜` occurrences in `js/data/units.js`, `js/engine/objectives.js`, `index.html`, and `js/render/ui.js` with `燈影` and `三軍`, ensuring 100% brand voice consistency across code and UI.
+- **MINOR #10 (Pure Chinese Combat Floating Tags)**:
+  - Removed all English words from floating combat tags (`暴擊！`, `背擊！`, `鐵壁格擋！`, `屬性克制！`, `反擊！`, `未中`), eliminating mixed-language clutter.
+- **MINOR #11 (Visual Demonstration of New Enemy Types)**:
+  - Updated `06-new-enemy-type.png` to showcase 玄甲盾衛 with custom lore, and `09-prebattle.png` to highlight Chapter 3 intel with `斥候` and `匿鼠`.
+

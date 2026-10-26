@@ -383,3 +383,106 @@ test('Rules: MP resource cost deduction on skill/magic', () => {
   battle.confirmAction(fox, 'skill', dummyEnemy, { tileX: 2, tileY: 3 });
   assert.strictEqual(fox.mp, 3, 'Fox must have 3 MP remaining after consuming 3 MP');
 });
+
+test('Rules: Shield guard (shield_block) blocks 70% frontal damage but takes full back damage', () => {
+  const terrain = Array(13).fill("..........");
+  const board = new Board(terrain);
+
+  // Shield guard at (4, 4), facing East (facing = 1)
+  const shieldDefender = {
+    ...ENEMY_PROTOS.shield_guard,
+    id: 'shield_guard',
+    x: 4,
+    y: 4,
+    def: 8,
+    facing: 1
+  };
+
+  // Attacker at (5, 4) attacking from East -> Frontal attack
+  const frontAttacker = {
+    id: 'attacker_front',
+    team: 'ally',
+    x: 5,
+    y: 4,
+    atk: 18,
+    spd: 10
+  };
+  const frontCombat = calculateCombat(frontAttacker, shieldDefender, board);
+  assert.strictEqual(frontCombat.direction, 'front');
+  // Raw damage = 18 - 8 = 10. Frontal damageMod = 0.3 -> expectedDamage = 3
+  assert.strictEqual(frontCombat.expectedDamage, 3, 'Frontal attack against shield_guard must be reduced by 70%');
+
+  // Attacker at (3, 4) attacking from West -> Back attack
+  const backAttacker = {
+    id: 'attacker_back',
+    team: 'ally',
+    x: 3,
+    y: 4,
+    atk: 18,
+    spd: 10
+  };
+  const backCombat = calculateCombat(backAttacker, shieldDefender, board);
+  assert.strictEqual(backCombat.direction, 'back');
+  // Raw damage = 10. Back damageMod = 1.5 -> expectedDamage = 15
+  assert.strictEqual(backCombat.expectedDamage, 15, 'Back attack against shield_guard must deal full back damage');
+});
+
+test('Rules: Fire archer inflicts bonus burn damage on targets in forest', () => {
+  const terrain = [
+    "..........",
+    "....f.....", // forest at (4, 1)
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    ".........."
+  ];
+  const board = new Board(terrain);
+
+  const fireArcher = {
+    ...ENEMY_PROTOS.fire_archer,
+    id: 'fire_archer',
+    x: 6,
+    y: 2,
+    atk: 11
+  };
+
+  // Target on flat ground at (4, 2), facing East (1) -> front attack (1.0x)
+  const plainTarget = {
+    id: 'plain_target',
+    team: 'ally',
+    x: 4,
+    y: 2,
+    def: 3,
+    facing: 1
+  };
+  const plainCombat = calculateCombat(fireArcher, plainTarget, board);
+  // Raw = (11 - 3) * 1.0 = 8
+  assert.strictEqual(plainCombat.expectedDamage, 8);
+
+  // Target in forest at (4, 1), facing East (1) -> front-adjacent angle
+  const fireArcher2 = {
+    ...ENEMY_PROTOS.fire_archer,
+    id: 'fire_archer',
+    x: 6,
+    y: 1,
+    atk: 11
+  };
+  const forestTarget = {
+    id: 'forest_target',
+    team: 'ally',
+    x: 4,
+    y: 1,
+    def: 3,
+    facing: 1
+  };
+  const forestCombat = calculateCombat(fireArcher2, forestTarget, board);
+  // Raw base: (11 - 4) = 7 + 4 (ignite forest) = 11
+  assert.strictEqual(forestCombat.expectedDamage, 11, 'Fire archer attacking forest target gains +4 burning damage');
+});

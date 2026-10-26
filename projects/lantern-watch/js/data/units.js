@@ -48,7 +48,7 @@ export const GUARDIAN_PROTOS = {
       bark: '「捉摸不透，方為刺客之道。」'
     },
     bark: '「刀已在手，迷霧盡散！」',
-    backstory: '巡夜客中的獨行俠，身手矯健，習慣於暗處一擊制敵。'
+    backstory: '軍中獨行俠，身手矯健，習慣於暗處一擊制敵。'
   },
 
   lantern_crafter: {
@@ -197,7 +197,7 @@ export const GUARDIAN_PROTOS = {
       bark: '「甘露潤心，安神定魄。」'
     },
     bark: '「老夫這壺茶，可愈筋骨，亦可醒神。」',
-    backstory: '隱居小鎮的老茶師，精通靈茶醫理，默默守護著每一位守夜人。'
+    backstory: '隱居山野的老茶師，精通靈茶醫理，默默守護著每一位軍中將士。'
   },
 
   fox_maiden: {
@@ -298,7 +298,7 @@ export const GUARDIAN_PROTOS = {
       bark: '「想過此道，先踏過俺這面鐵盾！」'
     },
     bark: '「俺熊岳在此，誰也休想寸進！」',
-    backstory: '小鎮最可靠的守護者，體格如山，長槍重盾固若金湯。'
+    backstory: '軍陣最可靠的中流砥柱，體格如山，長槍重盾固若金湯。'
   },
 
   crane_rider: {
@@ -375,6 +375,7 @@ export const ENEMY_PROTOS = {
       name: '疾馳',
       desc: '移動≥3格後發動衝鋒，造成+40%衝鋒傷害'
     },
+    tacticalHint: '衝鋒+40% · 弱槍兵防線截擊',
     bark: '「踏碎凡夫的燈火！」'
   },
 
@@ -402,6 +403,7 @@ export const ENEMY_PROTOS = {
       name: '高處狙擊',
       desc: '偏好佔領山丘制高點，山丘上射程+1且傷害+20%'
     },
+    tacticalHint: '山丘狙擊+20% · 近身無法反擊',
     bark: '「暗箭索命，無聲無息。」'
   },
 
@@ -430,6 +432,7 @@ export const ENEMY_PROTOS = {
       name: '水相妖身',
       desc: '水相幽體：烈火傷害×0（完全免疫），但雷系傷害×2'
     },
+    tacticalHint: '水相妖體 · 免疫烈火 · 弱雷法',
     bark: '「幽雨冥冥，傘下索魂……」'
   },
 
@@ -458,6 +461,7 @@ export const ENEMY_PROTOS = {
       name: '匿霧',
       desc: '遁入霧中隱身，除非位於燈光半徑2格內或相鄰格，否則無法被鎖定攻擊'
     },
+    tacticalHint: '暗夜隱身 · 需燈火或近身破隱',
     bark: '「吱吱……黑暗才是我們的天下！」'
   },
 
@@ -485,6 +489,7 @@ export const ENEMY_PROTOS = {
       name: '霧療',
       desc: '為3格內血量最低的友軍回復8點生命，常居於後排'
     },
+    tacticalHint: '後排持續治療 · 宜優先拔除',
     bark: '「霧氣不散，靈魂不滅……」'
   },
 
@@ -512,6 +517,7 @@ export const ENEMY_PROTOS = {
       name: '鐵壁盾',
       desc: '正面受擊傷害減免-70%；背擊受全額傷害；若在橋上被推落水即溺亡'
     },
+    tacticalHint: '正面減傷70% · 需包抄背擊或落水KO',
     bark: '「千軍萬馬，也休想撼動本將分毫！」'
   },
 
@@ -539,7 +545,126 @@ export const ENEMY_PROTOS = {
       name: '迷霧降臨',
       desc: '若敵軍有≥2人聚集，將引發大範圍霧爆，造成10點群體法術傷害'
     },
+    tacticalHint: '群聚引發霧爆 · 宜分散陣型包抄',
     bark: '「夜色已深，沉入永恆的迷霧吧……」'
+  },
+
+  shield_guard: {
+    id: 'shield_guard',
+    name: '盾衛',
+    title: '玄甲盾衛',
+    cls: '盾衛',
+    role: 'shield_guard',
+    team: 'enemy',
+    mov: 3,
+    hp: 28,
+    maxHp: 28,
+    mp: 4,
+    maxMp: 4,
+    atk: 10,
+    def: 8,
+    mag: 1,
+    res: 4,
+    spd: 6,
+    range: 1,
+    flyer: false,
+    trait: {
+      id: 'shield_block',
+      name: '鐵壁重盾',
+      desc: '正面受擊傷害減免-70%；側翼受標準傷害；背擊受全額150%傷害'
+    },
+    tacticalHint: '正面減傷70% · 需包抄背擊或法術破防',
+    bark: '「盾在陣在，休想越過半步！」',
+    backstory: '身披玄鐵重甲之幽霧衛士，手持重盾結陣如山，正前刀槍不入，唯有側翼迂迴或背刺方能擊破。'
+  },
+
+  mist_sorcerer: {
+    id: 'mist_sorcerer',
+    name: '妖術師',
+    title: '幻霧妖術師',
+    cls: '術士',
+    role: 'sorcerer',
+    team: 'enemy',
+    element: 'thunder',
+    mov: 3,
+    hp: 20,
+    maxHp: 20,
+    mp: 8,
+    maxMp: 8,
+    atk: 5,
+    def: 2,
+    mag: 12,
+    res: 8,
+    spd: 7,
+    range: [1, 2],
+    flyer: false,
+    trait: {
+      id: 'thunder_channel',
+      name: '引雷法咒',
+      desc: '若我方≥2人聚集，消耗4MP引動十字雷咒造成群體法術轟擊'
+    },
+    tacticalHint: '十字群體雷咒 · 防低血薄，宜騎兵急襲',
+    bark: '「幽冥九天，狂雷聽令！」',
+    backstory: '驅策妖霧的邪異術士，精通大範圍落雷咒法，極具破壞力，需優先奔襲突擊。'
+  },
+
+  fire_archer: {
+    id: 'fire_archer',
+    name: '火矢隊',
+    title: '赤焰弓手',
+    cls: '弓手',
+    role: 'fire_archer',
+    element: 'fire',
+    mov: 4,
+    hp: 18,
+    maxHp: 18,
+    mp: 6,
+    maxMp: 6,
+    atk: 11,
+    def: 3,
+    mag: 4,
+    res: 4,
+    spd: 8,
+    range: [2, 3],
+    flyer: false,
+    trait: {
+      id: 'fire_arrows',
+      name: '赤炎烈矢',
+      desc: '遠程射擊；若攻擊身處森林的目標，引燃林木造成+4額外灼燒傷害'
+    },
+    tacticalHint: '引燃森林草木 · 近身無法反擊',
+    bark: '「烈焰所至，寸草不生！」',
+    backstory: '手持烈焰長弓的精銳射手，擅於引燃林木，在草木掩護之處造成重創。'
+  },
+
+  mist_scout: {
+    id: 'mist_scout',
+    name: '斥候',
+    title: '影匿斥候',
+    cls: '斥候',
+    role: 'scout',
+    team: 'enemy',
+    mov: 5,
+    hp: 16,
+    maxHp: 16,
+    mp: 4,
+    maxMp: 4,
+    atk: 12,
+    def: 2,
+    mag: 1,
+    res: 3,
+    spd: 13,
+    range: 1,
+    flyer: false,
+    isShrouded: true,
+    trait: {
+      id: 'mist_shroud',
+      name: '夜行遁影',
+      desc: '暗夜隱身潛襲，無視前排肉盾直撲後排弱旅或燈車'
+    },
+    tacticalHint: '遁影潛行奇襲 · 優先狙擊後排與燈車',
+    bark: '「無聲無息，暗刃穿喉！」',
+    backstory: '潛伏於暗處的幽影斥候，步法輕盈無聲，專門穿透前線直刺我軍燈車與後排。'
   }
 };
 

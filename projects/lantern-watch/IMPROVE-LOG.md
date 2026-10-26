@@ -1,0 +1,3 @@
+
+## Improve loop changelog
+- 2026-10-27 02:02 (Asia/Macau): Previous 2-round run DONE 01:43, live site 200 with 燈影軍略 title. Strict 390px review found: live first-load still shows the old v1 card-game tutorial modal (守夜入門指引); figures overlap/stack and clip at map edges; grokbot button covers bottom-left units; pre-battle 開戰 bar overlaps a stratagem card, intel shows only 2 of 6 enemies with English labels. Launched improve round 1 (prompts/improve-1.txt): fix stale tutorial, figure anchoring/z-sort/safe insets, 3+ new enemy archetypes with varied chapter objectives, elemental spell VFX, post-battle progression. Previous state in .orch-prev-1, old prompts/reviews in prompts/prev-1 and reviews/prev-1.

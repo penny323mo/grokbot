@@ -95,8 +95,8 @@ export function calculateCombat(attacker, defender, board, options = {}) {
   } else if (isSideAttack) {
     damageMod *= 1.2;
   } else if (isFrontAttack) {
-    // iron_general trait: frontal damage -70%
-    if (defender.trait?.id === 'iron_shield_wall' || defender.id === 'iron_general') {
+    // iron_general and shield_guard trait: frontal damage -70%
+    if (defender.trait?.id === 'iron_shield_wall' || defender.trait?.id === 'shield_block' || defender.role === 'shield_guard' || defender.id === 'iron_general') {
       damageMod *= 0.3;
     }
   }
@@ -146,6 +146,11 @@ export function calculateCombat(attacker, defender, board, options = {}) {
     const def = (defender.def || 0) + defBonus;
     const raw = Math.max(1, attackPower - def);
     expectedDamage = Math.max(0, Math.round(raw * damageMod));
+
+    // Fire archer burning forest bonus
+    if ((attacker.role === 'fire_archer' || attacker.trait?.id === 'fire_arrows') && defTerrain.char === 'f') {
+      expectedDamage += 4;
+    }
   }
 
   // If immune, damage is strictly 0

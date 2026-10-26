@@ -330,3 +330,107 @@ test('AI: Boss triggers AoE mist blast when >=2 player units cluster', () => {
   assert.strictEqual(decision.skillId, 'abyssal_mist');
   assert.ok(decision.targets.length >= 2, 'AoE targets must include both clustered units');
 });
+
+test('AI: Shield guard maintains facing towards nearest threat and holds position', () => {
+  const terrain = Array(13).fill("..........");
+  const board = new Board(terrain);
+  const rng = new RNG(123);
+
+  const shieldGuard = {
+    id: 'shield_guard_1',
+    role: 'shield_guard',
+    team: 'enemy',
+    x: 5,
+    y: 5,
+    hp: 28,
+    def: 8,
+    atk: 10,
+    mov: 3,
+    facing: 1
+  };
+
+  // Player unit is to the West at (2, 5)
+  const westPlayer = {
+    id: 'cat_patrol',
+    team: 'ally',
+    x: 2,
+    y: 5,
+    hp: 28,
+    def: 5
+  };
+
+  const decision = decideEnemyTurn(shieldGuard, {
+    board,
+    allies: [westPlayer],
+    enemies: [shieldGuard]
+  }, rng);
+
+  // Since player is to the West (x: 2 < 5), shieldGuard must turn facing to -1 (West)
+  assert.strictEqual(decision.newFacing, -1, 'Shield guard must turn to face the incoming threat from the West');
+});
+
+test('AI: Sorcerer casts AoE thunder magic when player units cluster', () => {
+  const terrain = Array(13).fill("..........");
+  const board = new Board(terrain);
+  const rng = new RNG(456);
+
+  const sorcerer = {
+    id: 'mist_sorcerer_1',
+    role: 'sorcerer',
+    team: 'enemy',
+    x: 5,
+    y: 5,
+    hp: 20,
+    def: 2,
+    mag: 12,
+    mp: 8,
+    mov: 3,
+    facing: -1
+  };
+
+  // Clustered player units at (4, 5) and (5, 6)
+  const ally1 = { id: 'ally_1', team: 'ally', x: 4, y: 5, hp: 20, def: 4 };
+  const ally2 = { id: 'ally_2', team: 'ally', x: 5, y: 6, hp: 22, def: 3 };
+
+  const decision = decideEnemyTurn(sorcerer, {
+    board,
+    allies: [ally1, ally2],
+    enemies: [sorcerer]
+  }, rng);
+
+  assert.strictEqual(decision.type, 'aoe', 'Sorcerer should cast AoE spell when >=2 allies cluster');
+  assert.strictEqual(decision.element, 'thunder');
+  assert.ok(decision.targets.length >= 2, 'Targets must cover both clustered units');
+});
+
+test('AI: Scout prioritizes lantern cart objective target', () => {
+  const terrain = Array(13).fill("..........");
+  const board = new Board(terrain);
+  const rng = new RNG(789);
+
+  const scout = {
+    id: 'mist_scout_1',
+    role: 'scout',
+    team: 'enemy',
+    x: 3,
+    y: 5,
+    hp: 16,
+    atk: 12,
+    mov: 5,
+    def: 2
+  };
+
+  // High DEF tank at (3, 4)
+  const tank = { id: 'bear_guard', role: 'tank', team: 'ally', x: 3, y: 4, hp: 36, def: 10 };
+  // Lantern cart at (4, 5) adjacent to scout
+  const cart = { id: 'lantern_cart', role: 'npc', team: 'ally', x: 4, y: 5, hp: 25, def: 4 };
+
+  const decision = decideEnemyTurn(scout, {
+    board,
+    allies: [tank, cart],
+    enemies: [scout]
+  }, rng);
+
+  assert.strictEqual(decision.type, 'attack');
+  assert.strictEqual(decision.target.id, 'lantern_cart', 'Scout must prioritize attacking lantern cart over tank');
+});
