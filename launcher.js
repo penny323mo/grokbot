@@ -100,8 +100,8 @@
                 class="card-cover"
                 src="${esc(p.cover)}"
                 alt=""
-                width="1600"
-                height="900"
+                width="240"
+                height="240"
                 loading="${index < 2 ? 'eager' : 'lazy'}"
                 decoding="async"
               />

@@ -1,57 +1,56 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
   <style>
     :root {
       --bg: #EEECE7;
       --accent: #5E7186;
-      --tint-opacity: 0.12;
-      --horizon-opacity: 0.15;
+      --tint-opacity: 0.14;
+      --arc-opacity: 0.10;
     }
     @media (prefers-color-scheme: dark) {
       :root {
         --bg: #1E1E1C;
         --accent: #768DA6;
-        --tint-opacity: 0.18;
-        --horizon-opacity: 0.20;
+        --tint-opacity: 0.20;
+        --arc-opacity: 0.12;
       }
     }
     .bg { fill: #EEECE7; fill: var(--bg); }
-    .tint { fill: #5E7186; fill: var(--accent); fill-opacity: 0.12; fill-opacity: var(--tint-opacity); }
-    .horizon { stroke: #5E7186; stroke: var(--accent); stroke-width: 2; stroke-opacity: 0.15; stroke-opacity: var(--horizon-opacity); }
-    .ink { stroke: #5E7186; stroke: var(--accent); stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; }
+    .tint { fill: #5E7186; fill: var(--accent); fill-opacity: 0.14; fill-opacity: var(--tint-opacity); }
+    .arc { stroke: #5E7186; stroke: var(--accent); stroke-opacity: 0.10; stroke-opacity: var(--arc-opacity); }
+    .ink { stroke: #5E7186; stroke: var(--accent); stroke-width: 10; stroke-linecap: round; stroke-linejoin: round; }
     @media (prefers-color-scheme: dark) {
       .bg { fill: #1E1E1C; }
-      .tint { fill: #768DA6; fill-opacity: 0.18; }
-      .horizon { stroke: #768DA6; stroke-opacity: 0.20; }
+      .tint { fill: #768DA6; fill-opacity: 0.20; }
+      .arc { stroke: #768DA6; stroke-opacity: 0.12; }
       .ink { stroke: #768DA6; }
     }
   </style>
 
-  <!-- Background canvas -->
-  <rect class="bg" width="1600" height="900" fill="#EEECE7"/>
+  <!-- Rounded-rect background in neutral with accent tint -->
+  <rect class="bg" width="240" height="240" rx="60" fill="#EEECE7"/>
+  <rect class="tint" width="240" height="240" rx="60" fill="#5E7186" fill-opacity="0.14"/>
 
-  <!-- Thin horizon line across center -->
-  <line class="horizon" x1="0" y1="450" x2="1600" y2="450" stroke="#5E7186" stroke-width="2" stroke-opacity="0.15"/>
-
-  <!-- Centered tint plate (r=150 at cx=800 cy=450) -->
-  <circle class="tint" cx="800" cy="450" r="150" fill="#5E7186" fill-opacity="0.12"/>
+  <!-- Subtle accent pattern: 2 soft concentric arcs -->
+  <circle class="arc" cx="120" cy="120" r="76" fill="none" stroke="#5E7186" stroke-width="2" stroke-opacity="0.10"/>
+  <circle class="arc" cx="120" cy="120" r="102" fill="none" stroke="#5E7186" stroke-width="2" stroke-opacity="0.08"/>
 
   <!-- Goal net tint -->
-  <polygon class="tint" points="715,365 745,335 855,335 885,365 885,535 715,535" fill="#5E7186" fill-opacity="0.12"/>
+  <polygon class="tint" points="68,74 86,54 154,54 172,74 172,168 68,168" fill="#5E7186" fill-opacity="0.12"/>
 
   <!-- Goal net depth lines -->
-  <path class="ink" d="M 715 365 L 745 335 L 855 335 L 885 365" fill="none" stroke="#5E7186" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
-  <line class="ink" x1="745" y1="335" x2="745" y2="515" stroke="#5E7186" stroke-width="8" stroke-linecap="round"/>
-  <line class="ink" x1="855" y1="335" x2="855" y2="515" stroke="#5E7186" stroke-width="8" stroke-linecap="round"/>
+  <path class="ink" d="M 68 74 L 86 54 L 154 54 L 172 74" fill="none" stroke="#5E7186" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <line class="ink" x1="86" y1="54" x2="86" y2="152" stroke="#5E7186" stroke-width="8" stroke-linecap="round"/>
+  <line class="ink" x1="154" y1="54" x2="154" y2="152" stroke="#5E7186" stroke-width="8" stroke-linecap="round"/>
 
   <!-- Front goal frame -->
-  <path class="ink" d="M 715 535 L 715 365 L 885 365 L 885 535" fill="none" stroke="#5E7186" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path class="ink" d="M 68 168 L 68 74 L 172 74 L 172 168" fill="none" stroke="#5E7186" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 
-  <!-- Centered soccer ball (diameter 104, cx=800 cy=450) -->
-  <circle class="bg ink" cx="800" cy="450" r="52" fill="#EEECE7" stroke="#5E7186" stroke-width="8"/>
-  <polygon class="tint ink" points="800,428 821,443 813,468 787,468 779,443" fill="#5E7186" fill-opacity="0.12" stroke="#5E7186" stroke-width="8" stroke-linejoin="round"/>
-  <line class="ink" x1="800" y1="428" x2="800" y2="398" stroke="#5E7186" stroke-width="8" stroke-linecap="round"/>
-  <line class="ink" x1="821" y1="443" x2="849" y2="434" stroke="#5E7186" stroke-width="8" stroke-linecap="round"/>
-  <line class="ink" x1="813" y1="468" x2="831" y2="492" stroke="#5E7186" stroke-width="8" stroke-linecap="round"/>
-  <line class="ink" x1="787" y1="468" x2="769" y2="492" stroke="#5E7186" stroke-width="8" stroke-linecap="round"/>
-  <line class="ink" x1="779" y1="443" x2="751" y2="434" stroke="#5E7186" stroke-width="8" stroke-linecap="round"/>
+  <!-- Centered soccer ball -->
+  <circle class="bg ink" cx="120" cy="122" r="34" fill="#EEECE7" stroke="#5E7186" stroke-width="10"/>
+  <polygon class="tint ink" points="120,110 131,118 127,132 113,132 109,118" fill="#5E7186" fill-opacity="0.14" stroke="#5E7186" stroke-width="7" stroke-linejoin="round"/>
+  <line class="ink" x1="120" y1="110" x2="120" y2="88" stroke="#5E7186" stroke-width="7" stroke-linecap="round"/>
+  <line class="ink" x1="131" y1="118" x2="152" y2="111" stroke="#5E7186" stroke-width="7" stroke-linecap="round"/>
+  <line class="ink" x1="127" y1="132" x2="140" y2="150" stroke="#5E7186" stroke-width="7" stroke-linecap="round"/>
+  <line class="ink" x1="113" y1="132" x2="100" y2="150" stroke="#5E7186" stroke-width="7" stroke-linecap="round"/>
+  <line class="ink" x1="109" y1="118" x2="88" y2="111" stroke="#5E7186" stroke-width="7" stroke-linecap="round"/>
 </svg>

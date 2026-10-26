@@ -96,8 +96,8 @@ body {
   width: 100%;
   max-width: 840px;
   margin: 0 auto;
-  padding-top: calc(env(safe-area-inset-top) + 24px);
-  padding-bottom: calc(env(safe-area-inset-bottom) + 32px);
+  padding-top: calc(env(safe-area-inset-top) + 16px);
+  padding-bottom: calc(env(safe-area-inset-bottom) + 20px);
   padding-left: max(16px, env(safe-area-inset-left));
   padding-right: max(16px, env(safe-area-inset-right));
 }
@@ -113,7 +113,7 @@ body {
    ========================================================================== */
 
 .hero {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .hero-brand {
@@ -122,30 +122,30 @@ body {
 }
 
 .hero-eyebrow {
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--fg-subtle);
 }
 
 .hero-title {
-  font-size: clamp(28px, 7vw, 38px);
+  font-size: clamp(24px, 6vw, 32px);
   line-height: 1.2;
   font-weight: 700;
   letter-spacing: -0.02em;
-  margin: 6px 0 8px;
+  margin: 3px 0 5px;
   color: var(--fg);
 }
 
 .hero-tagline {
-  font-size: 15px;
-  line-height: 1.55;
+  font-size: 14px;
+  line-height: 1.45;
   color: var(--fg-muted);
 }
 
 .hero-meta {
-  margin-top: 14px;
-  font-size: 13px;
+  margin-top: 6px;
+  font-size: 12px;
   color: var(--fg-muted);
   font-variant-numeric: tabular-nums;
 }
@@ -159,8 +159,8 @@ body {
   top: env(safe-area-inset-top);
   z-index: 10;
   background-color: var(--bg);
-  margin: 20px 0 16px;
-  padding: 6px 0;
+  margin: 10px 0 12px;
+  padding: 2px 0;
 }
 
 .filter-scroll {
@@ -234,7 +234,7 @@ body {
 .cards-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 20px;
+  gap: 12px;
   list-style: none;
 }
 
@@ -246,15 +246,17 @@ body {
   display: none !important;
 }
 
-/* 整張卡片為 <a> 連結 */
+/* 整張卡片為 <a> 連結，緊湊橫向單行佈局 */
 .card {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 14px;
   text-decoration: none;
   color: inherit;
   background-color: var(--card-bg);
   border: 1px solid var(--card-border);
-  border-radius: 18px;
+  border-radius: 16px;
   padding: 14px;
   position: relative;
   overflow: hidden;
@@ -298,21 +300,24 @@ body {
   animation-delay: calc(var(--i, 0) * 50ms);
 }
 
-/* 封面展示外框（16:9，14px 圓角，中性底色外框） */
+/* 72x72 圓角 18px 圖標磚 */
 .card-cover-frame {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border-radius: 14px;
+  width: 72px;
+  height: 72px;
+  min-width: 72px;
+  min-height: 72px;
+  border-radius: 18px;
   overflow: hidden;
+  flex-shrink: 0;
   background-color: var(--cover-bg, #1e1e1c);
   border: 1px solid var(--cover-border);
+  display: block;
 }
 
 .card-cover {
   width: 100%;
   height: 100%;
-  aspect-ratio: 16 / 9;
-  border-radius: 14px;
+  border-radius: 18px;
   object-fit: cover;
   display: block;
   opacity: 0;
@@ -323,26 +328,29 @@ body {
   opacity: 1;
 }
 
-/* 卡片主體文字 */
+/* 卡片主體文字（右側） */
 .card-body {
-  padding: 14px 2px 2px;
+  padding: 0;
+  flex: 1 1 0%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  flex-grow: 1;
 }
 
 /* Meta 列：類別、加入日期、新 標籤 */
 .card-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-size: 12px;
+  line-height: 1.25;
 }
 
 .card-cat {
   color: var(--fg);
   font-weight: 600;
   letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 .card-cat::before {
@@ -350,7 +358,7 @@ body {
   display: inline-block;
   width: 6px;
   height: 6px;
-  margin-right: 6px;
+  margin-right: 5px;
   border-radius: 999px;
   background-color: var(--accent);
   vertical-align: middle;
@@ -364,6 +372,7 @@ body {
 .card-date {
   color: var(--fg-muted);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* 新 標籤（僅最新作品擁有） */
@@ -375,28 +384,29 @@ body {
   font-size: 11px;
   font-weight: 700;
   line-height: 1;
-  padding: 3px 6px;
+  padding: 2px 5px;
   border-radius: 4px;
   background-color: var(--new-bg);
   color: var(--new-fg);
+  white-space: nowrap;
 }
 
-/* 標題（19-20px semibold） */
+/* 標題（17px semibold） */
 .card-title {
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 600;
   line-height: 1.3;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.01em;
   color: var(--fg);
-  margin-top: 8px;
+  margin-top: 3px;
 }
 
 /* 簡介（最多 2 行，muted） */
 .card-desc {
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 13px;
+  line-height: 1.4;
   color: var(--fg-muted);
-  margin-top: 6px;
+  margin-top: 3px;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -404,25 +414,24 @@ body {
   overflow: hidden;
 }
 
-/* 明確主按鈕「開始 →」（44px 高，右對齊藥丸狀） */
+/* 緊湊藥丸按鈕「開始 →」文字下方靠右對齊 */
 .card-action {
-  margin-top: 16px;
+  margin-top: 6px;
   display: flex;
   justify-content: flex-end;
-  padding-top: 2px;
 }
 
 .card-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  height: 44px;
-  padding: 0 22px;
+  gap: 4px;
+  height: 26px;
+  padding: 0 10px;
   border-radius: 999px;
   background-color: var(--btn-bg);
   color: var(--btn-fg);
-  font-size: 14px;
+  font-size: 11.5px;
   font-weight: 600;
   letter-spacing: 0.01em;
   user-select: none;
@@ -446,7 +455,7 @@ body {
 @media (min-width: 760px) {
   .cards-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 24px;
+    gap: 12px;
   }
 }
 
@@ -499,8 +508,8 @@ body {
    ========================================================================== */
 
 .footer {
-  margin-top: 48px;
-  padding-top: 24px;
+  margin-top: 24px;
+  padding-top: 16px;
   border-top: 1px solid var(--border);
 }
 
@@ -509,8 +518,8 @@ body {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 8px;
-  font-size: 12.5px;
+  gap: 6px;
+  font-size: 12px;
   color: var(--fg-subtle);
 }
 

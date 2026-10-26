@@ -1,55 +1,54 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
   <style>
     :root {
       --bg: #EEECE7;
       --accent: #A88A4A;
-      --tint-opacity: 0.12;
-      --horizon-opacity: 0.15;
+      --tint-opacity: 0.14;
+      --arc-opacity: 0.10;
     }
     @media (prefers-color-scheme: dark) {
       :root {
         --bg: #1E1E1C;
         --accent: #BE9F58;
-        --tint-opacity: 0.18;
-        --horizon-opacity: 0.20;
+        --tint-opacity: 0.20;
+        --arc-opacity: 0.12;
       }
     }
     .bg { fill: #EEECE7; fill: var(--bg); }
-    .tint { fill: #A88A4A; fill: var(--accent); fill-opacity: 0.12; fill-opacity: var(--tint-opacity); }
-    .horizon { stroke: #A88A4A; stroke: var(--accent); stroke-width: 2; stroke-opacity: 0.15; stroke-opacity: var(--horizon-opacity); }
-    .ink { stroke: #A88A4A; stroke: var(--accent); stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; }
+    .tint { fill: #A88A4A; fill: var(--accent); fill-opacity: 0.14; fill-opacity: var(--tint-opacity); }
+    .arc { stroke: #A88A4A; stroke: var(--accent); stroke-opacity: 0.10; stroke-opacity: var(--arc-opacity); }
+    .ink { stroke: #A88A4A; stroke: var(--accent); stroke-width: 10; stroke-linecap: round; stroke-linejoin: round; }
     @media (prefers-color-scheme: dark) {
       .bg { fill: #1E1E1C; }
-      .tint { fill: #BE9F58; fill-opacity: 0.18; }
-      .horizon { stroke: #BE9F58; stroke-opacity: 0.20; }
+      .tint { fill: #BE9F58; fill-opacity: 0.20; }
+      .arc { stroke: #BE9F58; stroke-opacity: 0.12; }
       .ink { stroke: #BE9F58; }
     }
   </style>
 
-  <!-- Background canvas -->
-  <rect class="bg" width="1600" height="900" fill="#EEECE7"/>
+  <!-- Rounded-rect background in neutral with accent tint -->
+  <rect class="bg" width="240" height="240" rx="60" fill="#EEECE7"/>
+  <rect class="tint" width="240" height="240" rx="60" fill="#A88A4A" fill-opacity="0.14"/>
 
-  <!-- Thin horizon line across center -->
-  <line class="horizon" x1="0" y1="450" x2="1600" y2="450" stroke="#A88A4A" stroke-width="2" stroke-opacity="0.15"/>
-
-  <!-- Centered tint plate (r=150 at cx=800 cy=450) -->
-  <circle class="tint" cx="800" cy="450" r="150" fill="#A88A4A" fill-opacity="0.12"/>
+  <!-- Subtle accent pattern: 2 soft concentric arcs -->
+  <circle class="arc" cx="120" cy="120" r="76" fill="none" stroke="#A88A4A" stroke-width="2" stroke-opacity="0.10"/>
+  <circle class="arc" cx="120" cy="120" r="102" fill="none" stroke="#A88A4A" stroke-width="2" stroke-opacity="0.08"/>
 
   <!-- Card 1 (back card, tilted left) -->
-  <g transform="rotate(-10 770 450)">
-    <rect class="bg ink" x="715" y="370" width="110" height="160" rx="12" fill="#EEECE7" stroke="#A88A4A" stroke-width="8"/>
-    <rect class="tint" x="726" y="381" width="88" height="138" rx="6" fill="#A88A4A" fill-opacity="0.06"/>
+  <g transform="rotate(-10 104 116)">
+    <rect class="bg ink" x="76" y="72" width="56" height="88" rx="8" fill="#EEECE7" stroke="#A88A4A" stroke-width="10"/>
+    <rect class="tint" x="84" y="80" width="40" height="72" rx="5" fill="#A88A4A" fill-opacity="0.08"/>
   </g>
 
   <!-- Card 2 (front card, tilted right) -->
-  <g transform="rotate(10 830 450)">
-    <rect class="bg ink" x="775" y="370" width="110" height="160" rx="12" fill="#EEECE7" stroke="#A88A4A" stroke-width="8"/>
-    <rect class="tint" x="786" y="381" width="88" height="138" rx="6" fill="#A88A4A" fill-opacity="0.06"/>
+  <g transform="rotate(10 134 116)">
+    <rect class="bg ink" x="106" y="72" width="56" height="88" rx="8" fill="#EEECE7" stroke="#A88A4A" stroke-width="10"/>
+    <rect class="tint" x="114" y="80" width="40" height="72" rx="5" fill="#A88A4A" fill-opacity="0.08"/>
     <!-- Diamond pip -->
-    <polygon class="tint ink" points="830,425 848,450 830,475 812,450" fill="#A88A4A" fill-opacity="0.12" stroke="#A88A4A" stroke-width="8" stroke-linejoin="round"/>
+    <polygon class="tint ink" points="134,103 145,116 134,129 123,116" fill="#A88A4A" fill-opacity="0.14" stroke="#A88A4A" stroke-width="7" stroke-linejoin="round"/>
   </g>
 
   <!-- Betting coin (foreground right) -->
-  <circle class="bg ink" cx="855" cy="505" r="36" fill="#EEECE7" stroke="#A88A4A" stroke-width="8"/>
-  <circle class="horizon" cx="855" cy="505" r="24" fill="none" stroke="#A88A4A" stroke-width="3" stroke-dasharray="6 4"/>
+  <circle class="bg ink" cx="150" cy="150" r="22" fill="#EEECE7" stroke="#A88A4A" stroke-width="9"/>
+  <circle class="arc" cx="150" cy="150" r="14" fill="none" stroke="#A88A4A" stroke-width="2.5" stroke-dasharray="4 3"/>
 </svg>

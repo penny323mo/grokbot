@@ -7,7 +7,7 @@ Live: https://penny323mo.github.io/grokbot/ (GitHub Pages, branch `main`, root `
 index.html / launcher.js / style.css   # 首頁 launcher（讀 projects/manifest.json）
 projects/manifest.json                 # 項目清單：id, title, subtitle, category, description, path, added, accent, cover
 projects/<id>/                         # 每個項目獨立、純靜態，用相對路徑
-projects/<id>/cover/cover.svg          # 項目封面（cover = projects/<id>/cover/cover.svg, 1600x900 (16:9), same visual language: neutral bg, one muted accent, single line icon, no screenshots, no text）
+projects/<id>/cover/cover.svg          # 項目封面（cover = projects/<id>/cover/cover.svg, square 240x240 SVG tile, same visual language: neutral bg, one muted accent, single line icon, no screenshots, no text）
 .github/workflows/                     # 所有 workflow 放 root（GitHub 只讀 root .github）
 docs/  scripts/  tests/                # repo 級文件、工具、測試
 progress.md                            # 進度紀錄
@@ -16,7 +16,7 @@ progress.md                            # 進度紀錄
 ## 規則（未來 nightly 項目）
 1. 新項目一律放 `projects/<kebab-id>/`，唔好再開新 repo。
 2. 喺 `projects/manifest.json` 加一條，**必須填 `added`（加入日期，YYYY-MM-DD，澳門時間項目開始嗰日）**同 **`cover`（封面圖路徑，如 `projects/<id>/cover/cover.svg`）**；launcher 會顯示並按日期排序。
-3. 新項目必須提供封面圖（規格：cover = projects/<id>/cover/cover.svg, 1600x900 (16:9), same visual language: neutral bg, one muted accent, single line icon, no screenshots, no text），且 tests 會檢查檔案是否存在與後綴（.svg 或 .webp）。
+3. 新項目必須提供封面圖（規格：cover = projects/<id>/cover/cover.svg, square 240x240 SVG tile, same visual language: neutral bg, one muted accent, single line icon, no screenshots, no text），且 tests 會檢查檔案是否存在與後綴（.svg 或 .webp）。
 4. 項目內只用相對路徑（`./x.js`，唔好 `/x.js`），因為網站喺 `/grokbot/projects/<id>/` 下面。
 5. 需要 workflow 嘅，放 `.github/workflows/<id>-*.yml`，用 `defaults.run.working-directory: projects/<id>`。
 6. 提交前行 `node tests/check_manifest.mjs`。
@@ -25,12 +25,15 @@ progress.md                            # 進度紀錄
 ## 首頁 Launcher 功能
 - **Hero 區域**：品牌識別「Grokbot 工作室」、粵語標語（「每晚一個新作品，諗、寫、審一手包辦」）、單行極簡統計摘要（收錄項目總數、最新加入項目名稱與日期），皆由 `manifest.json` 動態計算。
 - **分類篩選晶片（Filter Chips）**：「全部」及各項目類別單選按鈕，具備無障礙 `role="radiogroup"` / `role="radio"`、`aria-checked` 與方向鍵/Home/End roving tabindex 鍵盤導航，手機端自動折行換行、吸頂常駐（`position: sticky`）、切換篩選即時流暢且無版面跳動（no layout jump）。
-- **精品作品卡片（Project Cards）**：
-  - 語意化結構：`<ul class="cards-grid">` 內置 `<li>` 列表項目。
-  - 實體封面縮圖：41:20 頂部視窗比例、頂部對齊裁切（`object-position: top`），全卡預載解碼（pre-decoded）配合 `is-ready` 平滑淡入防止白屏，accent 混色底座優雅回退，裝飾圖採空 alt 避免讀屏重複朗讀標題。
-  - 分類標籤採單一高對比文字配 6px accent 圓點（淺色模式動態混色強化對比符合 WCAG 1.4.11）、格式化加入日期（`YYYY年M月D日`）、項目標題與副標題、兩行限制簡介（2-line clamp）。
-  - 僅最新加入之項目享有 12px「新」標籤，桌面端呈現雙欄雙分割排版（featured card）。
-  - 整張卡片為超連結（`<a>`），提供優雅按壓縮放反饋（`:active scale .98`），支援清晰聚焦外框（`:focus-visible`）。
+- **緊湊橫向作品卡片（Compact Row Cards）**：
+  - 語意化結構：`<ul class="cards-grid">` 內置 `<li>` 列表項目，卡片間隔 12px。
+  - 左側圖標磚：72x72 圓角（18px）圖標磚，顯示項目的 `cover.svg`（`object-fit: cover`），全卡預載解碼配合 `is-ready` 平滑淡入。
+  - 右側資訊區：
+    - Meta 列：分類圓點＋名稱 · 加入日期（`YYYY年M月D日`），最新作品享有「新」標籤。
+    - 標題：17px semibold。
+    - 簡介：最多 2 行限制（2 lines max clamp）。
+    - 緊湊藥丸按鈕：「開始 →」靠右對齊置於文案下方。
+  - 整張卡片為超連結（`<a>`），保持既有連結與可訪問性語意，支援清晰聚焦外框（`:focus-visible`）與按壓縮放反饋（`:active scale .985`）。
 - **設計與字型規範**：
   - iPhone 優先（390px 基準），320px–430px 無橫向溢出；桌面端（>= 760px）呈現雙欄網格。
   - CJK 繁體字體 Stack（`PingFang HK`、`PingFang TC`、`Noto Sans TC`、`Noto Sans HK`、`Microsoft JhengHei`、`system-ui`）；數字啟用等寬對齊（tabular numerals）；嚴謹 8px 網格間距。

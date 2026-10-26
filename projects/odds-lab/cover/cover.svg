@@ -1,61 +1,60 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
   <style>
     :root {
       --bg: #EEECE7;
       --accent: #6E8B74;
-      --tint-opacity: 0.12;
-      --horizon-opacity: 0.15;
+      --tint-opacity: 0.14;
+      --arc-opacity: 0.10;
     }
     @media (prefers-color-scheme: dark) {
       :root {
         --bg: #1E1E1C;
         --accent: #80A287;
-        --tint-opacity: 0.18;
-        --horizon-opacity: 0.20;
+        --tint-opacity: 0.20;
+        --arc-opacity: 0.12;
       }
     }
     .bg { fill: #EEECE7; fill: var(--bg); }
-    .tint { fill: #6E8B74; fill: var(--accent); fill-opacity: 0.12; fill-opacity: var(--tint-opacity); }
-    .horizon { stroke: #6E8B74; stroke: var(--accent); stroke-width: 2; stroke-opacity: 0.15; stroke-opacity: var(--horizon-opacity); }
-    .ink { stroke: #6E8B74; stroke: var(--accent); stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; }
+    .tint { fill: #6E8B74; fill: var(--accent); fill-opacity: 0.14; fill-opacity: var(--tint-opacity); }
+    .arc { stroke: #6E8B74; stroke: var(--accent); stroke-opacity: 0.10; stroke-opacity: var(--arc-opacity); }
+    .ink { stroke: #6E8B74; stroke: var(--accent); stroke-width: 10; stroke-linecap: round; stroke-linejoin: round; }
     @media (prefers-color-scheme: dark) {
       .bg { fill: #1E1E1C; }
-      .tint { fill: #80A287; fill-opacity: 0.18; }
-      .horizon { stroke: #80A287; stroke-opacity: 0.20; }
+      .tint { fill: #80A287; fill-opacity: 0.20; }
+      .arc { stroke: #80A287; stroke-opacity: 0.12; }
       .ink { stroke: #80A287; }
     }
   </style>
 
-  <!-- Background canvas -->
-  <rect class="bg" width="1600" height="900" fill="#EEECE7"/>
+  <!-- Rounded-rect background in neutral with accent tint -->
+  <rect class="bg" width="240" height="240" rx="60" fill="#EEECE7"/>
+  <rect class="tint" width="240" height="240" rx="60" fill="#6E8B74" fill-opacity="0.14"/>
 
-  <!-- Thin horizon line across center -->
-  <line class="horizon" x1="0" y1="450" x2="1600" y2="450" stroke="#6E8B74" stroke-width="2" stroke-opacity="0.15"/>
-
-  <!-- Centered tint plate (r=150 at cx=800 cy=450) -->
-  <circle class="tint" cx="800" cy="450" r="150" fill="#6E8B74" fill-opacity="0.12"/>
+  <!-- Subtle accent pattern: 2 soft concentric arcs -->
+  <circle class="arc" cx="120" cy="120" r="76" fill="none" stroke="#6E8B74" stroke-width="2" stroke-opacity="0.10"/>
+  <circle class="arc" cx="120" cy="120" r="102" fill="none" stroke="#6E8B74" stroke-width="2" stroke-opacity="0.08"/>
 
   <!-- Area tint under trend curve -->
   <path class="tint"
-        d="M 720 535 L 720 495 L 765 440 L 810 470 L 855 395 L 885 365 L 885 535 Z"
-        fill="#6E8B74" fill-opacity="0.12"/>
+        d="M 68 168 L 68 142 L 96 108 L 124 126 L 152 88 L 172 68 L 172 168 Z"
+        fill="#6E8B74" fill-opacity="0.14"/>
 
   <!-- Vertical dashed guide at peak -->
-  <line class="horizon" x1="885" y1="365" x2="885" y2="535" stroke="#6E8B74" stroke-width="2" stroke-opacity="0.15" stroke-dasharray="6 6"/>
+  <line class="arc" x1="172" y1="68" x2="172" y2="168" stroke="#6E8B74" stroke-width="2" stroke-opacity="0.25" stroke-dasharray="4 4"/>
 
   <!-- Analytics baseline -->
-  <line class="ink" x1="715" y1="535" x2="885" y2="535" stroke="#6E8B74" stroke-width="8" stroke-linecap="round"/>
+  <line class="ink" x1="66" y1="168" x2="174" y2="168" stroke="#6E8B74" stroke-width="10" stroke-linecap="round"/>
 
   <!-- Trend line stroke -->
   <path class="ink"
-        d="M 720 495 L 765 440 L 810 470 L 855 395 L 885 365"
-        fill="none" stroke="#6E8B74" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+        d="M 68 142 L 96 108 L 124 126 L 152 88 L 172 68"
+        fill="none" stroke="#6E8B74" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 
   <!-- Data vertex nodes -->
-  <circle class="bg ink" cx="720" cy="495" r="10" fill="#EEECE7" stroke="#6E8B74" stroke-width="8"/>
-  <circle class="bg ink" cx="765" cy="440" r="10" fill="#EEECE7" stroke="#6E8B74" stroke-width="8"/>
-  <circle class="bg ink" cx="810" cy="470" r="10" fill="#EEECE7" stroke="#6E8B74" stroke-width="8"/>
-  <circle class="bg ink" cx="855" cy="395" r="10" fill="#EEECE7" stroke="#6E8B74" stroke-width="8"/>
-  <circle class="bg ink" cx="885" cy="365" r="12" fill="#EEECE7" stroke="#6E8B74" stroke-width="8"/>
-  <circle class="tint" cx="885" cy="365" r="6" fill="#6E8B74" fill-opacity="0.12"/>
+  <circle class="bg ink" cx="68" cy="142" r="7" fill="#EEECE7" stroke="#6E8B74" stroke-width="7"/>
+  <circle class="bg ink" cx="96" cy="108" r="7" fill="#EEECE7" stroke="#6E8B74" stroke-width="7"/>
+  <circle class="bg ink" cx="124" cy="126" r="7" fill="#EEECE7" stroke="#6E8B74" stroke-width="7"/>
+  <circle class="bg ink" cx="152" cy="88" r="7" fill="#EEECE7" stroke="#6E8B74" stroke-width="7"/>
+  <circle class="bg ink" cx="172" cy="68" r="9" fill="#EEECE7" stroke="#6E8B74" stroke-width="8"/>
+  <circle class="tint" cx="172" cy="68" r="4" fill="#6E8B74" fill-opacity="0.14"/>
 </svg>
