@@ -433,6 +433,12 @@ export class UIRenderer {
     const container = document.getElementById("containerTownBuildings");
     const starsEl = document.getElementById("townStars");
     if (starsEl) starsEl.textContent = townManager.starLanterns;
+
+    const panoWrap = document.getElementById("townStreetPanoramaWrap");
+    if (panoWrap && SVG_ART.townStreetPanorama) {
+      panoWrap.innerHTML = SVG_ART.townStreetPanorama(townManager.buildings);
+    }
+
     if (!container) return;
     container.innerHTML = "";
 

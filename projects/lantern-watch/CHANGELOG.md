@@ -259,3 +259,41 @@
 ### 8. Text Truncation & Layout Polish (Failure 8)
 - Verified all card titles, descriptions, modal sheets, and tooltips at 390px iPhone viewport.
 - All 22 automated rules, intents, persistence, and bot simulation tests pass (100% Relaxed, 90% Standard, 85% Challenging A1).
+
+## Round 4 visual fix
+
+### 1. Title Screen Full-Bleed Panorama (Visually Verified in screenshots/v2/title.png)
+- Replaced the sparse center lantern with a complete 390×844 Asian night-town key art landscape filling the entire viewport: glowing crescent moon, constellations, layered indigo mountain ridges, a multi-tier pagoda watchtower with illuminated windows and golden spire, stepped hillside townhouses with warm Shoji windows, hanging festival lantern strings, rolling valley mist, an arched gnarled pine branch, and a stone terrace overlook with sacred lantern post and watchman cat guardian.
+- Adjusted layout to anchor typography and buttons comfortably over the courtyard terrace, eliminating the bottom 20% empty void with a grounded footer note (`✦ 燈火長明 · 破曉黎明 ✦`).
+
+### 2. Battle Board Unified Surface & Enemy Fog Blanket (Visually Verified in screenshots/v2/battle.png, card-selected.png)
+- Converted the board into one continuous stone courtyard pavement with subtle engraved hairline grid guides (`border: 0.5px solid rgba(143, 163, 199, 0.14)` and `background: transparent`), eliminating isolated rounded boxes.
+- Moved the animated drifting fog layer on top of the tactics grid (`.board-fog-overlay` with `z-index: 6; pointer-events: none;`) spanning enemy rows 0–2 with dual rolling mist waves.
+- Rendered warm golden radial light pooling across player rows 4 and 5 from active lantern posts and allied guardians.
+
+### 3. Rich Woodblock Card Scene Art (Visually Verified in screenshots/v2/battle.png, card-selected.png, reward.png)
+- Replaced flat vector line glyphs with handcrafted woodblock scene illustrations for all non-summon cards:
+  - `card_command_advance` (突進指令): Martial scout in travel cloak and bamboo kasa hat slashing forward through a night bamboo grove with glowing sparks and drifting leaves.
+  - `card_command_strike_again` (連環迅擊): Dual enchanted wakizashi blades slashing in an 'X' with cinnabar arcs, central spark burst, and combat rune.
+  - `card_spell_bamboo_trap` (地刺竹陷): Sharpened bamboo stakes bursting from courtyard stones bound with tripwire and crimson alarm talismans.
+  - `card_lantern_refuel` (添燈加油): Cast-bronze dragon pitcher pouring molten golden oil into a blazing stone temple font.
+  - `card_lantern_ignite` (火樹銀花): Multi-branching festival fireworks showering willow sparks of gold and cinnabar over pagoda roofs.
+  - Full illustrations for `card_command_reposition`, `card_command_rally`, `card_command_tactical_swap`, `card_spell_gust`, `card_spell_fireball`, `card_spell_barrier`, `card_spell_whirlwind`, `card_spell_freeze_mist`, `card_spell_spirit_rain`, `card_spell_thunder_strike`, `card_lantern_flare`, `card_lantern_guardian_halo`, `card_lantern_oil_flask`.
+- Verified full card titles and clear cost gems with zero truncation.
+
+### 4. Reward Screen Dawn Sunrise & Flowing Description (Visually Verified in screenshots/v2/reward.png)
+- Filled the previously empty top 40% with an illustrated morning dawn sunrise backdrop: radiant sunbeams piercing over misty mountain peaks, flying white cranes, pagoda silhouettes in dawn mist, and celebratory morning glow.
+- Refactored `.reward-desc-box` from flex column wrapping into normal inline text: `【地刺竹陷】` renders seamlessly inline with the rules description across comfortable, flowing lines without breaking into two columns.
+
+### 5. Illustrated Route Map with Branching Paths & Terrain (Visually Verified in screenshots/v2/map.png)
+- Added an ink-wash mountain terrain backdrop with framing bamboo grove silhouettes and drifting mist bands.
+- Replaced the static center vertical line with dynamic SVG curved bezier path connections linking each node to its valid branch options from Night 1 through Boss.
+- Applied distinct medallion designs per node type (Boss, Elite, Shop, Rest, Event, Battle) with radiant golden halos on available nodes and mist shrouding locked nodes.
+
+### 6. Town Screen Panoramic Street Header (Visually Verified in screenshots/v2/town.png)
+- Added `#townStreetPanoramaWrap` displaying a 390×105 panoramic Asian streetscape header illustrating built buildings (e.g. 守夜小亭 with lit paper window, 飛信驛站 with fluttering red flag, 老茶樹 with golden tea fruit) in vibrant colors alongside unbuilt buildings in misty twilight silhouette.
+- Retained rich woodblock building architectural vignettes with checkmarks for built structures.
+
+### 7. Verification & Tests
+- All 22 automated rules, intents, save/load, and balance simulation tests pass with 0 errors (`npm test`).
+- All 7 screenshots captured at 390×844 into `screenshots/v2/` with 0 console errors.

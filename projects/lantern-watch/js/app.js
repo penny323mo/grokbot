@@ -292,6 +292,11 @@ class LanternWatchApp {
     this.sound.playMusic("town");
     document.getElementById("txtCurrentNight").textContent = `第 ${this.activeRun.currentNight} 夜`;
 
+    const bgEl = document.getElementById("mapTerrainBackdrop");
+    if (bgEl && SVG_ART.mapTerrainBackdrop) {
+      bgEl.innerHTML = SVG_ART.mapTerrainBackdrop;
+    }
+
     const container = document.getElementById("containerMapNodes");
     if (!container) return;
     container.innerHTML = "";
@@ -314,8 +319,10 @@ class LanternWatchApp {
         const isCurrent = node.id === this.activeRun.currentNodeId;
         const isVisited = this.activeRun.visitedNodes.includes(node.id);
         const isAvailable = availableNextIds.includes(node.id) || (night === 1 && !isVisited);
+        const isLocked = !isAvailable && !isVisited;
 
-        btn.className = `map-node-btn ${isAvailable ? "available" : ""} ${isVisited ? "visited" : ""}`;
+        btn.className = `map-node-btn node-type-${node.type} ${isAvailable ? "available" : ""} ${isVisited ? "visited" : ""} ${isLocked ? "locked" : ""}`;
+        btn.dataset.nodeId = node.id;
 
         let iconSvg = SVG_ART.icons.sword;
         if (node.type === "elite") iconSvg = SVG_ART.icons.boss;
@@ -344,6 +351,62 @@ class LanternWatchApp {
 
       container.appendChild(rowEl);
     }
+
+    this.drawMapConnections(container, availableNextIds);
+  }
+
+  drawMapConnections(container, availableNextIds) {
+    const renderPaths = () => {
+      const containerRect = container.getBoundingClientRect();
+      if (!containerRect.width || !containerRect.height) return;
+
+      const oldSvg = container.querySelector(".map-connections-svg");
+      if (oldSvg) oldSvg.remove();
+
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("class", "map-connections-svg");
+      svg.setAttribute("viewBox", `0 0 ${containerRect.width} ${containerRect.height}`);
+
+      let pathsHtml = "";
+
+      for (let night = 1; night < 8; night++) {
+        const rowNodes = this.activeRun.mapNodes.filter((n) => n.night === night);
+        for (const node of rowNodes) {
+          const fromBtn = container.querySelector(`[data-node-id="${node.id}"]`);
+          if (!fromBtn) continue;
+          const fromRect = fromBtn.getBoundingClientRect();
+          const x1 = fromRect.left - containerRect.left + fromRect.width / 2;
+          const y1 = fromRect.top - containerRect.top + fromRect.height / 2;
+
+          for (const nextId of node.nextNodes) {
+            const toBtn = container.querySelector(`[data-node-id="${nextId}"]`);
+            if (!toBtn) continue;
+            const toRect = toBtn.getBoundingClientRect();
+            const x2 = toRect.left - containerRect.left + toRect.width / 2;
+            const y2 = toRect.top - containerRect.top + toRect.height / 2;
+
+            const isNextAvailable = availableNextIds.includes(nextId) && (node.id === this.activeRun.currentNodeId || (night === 1 && !this.activeRun.visitedNodes.includes(node.id)));
+            const isTraveled = this.activeRun.visitedNodes.includes(node.id) && this.activeRun.visitedNodes.includes(nextId);
+            const isHighlighted = isNextAvailable || isTraveled;
+
+            const cpY = y1 + (y2 - y1) * 0.5;
+            const d = `M ${x1.toFixed(1)} ${y1.toFixed(1)} C ${x1.toFixed(1)} ${cpY.toFixed(1)}, ${x2.toFixed(1)} ${cpY.toFixed(1)}, ${x2.toFixed(1)} ${y2.toFixed(1)}`;
+
+            if (isHighlighted) {
+              pathsHtml += `<path d="${d}" fill="none" stroke="#FFAE42" stroke-width="2.6" stroke-dasharray="6,3" stroke-linecap="round" opacity="0.95"/>`;
+            } else {
+              pathsHtml += `<path d="${d}" fill="none" stroke="rgba(143, 163, 199, 0.3)" stroke-width="1.8" stroke-dasharray="4,3" opacity="0.6"/>`;
+            }
+          }
+        }
+      }
+
+      svg.innerHTML = pathsHtml;
+      container.prepend(svg);
+    };
+
+    renderPaths();
+    setTimeout(renderPaths, 60);
   }
 
   enterNode(nodeId) {
@@ -616,6 +679,10 @@ class LanternWatchApp {
 
     // Show Reward Screen
     this.ui.showScreen("screenReward");
+    const rewardBg = document.getElementById("rewardBackdrop");
+    if (rewardBg && SVG_ART.victoryBackdrop) {
+      rewardBg.innerHTML = SVG_ART.victoryBackdrop;
+    }
     document.getElementById("rewardCoins").textContent = earnedCoins;
     document.getElementById("rewardStars").textContent = earnedStars;
 
@@ -631,7 +698,7 @@ class LanternWatchApp {
       const box = document.getElementById("rewardCardDescBox");
       if (box) {
         const cleanName = card.name.replace(/^召喚：/, "").replace(/！$/, "");
-        box.innerHTML = `<span style="color:var(--lantern-gold);font-weight:800;">【${cleanName}】</span> <span style="color:var(--text-parchment);">${card.desc}</span>`;
+        box.innerHTML = `<span style="color:var(--lantern-gold);font-weight:800;margin-right:6px;">【${cleanName}】</span><span style="color:var(--text-parchment);">${card.desc}</span>`;
       }
     };
 

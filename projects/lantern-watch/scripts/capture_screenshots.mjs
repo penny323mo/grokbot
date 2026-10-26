@@ -158,10 +158,12 @@ async function run() {
     await new Promise((r) => setTimeout(r, 400));
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, "map.png") });
 
-    // 6. Town Meta Progression Screen
+    // 6. Town Meta Progression Screen (Showing built vs unbuilt buildings)
     console.log("6. Capturing town.png...");
     await page.evaluate(() => {
       if (window.app) {
+        window.app.town.buildings = ["bldg_watchtower", "bldg_courier", "bldg_tea_bush"];
+        window.app.town.starLanterns = 18;
         window.app.ui.showScreen("screenTown");
         window.app.ui.renderTown(window.app.town, () => {});
       }

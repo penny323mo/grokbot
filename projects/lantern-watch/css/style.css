@@ -278,7 +278,11 @@ html, body {
   text-align: center;
   position: relative;
   overflow: hidden;
-  position: relative;
+}
+
+#screenTitle .title-content {
+  justify-content: flex-end;
+  padding: 20px 20px 40px 20px;
 }
 
 .title-backdrop-skyline {
@@ -318,10 +322,17 @@ html, body {
   letter-spacing: 2px;
   color: #FFF3D6;
   text-shadow: 0 4px 16px rgba(0, 0, 0, 0.95), 0 0 20px rgba(255, 174, 66, 0.5);
-  margin-top: 180px;
+  margin-top: 40px;
   margin-bottom: 6px;
   position: relative;
   z-index: 5;
+}
+
+#screenTitle .title-main {
+  font-size: 34px;
+  margin-top: 0;
+  margin-bottom: 6px;
+  text-shadow: 0 4px 18px rgba(0, 0, 0, 0.95), 0 0 24px rgba(255, 174, 66, 0.65);
 }
 
 .title-sub {
@@ -334,12 +345,27 @@ html, body {
   z-index: 5;
 }
 
+#screenTitle .title-sub {
+  margin-bottom: 22px;
+}
+
 .title-buttons {
   width: 100%;
   max-width: 290px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  position: relative;
+  z-index: 5;
+}
+
+.title-footer-note {
+  font-size: 11px;
+  color: rgba(237, 227, 207, 0.72);
+  letter-spacing: 3px;
+  font-weight: 700;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95);
+  margin-top: 14px;
   position: relative;
   z-index: 5;
 }
@@ -461,27 +487,6 @@ html, body {
   display: block;
 }
 
-.board-fog-layer {
-  position: absolute;
-  top: 36px;
-  left: 0;
-  right: 0;
-  height: 180px;
-  pointer-events: none;
-  z-index: 2;
-  background:
-    radial-gradient(ellipse at 30% 40%, rgba(143, 163, 199, 0.22) 0%, transparent 60%),
-    radial-gradient(ellipse at 70% 60%, rgba(143, 163, 199, 0.18) 0%, transparent 60%),
-    linear-gradient(180deg, rgba(143, 163, 199, 0.22) 0%, transparent 100%);
-  animation: driftFog 12s ease-in-out infinite alternate;
-}
-
-@keyframes driftFog {
-  0% { transform: translateX(-8px) translateY(0); opacity: 0.7; }
-  50% { opacity: 0.95; }
-  100% { transform: translateX(8px) translateY(-4px); opacity: 0.75; }
-}
-
 .tactics-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -491,27 +496,80 @@ html, body {
   max-width: 374px;
   aspect-ratio: 5 / 6;
   background:
-    linear-gradient(90deg, rgba(20, 36, 28, 0.5) 0%, transparent 6%, transparent 94%, rgba(20, 36, 28, 0.5) 100%),
-    radial-gradient(ellipse at 50% 95%, rgba(255, 174, 66, 0.25) 0%, transparent 60%),
-    #0E1430;
+    radial-gradient(ellipse 95% 55% at 50% 98%, rgba(255, 174, 66, 0.4) 0%, rgba(255, 174, 66, 0.18) 50%, rgba(255, 174, 66, 0.04) 75%, transparent 100%),
+    linear-gradient(90deg, rgba(20, 36, 28, 0.6) 0%, transparent 6%, transparent 94%, rgba(20, 36, 28, 0.6) 100%),
+    linear-gradient(180deg, #090E20 0%, #101633 40%, #161C3C 80%, #1A2248 100%);
   padding: 3.5px;
-  border: 1.5px solid rgba(143, 163, 199, 0.28);
+  border: 1.5px solid rgba(143, 163, 199, 0.32);
   border-radius: 9px;
   position: relative;
   z-index: 3;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.75), inset 0 1px 1px rgba(255, 255, 255, 0.08);
 }
 
+.board-fog-overlay {
+  position: absolute;
+  top: 42px;
+  left: 8px;
+  right: 8px;
+  height: 185px;
+  pointer-events: none;
+  z-index: 6;
+  overflow: hidden;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+}
+
+.fog-drift-wave {
+  position: absolute;
+  top: 0;
+  left: -50%;
+  width: 200%;
+  height: 100%;
+}
+
+.fog-drift-wave.wave-1 {
+  background:
+    radial-gradient(ellipse at 35% 45%, rgba(143, 163, 199, 0.32) 0%, transparent 65%),
+    linear-gradient(180deg, rgba(143, 163, 199, 0.28) 0%, rgba(143, 163, 199, 0.1) 70%, transparent 100%);
+  animation: driftMist1 14s ease-in-out infinite alternate;
+}
+
+.fog-drift-wave.wave-2 {
+  background:
+    radial-gradient(ellipse at 75% 55%, rgba(112, 193, 179, 0.25) 0%, transparent 60%);
+  animation: driftMist2 10s ease-in-out infinite alternate;
+}
+
+@keyframes driftMist1 {
+  0% { transform: translateX(0) translateY(0); opacity: 0.75; }
+  50% { opacity: 0.95; }
+  100% { transform: translateX(-60px) translateY(-6px); opacity: 0.8; }
+}
+
+@keyframes driftMist2 {
+  0% { transform: translateX(-40px) translateY(-4px); opacity: 0.65; }
+  50% { opacity: 0.9; }
+  100% { transform: translateX(20px) translateY(0); opacity: 0.7; }
+}
+
 /* Subtle Stone Paver Grid Tiles forming unified courtyard surface */
 .grid-tile {
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, transparent 50%),
-    linear-gradient(180deg, #182042 0%, #101530 100%);
+  background: rgba(255, 255, 255, 0.02);
   border: 0.5px solid rgba(143, 163, 199, 0.14);
-  border-radius: 3px;
+  border-radius: 0;
   position: relative;
   display: flex;
   align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+  overflow: visible;
+}
+
+.grid-tile:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
   justify-content: center;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
@@ -965,23 +1023,65 @@ html, body {
   overflow: hidden;
 }
 
+/* ================= REWARD SCREEN ================= */
+.reward-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 220px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.reward-backdrop svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.reward-screen-content {
+  position: relative;
+  z-index: 5;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 135px 16px 24px 16px;
+  text-align: center;
+}
+
+.reward-title {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 900;
+  color: #FFF3D6;
+  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.95), 0 0 20px rgba(255, 174, 66, 0.6);
+  margin: 0 0 4px 0;
+}
+
+.reward-sub {
+  font-size: 13px;
+  color: #FFE3C2;
+  margin: 0 0 16px 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+}
+
 .reward-desc-box {
   width: 100%;
-  max-width: 320px;
-  background: rgba(14, 18, 48, 0.88);
+  max-width: 330px;
+  background: rgba(14, 18, 48, 0.92);
   border: 1.5px solid var(--night-border-highlight);
-  border-radius: 12px;
-  padding: 10px 14px;
-  font-size: 12px;
-  line-height: 1.45;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 12.5px;
+  line-height: 1.5;
   color: var(--text-parchment);
-  text-align: center;
+  text-align: left;
+  display: block;
   box-shadow: var(--shadow-sm);
   margin-bottom: 16px;
-  min-height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  min-height: 52px;
 }
 
 .card-desc-compact {
@@ -1111,9 +1211,26 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  position: relative;
   background:
     radial-gradient(ellipse at 50% 20%, rgba(255, 174, 66, 0.1) 0%, transparent 60%),
     linear-gradient(180deg, #070916 0%, #101533 50%, #080B1C 100%);
+}
+
+.map-terrain-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.map-terrain-backdrop svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .map-night-nodes {
@@ -1122,27 +1239,24 @@ html, body {
   gap: 22px;
   position: relative;
   padding: 10px 0;
+  z-index: 3;
 }
 
-/* Connecting travel route dashed line */
-.map-night-nodes::before {
-  content: "";
+.map-connections-svg {
   position: absolute;
-  top: 24px;
-  bottom: 24px;
-  left: 50%;
-  width: 2px;
-  transform: translateX(-50%);
-  border-left: 2px dashed rgba(255, 174, 66, 0.45);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
-  z-index: 1;
+  z-index: 2;
 }
 
 .map-row {
   display: flex;
   justify-content: space-around;
   position: relative;
-  z-index: 2;
+  z-index: 3;
 }
 
 .map-node-wrapper {
@@ -1162,10 +1276,10 @@ html, body {
 }
 
 .map-node-btn {
-  width: 52px;
-  height: 52px;
-  min-width: 52px;
-  min-height: 52px;
+  width: 50px;
+  height: 50px;
+  min-width: 50px;
+  min-height: 50px;
   border-radius: 50%;
   background: #141935;
   border: 2px solid rgba(143, 163, 199, 0.35);
@@ -1179,22 +1293,57 @@ html, body {
   transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
+/* Distinct Medallions per Node Type */
+.map-node-btn.node-type-boss {
+  width: 58px;
+  height: 58px;
+  min-width: 58px;
+  min-height: 58px;
+  border: 2.5px solid #FFAE42;
+  background: radial-gradient(circle at 35% 35%, #521622 0%, #1A0810 100%);
+  box-shadow: 0 0 20px rgba(255, 174, 66, 0.7), 0 4px 14px rgba(0, 0, 0, 0.8);
+}
+
+.map-node-btn.node-type-elite {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  min-height: 52px;
+  border-color: #E85D5D;
+  background: radial-gradient(circle at 35% 35%, #3A1C28 0%, #160B12 100%);
+}
+
+.map-node-btn.node-type-shop {
+  border-color: #52B788;
+  background: radial-gradient(circle at 35% 35%, #1C3D2E 0%, #0C1E16 100%);
+}
+
+.map-node-btn.node-type-rest {
+  border-color: #70C1B3;
+  background: radial-gradient(circle at 35% 35%, #18383E 0%, #0A1C20 100%);
+}
+
+.map-node-btn.node-type-event {
+  border-color: #C74B4B;
+  background: radial-gradient(circle at 35% 35%, #3E1E24 0%, #1E0C10 100%);
+}
+
 .map-node-btn.available {
   background: radial-gradient(circle at 35% 35%, #2A244D 0%, #161C38 100%);
   border-color: #FFAE42;
-  box-shadow: 0 0 16px rgba(255, 174, 66, 0.85), 0 4px 10px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 18px rgba(255, 174, 66, 0.9), 0 4px 10px rgba(0, 0, 0, 0.6);
   animation: nodeGlow 1.8s infinite ease-in-out;
 }
 
 .map-node-btn.visited {
   background: #0F1326;
-  border-color: rgba(61, 120, 96, 0.5);
-  opacity: 0.6;
+  border-color: rgba(61, 120, 96, 0.6);
+  opacity: 0.65;
 }
 
-.map-node-btn:not(.available):not(.visited) {
-  opacity: 0.45;
-  filter: blur(0.4px);
+.map-node-btn.locked {
+  opacity: 0.35;
+  filter: blur(0.7px) brightness(0.65);
 }
 
 @keyframes nodeGlow {
@@ -1228,6 +1377,24 @@ html, body {
   background:
     radial-gradient(circle at 50% 12%, rgba(255, 174, 66, 0.12) 0%, transparent 60%),
     linear-gradient(180deg, #070916 0%, #101633 45%, #0A0D20 100%);
+}
+
+.town-street-panorama-wrap {
+  width: 100%;
+  height: 105px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1.5px solid rgba(143, 163, 199, 0.25);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+  margin-bottom: 2px;
+  background: #080E22;
+  flex-shrink: 0;
+}
+
+.town-street-panorama-wrap svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 /* Bottom Dock Bar with Grokbot Clearance */
