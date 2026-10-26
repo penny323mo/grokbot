@@ -9,7 +9,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Prompt工作室">
-  <meta name="theme-color" content="#0a0714">
+  <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 
   <!-- Favicon & PWA Icons -->
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
@@ -25,24 +26,36 @@
 
     <!-- Top Navigation Header -->
     <header class="app-header">
-      <div class="header-left">
-        <div class="brand-logo" aria-hidden="true">
-          <svg viewBox="0 0 40 40" width="28" height="28">
-            <defs>
-              <linearGradient id="logoG" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#f59e0b"/>
-                <stop offset="50%" stop-color="#ec4899"/>
-                <stop offset="100%" stop-color="#8b5cf6"/>
-              </linearGradient>
-            </defs>
-            <rect width="40" height="40" rx="10" fill="#130b24" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
-            <circle cx="20" cy="20" r="11" fill="none" stroke="url(#logoG)" stroke-width="2.5"/>
-            <path d="M 20 12 Q 20 20 28 20 Q 20 20 20 28 Q 20 20 12 20 Q 20 20 20 12 Z" fill="#ffffff"/>
-          </svg>
+      <div class="header-top-bar">
+        <div class="header-left">
+          <div class="brand-logo" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="28" height="28">
+              <defs>
+                <linearGradient id="logoG" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#007AFF"/>
+                  <stop offset="100%" stop-color="#0051B3"/>
+                </linearGradient>
+              </defs>
+              <rect width="40" height="40" rx="9" fill="url(#logoG)"/>
+              <path d="M 20 10 L 22.5 17.5 L 30 20 L 22.5 22.5 L 20 30 L 17.5 22.5 L 10 20 L 17.5 17.5 Z" fill="#ffffff"/>
+              <circle cx="28" cy="12" r="2.5" fill="#ffffff" opacity="0.85"/>
+              <circle cx="12" cy="28" r="2" fill="#ffffff" opacity="0.85"/>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <h1 class="brand-title">Prompt 工作室</h1>
+            <span class="brand-badge" id="modeIndicator">圖片模式</span>
+          </div>
         </div>
-        <div class="brand-text">
-          <h1 class="brand-title">Prompt 工作室</h1>
-          <span class="brand-badge" id="modeIndicator">圖片模式</span>
+
+        <!-- Header Quick Actions -->
+        <div class="header-right">
+          <button type="button" class="btn-icon" id="btnHeaderRandom" title="隨機嚟一個靈感" aria-label="隨機生成靈感">
+            <span class="icon">🎲</span>
+          </button>
+          <button type="button" class="btn-icon" id="btnHeaderClear" title="清空所有選項" aria-label="清空選項">
+            <span class="icon">🧹</span>
+          </button>
         </div>
       </div>
 
@@ -51,23 +64,13 @@
         <div class="segmented-control" role="group" aria-label="生成模式">
           <button type="button" class="segment-btn active" id="btnModeImage" data-mode="image" aria-pressed="true">
             <span class="seg-icon">🖼️</span>
-            <span class="seg-label">圖片</span>
+            <span class="seg-label">圖片模式</span>
           </button>
           <button type="button" class="segment-btn" id="btnModeVideo" data-mode="video" aria-pressed="false">
             <span class="seg-icon">🎬</span>
-            <span class="seg-label">影片</span>
+            <span class="seg-label">影片模式</span>
           </button>
         </div>
-      </div>
-
-      <!-- Header Quick Actions -->
-      <div class="header-right">
-        <button type="button" class="btn-icon" id="btnHeaderRandom" title="隨機嚟一個靈感" aria-label="隨機生成靈感">
-          <span class="icon">🎲</span>
-        </button>
-        <button type="button" class="btn-icon" id="btnHeaderClear" title="清空所有選項" aria-label="清空選項">
-          <span class="icon">🧹</span>
-        </button>
       </div>
     </header>
 
@@ -389,10 +392,9 @@
       <!-- ================= TAB 2: 靈感配方 (RECIPES) ================= -->
       <section id="tab-recipes" class="tab-pane" role="tabpanel" aria-labelledby="nav-tab-recipes">
         <div class="recipes-content">
-          <div class="recipes-hero-card">
-            <div class="rh-badge">💡 頂級靈感庫</div>
-            <h2 class="rh-title">大師級 AI 提示詞配方</h2>
-            <p class="rh-desc">精選 10 套好萊塢寫實、吉卜力動畫、產品大片與影片運鏡模板，撳一下即可載入工作室隨意客製化。</p>
+          <div class="ios-large-title-wrap">
+            <h2 class="ios-large-title">靈感配方</h2>
+            <p class="ios-large-subtitle">精選 10 款好萊塢寫實、動漫與影片運鏡範本，撳一下即可載入創作。</p>
           </div>
 
           <!-- Recipe Filter Chips -->
@@ -416,19 +418,22 @@
       <!-- ================= TAB 3: 我的庫 (LIBRARY) ================= -->
       <section id="tab-library" class="tab-pane" role="tabpanel" aria-labelledby="nav-tab-library">
         <div class="library-content">
+          <div class="ios-large-title-wrap">
+            <h2 class="ios-large-title">提示詞庫</h2>
+          </div>
           <!-- Library Header Bar -->
           <div class="library-toolbar">
             <div class="search-input-wrap">
               <span class="search-icon">🔍</span>
-              <input type="text" id="inputLibrarySearch" class="search-input" placeholder="搜尋已儲存的提示詞或標籤...">
+              <input type="text" id="inputLibrarySearch" class="search-input" placeholder="搜尋提示詞或標籤...">
               <button type="button" id="btnClearLibrarySearch" class="btn-clear-search" style="display:none;">✕</button>
             </div>
             <div class="library-action-btns">
-              <button type="button" class="btn-lib-action" id="btnExportJSON" title="匯出全部 JSON">
+              <button type="button" class="btn-lib-action" id="btnExportJSON" title="匯出全部 JSON" aria-label="匯出 JSON">
                 <span class="btn-icon-symbol">📤</span>
                 <span class="btn-label">匯出</span>
               </button>
-              <button type="button" class="btn-lib-action" id="btnImportJSON" title="匯入 JSON">
+              <button type="button" class="btn-lib-action" id="btnImportJSON" title="匯入 JSON" aria-label="匯入 JSON">
                 <span class="btn-icon-symbol">📥</span>
                 <span class="btn-label">匯入</span>
               </button>

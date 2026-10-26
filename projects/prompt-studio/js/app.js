@@ -616,9 +616,9 @@
         <div class="shot-card-header">
           <span class="shot-timing-badge">Shot ${index + 1} (${start}–${end}秒)</span>
           <div class="shot-card-actions">
-            <button type="button" class="btn-shot-action btn-move-up" data-idx="${index}" title="上移" ${index === 0 ? "disabled style='opacity:0.3'" : ""}>▲</button>
-            <button type="button" class="btn-shot-action btn-move-down" data-idx="${index}" title="下移" ${index === state.shots.length - 1 ? "disabled style='opacity:0.3'" : ""}>▼</button>
-            <button type="button" class="btn-shot-action btn-shot-del" data-idx="${index}" title="刪除鏡頭" style="color:#fca5a5;">✕</button>
+            <button type="button" class="btn-shot-action btn-move-up" data-idx="${index}" title="上移" aria-label="上移鏡頭" ${index === 0 ? "disabled style='opacity:0.3'" : ""}>▲</button>
+            <button type="button" class="btn-shot-action btn-move-down" data-idx="${index}" title="下移" aria-label="下移鏡頭" ${index === state.shots.length - 1 ? "disabled style='opacity:0.3'" : ""}>▼</button>
+            <button type="button" class="btn-shot-action btn-shot-del" data-idx="${index}" title="刪除鏡頭" aria-label="刪除鏡頭">✕</button>
           </div>
         </div>
         <div class="shot-card-inputs">
@@ -905,6 +905,10 @@
   }
 
   function switchTab(tabId) {
+    if (el.app) {
+      el.app.dataset.activeTab = tabId;
+    }
+
     el.tabNavBtns.forEach((b) => {
       const active = b.dataset.tab === tabId;
       b.classList.toggle("active", active);
@@ -914,6 +918,11 @@
     el.tabPanes.forEach((p) => {
       p.classList.toggle("active", p.id === tabId);
     });
+
+    // P0 #1: Only show the live prompt composer sheet on the Builder tab
+    if (el.promptSheet) {
+      el.promptSheet.style.display = tabId === "tab-build" ? "flex" : "none";
+    }
 
     if (tabId === "tab-recipes") {
       renderRecipesTab();
@@ -1344,17 +1353,8 @@
     const onViewportChange = () => {
       const vv = window.visualViewport;
       const keyboardHeight = window.innerHeight - vv.height - vv.offsetTop;
-      if (keyboardHeight > 100) {
-        document.body.classList.add("keyboard-open");
-        if (el.promptSheet) {
-          el.promptSheet.style.transform = `translateY(${keyboardHeight}px)`;
-        }
-      } else {
-        document.body.classList.remove("keyboard-open");
-        if (el.promptSheet) {
-          el.promptSheet.style.transform = "";
-        }
-      }
+      const isKeyboardOpen = keyboardHeight > 100;
+      document.body.classList.toggle("keyboard-open", isKeyboardOpen);
     };
 
     window.visualViewport.addEventListener("resize", onViewportChange);
