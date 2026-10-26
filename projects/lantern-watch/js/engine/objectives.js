@@ -101,6 +101,28 @@ export function checkBattleStatus(chapter, battleState) {
       break;
     }
 
+    case 'reach_shrine_or_rout': {
+      // Reach shrine altar at north summit
+      const shrineTiles = chapter.shrineTiles || [{ x: 4, y: 1 }, { x: 5, y: 1 }, { x: 4, y: 2 }, { x: 5, y: 2 }];
+      for (const ally of livingAllies) {
+        for (const s of shrineTiles) {
+          if (ally.x === s.x && ally.y === s.y) {
+            return { finished: true, victory: true, reason: '將士力克幽霧阻截，成功登頂佔領封魔神壇！' };
+          }
+        }
+      }
+
+      // Or rout all enemies
+      if (livingEnemies.length === 0) {
+        return { finished: true, victory: true, reason: '竹海伏兵魔物已盡數肅清，幽谷隘口光復！' };
+      }
+
+      if (currentTurn > chapter.maxTurns) {
+        return { finished: true, victory: false, reason: '竹海夜霧閉鎖，行軍耗盡回合未能突圍！' };
+      }
+      break;
+    }
+
     default: {
       if (livingEnemies.length === 0) {
         return { finished: true, victory: true, reason: '全殲敵軍，大獲全勝！' };

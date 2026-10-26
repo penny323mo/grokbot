@@ -195,6 +195,24 @@ export function calculateCombat(attacker, defender, board, options = {}) {
     }
   }
 
+  // 8. Combo / 協力攻擊 check (adjacent ally assists attack)
+  let comboAlly = null;
+  let comboDamage = 0;
+  if (attacker.team === 'ally' && options.allies) {
+    const adjAllies = options.allies.filter(a =>
+      a.id !== attacker.id &&
+      a.hp > 0 &&
+      a.role !== 'npc' &&
+      a.role !== 'objective' &&
+      Board.manhattan(a.x, a.y, defenderPos.x, defenderPos.y) === 1
+    );
+    if (adjAllies.length > 0) {
+      comboAlly = adjAllies[0];
+      const rawCombo = Math.max(2, Math.round((comboAlly.atk || 10) * 0.5 - ((defender.def || 0) + defBonus) * 0.25));
+      comboDamage = rawCombo;
+    }
+  }
+
   // Knockback preview
   let knockbackResult = null;
   const knockbackDist = skill?.knockback || (options.isKnockback ? 1 : 0);
@@ -238,7 +256,9 @@ export function calculateCombat(attacker, defender, board, options = {}) {
     canCounter,
     counterDamage,
     counterHitRate,
-    knockbackResult
+    knockbackResult,
+    comboAlly,
+    comboDamage
   };
 }
 
@@ -279,6 +299,18 @@ export function executeCombat(attacker, defender, board, rng, options = {}) {
     target: defender.id,
     defenderHp: defender.hp
   });
+
+  // Check Combo / 協力攻擊 from adjacent ally
+  if (preview.comboAlly && defender.hp > 0) {
+    defender.hp = Math.max(0, defender.hp - preview.comboDamage);
+    events.push({
+      type: 'combo_hit',
+      ally: preview.comboAlly,
+      damage: preview.comboDamage,
+      target: defender.id,
+      defenderHp: defender.hp
+    });
+  }
 
   // Check knockback into water
   if (preview.knockbackResult && defender.hp > 0) {

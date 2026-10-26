@@ -160,15 +160,54 @@ export class Battle {
   triggerFireAttack(cx, cy) {
     const center = { x: cx, y: cy };
     this.fireCenter = center;
+    if (!this.burningTiles) this.burningTiles = new Set();
     this.eventLog.push({ type: 'stratagem', name: '火攻', msg: `火箭齊射，烈火燃遍指定3×3區域(${center.x},${center.y})！` });
+
+    for (let r = Math.max(0, cy - 1); r <= Math.min(12, cy + 1); r++) {
+      for (let c = Math.max(0, cx - 1); c <= Math.min(9, cx + 1); c++) {
+        const terrain = this.board.getTerrain(c, r);
+        if (terrain.char === 'f' || terrain.char === 'm') {
+          this.burningTiles.add(`${c},${r}`);
+        }
+      }
+    }
+
     for (const e of this.enemies) {
-      const terrain = this.board.getTerrain(e.x, e.y);
-      if ((terrain.char === 'f' || terrain.char === 'm') && Math.abs(e.x - center.x) <= 1 && Math.abs(e.y - center.y) <= 1) {
+      if (this.burningTiles.has(`${e.x},${e.y}`)) {
         if (e.element !== 'water') {
           e.hp = Math.max(0, e.hp - 10);
           this.eventLog.push({ type: 'fire_hit', target: e.id, damage: 10 });
         }
       }
+    }
+  }
+
+  tickBurningTiles() {
+    if (!this.burningTiles || this.burningTiles.size === 0) return;
+    const spreadCandidates = [];
+    for (const key of this.burningTiles) {
+      const [tx, ty] = key.split(',').map(Number);
+      const unit = this.getUnitAt(tx, ty);
+      if (unit && unit.hp > 0 && unit.element !== 'water') {
+        unit.hp = Math.max(0, unit.hp - 4);
+        this.eventLog.push({ type: 'fire_burn', target: unit.id, damage: 4 });
+      }
+      const adj = [
+        { x: tx + 1, y: ty }, { x: tx - 1, y: ty },
+        { x: tx, y: ty + 1 }, { x: tx, y: ty - 1 }
+      ];
+      for (const a of adj) {
+        if (this.board.inBounds(a.x, a.y) && !this.burningTiles.has(`${a.x},${a.y}`)) {
+          if (this.board.getTerrain(a.x, a.y).char === 'f') {
+            spreadCandidates.push(`${a.x},${a.y}`);
+          }
+        }
+      }
+    }
+    if (spreadCandidates.length > 0 && this.currentTurn <= 3) {
+      const pick = spreadCandidates[0];
+      this.burningTiles.add(pick);
+      this.eventLog.push({ type: 'fire_spread', tile: pick, msg: '風助火勢，烈焰蔓延至相鄰竹林！' });
     }
   }
 
@@ -240,7 +279,8 @@ export class Battle {
 
         const combatRes = executeCombat(unit, target, this.board, this.rng, {
           actionType: 'attack',
-          movedTiles: unit.moved ? Board.manhattan(unit.x, unit.y, unit.turnStartX, unit.turnStartY) : 0
+          movedTiles: unit.moved ? Board.manhattan(unit.x, unit.y, unit.turnStartX, unit.turnStartY) : 0,
+          allies: this.allies
         });
 
         result.events = combatRes.events;
@@ -301,7 +341,8 @@ export class Battle {
           if (target.x !== unit.x) unit.facing = target.x > unit.x ? 1 : -1;
           const combatRes = executeCombat(unit, target, this.board, this.rng, {
             actionType: 'skill',
-            skill
+            skill,
+            allies: this.allies
           });
           result.events = combatRes.events;
           unit.acted = true;
@@ -526,6 +567,8 @@ export class Battle {
     // Advance turn & reset allies
     this.currentTurn++;
     this.phase = 'ally';
+
+    this.tickBurningTiles();
 
     for (const a of this.allies) {
       a.acted = false;

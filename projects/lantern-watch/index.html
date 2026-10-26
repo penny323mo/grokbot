@@ -44,6 +44,8 @@
     <main class="screen active" id="screenTitle">
       <div class="title-content">
         <div class="title-bg-ink" id="titleBgInk"></div>
+        <div class="title-mist-layer" id="titleMistLayer"></div>
+        <div class="title-ambient-particles" id="titleAmbientParticles"></div>
         <div class="title-branding">
           <div class="title-sub-en" id="titleSubEn">LANTERN TACTICS</div>
           <h1 class="title-calligraphy" id="titleMainLogo">燈影軍略</h1>
@@ -95,6 +97,7 @@
       <div class="prebattle-container">
         <!-- Header -->
         <div class="prebattle-header">
+          <div class="prebattle-banner-art" id="preBannerArt"></div>
           <h2 class="prebattle-chapter-title" id="preChapterTitle">第一回 · 孤舟燈影渡寒川</h2>
           <div class="prebattle-objective-box">
             <div class="obj-row"><span class="obj-label">獲勝條件:</span> <span id="preObjectiveDesc">護送引路燈車穿過石橋</span></div>
@@ -209,6 +212,7 @@
         <div class="target-preview-card" id="targetPreviewCard" style="display:none;">
           <div class="preview-header">
             <span class="preview-title" id="prevActionName">攻擊預覽</span>
+            <span class="preview-combo-badge" id="prevComboBadge" style="display:none;"></span>
             <span class="preview-direction-badge" id="prevDirectionBadge">背擊 (+50%)</span>
           </div>
           <div class="preview-combatants">
@@ -370,6 +374,11 @@
         </div>
 
         <div class="detailsheet-section">
+          <div class="section-label">兵種進階階梯</div>
+          <div class="section-content" id="detailClassPath">劍客 ➔ 劍聖（Lv.2領悟【萬劍歸宗】）</div>
+        </div>
+
+        <div class="detailsheet-section">
           <div class="section-label">專屬特性</div>
           <div class="section-content" id="detailTrait">【疾影】背擊傷害提升至+100%，且不受反擊。</div>
         </div>
@@ -382,6 +391,7 @@
         <div class="detailsheet-section">
           <div class="section-label">寶物裝備</div>
           <div class="relic-slot-row">
+            <img src="" alt="" class="relic-slot-img" id="detailRelicImg" style="display:none;">
             <div class="relic-chip" id="detailRelicDisplay">未裝備寶物</div>
             <button type="button" class="btn-micro-relic" id="btnEquipRelic">更換寶物</button>
           </div>
@@ -402,6 +412,7 @@
     <!-- MODAL 4: LEVEL UP PERK CHOICE (2 PICKS) -->
     <div class="modal-overlay" id="modalLevelUp" style="display:none;">
       <div class="levelup-card">
+        <div class="levelup-promo-banner" id="levelUpPromoBanner" style="display:none;">✦ 領悟兵種晉升奧義 ✦</div>
         <div class="levelup-header">
           <img src="" alt="" class="levelup-unit-por" id="levelUpUnitPor">
           <div class="levelup-header-text">
@@ -423,9 +434,24 @@
           <div class="result-subtitle" id="resultSubtitle">天光破曉 · 迷霧退散</div>
         </div>
         <div class="result-body">
-          <div class="result-exp-awards" id="resultExpAwards"></div>
+          <div class="result-exp-awards" id="resultExpAwards">參戰將士每人獲得 30 點軍略功勳 (EXP)！</div>
+          <div class="result-xp-list" id="resultXpList"></div>
           <div class="result-relic-reward" id="resultRelicReward" style="display:none;">
-            <div class="relic-reward-banner">獲得戰利寶物：<strong id="resultRelicName">疾風履</strong></div>
+            <div class="relic-reward-banner">
+              <img src="" alt="" class="relic-reward-img" id="resultRelicImg">
+              <div class="relic-reward-info">
+                <span class="relic-tag">獲得戰利寶物</span>
+                <strong class="relic-name" id="resultRelicName">倚天古劍</strong>
+                <span class="relic-desc" id="resultRelicDesc">攻擊力 +4 · 暴擊率 +15%</span>
+              </div>
+            </div>
+          </div>
+          <div class="result-story-box" id="resultStoryBox">
+            <img src="assets/art/v4/por_cat_patrol.webp" alt="" class="result-story-por" id="resultSpeakerPor">
+            <div class="result-story-dialogue">
+              <span class="result-speaker-name" id="resultSpeakerName">墨影</span>
+              <p class="result-speaker-text" id="resultSpeakerText">「長夜終有盡，迷霧隨燈散。全軍稍作整頓，繼續進軍！」</p>
+            </div>
           </div>
           <p class="result-lore-note" id="resultLoreNote">此役過後，小鎮前路破曉微明。</p>
         </div>

@@ -659,7 +659,8 @@ class LanternTacticsApp {
       actionType: this.activeActionType,
       skill,
       attackerX: unit.x,
-      attackerY: unit.y
+      attackerY: unit.y,
+      allies: this.battle.allies
     });
 
     this.ui.showTargetPreview(
@@ -725,7 +726,7 @@ class LanternTacticsApp {
       setTimeout(() => {
         this.ui.showBattleResult(this.battle.status, this.activeChapter, () => {
           this.openWorldMap();
-        });
+        }, this.campaign, this.battle.allies);
       }, 600);
       return;
     }
@@ -755,7 +756,7 @@ class LanternTacticsApp {
       if (this.battle.status.finished) {
         this.ui.showBattleResult(this.battle.status, this.activeChapter, () => {
           this.openWorldMap();
-        });
+        }, this.campaign, this.battle.allies);
         return;
       }
 
@@ -916,8 +917,26 @@ class LanternTacticsApp {
           element,
           damage: 14,
           isCrit: element === 'fire',
-          isWeakness: element === 'thunder'
+          isWeakness: element === 'thunder',
+          isHeal: element === 'heal'
         }, 1);
+      },
+      triggerComboVfx: () => {
+        const target = this.battle?.enemies[0] || { id: 'dummy', x: 5, y: 3 };
+        const attacker = this.battle?.allies[0] || { id: 'cat_patrol', x: 4, y: 3 };
+        const comboAlly = this.battle?.allies[1] || { id: 'bear_guard', name: '熊岳', x: 5, y: 2 };
+        this.ui.playCombatVfx(attacker, target, {
+          actionType: 'attack',
+          damage: 12,
+          isCrit: false,
+          comboAlly,
+          comboDamage: 6
+        }, 1);
+      },
+      showBattleResultModal: (victory = true, chId = 1) => {
+        const ch = CHAPTERS.find(c => c.id === chId) || CHAPTERS[0];
+        const status = { victory, reason: victory ? '天光破曉 · 突破隘口' : '夜霧重重 · 退守整軍' };
+        this.ui.showBattleResult(status, ch, () => {}, this.campaign, this.battle?.allies);
       },
       showDialogue: (chId = 1) => {
         const ch = CHAPTERS.find(c => c.id === chId) || CHAPTERS[0];

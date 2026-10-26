@@ -5,7 +5,7 @@
  */
 
 import { CHAPTERS, TERRAIN_INFO } from '../data/maps.js';
-import { GUARDIAN_PROTOS, ENEMY_PROTOS, STRATAGEMS, RELICS, BOND_PAIRS } from '../data/units.js';
+import { GUARDIAN_PROTOS, ENEMY_PROTOS, STRATAGEMS, RELICS, BOND_PAIRS, PROMOTIONS } from '../data/units.js';
 
 export class UIRenderer {
   constructor(soundEngine) {
@@ -77,7 +77,7 @@ export class UIRenderer {
     const vpHeight = vp.clientHeight || 520;
 
     const maxScrollX = Math.max(0, 704 - vpWidth);
-    const maxScrollY = Math.max(0, 880 - vpHeight);
+    const maxScrollY = Math.max(0, 940 - vpHeight);
 
     let scrollX = targetX - vpWidth / 2;
     let scrollY = targetY - vpHeight / 2;
@@ -88,10 +88,10 @@ export class UIRenderer {
       scrollX = Math.max(scrollX, 160);
     }
 
-    // Bottom safe inset: when unit is near bottom (y >= 10), scroll down cleanly so unit is above Grokbot
-    // and push far enough (scrollY >= 155) so north edge units (y <= 1) don't bleed slivers at top
+    // Bottom safe inset & Grokbot clearance:
+    // When unit is near bottom (y >= 10), scroll down so unit's feet stay >=64px above viewport bottom
     if (y >= 10) {
-      scrollY = Math.max(155, targetY - vpHeight + 120);
+      scrollY = Math.max(160, (y * tilePx + 64) - vpHeight + 72);
     }
 
     // Top safe inset: if focused on northern battlefield (y <= 7), ensure top units never get clipped
@@ -116,7 +116,8 @@ export class UIRenderer {
       1: { left: '28%', top: '72%', name: '第一回 · 河橋' },
       2: { left: '70%', top: '52%', name: '第二回 · 城門' },
       3: { left: '72%', top: '78%', name: '第三回 · 市集' },
-      4: { left: '58%', top: '20%', name: '第四回 · 山道' }
+      4: { left: '58%', top: '20%', name: '第四回 · 山道' },
+      5: { left: '40%', top: '38%', name: '第五回 · 竹海' }
     };
 
     CHAPTERS.forEach(ch => {
@@ -151,6 +152,12 @@ export class UIRenderer {
 
   // ================= PRE-BATTLE RENDERING =================
   renderPreBattle(chapter, campaign, selectedSquadIds, activeStratagemId, handlers) {
+    // Painted Chapter Banner
+    const bannerArt = document.getElementById('preBannerArt');
+    if (bannerArt) {
+      bannerArt.style.backgroundImage = `url('assets/art/v4/banner_ch${chapter.id}.webp')`;
+    }
+
     document.getElementById('preChapterTitle').textContent = chapter.title;
     document.getElementById('preObjectiveDesc').textContent = chapter.objectiveDesc;
     document.getElementById('preDefeatDesc').textContent = chapter.defeatDesc;
@@ -179,11 +186,24 @@ export class UIRenderer {
       boss: '首領'
     };
 
+    const WEAKNESS_ZH = {
+      paper_ghost: '弱雷(×2)·火免疫',
+      shield_guard: '正面減傷-70%·弱背刺',
+      shadow_rat: '匿霧隱身·弱燈火照亮',
+      shadow_archer: '高地狙擊·近身不能反擊',
+      fog_rider: '弱槍盾領域(ZOC)',
+      mist_sorcerer: '弱近身突刺·怕打斷',
+      fire_archer: '怕近身·林地加成',
+      mist_scout: '弱防禦·懼包抄',
+      iron_general: '弱背擊·落水KO'
+    };
+
     Object.entries(enemyCounts).forEach(([eid, count]) => {
       const proto = ENEMY_PROTOS[eid];
       if (!proto) return;
       const roleName = ROLE_ZH[proto.role] || proto.cls;
       const roleBadge = (proto.cls && proto.cls !== roleName) ? `${proto.cls} · ${roleName}` : roleName;
+      const weakBadge = WEAKNESS_ZH[eid] || '常規弱點';
       const card = document.createElement('div');
       card.className = 'scout-enemy-card';
       card.innerHTML = `
@@ -196,7 +216,7 @@ export class UIRenderer {
             <span class="scout-enemy-name">${proto.name}</span>
             <span class="scout-role-pill">${roleBadge}</span>
           </div>
-          <div class="scout-enemy-intel">${proto.tacticalHint || proto.trait?.desc || '常規主力部隊'}</div>
+          <span class="scout-weakness-pill">${weakBadge}</span>
         </div>
       `;
       scoutGrid.appendChild(card);
@@ -266,7 +286,8 @@ export class UIRenderer {
 
     const shortObj = battle.chapter.objectiveType === 'escort' ? '護送燈車' :
       battle.chapter.objectiveType === 'hold_gate' ? '守護城門' :
-      battle.chapter.objectiveType === 'protect_lantern' ? '保護神燈' : '討伐鐵將';
+      battle.chapter.objectiveType === 'protect_lantern' ? '保護神燈' :
+      battle.chapter.objectiveType === 'reach_shrine_or_rout' ? '佔領神壇' : '討伐鐵將';
     document.getElementById('hudObjectiveTicker').textContent = `${battle.chapter.mapName} · ${shortObj}`;
 
     // Background Map Image
@@ -295,7 +316,7 @@ export class UIRenderer {
         tileDiv.dataset.y = r;
 
         const char = battle.board.getTerrainChar(c, r);
-        const isWalkable = !battle.board.isImpassable(c, r, false);
+        const isWalkable = !battle.board.isImpassable(c, r, false) && char !== 's' && char !== 'w';
         if (isWalkable) {
           tileDiv.classList.add('walkable');
         }
@@ -493,7 +514,49 @@ export class UIRenderer {
     card.style.display = 'block';
     this.hideActionMenu();
 
-    const { attacker, defender, direction, isBackAttack, isSideAttack, expectedDamage, hitRate, critRate, canCounter, counterDamage, counterHitRate, willKill } = preview;
+    const { attacker, defender, direction, isBackAttack, isSideAttack, expectedDamage, hitRate, critRate, canCounter, counterDamage, counterHitRate, willKill, comboAlly, comboDamage } = preview;
+
+    // Auto-pan camera so attacker, defender, and combo ally are all in clear upper 55% of viewport above preview panel
+    const vp = document.getElementById('battleViewport');
+    if (vp) {
+      const tilePx = 64;
+      const unitsToFrame = [attacker, defender];
+      if (comboAlly) unitsToFrame.push(comboAlly);
+
+      const minX = Math.min(...unitsToFrame.map(u => u.x));
+      const maxX = Math.max(...unitsToFrame.map(u => u.x));
+      const minY = Math.min(...unitsToFrame.map(u => u.y));
+      const maxY = Math.max(...unitsToFrame.map(u => u.y));
+
+      const midX = ((minX + maxX) / 2) * tilePx + 32;
+      const midY = ((minY + maxY) / 2) * tilePx + 32;
+      const vpWidth = vp.clientWidth || 390;
+      const vpHeight = vp.clientHeight || 520;
+      const maxScrollX = Math.max(0, 704 - vpWidth);
+      const maxScrollY = Math.max(0, 940 - vpHeight);
+
+      let sx = midX - vpWidth / 2;
+      // Position midY at ~140px from top so units comfortably sit in upper 45-55% of viewport
+      let sy = midY - 140;
+
+      if (Math.max(...unitsToFrame.map(u => u.x)) >= 4) {
+        sx = Math.max(sx, 160);
+      }
+      sx = Math.max(0, Math.min(maxScrollX, sx));
+      sy = Math.max(0, Math.min(maxScrollY, sy));
+      vp.scrollTo({ left: sx, top: sy, behavior: 'auto' });
+    }
+
+    // Combo badge
+    const comboEl = document.getElementById('prevComboBadge');
+    if (comboEl) {
+      if (comboAlly) {
+        comboEl.style.display = 'inline-block';
+        comboEl.textContent = `【協力合擊】+${comboAlly.name} (+${comboDamage})`;
+      } else {
+        comboEl.style.display = 'none';
+      }
+    }
 
     // Badges & texts
     const dirBadge = document.getElementById('prevDirectionBadge');
@@ -778,6 +841,19 @@ export class UIRenderer {
         setTimeout(() => defenderEl.classList.remove('anim-hurt'), 400 * durMult);
       }
 
+      const element = combatInfo.element || (combatInfo.actionType === 'magic' ? 'thunder' : null);
+      const vp = document.getElementById('battleViewport');
+
+      // Heavy shake & thunder white screen flash
+      if (element === 'thunder') {
+        vp?.classList.add('anim-thunder-flash');
+        setTimeout(() => vp?.classList.remove('anim-thunder-flash'), 300 * durMult);
+      }
+      if (combatInfo.isCrit || combatInfo.damage >= 12) {
+        vp?.classList.add('anim-heavy-shake');
+        setTimeout(() => vp?.classList.remove('anim-heavy-shake'), 400 * durMult);
+      }
+
       // Add elemental spell or slash VFX at defender position
       if (vfxLayer) {
         const vfx = document.createElement('div');
@@ -788,7 +864,6 @@ export class UIRenderer {
         vfx.style.left = `${centerX}px`;
         vfx.style.top = `${centerY}px`;
 
-        const element = combatInfo.element || (combatInfo.actionType === 'magic' ? 'thunder' : null);
         if (element === 'fire') {
           vfx.className = 'vfx-fire-burst';
         } else if (element === 'thunder') {
@@ -804,11 +879,32 @@ export class UIRenderer {
         }
 
         vfxLayer.appendChild(vfx);
-        setTimeout(() => vfx.remove(), 600 * durMult);
+        setTimeout(() => vfx.remove(), 700 * durMult);
       }
 
       // Show floating damage number & badges
       this.showFloatingDamage(defender.x, defender.y, combatInfo);
+
+      // Trigger Combo / 協力攻擊 if present
+      if (combatInfo.comboAlly) {
+        setTimeout(() => {
+          const comboEl = figuresLayer?.querySelector(`[data-unit-id="${combatInfo.comboAlly.id}"]`);
+          if (comboEl) {
+            comboEl.classList.add('anim-lunge');
+            setTimeout(() => comboEl.classList.remove('anim-lunge'), 200 * durMult);
+          }
+          if (vfxLayer) {
+            const vfx2 = document.createElement('div');
+            const tilePx = 64;
+            vfx2.style.left = `${defender.x * tilePx + 32}px`;
+            vfx2.style.top = `${defender.y * tilePx + 32}px`;
+            vfx2.className = 'vfx-slash-trail';
+            vfxLayer.appendChild(vfx2);
+            setTimeout(() => vfx2.remove(), 400 * durMult);
+          }
+          this.showFloatingDamage(defender.x, defender.y, { damage: combatInfo.comboDamage, isCombo: true });
+        }, 220 * durMult);
+      }
 
       // Defeat ink-dissolve if defender defeated
       if (defender.hp <= 0 && defenderEl) {
@@ -817,7 +913,7 @@ export class UIRenderer {
 
       setTimeout(() => {
         if (onComplete) onComplete();
-      }, 450 * durMult);
+      }, 550 * durMult);
     }, 120 * durMult);
   }
 
@@ -828,17 +924,21 @@ export class UIRenderer {
     const floater = document.createElement('div');
     const tilePx = 64;
     floater.style.left = `${x * tilePx + 32}px`;
-    floater.style.top = `${y * tilePx + 8}px`;
+    floater.style.top = `${y * tilePx - 26}px`;
 
     let floaterClass = 'floating-dmg-number';
     let tagHtml = '';
 
     if (info.isHeal) {
       floaterClass += ' heal';
-      floater.innerHTML = `+${info.healAmount || 8}`;
+      tagHtml = '<span class="floating-tag-badge" style="background:#059669;color:#fff;">甘露回春！</span>';
+      floater.innerHTML = `${tagHtml}+${info.healAmount || 12}`;
     } else if (info.isMiss) {
       floater.className = `${floaterClass} block`;
       floater.innerHTML = `<span class="floating-tag-badge block">迴避</span>未中`;
+    } else if (info.isCombo) {
+      floaterClass += ' crit';
+      floater.innerHTML = `<span class="floating-tag-badge crit">【協力合擊！】</span>-${info.damage ?? 6}`;
     } else {
       if (info.isCrit) {
         floaterClass += ' crit';
@@ -910,6 +1010,23 @@ export class UIRenderer {
     const relicObj = RELICS.find(r => r.id === unitInst.relic);
     document.getElementById('detailRelicDisplay').textContent = isEnemy ? '無裝備寶物' : (relicObj ? `【${relicObj.name}】${relicObj.desc}` : '未裝備寶物');
 
+    const rImg = document.getElementById('detailRelicImg');
+    if (rImg) {
+      if (relicObj && relicObj.img && !isEnemy) {
+        rImg.src = relicObj.img;
+        rImg.style.display = 'block';
+      } else {
+        rImg.style.display = 'none';
+      }
+    }
+
+    // Class progression path display
+    const promo = PROMOTIONS[unitInst.id];
+    const pathEl = document.getElementById('detailClassPath');
+    if (pathEl) {
+      pathEl.textContent = promo ? `${unitInst.cls} ➔ ${promo.newClass}（${unitInst.promoted ? '已進階 · 領悟【' + promo.promotedSkill.name + '】' : '晉升至Lv.2領悟【' + promo.promotedSkill.name + '】'}）` : '頂級兵種';
+    }
+
     // Bond display (deduplicated)
     const bond = BOND_PAIRS.find(b => b.pair.includes(unitInst.id));
     if (isEnemy) {
@@ -941,6 +1058,14 @@ export class UIRenderer {
       unitInst.relic = nextRelic;
       const updatedRelic = RELICS.find(r => r.id === nextRelic);
       document.getElementById('detailRelicDisplay').textContent = updatedRelic ? `【${updatedRelic.name}】${updatedRelic.desc}` : '未裝備寶物';
+      if (rImg) {
+        if (updatedRelic && updatedRelic.img) {
+          rImg.src = updatedRelic.img;
+          rImg.style.display = 'block';
+        } else {
+          rImg.style.display = 'none';
+        }
+      }
       if (onRelicChanged) onRelicChanged();
     };
   }
@@ -957,6 +1082,17 @@ export class UIRenderer {
       newLevel = unitInst.level > 1 ? unitInst.level : 2;
     } else {
       newLevel = newLevelOrCb || (unitInst.level > 1 ? unitInst.level : 2);
+    }
+
+    const promo = PROMOTIONS[unitInst.id];
+    const promoBanner = document.getElementById('levelUpPromoBanner');
+    if (promoBanner) {
+      if (promo) {
+        promoBanner.style.display = 'inline-block';
+        promoBanner.textContent = `✦ 領悟兵種晉升：【${unitInst.cls}】➔【${promo.newClass}】 ✦`;
+      } else {
+        promoBanner.style.display = 'none';
+      }
     }
 
     const por = document.getElementById('levelUpUnitPor');
@@ -990,7 +1126,7 @@ export class UIRenderer {
     });
   }
 
-  showBattleResult(status, chapter, onContinue) {
+  showBattleResult(status, chapter, onContinue, campaign = null, squad = null) {
     const modal = document.getElementById('modalBattleResult');
     if (!modal) return;
     modal.style.display = 'flex';
@@ -999,27 +1135,70 @@ export class UIRenderer {
     const title = document.getElementById('resultTitle');
     const sub = document.getElementById('resultSubtitle');
     const relicWrap = document.getElementById('resultRelicReward');
+    const xpList = document.getElementById('resultXpList');
 
     if (status.victory) {
       card.className = 'result-card victory';
       title.textContent = '大獲全勝';
       sub.textContent = status.reason || '天光破曉 · 迷霧退散';
-      document.getElementById('resultExpAwards').textContent = '參戰將士每人獲得 30 點軍略功勳 (EXP)！';
+      document.getElementById('resultExpAwards').textContent = '參戰將士每人獲得 50 點軍略功勳 (EXP)！';
 
-      const relicRewards = { 1: '疾風履', 2: '靈心玉', 3: '勇者印', 4: '靈泉茶囊' };
-      const rName = relicRewards[chapter.id];
-      if (rName) {
+      if (xpList) {
+        xpList.innerHTML = '';
+        const activeSquad = squad || (campaign?.selectedSquad ? campaign.selectedSquad.map(id => campaign.getUnitInstance(id)) : [
+          { id: 'cat_patrol', name: '墨影', exp: 60 },
+          { id: 'bear_guard', name: '熊岳', exp: 75 },
+          { id: 'tea_master', name: '茶翁', exp: 40 },
+          { id: 'lantern_crafter', name: '燈娘 小螢', exp: 55 }
+        ]);
+        activeSquad.forEach(u => {
+          if (!u || u.role === 'npc' || u.role === 'objective' || u.id === 'lantern_cart') return;
+          const row = document.createElement('div');
+          row.className = 'xp-unit-row';
+          row.innerHTML = `
+            <img src="assets/art/v4/por_${u.id}.webp" class="xp-unit-por" alt="${u.name}">
+            <span class="xp-unit-name">${u.name}</span>
+            <div class="xp-bar-track"><div class="xp-bar-fill" style="width: ${Math.min(100, ((u.exp || 30) % 100))}%"></div></div>
+            <span class="xp-gain-badge">+50 EXP</span>
+          `;
+          xpList.appendChild(row);
+        });
+      }
+
+      const relicRewardMap = {
+        1: { id: 'sword_yitian', name: '倚天古劍', img: 'assets/art/v4/item_sword.webp', desc: '攻擊力 +4 · 暴擊率 +15%' },
+        2: { id: 'tome_taiping', name: '太平天書', img: 'assets/art/v4/item_tome.webp', desc: '法術力 +4 · 技力上限 +4' },
+        3: { id: 'armor_xuanjia', name: '玄鐵明光甲', img: 'assets/art/v4/item_armor.webp', desc: '防禦力 +3 · 氣血上限 +12' },
+        4: { id: 'spirit_jade', name: '靈心玉', img: 'assets/art/v4/item_tome.webp', desc: '法術力 +3' },
+        5: { id: 'tea_leaf_pouch', name: '靈泉茶囊', img: 'assets/art/v4/item_tome.webp', desc: '生命上限 +10' }
+      };
+
+      const rew = relicRewardMap[chapter?.id || 1] || relicRewardMap[1];
+      if (rew && relicWrap) {
         relicWrap.style.display = 'block';
-        document.getElementById('resultRelicName').textContent = rName;
-      } else {
-        relicWrap.style.display = 'none';
+        const rImg = document.getElementById('resultRelicImg');
+        if (rImg) rImg.src = rew.img;
+        document.getElementById('resultRelicName').textContent = rew.name;
+        const rDesc = document.getElementById('resultRelicDesc');
+        if (rDesc) rDesc.textContent = rew.desc;
+      }
+
+      const speakerPor = document.getElementById('resultSpeakerPor');
+      const speakerName = document.getElementById('resultSpeakerName');
+      const speakerText = document.getElementById('resultSpeakerText');
+      if (speakerPor && speakerName && speakerText) {
+        const leader = (squad && squad[0]) || { id: 'cat_patrol', name: '墨影' };
+        speakerPor.src = `assets/art/v4/por_${leader.id}.webp`;
+        speakerName.textContent = leader.name;
+        speakerText.textContent = '「長夜終有盡，迷霧隨燈散。全軍稍作整頓，繼續進軍！」';
       }
     } else {
       card.className = 'result-card defeat';
       title.textContent = '戰鬥失利';
       sub.textContent = status.reason || '夜霧重重 · 退守整軍';
       document.getElementById('resultExpAwards').textContent = '將士稍作休整，整頓兵甲以待再戰。';
-      relicWrap.style.display = 'none';
+      if (relicWrap) relicWrap.style.display = 'none';
+      if (xpList) xpList.innerHTML = '';
     }
 
     document.getElementById('btnResultContinue').onclick = () => {

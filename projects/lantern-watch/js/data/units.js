@@ -743,21 +743,125 @@ export const BOND_PAIRS = [
 ];
 
 export const RELICS = [
-  { id: 'iron_talisman', name: '鐵護符', icon: '符', desc: '防禦力 +2', stat: 'def', bonus: 2 },
-  { id: 'swift_boots', name: '疾風履', icon: '履', desc: '移動力 +1', stat: 'mov', bonus: 1 },
-  { id: 'spirit_jade', name: '靈心玉', icon: '玉', desc: '法術力 +3', stat: 'mag', bonus: 3 },
-  { id: 'brave_crest', name: '勇者印', icon: '印', desc: '攻擊力 +3', stat: 'atk', bonus: 3 },
-  { id: 'tea_leaf_pouch', name: '靈泉茶囊', icon: '囊', desc: '生命上限 +10', stat: 'maxHp', bonus: 10 }
+  { id: 'sword_yitian', name: '倚天古劍', icon: '劍', img: 'assets/art/v4/item_sword.webp', desc: '攻擊力 +4 · 暴擊率 +15%', stat: 'atk', bonus: 4, critBonus: 15 },
+  { id: 'tome_taiping', name: '太平天書', icon: '書', img: 'assets/art/v4/item_tome.webp', desc: '法術力 +4 · 技力上限 +4', stat: 'mag', bonus: 4, mpBonus: 4 },
+  { id: 'armor_xuanjia', name: '玄鐵明光甲', icon: '甲', img: 'assets/art/v4/item_armor.webp', desc: '防禦力 +3 · 氣血上限 +12', stat: 'def', bonus: 3, hpBonus: 12 },
+  { id: 'iron_talisman', name: '鐵護符', icon: '符', img: 'assets/art/v4/item_armor.webp', desc: '防禦力 +2', stat: 'def', bonus: 2 },
+  { id: 'swift_boots', name: '疾風履', icon: '履', img: 'assets/art/v4/item_sword.webp', desc: '移動力 +1', stat: 'mov', bonus: 1 },
+  { id: 'spirit_jade', name: '靈心玉', icon: '玉', img: 'assets/art/v4/item_tome.webp', desc: '法術力 +3', stat: 'mag', bonus: 3 },
+  { id: 'brave_crest', name: '勇者印', icon: '印', img: 'assets/art/v4/item_sword.webp', desc: '攻擊力 +3', stat: 'atk', bonus: 3 },
+  { id: 'tea_leaf_pouch', name: '靈泉茶囊', icon: '囊', img: 'assets/art/v4/item_tome.webp', desc: '生命上限 +10', stat: 'maxHp', bonus: 10 }
 ];
 
 export const PROMOTIONS = {
-  cat_patrol: { newClass: '劍豪', statBonus: { atk: 3, maxHp: 6, mov: 1 }, desc: '劍術臻至化境，移動與攻擊提升' },
-  lantern_crafter: { newClass: '神射手', statBonus: { atk: 3, maxHp: 5, rangeMaxBonus: 1 }, desc: '凝燈引弓，射程與傷害提升' },
-  tanuki_mage: { newClass: '策士', statBonus: { mag: 4, maxHp: 5, res: 2 }, desc: '精通天地雷法，法術力大幅提高' },
-  tea_master: { newClass: '聖手', statBonus: { mag: 3, maxHp: 8, def: 2 }, desc: '靈茶濟世，體魄與治癒力增強' },
-  fox_maiden: { newClass: '大妖術士', statBonus: { mag: 4, maxHp: 5, res: 2 }, desc: '青丘九尾真火，焚盡群魔' },
-  bear_guard: { newClass: '金甲將', statBonus: { def: 4, maxHp: 12, atk: 2 }, desc: '金剛不壞之軀，防禦與生命巨幅提升' },
-  crane_rider: { newClass: '天行者', statBonus: { atk: 3, maxHp: 6, mov: 1 }, desc: '翱翔九天之上，速度與突擊力倍增' }
+  cat_patrol: {
+    newClass: '劍聖',
+    statBonus: { atk: 4, maxHp: 8, mov: 1 },
+    desc: '劍心通神，領悟破軍奧義',
+    promotedSkill: {
+      id: 'blade_tempest',
+      name: '萬劍歸宗',
+      cost: 3,
+      type: 'skill',
+      range: [1, 2],
+      power: 18,
+      desc: '人劍合一凝為萬道劍芒，破甲50%疾速斬殺',
+      bark: '「劍心澄澈，萬劍破曉！」'
+    }
+  },
+  lantern_crafter: {
+    newClass: '連弩手',
+    statBonus: { atk: 3, maxHp: 6, spd: 2, rangeMaxBonus: 1 },
+    desc: '神機連發，射程與攻速突破',
+    promotedSkill: {
+      id: 'repeating_volley',
+      name: '連弩驟雨',
+      cost: 3,
+      type: 'skill',
+      range: [2, 4],
+      power: 16,
+      desc: '神機連弩疾速雙矢齊發，重創中遠程目標',
+      bark: '「機弦九轉，破霧連環！」'
+    }
+  },
+  tanuki_mage: {
+    newClass: '天師',
+    statBonus: { mag: 5, maxHp: 6, res: 3 },
+    desc: '執掌九天雷煞，代天行罰',
+    promotedSkill: {
+      id: 'divine_thunder',
+      name: '九天神雷',
+      cost: 4,
+      type: 'magic',
+      element: 'thunder',
+      range: 2,
+      isAoE: true,
+      power: 16,
+      desc: '引九天紫霄神雷轟擊目標及周圍，水相目標受致命重創',
+      bark: '「九天玄煞，化為神雷，疾！」'
+    }
+  },
+  tea_master: {
+    newClass: '聖手',
+    statBonus: { mag: 4, maxHp: 10, def: 2 },
+    desc: '靈茶濟世，體魄與治癒力增強',
+    promotedSkill: {
+      id: 'celestial_dew',
+      name: '甘露回春',
+      cost: 3,
+      type: 'magic',
+      range: 2,
+      isHeal: true,
+      power: 18,
+      desc: '以千年甘露大範圍恢復友軍氣血並驅散異常',
+      bark: '「潤物無聲，枯木逢春。」'
+    }
+  },
+  fox_maiden: {
+    newClass: '大妖術士',
+    statBonus: { mag: 5, maxHp: 6, res: 2 },
+    desc: '青丘九尾真火，焚盡群魔',
+    promotedSkill: {
+      id: 'nine_tailed_flame',
+      name: '紅蓮妖火',
+      cost: 4,
+      type: 'magic',
+      element: 'fire',
+      range: 2,
+      power: 18,
+      desc: '喚出九天紅蓮業火爆裂蔓延，灼燒一切非水相目標',
+      bark: '「紅蓮業火，燃盡宵小！」'
+    }
+  },
+  bear_guard: {
+    newClass: '玄甲衛領',
+    statBonus: { def: 4, maxHp: 14, atk: 2 },
+    desc: '金剛不壞之軀，防禦與生命巨幅提升',
+    promotedSkill: {
+      id: 'bastion_shield',
+      name: '不動如山',
+      cost: 3,
+      type: 'skill',
+      range: 1,
+      desc: '立玄甲鐵壁，使相鄰友軍防禦+4並免疫擊退2回合',
+      bark: '「俺熊岳在，誰敢越雷池半步！」'
+    }
+  },
+  crane_rider: {
+    newClass: '天行者',
+    statBonus: { atk: 4, maxHp: 8, mov: 1 },
+    desc: '翱翔九天之上，速度與突擊力倍增',
+    promotedSkill: {
+      id: 'sky_piercer',
+      name: '九霄穿雲刺',
+      cost: 3,
+      type: 'skill',
+      range: [1, 2],
+      power: 17,
+      desc: '自九霄雲端俯衝直刺，無視目標50%防禦',
+      bark: '「凌雲破霧，一擊必殺！」'
+    }
+  }
 };
 
 export const STRATAGEMS = [

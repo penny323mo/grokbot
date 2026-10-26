@@ -13,6 +13,7 @@ import { calculateCombat, executeCombat, canTargetUnit } from '../js/engine/comb
 import { GUARDIAN_PROTOS, ENEMY_PROTOS } from '../js/data/units.js';
 import { RNG } from '../js/engine/rng.js';
 import { Battle } from '../js/engine/battle.js';
+import { CampaignManager } from '../js/engine/campaign.js';
 
 test('Rules: Movement costs, impassable tiles, and flyer traversal', () => {
   // Test map: row 0 has plain (.), forest (f), hill (h), shallows (s), water (w), wall (#)
@@ -485,4 +486,122 @@ test('Rules: Fire archer inflicts bonus burn damage on targets in forest', () =>
   const forestCombat = calculateCombat(fireArcher2, forestTarget, board);
   // Raw base: (11 - 4) = 7 + 4 (ignite forest) = 11
   assert.strictEqual(forestCombat.expectedDamage, 11, 'Fire archer attacking forest target gains +4 burning damage');
+});
+
+test('Rules: Combo attack (協力攻擊) triggered by adjacent ally', () => {
+  const terrain = [
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    ".........."
+  ];
+  const board = new Board(terrain);
+
+  const attacker = {
+    id: 'cat_patrol',
+    name: '墨影',
+    team: 'ally',
+    x: 3,
+    y: 5,
+    hp: 25,
+    atk: 12
+  };
+
+  const defender = {
+    id: 'fog_rider',
+    name: '霧騎',
+    team: 'enemy',
+    x: 4,
+    y: 5,
+    def: 4,
+    hp: 25,
+    facing: 1
+  };
+
+  const adjacentAlly = {
+    id: 'bear_guard',
+    name: '熊岳',
+    team: 'ally',
+    x: 4,
+    y: 4, // Adjacent to defender (dist = 1)
+    hp: 30,
+    atk: 11
+  };
+
+  const allies = [attacker, adjacentAlly];
+
+  const combat = calculateCombat(attacker, defender, board, { allies });
+  assert.ok(combat.comboAlly, 'Should detect adjacent ally for combo');
+  assert.strictEqual(combat.comboAlly.id, 'bear_guard');
+  assert.ok(combat.comboDamage > 0, 'Combo should deal bonus damage');
+
+  // Execute combat with combo
+  const rng = new RNG(42);
+  const res = executeCombat(attacker, defender, board, rng, { allies });
+  const comboEvent = res.events.find(e => e.type === 'combo_hit');
+  assert.ok(comboEvent, 'executeCombat should generate combo_hit event');
+  assert.strictEqual(comboEvent.ally.id, 'bear_guard');
+});
+
+test('Rules: Fire attack persistent burn and forest fire spread', () => {
+  const terrain = [
+    "ffff......",
+    "ffff......",
+    "ffff......",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    ".........."
+  ];
+  const chapter = {
+    id: 1,
+    terrain,
+    squadLimit: 4,
+    maxTurns: 10,
+    objectiveType: 'rout',
+    enemySpawns: []
+  };
+
+  const battle = new Battle(chapter, [{ id: 'cat_patrol', hp: 20, maxHp: 20 }], 'fire_attack', null, new RNG(1), {
+    fireCenter: { x: 1, y: 1 }
+  });
+
+  assert.ok(battle.burningTiles.has('1,1'), 'Center tile should be burning');
+  assert.ok(battle.burningTiles.has('0,0'), 'Adjacent forest should be burning');
+
+  // Place enemy on burning tile and tick
+  const dummy = { id: 'dummy', team: 'enemy', x: 1, y: 1, hp: 20, maxHp: 20 };
+  battle.enemies.push(dummy);
+  battle.tickBurningTiles();
+
+  assert.strictEqual(dummy.hp, 16, 'Unit standing on burning forest should take 4 burn damage');
+});
+
+test('Rules: Class promotion stat bonuses and upgraded skill (劍客→劍聖 萬劍歸宗)', () => {
+  const campaign = new CampaignManager();
+  const cat = campaign.getUnitInstance('cat_patrol');
+  assert.strictEqual(cat.cls, '劍客');
+
+  // Level up to Lv2
+  campaign.addExp('cat_patrol', 100);
+  const promotedCat = campaign.getUnitInstance('cat_patrol');
+  assert.strictEqual(promotedCat.cls, '劍聖', 'Cat should promote to 劍聖 at Lv2+');
+  assert.ok(promotedCat.atk >= 16, 'ATK should receive promotion bonus');
+  assert.ok(promotedCat.promotedSkill, 'Should unlock promoted skill');
+  assert.strictEqual(promotedCat.promotedSkill.name, '萬劍歸宗');
 });

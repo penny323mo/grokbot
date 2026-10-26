@@ -367,6 +367,7 @@ test('Simulation: Encounters heuristic bot test table & naive failure check', ()
   const ch2 = CHAPTERS.find(c => c.key === 'gate');
   const ch3 = CHAPTERS.find(c => c.key === 'market');
   const ch4 = CHAPTERS.find(c => c.key === 'mountain');
+  const ch5 = CHAPTERS.find(c => c.key === 'bamboo_pass');
 
   console.log('\n================ ENCOUNTER SIMULATION RESULTS ================');
   console.log('| Chapter | Comp Name | Squad | Stratagem | Result | Turns |');
@@ -415,6 +416,17 @@ test('Simulation: Encounters heuristic bot test table & naive failure check', ()
   const b4B = runBotBattle(ch4, ['crane_rider', 'cat_patrol', 'bear_guard', 'tea_master', 'fox_maiden', 'tanuki_mage'], 'flood', 402, 'heuristic');
   assert.strictEqual(b4B.status.victory, true, 'Chapter 4 Solution B must win');
   console.log(`| Ch 4    | Solution B | 鶴羽+墨影+熊岳+茶翁+狐火+雷狸 | 水淹 | ${b4B.status.victory ? 'WIN ' : 'FAIL'} | ${b4B.currentTurn} 回合 |`);
+
+  // Chapter 5: Bamboo Pass
+  // Solution A: Lantern Crafter + Bear + Tea + Cat + Tanuki, Stratagem: 鼓舞
+  const b5A = runBotBattle(ch5, ['lantern_crafter', 'bear_guard', 'tea_master', 'cat_patrol', 'tanuki_mage'], 'inspire', 501, 'heuristic');
+  assert.strictEqual(b5A.status.victory, true, 'Chapter 5 Solution A must win');
+  console.log(`| Ch 5    | Solution A | 燈娘+熊岳+茶翁+墨影+雷狸 | 鼓舞 | ${b5A.status.victory ? 'WIN ' : 'FAIL'} | ${b5A.currentTurn} 回合 |`);
+
+  // Solution B: Cat + Crane + Bear + Tea + Fox + Tanuki, Stratagem: 火攻
+  const b5B = runBotBattle(ch5, ['cat_patrol', 'crane_rider', 'bear_guard', 'tea_master', 'fox_maiden', 'tanuki_mage'], 'fire_attack', 502, 'heuristic');
+  assert.strictEqual(b5B.status.victory, true, 'Chapter 5 Solution B must win');
+  console.log(`| Ch 5    | Solution B | 墨影+鶴羽+熊岳+茶翁+狐火+雷狸 | 火攻 | ${b5B.status.victory ? 'WIN ' : 'FAIL'} | ${b5B.currentTurn} 回合 |`);
 
   console.log('==============================================================\n');
 

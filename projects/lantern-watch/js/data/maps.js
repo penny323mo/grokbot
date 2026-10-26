@@ -236,5 +236,61 @@ export const CHAPTERS = [
       "####.s.###", // 11: Shallows
       "####.r.###"  // 12: Mountain gate trail
     ]
+  },
+
+  {
+    id: 5,
+    key: 'bamboo_pass',
+    title: '第五回 · 竹海夜霧斷魂隘',
+    mapName: '竹海',
+    image: 'map_bamboo_pass.webp',
+    squadLimit: 6,
+    maxTurns: 14,
+    objectiveType: 'reach_shrine_or_rout',
+    objectiveDesc: '突破幽谷竹海，佔領北端【封魔神壇】（或殲滅全體伏兵敵將）',
+    defeatDesc: '我方全軍覆沒 或 超過14回合',
+    shrineTiles: [
+      { x: 4, y: 1 }, { x: 5, y: 1 }, { x: 4, y: 2 }, { x: 5, y: 2 }
+    ],
+    reinforcements: [
+      { turn: 3, id: 'fog_rider', x: 4, y: 12, facing: 1, bark: '「霧騎後軍已至！休放走一人！」' },
+      { turn: 3, id: 'fog_rider', x: 5, y: 12, facing: -1 }
+    ],
+    lanterns: [
+      { x: 4, y: 1, radius: 2 }
+    ],
+    deployTiles: [
+      { x: 3, y: 11 }, { x: 4, y: 11 }, { x: 5, y: 11 }, { x: 6, y: 11 },
+      { x: 4, y: 12 }, { x: 5, y: 12 }
+    ],
+    enemySpawns: [
+      { id: 'shield_guard', x: 4, y: 4, facing: -1 },
+      { id: 'mist_sorcerer', x: 5, y: 4, facing: -1 },
+      { id: 'shadow_archer', x: 3, y: 6, facing: 1 },
+      { id: 'shadow_archer', x: 6, y: 6, facing: -1 },
+      { id: 'shadow_rat', x: 4, y: 7, facing: -1 },
+      { id: 'mist_scout', x: 5, y: 7, facing: -1 }
+    ],
+    storyBefore: [
+      { speaker: 'cat_patrol', mood: 'calm', text: '「此乃斷魂隘口，兩側竹海深密，夜霧鎖陣，極易遭遇埋伏。」' },
+      { speaker: 'lantern_crafter', mood: 'calm', text: '「我已備好引魂明燈，隨時可照亮林間霧影，令匿影無所遁形！」' },
+      { speaker: 'bear_guard', mood: 'angry', text: '「後方探子回報有敵方精騎正包抄而來，俺自當斷後阻截！」' }
+    ],
+    // 10 cols x 13 rows hand-aligned to map_bamboo_pass.webp
+    terrain: [
+      "##ffff####", // 0: Shrine mountain crest
+      "##ffrrff##", // 1: Stone altar shrine
+      "##ffrrff##", // 2: Shrine steps
+      "fff..r.fff", // 3: Valley gate approach
+      "ffff.rffff", // 4: Chokepoint pass held by shield guard
+      "fff..r..ff", // 5: Bamboo narrows
+      "fffh.r.hff", // 6: Flanking bamboo hills (h)
+      "ff...r..ff", // 7: Winding cobblestone
+      "fff..r.fff", // 8: Cobblestone path
+      "ffff.rffff", // 9: Dense bamboo approach
+      "fff..r.fff", // 10: Entrance glade
+      "ff...r..ff", // 11: Deployment zone
+      "ff...r..ff"  // 12: Valley entrance
+    ]
   }
 ];

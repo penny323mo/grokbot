@@ -104,6 +104,15 @@ export class CampaignManager {
     if (inst.promoted && PROMOTIONS[id]) {
       const p = PROMOTIONS[id];
       inst.cls = p.newClass;
+      if (p.promotedSkill) {
+        inst.promotedSkill = { ...p.promotedSkill };
+        // If skill type is skill, upgrade or provide secondary
+        if (p.promotedSkill.type === 'skill') {
+          inst.skill = { ...p.promotedSkill };
+        } else if (p.promotedSkill.type === 'magic') {
+          inst.magic = { ...p.promotedSkill };
+        }
+      }
       if (p.statBonus.atk) inst.atk += p.statBonus.atk;
       if (p.statBonus.def) inst.def += p.statBonus.def;
       if (p.statBonus.mag) inst.mag += p.statBonus.mag;
@@ -149,8 +158,8 @@ export class CampaignManager {
       leveledUp = true;
       newLevel = u.level;
 
-      // Check promotion at Lv5
-      if (u.level >= 5 && !u.promoted) {
+      // Check promotion at Lv2+
+      if (u.level >= 2 && !u.promoted) {
         u.promoted = true;
       }
     }

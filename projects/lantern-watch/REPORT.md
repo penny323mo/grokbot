@@ -1,21 +1,17 @@
 # 燈影軍略 — orchestrator report
 
-- Generated: 2026-10-27 01:43 (Macau, UTC+8)
+- Generated: 2026-10-27 03:30 (Macau, UTC+8)
 - Live: https://penny323mo.github.io/grokbot/projects/lantern-watch/ (HTTP 200)
-- Rounds: 2  ·  Started: 2026-10-26T22:54:32+08:00
+- Rounds: 1  ·  Started: 2026-10-27T02:02:27+08:00
 
 ## Phases
-- build finished 2026-10-27T00:12:25+08:00
-- review-1 finished 2026-10-27T00:18:57+08:00
-- fix-1 finished 2026-10-27T01:02:42+08:00
-- review-2 finished 2026-10-27T01:06:23+08:00
-- fix-2 finished 2026-10-27T01:43:25+08:00
-- publish finished 2026-10-27T01:43:38+08:00
+- build finished 2026-10-27T02:51:01+08:00
+- review-1 finished 2026-10-27T03:01:23+08:00
+- fix-1 finished 2026-10-27T03:30:11+08:00
+- publish finished 2026-10-27T03:30:21+08:00
 
 ## Reviews
 - orch-r1-grok.md: VERDICT: NOT READY
-- orch-r2-grok.md: VERDICT: NOT READY
-- orch-r3-grok.md: VERDICT: SHIP
 
 ## Tests
 ### tests-build
@@ -27,7 +23,7 @@
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 115.072722
+# duration_ms 96.117848
 ```
 ### tests-fix-1
 ```
@@ -38,18 +34,7 @@
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 108.925907
-```
-### tests-fix-2
-```
-# tests 1
-# suites 0
-# pass 1
-# fail 0
-# cancelled 0
-# skipped 0
-# todo 0
-# duration_ms 95.799177
+# duration_ms 98.687604
 ```
 
 ## Screenshots
@@ -60,31 +45,31 @@
 - screenshots/orch/live-title.png
 
 ## Changelog (tail)
-- **MINOR #2 (Transparent 2.5D Lantern Cart Sprite)**:
-  - Punched the opaque dark navy background of fig_lantern_cart.webp and fig_market_lantern.webp to clean transparent alpha using elliptical rib contouring and chromatic separation.
-  - The escort cart now cleanly rests on the terrain tiles as an authentic 2.5D figure without any opaque box.
-- **MINOR #3 (Clean Attackable Enemy Range Outlines)**:
-  - Refactored getAttackableTilesFromReachable to outline only cells occupied by valid living enemies in reach, eliminating noisy red-dashed lattices across empty passable terrain.
-- **MINOR #4 (River Water Terrain & Grid Alignment)**:
-  - Updated deep water river terrain in Chapter 1 (maps.js), and excluded shallows from .walkable hairline borders so painted river surfaces have zero lattice line overlay.
-- **MINOR #5 (Terrain Strip No-Truncation & Mobile Long-Press Inspection)**:
-  - Streamlined terrain strip formatting when inspecting units to prevent horizontal ellipsis truncation.
-  - Added mobile long-press pointer handler (350ms) to inspect terrain coordinates and unit stats on any grid tile.
-- **MINOR #6 (Targeted Ally Healing Selection)**:
-  - Removed auto-selection of first injured ally on 清心茶 / heal action; player now explicitly taps their desired ally target in range.
-- **MINOR #7 (火攻 Stratagem Area Selection)**:
-  - Added manual 3×3 target selection and preview for 火攻 (Fire Attack) on forest and market terrain, with automatic best-hit fallback for automated simulations.
-- **MINOR #8 (2-Column Stratagem Picker Above the Fold)**:
-  - Converted .stratagem-picker to a 2-column grid with 2-line clamped descriptions, fitting all 5 available chapter stratagems cleanly above the fold on mobile screens.
-- **MINOR #9 (Dedicated MP Stat Pill & Clean Bond Text)**:
-  - Added a dedicated 技力/MP stat pill (detailMp) and 4-column stat grid to prevent 「生命」 text from wrapping mid-word.
-  - Deduplicated bond pair description text so 「（每戰限1次）」 appears only once.
-- **MINOR #10 (Tutorial Overlay Pointer Events)**:
-  - Set pointer-events: none on .tutorial-board-overlay and pointer-events: auto on .tutorial-board-card and .spotlight-active.
-- **MINOR #11 (Deploy Phase Screenshot)**:
-  - Added automated capture of 10-deploy.png showing the golden deploy tiles, squad deployment tray, and Grokbot clearance.
-- **MINOR #12 (Documentation & Changelog Hygiene)**:
-  - Removed obsolete v1 card-game entries from CHANGELOG.md; documented all Round 1 and Round 2 fixes.
+- **MAJOR #5 (Per-Element Spell VFX Silhouettes & Pure Chinese Tags)**:
+  - Overhauled spell VFX from generic radial wash to distinct geometric silhouettes:
+    - `.vfx-thunder-strike`: Jagged lightning bolt polygon (`clip-path: polygon(...)`) with high-voltage cyan-gold flash and drop shadow.
+    - `.vfx-fire-burst`: Dynamic flame cluster with orbiting radiant ember sparks (`@keyframes emberFly`).
+    - `.vfx-water-burst`: Expanding frost-ring ripple with crystalline azure border.
+    - `.vfx-wind-slash`: Sweeping crescent emerald blade arcs.
+    - `.vfx-heal-light`: Ascending warm jade recovery aura.
+  - Recaptured `05-spell-vfx.png` at the hold frame demonstrating distinctive lightning bolt silhouette and pure Chinese floating combat feedback (`屬性克制！ -14`).
+
+### Minor Issues Resolved
+- **MINOR #6 (Dimmed Board Tutorial Capture)**:
+  - Recaptured `01-tutorial.png` showing the 4-step tactical tutorial modal overlaid on top of the dimmed live Chapter 1 battlefield.
+- **MINOR #7 (Action Menu Button Nomenclature & Positioning)**:
+  - Renamed action menu buttons in `index.html` and `js/render/ui.js` to match the exact design brief: 攻擊 (Attack), 計策 (Stratagem/Skill), 法術 (Spell/Magic), 待命 (Wait).
+  - Recaptured `03-action-menu.png` positioned adjacent to unit without obscuring the warrior figure.
+- **MINOR #8 (Enemy Shield Guard Detail Sheet Lore & Button Visibility)**:
+  - Added dedicated Chinese backstory and tactical hints for `shield_guard` (玄甲盾衛), `mist_sorcerer` (幻霧妖術師), `fire_archer` (赤焰弓手), and `mist_scout` (影匿斥候) in `js/data/units.js`.
+  - In `showGuardianDetailSheet`, dynamically hid the relic change button (`#detailRelicChangeBtn`) for enemy units and displayed appropriate fallback text.
+- **MINOR #9 (Complete Eradication of Residual 巡夜 References)**:
+  - Replaced all legacy `巡夜` occurrences in `js/data/units.js`, `js/engine/objectives.js`, `index.html`, and `js/render/ui.js` with `燈影` and `三軍`, ensuring 100% brand voice consistency across code and UI.
+- **MINOR #10 (Pure Chinese Combat Floating Tags)**:
+  - Removed all English words from floating combat tags (`暴擊！`, `背擊！`, `鐵壁格擋！`, `屬性克制！`, `反擊！`, `未中`), eliminating mixed-language clutter.
+- **MINOR #11 (Visual Demonstration of New Enemy Types)**:
+  - Updated `06-new-enemy-type.png` to showcase 玄甲盾衛 with custom lore, and `09-prebattle.png` to highlight Chapter 3 intel with `斥候` and `匿鼠`.
+
 
 ## Improve loop changelog
-- 2026-10-27 02:02 (Asia/Macau): Previous 2-round run DONE 01:43, live site 200 with 燈影軍略 title. Strict 390px review found: live first-load still shows the old v1 card-game tutorial modal (守夜入門指引); figures overlap/stack and clip at map edges; grokbot button covers bottom-left units; pre-battle 開戰 bar overlaps a stratagem card, intel shows only 2 of 6 enemies with English labels. Launched improve round 1 (prompts/improve-1.txt): fix stale tutorial, figure anchoring/z-sort/safe insets, 3+ new enemy archetypes with varied chapter objectives, elemental spell VFX, post-battle progression. Previous state in .orch-prev-1, old prompts/reviews in prompts/prev-1 and reviews/prev-1.
+- 2026-10-27 03:39 (Asia/Macau): Improve round 1 DONE 03:30 (grok review NOT READY before fix-1; fix-1 resolved level-up Lv.2, 2-pick, Chinese tags, enemy lore, action menu 攻擊/計策/法術/待命), live 200. Strict 390px review: title screen lower half blank with no painted key art; spell VFX tiny (thunder a sliver, tag overlaps sprite); attack-preview panel covers ~30% of the board and a bottom-right unit is still clipped; level-up/pre-battle panels plain. Launched improve round 2 (prompts/improve-2.txt): painted title key art and panel art, large per-element VFX, camera framing + compact preview, new class changes/combo attack/terrain stratagems/new encounter, intel grid and post-battle progression. Previous state in .orch-prev-2, old prompts/reviews in prompts/prev-2 and reviews/prev-2.

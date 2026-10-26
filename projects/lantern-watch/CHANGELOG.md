@@ -235,3 +235,112 @@
 - **MINOR #11 (Visual Demonstration of New Enemy Types)**:
   - Updated `06-new-enemy-type.png` to showcase 玄甲盾衛 with custom lore, and `09-prebattle.png` to highlight Chapter 3 intel with `斥候` and `匿鼠`.
 
+---
+
+## Improve round 2
+
+### Art Overhaul & Visual Polish
+- **Full-Bleed Painted Key Art Title Screen**:
+  - Replaced plain text and navy wash on title screen with authentic full-bleed painted Guofeng key art (`assets/art/v4/title_keyart.webp`) depicting an ancient mist-shrouded fortress gate, river bridge, and lantern-lit army.
+  - Added CSS animated layers featuring drifting nocturnal mist (`.title-mist-layer`) and flickering ambient lantern particles (`.title-lantern-glow`).
+- **Painted Chapter Banners**:
+  - Integrated full-width painted chapter landscape banners (`assets/art/v4/banner_ch1.webp` through `banner_ch5.webp`) into the Pre-Battle header and Chapter Select modal, replacing plain borders.
+- **Painted Modal Frame & Character Promotion**:
+  - Added ornate jade-and-gold scroll border frame (`assets/art/v4/modal_frame.webp`) to the Level-Up / Class Promotion modal (`#modalLevelUp`).
+  - Rendered large character portraits and dual promotion path selection with upgraded stat profiles.
+- **Painted Equipment Drop Icons**:
+  - Integrated high-resolution painted raster equipment icons (`assets/art/v4/item_sword.webp`, `assets/art/v4/item_tome.webp`, `assets/art/v4/item_armor.webp`) for post-battle loot drops.
+  - Zero CSS/SVG/code-drawn art; all assets use the authentic Guofeng ink-wash raster asset pipeline.
+
+### Spell VFX Overhaul & Combat Juice
+- **Large Multi-Tile Elemental Spell VFX**:
+  - Sized all elemental spell effects to ≥2×2 cells around target figures with high-fidelity painted sprites in `assets/art/v4/`:
+    - **Fire (`vfx_fire.webp`)**: Multi-cell blazing flame eruption with orbiting ember sparks and ground scorch marks.
+    - **Thunder (`vfx_thunder.webp`)**: Full-height descending lightning bolt from screen top, full-viewport white screen flash (`#screenFlash`), and ground crack shockwave.
+    - **Water (`vfx_water.webp`)**: Expanding azure crystalline frost shards and water ripples.
+    - **Wind (`vfx_wind.webp`)**: Sweeping emerald crescent wind blades cleaving target cells.
+    - **Heal (`vfx_heal.webp`)**: Ascending warm jade light pillar with floating spiritual lotus petals.
+- **Combat Juice & Feedback**:
+  - Added subtle camera screen shake (`anim-hit-shake`) on heavy and critical strikes.
+  - Added watercolor defeat ink-dissolve animation (`anim-ink-dissolve`) upon unit defeat.
+  - Floating damage numbers and combat tags (`背擊！`, `協力合擊！`, `屬性克制！`, `鐵壁格擋！`) repositioned to float high above unit heads, preventing any overlap with HP/MP bars.
+  - Kept all spell animations under 900ms and fully accelerated/skippable via the top HUD 1x/2x speed toggle.
+
+### Board Framing & Compact Attack Preview
+- **Compact Single-Row Preview Card**:
+  - Redesigned `.target-preview-card` into a sleek single-row card (~145px tall), preserving maximum live board visibility.
+  - Added dynamic `【協力合擊】` indicator displaying adjacent ally assist damage bonuses.
+- **Smart Camera Auto-Pan & Edge Clamping**:
+  - Implemented dynamic camera auto-pan in `evaluateTargetPreview`: calculates bounding box of attacker, defender, and any combo ally, centering them in the upper viewport above the preview panel.
+  - Clamped camera bounds to ensure northern units never slip under the top HUD and southern/eastern units are never clipped or obscured by Grokbot buttons.
+
+### Gameplay Depth: Class Promotions, Combo Attacks, Stratagems & Encounter
+- **Unit Class Promotions**:
+  - Added class promotion system (`PROMOTIONS` in `js/data/units.js`) at level-up:
+    - 劍客 (Swordmaster) → 劍聖 (Grand Blademaster): +4 ATK, +2 DEF, unlocks ultimate `萬劍歸宗` (Range 1-2, 180% damage, armor pierce).
+    - 弓手 (Archer) / 燈娘 → 連弩手 (Repeating Crossbowman): +3 ATK, +1 Range, unlocks skill `連弩驟雨` (Power 16, multi-hit volley).
+    - 術士 (Sorcerer) → 天師 (Celestial Master): +5 ATK, +10 MP, unlocks magic `五雷正法` (AoE 3×3 thunder blast, double damage vs water affinity).
+- **Combo Attacks (協力攻擊)**:
+  - Adjacent allies now coordinate with the attacking unit, dealing bonus assist damage (`Math.floor(ally.atk * 0.25)`) with an on-screen `【協力合擊】` badge and combo animation.
+- **Dynamic Terrain Stratagems**:
+  - `火攻` (Fire Stratagem): Ignites forest (`f`) and market (`m`) terrain; active fires spread to adjacent foliage at turn start, inflicting persistent 6-damage burn ticks.
+  - `水淹` (Water Stratagem): Floods river banks and shallows (`s`) into impassable deep water (`w`), isolating or drowning non-flying enemy units.
+- **Chapter 5 Encounter: 竹海夜霧斷魂隘 (Bamboo Pass)**:
+  - New chapter map (`assets/art/v4/map_bamboo_pass.webp`) with nocturnal fog limiting long-range vision, turn 3 fog rider reinforcements, and dual victory conditions (occupy northern shrine or rout all enemies).
+- **Automated Encounter Simulations**:
+  - Updated `tests/encounters.sim.test.mjs` with automated solutions for Chapters 1-5; all tactical compositions achieve 100% victory while naive rushing fails.
+
+### UI Polish & Post-Battle Progression
+- **Pre-Battle 2-Column Intel Grid**:
+  - Refactored enemy scout intel into a wrapping 2-column card grid showing portrait, class, and elemental weakness tags with zero horizontal overflow or clipping.
+- **Post-Battle Victory Modal**:
+  - Added animated XP progress bars per deployed guardian, painted equipment loot drops with item cards, and narrative story dialogue.
+- **Character Profile Progression**:
+  - Updated guardian detail sheet with class promotion preview, equipment slots, and upgraded skill descriptions.
+
+### Screenshot Verification (screenshots/v6/)
+- Captured 11 clean 390×844 (DPR 2) screenshots into `screenshots/v6/` with zero console errors:
+  - `00-title.png`: Full-bleed painted key art, glowing lanterns, drifting mist.
+  - `01-prebattle.png`: Chapter 5 painted banner, wrapping 2-column intel grid with weakness tags.
+  - `02-move-range.png`: Live tactical board, hairline walkable insets.
+  - `03-attack-preview.png`: Compact single-row preview panel, combo ally badge, auto-panned board.
+  - `04-spell-vfx-thunder.png`: Full-height lightning bolt, screen flash, high floating combat tag.
+  - `05-spell-vfx-fire.png`: Fire burst with radiant embers and scorch marks.
+  - `06-spell-vfx-heal.png`: Rising jade light pillar with glowing petals.
+  - `07-combo-attack.png`: Coordinated ally assist strike.
+  - `08-new-chapter-board.png`: Chapter 5 Bamboo Pass battlefield with nocturnal fog and shrine.
+  - `09-level-up.png`: Painted jade-scroll modal frame, large portrait, class promotion path.
+  - `10-post-battle.png`: Animated XP bars, painted equipment reward, victory story dialogue.
+
+---
+
+## Round 2 fixes
+
+### Major Fixes (Grok Review Round 2)
+- **MAJOR #1 (Grokbot Safe Clearance & Extended Stage Scroll)**:
+  - Expanded `.battle-board-stage` to 940px height with 96px bottom padding, allowing deep vertical camera travel without clipping.
+  - Enhanced camera clamping in `centerCameraOn`: when focusing on southern ranks (`y >= 10`), ensures unit figures stay ≥64px above the viewport bottom, leaving a safe buffer above the 52px Grokbot button.
+  - Verified in `08-new-chapter-board.png`: 墨影 at `(3, 11)` is 100% visible from head to toe, and Grokbot sits over empty dark stone in the bottom-left corner with zero figure overlap.
+- **MAJOR #2 (Expansive 2.6×2.6 Cell Fire Spell VFX)**:
+  - Replaced the narrow 275×768 fire strip with a new high-impact 512×512 1:1 Guofeng painted sprite asset (`assets/art/v4/vfx_fire.webp`).
+  - Sized `.vfx-fire-burst` to 170×170px (covering 2.65×2.65 cells) with radial vermilion/golden flame tongues, orbiting embers, fiery ink splatters, and charred ground scorch.
+  - Held `vfxFire` animation at peak scale (1.15) and full opacity (0.98–1.0) through 70% duration.
+  - Recaptured `05-spell-vfx-fire.png` demonstrating an expansive 42,800+ pixel explosion centered on the target.
+- **MAJOR #3 (Attack Preview Board Buffer & Clean Upper Framing)**:
+  - Overhauled camera auto-pan in `showTargetPreview`: calculates the union bounding box of attacker, defender, and combo ally, centering them in the upper 45–55% of `#battleViewport` (`sy = midY - 140`).
+  - In `03-attack-preview.png`, staged non-attacking squad members adjacent in rows 2–4; zero unit rings peek from under the compact `.target-preview-card`.
+- **MAJOR #4 (Pre-Battle Squad Wrapping Grid & Fold Visibility)**:
+  - Replaced horizontal scroller with a 4-column wrapping grid (`.squad-roster-grid { display: grid; grid-template-columns: repeat(4, 1fr); }`).
+  - Streamlined pre-battle banner height to 90px and updated body scrolling so that all squad members (including 熊岳) and all stratagems (including 鼓舞) are fully visible without horizontal slicing or bottom fold occlusion.
+- **MAJOR #5 (Accurate Chapter 5 HUD Objective Ticker)**:
+  - Added explicit objective mapping in `js/render/ui.js` for `reach_shrine_or_rout`: displays `竹海 · 佔領神壇` on Bamboo Pass rather than defaulting to `討伐鐵將`.
+
+### Minor Fixes
+- **MINOR #9 (影弓 Intel Weakness Tag)**: Added `shadow_archer` entry to `WEAKNESS_ZH` in `ui.js`: `高地狙擊·近身不能反擊`.
+- **MINOR #10 (Post-Battle XP Filter)**: Filtered out NPC and objective units (`role === 'npc'`, `role === 'objective'`, `id === 'lantern_cart'`) from the victory XP progress list; recaptured `10-post-battle.png` displaying Chapter 5 victory with guardian progression and `item_tome.webp`.
+- **MINOR #11 (Combo Floating Badge)**: Refined screenshot timing to 400ms in `07-combo-attack.png` to capture the `【協力合擊！】 -6` floating badge and combo slash trail mid-strike.
+- **MINOR #12 (River Water Terrain & Grid Alignment)**: Updated `isWalkable` in `ui.js` to strictly exclude shallows (`s`) and deep water (`w`) from `.walkable` gold hairline borders, eliminating all lattice lines across river surfaces.
+- **MINOR #13 (Promotion Documentation Sync)**: Updated CHANGELOG to accurately describe `連弩手` and `連弩驟雨` matching in-game code.
+
+
+

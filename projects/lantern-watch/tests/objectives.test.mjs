@@ -133,3 +133,29 @@ test('Objectives: Mountain chapter (defeat boss or reach shrine)', () => {
   assert.strictEqual(status.finished, true);
   assert.strictEqual(status.victory, true);
 });
+
+test('Objectives: Bamboo Pass chapter (reach shrine or rout all enemies)', () => {
+  const chapter = CHAPTERS.find(c => c.key === 'bamboo_pass');
+  assert.ok(chapter, 'Chapter 5 should exist');
+
+  // Case 1: Ally reaches shrine altar (4, 1) -> WIN!
+  const allyAtShrine = { id: 'cat_patrol', role: 'flanker', hp: 20, x: 4, y: 1 };
+  const enemy = { id: 'shield_guard', hp: 30, x: 4, y: 5 };
+  let status = checkBattleStatus(chapter, {
+    currentTurn: 5,
+    allies: [allyAtShrine],
+    enemies: [enemy]
+  });
+  assert.strictEqual(status.finished, true);
+  assert.strictEqual(status.victory, true);
+
+  // Case 2: All enemies routed -> WIN!
+  const allyInPass = { id: 'bear_guard', role: 'tank', hp: 25, x: 4, y: 6 };
+  status = checkBattleStatus(chapter, {
+    currentTurn: 4,
+    allies: [allyInPass],
+    enemies: []
+  });
+  assert.strictEqual(status.finished, true);
+  assert.strictEqual(status.victory, true);
+});
