@@ -1,0 +1,95 @@
+name: Update Football Odds Data
+
+on:
+  schedule:
+    # 4x daily: 00:00, 06:00, 12:00, 18:00 UTC (08:00 Macau morning, 14:00, 20:00, 02:00)
+    - cron: '0 0,6,12,18 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  issues: write
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fetch raw historical data
+        run: bash scripts/fetch_data.sh
+
+      - name: Build processed data & fetch live odds
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: python build_data.py
+
+      - name: Verify Macau Slot connectivity from GitHub runner IP
+        run: |
+          python3 -c "
+          import json
+          try:
+              with open('data/health.json', 'r') as f:
+                  h = json.load(f)
+              macau_count = h.get('sources', {}).get('macau_slot', {}).get('events_count', 0)
+              print(f'[Macau IP Check] Runner successfully fetched {macau_count} Macau Slot events.')
+          except Exception as e:
+              print(f'[Macau IP Check Warning] Could not verify Macau Slot events: {e}')
+          "
+
+      - name: Run test suite
+        run: |
+          python3 tests/test_v4.py
+          node --test tests/
+
+      - name: Handle health alerts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          STATUS=$(python3 -c "import json; print(json.load(open('data/health.json')).get('status', 'unknown'))")
+          if [ "$STATUS" = "error" ]; then
+            echo "Health status is error. Checking for existing data-alert issue..."
+            EXISTING_ISSUE=$(gh issue list --label data-alert --state open --json number -q '.[0].number' || true)
+            ALERT_BODY="### ⚠️ Odds Lab Data Pipeline Alert\nTimestamp: $(date -u)\nStatus: ${STATUS}\nDetails:\n\`\`\`json\n$(cat data/health.json)\n\`\`\`"
+            if [ -n "$EXISTING_ISSUE" ]; then
+              echo "Updating existing issue #${EXISTING_ISSUE}..."
+              gh issue comment "$EXISTING_ISSUE" --body "$ALERT_BODY" || echo "Warning: Could not comment on issue"
+            else
+              echo "Opening new data-alert issue..."
+              gh issue create --title "Data pipeline alert: ${STATUS}" --label "data-alert" --body "$ALERT_BODY" || echo "Warning: Could not create issue"
+            fi
+          else
+            echo "Data pipeline health status: ${STATUS} (healthy)"
+          fi
+
+      - name: Commit and push changes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if ! git diff --quiet data/data.js data/health.json data/track_record.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            UTC_TIME=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+            git add data/data.js data/health.json data/track_record.json data/odds_api_state.json data/odds_api_cache.json data/snapshots/ data/unmatched.json
+            git commit -m "data: auto update ${UTC_TIME}"
+            git pull --rebase origin ${{ github.ref_name }} || git pull --rebase || true
+            git push origin HEAD:${{ github.ref_name }}
+            echo "Successfully committed and pushed updated data files"
+
+            echo "Triggering GitHub Pages rebuild..."
+            gh api -X POST "repos/${{ github.repository }}/pages/builds" || echo "Warning: GitHub Pages rebuild request failed (non-fatal)"
+          else
+            echo "Data files are unchanged, skipping commit."
+          fi
