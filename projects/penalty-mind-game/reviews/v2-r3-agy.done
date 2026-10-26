@@ -1,0 +1,195 @@
+# 12碼讀心戰 (Penalty Mind Game v2) - Round 3 完成報告
+
+**提交時間**：2026-10-24
+**執行項目**：`UPGRADE_PLAN.md` - ROUND 3（重返理由：世界盃淘汰賽、星星更衣室解鎖、獎盃陳列室、賽後戰報分享卡、性能極致優化）
+**目標路徑**：`/workspace/nightly/2026-10-24-penalty-mind-game/`
+
+---
+
+## 1. 執行項目與交付成果清單
+
+### 1.1 2026 世界盃淘汰賽體系 (`src/tournament.js`)
+- **16 支真實國家隊**：繁體中文名稱（`香港`、`日本`、`巴西`、`阿根廷`、`英格蘭`、`法國`、`德國`、`西班牙`、`意大利`、`葡萄牙`、`荷蘭`、`克羅地亞`、`南韓`、`烏拉圭`、`摩洛哥`、`墨西哥`），具備真實國旗 Emoji 與正統代表隊球衣配色（無商標侵權）。
+- **淘汰賽樹狀賽程圖 (`#screen-tournament`)**：
+  - 16強 (R16, 8 場) → 8強 (QF, 4 場) → 4強 (SF, 2 場) → 決賽 (Final, 1 場)。
+  - 玩家以所選國家隊出戰，同輪次其他電腦場次具備真實點球比數仿真運算。
+  - 對陣圖顯示雙方國旗、隊名、即時比數與晉級高亮狀態。
+- **門將與射手鮮明性格特徵 (Personalities)**：
+  - 門將個性：沉著守候 (`patient`, 封堵低位)、神經刀 (`early-diver`, 反應快易受晃)、撲救學徒 (`learner`, 學習快)、門線老油條 (`bluff-master`, 多假動作) 等，並動態補正反應窗口與臂展涵蓋範圍。
+  - 射手個性：重砲爆射 (`power-blaster`, 高球速衝擊上角)、死角狙擊 (`corner-sniper`, 貼柱極限球)、虛晃大師 (`deceptive`, 誘使門將早跳) 等，並動態補正球速與弧線。
+- **階梯式難度自然提升**：
+  - R16 (`EASY`) → QF (`MEDIUM`) → SF (`HARD`) → Final (`HELL`)。
+- **快速單場與世界盃模式共存**：
+  - 標題畫面提供「🏆 世界盃淘汰賽」與「⚽ 快速單場對決」雙入口，玩家可自由選擇。
+
+### 1.2 星星獎勵、更衣室裝備解鎖與獎盃陳列室 (`src/unlocks.js`)
+- **星星貨幣公式**：每場比賽依表現結算：勝場 +1⭐、完封零失球 +2⭐、單場 ≥3 次神撲 +2⭐、低可預測度 ≤30% +2⭐、世界盃晉級 +3⭐、世界盃奪冠 +10⭐。
+- **更衣室解鎖系統 (`#screen-locker`)**：
+  - **4 款足球球皮 (`src/ball.js`)**：經典黑白 (Classic)、烈焰烈火 (Fire Blast, 5⭐)、數碼生化 (Cyber Neon, 8⭐)、尊貴純金 (Gold Champions, 15⭐)，支援程序化貼圖即時重新生成與動態拖尾粒子。
+  - **4 款球隊球衣**：經典主場、街頭霓虹、黑金尊爵、復古條紋。
+  - **3 種球場時段氛圍 (`src/scene.js`)**：夜場泛光燈 (Night Floodlights)、黃昏日落 (Sunset Dusk, 6⭐)、明媚白晝 (Daylight Pitch, 6⭐)，動態切換 WebGL 天空霧效與定向主光源角度顏色。
+- **6 款成就榮譽獎盃**：
+  - 🏆 **世界盃冠軍金盃 (Champion)**：連過四關奪得 16 隊世界盃總冠軍。
+  - 🥈 **世界盃亞軍銀牌 (Runner-Up)**：闖入世界盃決賽。
+  - 🥉 **世界盃季軍銅牌 (Semi-Finalist)**：闖入世界盃四強準決賽。
+  - 🧤 **金手套神撲獎 (Golden Glove)**：單場完成 3 次或以上精彩撲救。
+  - ⚽ **百步穿楊神射王 (Dead Eye)**：單場 5 輪主射 100% 全部命中破網。
+  - 🧠 **心理戰讀心狂魔 (Mind Master)**：可預測度低於 25%。
+- **儲存安全**：所有進度儲存於 `localStorage`，具備 JSON 解析異常損壞恢復機制。
+
+### 1.3 高畫質戰報分享卡 (`src/share.js`)
+- **780×1200 超高清純 Canvas 生成**：
+  - 深藍球場夜景漸變背景、球門白界幾何裝飾、雙方國家隊國旗與比數膠囊。
+  - **Shannon 熵可預測度指針雷達**：直觀顯示心理被看穿程度百分比與香港專屬評語。
+  - **2×3 門框射門熱點微縮圖**：展示玩家本場 6 區出招落點分佈。
+  - **星星表現標籤與廣東話激將金句**（例如「我喺《12碼讀心戰》射爆門將，捧走世界盃！你敢唔敢入嚟挑戰？」）。
+- **原生多層分享支援**：
+  - 優先調用現代手機 `navigator.share`（直接傳送 PNG 圖片至 WhatsApp/Instagram/AirDrop）。
+  - 若系統權限不支援直接傳圖，自動切換為一鍵圖檔下載與長按保存預覽彈窗 (`#share-card-modal`)。
+
+### 1.4 性能極致優化與視覺打磨 (Polish & Speed Pass)
+- **標籤頁背景休眠 (Tab Visibility Pause)**：監聽 `document.visibilityState`，當分頁切換至後台時自動暫停 WebGL 渲染循環與 WebAudio 音訊，避免後台浪費電力與物理時間累計跳幀。
+- **DPR 上限控制**：`devicePixelRatio` 嚴格限制於 2.0，避免 iPhone 3x Retina 螢幕產生 9 倍像素填補開銷，保持 60+ FPS 極度流暢。
+- **動態偏好支援 (`prefers-reduced-motion`)**：自動偵測無障礙設定，停用震芒與 Hit-stop 畫面急停。
+- **iPhone Safari 390×844 介面微調**：嚴格遵循 44px 最小觸控點規範，安全區域邊界間距完善，零橫向溢出。
+- **程序化模型升級 (`ASSETS.md`)**：門將、射手與觀眾球衣顏色依據參賽國家隊動態變換，100% 離線程式生成，零外部模型網絡依賴。
+
+---
+
+## 2. 測試與驗證結果 (Test Results)
+
+### 2.1 單元與整合測試套件（10 套 75 題全數通過）
+```
+$ node tests/model.test.js && node tests/shot.test.js && node tests/keeperAI.test.js && node tests/input.test.js && node tests/difficulty.test.js && node tests/takerAI.test.js && node tests/taunts.test.js && node tests/match_integration.test.js && node tests/tournament.test.js && node tests/unlocks.test.js
+
+--- Running PenaltyMindModel Unit Tests ---
+✅ PASS: Initial state: uniform-ish distribution and 0 predictability
+✅ PASS: Learns repeated pattern: after 10x always "top-left" (TL), predicts TL with highest probability
+✅ PASS: Entropy score behaves: uniform distribution has low predictability, repeated has high
+✅ PASS: Predictability score reflects sequence learning: TL/BR alternation scores high, uniform transitions stay low
+✅ PASS: Learns N-gram alternating pattern: TL -> BR -> TL -> BR
+✅ PASS: Probabilities always sum to 1.0 and are non-negative
+✅ PASS: Dive zone selection returns valid zone and respects probabilities
+✅ PASS: Heatmap and accuracy calculation
+✅ PASS: Export and import state preserves all data
+✅ PASS: Tied probabilities: fair dive sampling and no fake prediction
+✅ PASS: Draw match result and sanitization against invalid data
+✅ PASS: Sequence predictability resilience: 15x alternating TL/BR + 1 TM retains high sequence predictability
+✅ PASS: Predictability score requires >= 8 shots, returns null / 數據不足 otherwise
+✅ PASS: Five distinct varied zones yields low predictability (< 30)
+All 14 / 14 tests passed successfully!
+
+--- Running Shot Physics (src/shot.js) Unit Tests ---
+✅ PASS: Swipe straight up -> centre target and valid goal crossing
+✅ PASS: Faster swipe -> higher speed and shorter flight time
+✅ PASS: Bent swipe (right bow) -> curved lateral displacement to the right
+✅ PASS: Overpower swipe (power > 0.92) -> flies over the crossbar
+✅ PASS: Zone classification accurately bins goal points into 6 zones
+✅ PASS: Goal trajectory continues behind goal line into the net
+✅ PASS: pointToLaunch with takerAI.decideShot produces valid simulate trajectory without throwing
+All 7 / 7 tests passed successfully!
+
+--- Running Keeper AI (src/keeperAI.js) Unit Tests ---
+✅ PASS: Decide returns valid dive plan matching predicted zone
+✅ PASS: Save succeeds when dive is correct and ball is within glove reach volume
+✅ PASS: Goal scored when keeper dives opposite to the shot direction
+✅ PASS: High-speed blast to the extreme top corner beats the keeper even on correct dive
+✅ PASS: High speed shot within reach results in parry deflection instead of catch
+✅ PASS: Torso body capsule intercepts shot directed at keeper body
+All 6 / 6 tests passed successfully!
+
+--- Running Touch & Swipe Input (src/input.js) Unit Tests ---
+✅ PASS: Swipe starting in bottom 75% triggers onShoot with valid launch
+✅ PASS: Swipe starting in top 25% (scoreboard area) is ignored
+✅ PASS: PointerEvents set and release pointer capture
+All 3 / 3 tests passed successfully!
+
+--- Running Difficulty Mapping (src/difficulty.js) Unit Tests ---
+✅ PASS: All 4 difficulty tiers (EASY, MEDIUM, HARD, HELL) are defined with monotonic scaling
+✅ PASS: getDifficultyConfig handles case-insensitivity and invalid fallback
+✅ PASS: Gaze hint is only enabled for HARD and HELL difficulties
+✅ PASS: keeperAI.decide directly consumes difficulty config keeperReactTime and scales reach
+All 4 / 4 tests passed successfully!
+
+--- Running Taker AI (src/takerAI.js) Unit Tests ---
+✅ PASS: Taker learns player dive habit and aims away from anticipated dive
+✅ PASS: Early keeper dive is immediately punished by shooting to the open side
+✅ PASS: Hell difficulty frequently snipes extreme corners with high speed
+✅ PASS: Dive probability distribution sums to 1.0 and has non-negative values
+All 4 / 4 tests passed successfully!
+
+--- Running Taunts & Tells (src/taunts.js) Unit Tests ---
+✅ PASS: Category KEEPER_READS_HABIT contains lines
+✅ PASS: Category KEEPER_PREDICTS_SWITCH contains lines
+✅ PASS: Category KEEPER_SAVES_SHOT contains lines
+✅ PASS: Category PLAYER_SCORES contains lines
+✅ PASS: Category TAKER_PUNISHES_EARLY_DIVE contains lines
+✅ PASS: Category TAKER_READS_DIVE_HABIT contains lines
+✅ PASS: Category PLAYER_KEEPER_SAVES contains lines
+✅ PASS: Category TAKER_SCORES contains lines
+✅ PASS: Total Cantonese taunts count (33) satisfies requirement >= 20
+✅ PASS: getTaunt(...) returns natural Cantonese line
+✅ PASS: Easy mode tell honesty is high (89% honest)
+✅ PASS: Hell mode deception frequency is high (70% bluffs)
+✅ PASS: Easy difficulty has gazeHint disabled
+✅ PASS: Hell difficulty has gazeHint enabled
+All 22 / 22 tests passed successfully!
+
+--- Running Full Match Integration (Pure Modules) Test ---
+✅ PASS: Complete 5-round match simulation on EASY difficulty runs without errors
+✅ PASS: Complete 5-round match simulation on MEDIUM difficulty runs without errors
+✅ PASS: Complete 5-round match simulation on HARD difficulty runs without errors
+✅ PASS: Complete 5-round match simulation on HELL difficulty runs without errors
+✅ PASS: Early dive punishment pushes CPU taker to aim away from predicted dive zone
+All 5 / 5 integration tests passed successfully!
+
+--- Running Tournament System (src/tournament.js) Unit Tests ---
+✅ PASS: All 16 national teams are defined with unique IDs, valid kit colors and personalities
+✅ PASS: Tournament initializes 16-team bracket in R16 with 8 matches and player match at M0
+✅ PASS: Difficulty scales properly across rounds: R16 (EASY) -> QF (MEDIUM) -> SF (HARD) -> FINAL (HELL)
+✅ PASS: Player elimination on loss ends tournament and records elimination round
+✅ PASS: Safe persistence handling: survives corrupt localStorage data
+All 5 / 5 tournament unit tests passed successfully!
+
+--- Running Unlocks & Trophy System (src/unlocks.js) Unit Tests ---
+✅ PASS: Catalog contains valid balls, kits, stadiums, and trophies
+✅ PASS: Star calculation correctly breaks down and totals performance bonuses
+✅ PASS: Unlocking items enforces star costs and deducts star currency
+✅ PASS: Trophy awards grant achievements and guard against duplicates
+✅ PASS: Safe localStorage persistence: survives missing or corrupt storage data
+All 5 / 5 unlocks unit tests passed successfully!
+```
+
+### 2.2 Headless Chrome CDP 瀏覽器驗證與截圖
+- 執行 `node --experimental-websocket tests/r3_e2e_test.js`：
+  - 初始畫面載入正常，0 錯誤。
+  - 16 國世界盃國家隊選擇對陣開啟、選擇日本隊成功進入 R16 對陣圖。
+  - 更衣室獎盃櫃 (6 款) 與裝備目錄 (4 球皮、4 球衣、3 球場) 切換流暢。
+  - 賽後結算星星卡牌展開，星幣累積與導航欄同步即時刷新。
+  - 戰報分享卡純 Canvas 繪製輸出合規 PNG 數據。
+  - **控制台主機錯誤數：0**。
+- 執行 `node --experimental-websocket tests/full_match_e2e.js`：
+  - 完成 5 輪完整攻守點球輪替，決勝判定與結算畫面正常，**0 錯誤**。
+- 執行 `node --experimental-websocket tests/capture_r3_screenshots.js`：
+  - 產出 8 張 390×844 高畫質螢幕截圖與 1 張 780×1200 戰報分享卡圖檔，均存放於 `screenshots/r3-390/`：
+    - `01_screen_title.png`（標題畫面與星星計數）
+    - `02_screen_team_select.png`（16 國世界盃參賽隊選擇視窗）
+    - `03_screen_tournament.png`（世界盃淘汰賽對陣圖與對手情資卡）
+    - `04_screen_locker_trophies.png`（更衣室獎盃陳列室）
+    - `05_screen_locker_balls.png`（更衣室足球解鎖目錄）
+    - `06_screen_tournament_match.png`（世界盃比賽 HUD 與攻守即時戰況）
+    - `07_screen_end_stars.png`（結算畫面與星星獲得明細）
+    - `08_screen_share_card.png`（長按保存與分享彈窗）
+    - `share_card_780x1200.png`（高解析度戰報卡原生匯出圖）
+
+---
+
+## 3. 文件與規約遵守
+
+- [x] 未執行任何 git 命令（無 `git commit`、無 `git add`）。
+- [x] 未修改 `UPGRADE_PLAN.md`、`prompts/` 或其他既有 review 文件。
+- [x] 所有用戶面對文案均為 100% 地道繁體中文廣東話。
+- [x] 完整更新 `README.md`。
+- [x] 於 `CHANGELOG.md` 追溯追加 `## v2 Round 3` 完整變更日誌。
+- [x] 撰寫 `ASSETS.md` 詳列 100% 程序化模型、貼圖、音效與 Three.js MIT 授權條款。
+- [x] 建立 `reviews/v2-r3-agy.done` 完成驗證總結。

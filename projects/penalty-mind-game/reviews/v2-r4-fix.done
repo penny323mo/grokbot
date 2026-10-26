@@ -1,0 +1,106 @@
+# v2-r4-fix 完成報告：守門員模式點擊/滑動操作與反應時間修復
+
+## 1. 概述
+本輪修正針對 `reviews/grok-v2-r4.md` 所列之全部 **CRITICAL (1, 2)**、**MAJOR (3, 4, 5)** 與 **MINOR (6, 7, 9, 10)** 問題，以及 Prompt 要求的 390px 世界盃國家隊選擇卡片文字折行問題進行徹底修復與驗證。
+
+---
+
+## 2. 修復項目詳情
+
+### 【CRITICAL 1】助跑期間點擊純粹預選（Commit），絕不提早懲罰；撲救動作於擊球時（Strike）觸發
+- **問題癥結**：原先 Easy 難度設定之 `earlyDiveThresholdMs` 邏輯與比較顛倒，導致助跑期間的正常點擊被判定為「太早撲（Early Dive）」，剝奪 Easy 難度 1.45 倍臂展優勢並觸發射手嘲諷及紅色警告橫額。
+- **修復方案**：
+  1. `src/tuning.js`：更新 `TUNING.keeperWindows.earlyDiveThresholdMs`，EASY 與 MEDIUM 設為 `Infinity`（助跑期間點選為純預選承諾，絕不懲罰）；HARD 設為 `350`ms，HELL 設為 `250`ms。
+  2. `src/keeperAI.js`：新增純函數 `resolvePlayerKeeperDive` 及 `_onPlayerKeeperDive`，明確判定 EASY 與 MEDIUM 絕不判定提早撲救，保留完整難度臂展倍率。
+  3. `src/main.js`：助跑期間點擊僅記錄玩家選擇目標（`playerDived = true, diveZone = validZone`）、即時亮起 3D 金色球門框與廣東話確認橫額（「已選定撲向：[位置]！準備接波！」），**不提早調用** `keeper.startDive`。守門員保持準備站姿，直到射手起腳擊球瞬間（`_onCpuTakerStrike`）才正式啟動撲救動畫。
+
+### 【CRITICAL 2】擊球後依難度延遲的反應窗口（Late Window）正常運作
+- **問題癥結**：原先 `_onCpuTakerStrike` 於擊球時若玩家未有預選，立即調用 `startDive(BM)` 並將 `matchState` 轉為 `KEEPER_BALL_FLIGHT`，導致擊球瞬間或擊球後 100ms 玩家在反應時間內的正常點擊被忽略並鎖定在 BM。
+- **修復方案**：
+  1. 於 `_onCpuTakerStrike` 擊球時，若玩家尚未預選，保持輸入監聽 `input.enable()`，並啟動難度縮放的反應計時器 `keeperLateTimeout`（EASY 450ms / MEDIUM 340ms / HARD 240ms / HELL 180ms）。
+  2. 若玩家在反應窗口內點擊或輕掃，即時啟動該方向撲救動畫，動態重新計算 `checkSave` 與 `activeShot.isGoal`，並清除計時器。
+  3. 若超過反應窗口仍無任何手勢，計時器到期才自動預設撲向中下（BM），並套用遲疑懲罰係數（`diffReachMul * 0.70`）。
+
+### 【MAJOR 3】門將撲向相同區域容差加成（Zone Bonus）僅限玩家守門員
+- **問題癥結**：原先 `src/keeperAI.js:186-192` 只要 `divePlan.zone === simResult.zone` 就額外加上 15cm（0.15m）容差，導致射手模式中電腦門將猜中區域時亦不合理地獲得 15cm 膨脹。
+- **修復方案**：
+  在 `src/keeperAI.js` 加入玩家身分判定 `isPlayerKeeper = !!(divePlan && divePlan.isPlayer)`：
+  `const zoneBonus = (isPlayerKeeper && shotZone && divePlan.zone === shotZone) ? (tuning.keeper.zoneMatchingToleranceBonus || 0) : 0;`
+  電腦門將撲向同區域時 zoneBonus 嚴格為 0。已於單元測試加入負向測試驗證。
+
+### 【MAJOR 4】點擊透過 Raycast 投影至 Z=0 球門平面，精準對齊 3D 區域網格
+- **問題癥結**：原先 `mapTapToZone` 僅使用 2D 螢幕比例切分，未與 3D 世界球門 6 個網格（Mesh）投影對齊。
+- **修復方案**：
+  1. `src/scene.js`：實作 `screenToGoalPlane(screenX, screenY, viewport)`，使用 `THREE.Raycaster` 將點擊座標反投影至球門平面 $Z=0$。
+  2. `src/shot.js`：`mapTapToZone(point, viewport, tuning, unprojectHit)` 與 `resolveKeeperInput` 接收反投影命中點；若有命中則使用球門 3D 座標分類（`getZoneFromPoint`），若未命中或為螢幕外點擊則優雅回退至 2D 螢幕劃分。
+  3. `src/input.js`：新增 `setRaycastFn(fn)`，並於 `_startSwipe`、`_moveSwipe`、`_endSwipe` 全面傳遞。
+
+### 【MAJOR 5】移除全域 document touchend 300ms preventDefault
+- **問題癥結**：原先 `src/main.js` 綁定全域 `touchend` 攔截 300ms 內連擊，導致首頁按鈕與換頁跳轉時點擊被吞沒。
+- **修復方案**：已移除全域 `touchend` 與 `dblclick` 之 `preventDefault`，保留 canvas/match-screen 必要的 `touch-action: none` 與 PointerEvents 捕捉。
+
+### 【MINOR 6】擴充 `tests/input.test.js` 涵蓋守門員模式操作
+- **修復方案**：
+  新增 3 個守門員模式專屬測試：
+  1. 守門員模式允許點擊螢幕上半部 25%（計分板區域）正常觸發撲救預覽與確認。
+  2. 嚴格區分小於 18px 之點擊（tap）與大於等於 18px 之短滑動（swipe）。
+  3. 驗證透過 `setRaycastFn` 成功呼叫 3D 球門反投影並分類至正確區域。
+
+### 【MINOR 7】保存並適時清理 700ms 開球球證哨子計時器
+- **修復方案**：
+  將開球哨子計時器保存於 `this.keeperWhistleTimeout`，並於 `startKeeperTurn`、`goHome`、`startMatch`、`finishMatch` 開頭統一呼叫 `clearTimeout(this.keeperWhistleTimeout)` 與 `clearTimeout(this.keeperLateTimeout)`，徹底杜絕快速重入或返回首頁時觸發孤兒狀態。
+
+### 【MINOR 9】清理 `TUNING.taker` 中無效的門將反應時間常數
+- **修復方案**：已自 `src/tuning.js` 移除 `earlyDiveThresholdMs` 與 `lateDiveThresholdMs`，統一集中於 `TUNING.keeperWindows`。
+
+### 【MINOR 10】清理助跑預選時的過度 UX 雜訊
+- **修復方案**：
+  移除了點選區域時即時噴發的太早撲嘲諷與紅色失敗橫額，保留金色高亮球門框與沉穩清晰的廣東話提示：「已選定撲向：[位置]！準備接波！」。
+
+### 【Prompt 額外需求】修復 390px 寬度下世界盃國家隊選擇卡片文字垂直折行問題
+- **問題癥結**：原先 `.team-select-grid` 採用 2 欄網格且卡片內部使用單行 flex，在 390px 手機寬度下每張卡片寬度僅約 157px，導致球員中文名稱被擠壓成每行單字垂直折行。
+- **修復方案**：
+  1. `style.css`：將 `.team-select-grid` 改為單欄滿版橫排（`grid-template-columns: 1fr; gap: 8px; max-height: 54vh;`）。
+  2. `src/main.js` 與 `style.css`：重構卡片結構為 `.team-pick-flag` + `.team-pick-main`（上方 `.team-pick-title` 容納國名與代碼標籤，下方 `.team-pick-intel` 橫排容納 `🧤 鋼門 • ⚽ 射手`），單卡寬度提升至近 400px，文字清晰水平排列，絕無單字垂直折行。已生成 390px 截圖 `screenshots/r4-390/03_team_select_cards_readable.png`。
+
+---
+
+## 3. 測試驗證結果
+
+### 1. 單元測試（全部 11 套，86/86 通過）
+| 測試套件 | 測試數量 | 結果 | 備註 |
+| :--- | :---: | :---: | :--- |
+| `difficulty.test.js` | 4/4 | ✅ 通過 | 難度參數與單調縮放 |
+| `input.test.js` | 6/6 | ✅ 通過 | 新增 3 個守門員模式測試（頂部點擊、18px 閾值、Raycast） |
+| `keeperAI.test.js` | 6/6 | ✅ 通過 | 撲救判定與軀幹物理膠囊體 |
+| `keeper_r4.test.js` | 8/8 | ✅ 通過 | 新增 Easy 助跑 commit 測試、100ms 遲滯反應窗口測試、CPU 負向容差測試 |
+| `match_integration.test.js` | 5/5 | ✅ 通過 | 4 難度完賽整合模擬 |
+| `model.test.js` | 14/14 | ✅ 通過 | 讀心熵值與 N-gram 預測模型 |
+| `shot.test.js` | 7/7 | ✅ 通過 | 球軌道物理與區域切分 |
+| `takerAI.test.js` | 4/4 | ✅ 通過 | 射手 AI 懲罰與射門決策 |
+| `taunts.test.js` | 22/22 | ✅ 通過 | 33 句全廣東話嘲諷與心理暗示 |
+| `tournament.test.js` | 5/5 | ✅ 通過 | 16 強淘汰賽賽制與難度遞進 |
+| `unlocks.test.js` | 5/5 | ✅ 通過 | 星星獎勵、解鎖與成就獎盃 |
+| **總計** | **86/86** | **全部通過** | 無任何報錯 |
+
+### 2. 真實瀏覽器 CDP 端對端測試
+1. `tests/verify_r4_keeper.js`（390×844）：
+   - ✅ 助跑期間顯示廣東話引導提示「撲救：㩒龍門你想守嘅位置」及 6 格 3D 半透明球門標靶。
+   - ✅ 點擊 TR（301, 390）：立即亮起金色框，橫額更新為「🧤 已選定撲向：右上！準備接波！」，`earlyDive` 嚴格為 `false`，無「太早撲」嘲諷。
+   - ✅ 短滑動左上：成功識別為 TL 區域。
+   - ✅ 球門外（30, 800）點擊：成功映射至最近之 BL 區域。
+   - ✅ 擊球及判定結算：成功記錄 CPU 射門，0 個頁面異常。
+   - ✅ 國家隊選擇卡片：在 390px 寬度下卡片寬度達 396.95px，16 隊完整橫排排列，球員名單水平顯示無單字折行。
+2. `tests/verify_r3_fixes.js`：✅ 通過（0 報錯）。
+3. `tests/r3_e2e_test.js`：✅ 通過（0 報錯）。
+4. `tests/full_match_e2e.js`：✅ 通過 5+5 完整點球大戰（0 報錯）。
+
+---
+
+## 4. 產出截圖
+- `screenshots/r4-390/01_keeper_target_zones_initial.png`：助跑初始 6 格 3D 區域標籤與橫額提示。
+- `screenshots/r4-390/02_keeper_zone_selected_TR.png`：助跑期間點選 TR 後金色高亮與確認橫額（無太早撲雜訊）。
+- `screenshots/r4-390/03_team_select_cards_readable.png`：390px 寬度下單欄橫排且易讀之國家隊選擇介面。
+
+---
+無執行任何 `git commit`。所有代碼與測試已就緒。

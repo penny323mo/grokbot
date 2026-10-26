@@ -1,0 +1,193 @@
+# 12碼讀心戰 (Penalty Mind Game v2) - Round 3 Fix Report
+
+**Date**: 2026-10-24
+**Status**: COMPLETE (ALL CRITICAL, MAJOR & SENSIBLE MINORS RESOLVED)
+**Test Suite**: 10 Unit & Integration Suites (75/75 tests passing, 100% green)
+**Browser E2E Verification**: Real Headless Chrome 390×844 CDP verification (100% green, 0 console errors)
+
+---
+
+## 1. Executive Summary & Verification Highlights
+
+Following the code review in `reviews/grok-v2-r3.md`, all CRITICAL, MAJOR, and sensible MINOR issues have been addressed and verified:
+
+1. **單場快速對決 Swipe Shooting Fully Restored**:
+   - Resolved the pointer event blocking issue where the first-run tutorial overlay (`.tutorial-overlay`, `.ghost-hand-track`, `.tutorial-prompt-box`) intercepted mouse and touch gestures over the ball.
+   - Configured `#screen-match * { pointer-events: none !important; }` and `.tutorial-overlay, .tutorial-overlay * { pointer-events: none !important; }`, re-enabling pointer interaction strictly on actual interactive buttons (`button`, `.btn-skip-replay`, `[role="button"]`, `.icon-btn`).
+   - Added `#screen-match { overflow: hidden !important; }` to eliminate full-screen match HUD scrollport behavior.
+   - **Headless CDP Verification**: Executed real pointer swipe from `(195, 780)` to `(195, 500)` on a fresh profile (`totalShots = 0`, tutorial prompt active). Verified ball physics simulation fired immediately, recorded the kick, and resolved cleanly without obstruction.
+
+2. **「世界盃淘汰賽 (16隊爭霸)」 CTA & Bracket Transition**:
+   - Removed inline `style="display: none;"` from `<div id="modal-team-select">` in `index.html` which previously prevented `.active` (`display: flex`) from showing the team picker.
+   - Aligned `openTournamentScreen()` and `btnConfirmTeam` in `src/main.js` so clicking the title CTA opens the modal, confirms team selection, renders the 8-match R16 bracket, and transitions directly to `#screen-tournament`.
+   - Cancel fallback cleanly navigates home if a tournament is not active.
+
+3. **Stars Meta Loop & End Screen Field Alignment**:
+   - In `src/unlocks.js`, supported parameter aliasing across naming conventions: `won`/`isWin`, `isTournament`/`isTournamentMatch`, `isChampion`/`isTournamentFinalWin`, `predictability`/`predictabilityScore`.
+   - Updated breakdown item objects to supply both `{ label, count, desc: label, stars: count }` so end-screen template strings render `${item.label}` and `+${item.count} ⭐` cleanly without `undefined+undefined`.
+   - Added unit test in `tests/unlocks.test.js` validating the live payload.
+
+4. **Crowd Rendering & Animation Performance**:
+   - Replaced `THREE.MeshStandardMaterial` on crowd torso and head instanced meshes with lightweight `THREE.MeshBasicMaterial`.
+   - Replaced 20 individual terrace step meshes with 2 `THREE.InstancedMesh` instances (step risers and edge trims), saving 18 draw calls.
+   - Eliminated per-frame `new THREE.Object3D()` and matrix decomposes in `stadium.update()` by writing directly to `instanceMatrix.array[i * 16 + 13]`.
+   - Added check to skip crowd bobbing when `document.hidden` or `prefersReducedMotion` is active.
+
+5. **Housekeeping & Documentation**:
+   - Removed legacy v1 2D prototype archive from `CHANGELOG.md` and appended `## v2 Round 3 fixes`.
+   - Updated `ASSETS.md` to reference `vendor/three.module.min.js`.
+   - Silenced noisy `console.warn` on intentional corrupt JSON test fixtures in `src/tournament.js` and `src/unlocks.js`.
+   - Re-captured all 8 reference screenshots at 390×844 resolution in `screenshots/r3-390/`.
+
+---
+
+## 2. Detailed Issue Resolutions
+
+### CRITICAL 1: Pointer Events HUD Blocking on Match Screen (`style.css`, `index.html`, `src/input.js`)
+- **Problem**: On a fresh profile (`totalShots < 2`), `.tutorial-overlay` was displayed. Because `#screen-match` (`z-index: 20`) sat above canvas `#scene` (`z-index: 1`), and CSS `pointer-events: none` is not inherited by child elements with default styles, the tutorial prompt box and ghost hand intercepted pointer hits at `y=780` and `y=650`. As a result, `onPointerDown` never triggered on the canvas and shots could not be launched.
+- **Fix**:
+  - In `style.css`:
+    ```css
+    #screen-match {
+      overflow: hidden !important;
+      pointer-events: none !important;
+    }
+    #screen-match * {
+      pointer-events: none !important;
+    }
+    #screen-match button,
+    #screen-match .btn-skip-replay,
+    #screen-match [role="button"],
+    #screen-match .icon-btn {
+      pointer-events: auto !important;
+    }
+    .tutorial-overlay,
+    .tutorial-overlay * {
+      pointer-events: none !important;
+    }
+    ```
+  - In `index.html`: Added inline `pointer-events: none;` on `#tutorial-overlay` and children.
+- **Verification**: Verified via `document.elementFromPoint(195, 780)` returning `<canvas id="scene">`. Real CDP mouse drag from `(195, 780)` to `(195, 500)` fires the shot and increments `totalShots` to 1.
+
+### CRITICAL 2: World Cup Title CTA & Bracket Navigation (`index.html`, `src/main.js`)
+- **Problem**: In `index.html`, `#modal-team-select` had an inline `style="display: none;"`. Adding `.active` (`display: flex`) failed to override the inline style due to CSS specificity. Furthermore, `openTournamentScreen()` returned early on fresh saves without switching screen to `'tournament'`.
+- **Fix**:
+  - Removed `style="display: none;"` from `#modal-team-select` in `index.html`.
+  - In `src/main.js`:
+    - In `openTournamentScreen()`: switches to `'tournament'` immediately, and opens the team modal if tournament is not active.
+    - In `openTeamSelectModal()`: sets `this.dom.modalTeamSelect.style.display = 'flex'`.
+    - In `btnConfirmTeam`: starts tournament with chosen team, hides modal, renders bracket, and switches to `'tournament'`.
+    - In `btnCancelTeam`: if tournament is not active, cleanly navigates home via `goHome()`.
+- **Verification**: Title CTA opens team select, selecting Hong Kong confirms and transitions to `#screen-tournament`, rendering all 8 R16 bracket matches.
+
+### MAJOR 3: Stars Meta Loop & End Screen Field Alignment (`src/unlocks.js`, `src/main.js`, `tests/unlocks.test.js`)
+- **Problem**: `calculateMatchStars` expected `{ won, isTournament, isChampion, predictability }` but `finishMatch` passed `{ isWin, isTournamentMatch, isTournamentFinalWin, predictabilityScore }`. Additionally, end-screen template strings rendered `${item.label}` and `+${item.count} ⭐` while `calculateMatchStars` emitted `{ desc, stars }`, producing `undefined+undefined ⭐`.
+- **Fix**:
+  - In `src/unlocks.js`, accepted both naming variants:
+    ```javascript
+    const won = !!(stats.won ?? stats.isWin);
+    const isTournament = !!(stats.isTournament ?? stats.isTournamentMatch);
+    const isChampion = !!(stats.isChampion ?? stats.isTournamentFinalWin);
+    const predictability = stats.predictability ?? stats.predictabilityScore ?? null;
+    ```
+  - Emitted dual-aliased breakdown objects:
+    ```javascript
+    breakdown.push({ label, count, desc: label, stars: count });
+    ```
+  - In `src/main.js:1871-1872`:
+    ```javascript
+    const label = item.label || item.desc || '獎勵';
+    const count = item.count ?? item.stars ?? 1;
+    ```
+  - Added unit test in `tests/unlocks.test.js` validating the exact structure emitted by `finishMatch`.
+- **Verification**: `07_screen_end_stars.png` displays clean star breakdown rows without `undefined`.
+
+### MAJOR 4: Crowd Rendering & Animation Performance (`src/scene.js`)
+- **Problem**: Stadium crowd used 2x260 standard lit meshes, allocating two `THREE.Object3D()` instances and performing 520 `decompose` + `setMatrixAt` calls every frame, causing SwiftShader CPU rendering drops. Terrace steps were also 20 separate uninstanced box meshes.
+- **Fix**:
+  - Converted crowd torso and head instanced meshes to `THREE.MeshBasicMaterial`.
+  - Instanced the 10 terrace steps and 10 edge trims into 2 `THREE.InstancedMesh` instances (saving 18 draw calls).
+  - Hoisted dummy `Object3D`s and updated spectator bobbing in `stadium.update()` by writing directly to `instanceMatrix.array[i * 16 + 13]`:
+    ```javascript
+    const tArr = this.crowdTorsoMesh.instanceMatrix.array;
+    const hArr = this.crowdHeadMesh.instanceMatrix.array;
+    for (let i = 0; i < this.crowdCount; i++) {
+      const dy = Math.sin(time * 3.0 + (i % 7) * 0.9) * 0.035;
+      tArr[i * 16 + 13] = this.crowdBaseY[i] + dy;
+      hArr[i * 16 + 13] = this.crowdBaseY[i] + 0.30 + dy;
+    }
+    this.crowdTorsoMesh.instanceMatrix.needsUpdate = true;
+    this.crowdHeadMesh.instanceMatrix.needsUpdate = true;
+    ```
+  - Added check to skip bobbing when `document.hidden` or `prefersReducedMotion` is active.
+- **Verification**: Crowd renders at unlit basic shader cost with 0 per-frame object allocations.
+
+### MAJOR 5: Match Screen Overflow (`style.css`)
+- **Problem**: Global `.screen { overflow-y: auto }` turned the transparent match HUD into a scrollable container.
+- **Fix**: Set `#screen-match { overflow: hidden !important; }`, keeping `overflow-y: auto` only for `#screen-tournament, #screen-locker, #screen-title, #screen-end`.
+- **Verification**: Match screen HUD remains fixed and non-scrollable.
+
+### MINOR 6: Clean v1 Archive in `CHANGELOG.md`
+- Removed legacy 2D prototype sections from `CHANGELOG.md` and appended `## v2 Round 3 fixes`.
+
+### MINOR 7: Fix `ASSETS.md` Three.js Reference
+- Updated path in `ASSETS.md` to `vendor/three.module.min.js`.
+
+### MINOR 8: Silence Storage Warnings on Corrupted JSON
+- Silenced noisy `console.warn` during test corrupted JSON handling in `src/tournament.js` and `src/unlocks.js`.
+
+---
+
+## 3. Test Execution Results
+
+### A. Unit & Integration Test Suites (75/75 Passing)
+```bash
+node tests/difficulty.test.js && \
+node tests/input.test.js && \
+node tests/keeperAI.test.js && \
+node tests/match_integration.test.js && \
+node tests/model.test.js && \
+node tests/shot.test.js && \
+node tests/takerAI.test.js && \
+node tests/taunts.test.js && \
+node tests/tournament.test.js && \
+node tests/unlocks.test.js
+```
+- `tests/difficulty.test.js`: 4 / 4 passed
+- `tests/input.test.js`: 3 / 3 passed
+- `tests/keeperAI.test.js`: 6 / 6 passed
+- `tests/match_integration.test.js`: 5 / 5 passed
+- `tests/model.test.js`: 14 / 14 passed
+- `tests/shot.test.js`: 7 / 7 passed
+- `tests/takerAI.test.js`: 4 / 4 passed
+- `tests/taunts.test.js`: 22 / 22 passed
+- `tests/tournament.test.js`: 5 / 5 passed
+- `tests/unlocks.test.js`: 5 / 5 passed
+**Total: 75 / 75 tests passing (100% green)**
+
+### B. Headless Chrome Browser CDP E2E Verification
+1. `tests/verify_r3_fixes.js`:
+   - Verified fresh player swipe shooting with real CDP mouse drag from `(195, 780)` to `(195, 500)`.
+   - Verified ball physics simulation fired, keeper responded, and shot resolved.
+   - Verified Title CTA -> Team Select -> Bracket transition.
+   - Verified end-screen star breakdown field names (zero `undefined` occurrences).
+   - Zero browser console errors.
+2. `tests/r3_e2e_test.js`:
+   - Full tournament team pick, locker room catalog tabs, and 780×1200 share card canvas export verified.
+3. `tests/full_match_e2e.js`:
+   - Simulated full 5+5 shootout match (5 shooting rounds + 5 keeper diving rounds) to completion with 0 browser exceptions.
+
+---
+
+## 4. Visual Verification Artifacts (`screenshots/r3-390/`)
+
+The following reference screenshots were re-captured at 390×844 resolution via headless Chrome:
+- `screenshots/r3-390/01_screen_title.png`: Title screen with World Cup CTA and star count.
+- `screenshots/r3-390/02_screen_team_select.png`: 16-team selection modal with team cards and kit swatches.
+- `screenshots/r3-390/03_screen_tournament.png`: 16-team tournament bracket with 8 R16 matches and opponent intel.
+- `screenshots/r3-390/04_screen_locker_trophies.png`: Trophy cabinet displaying achievements and unlock status.
+- `screenshots/r3-390/05_screen_locker_balls.png`: Ball catalog displaying procedural skins and star costs.
+- `screenshots/r3-390/06_screen_tournament_match.png`: Live tournament match screen with kit tints and seated crowd.
+- `screenshots/r3-390/07_screen_end_stars.png`: End screen with star performance breakdown rows and heatmap.
+- `screenshots/r3-390/08_screen_share_card.png`: In-game share card modal preview.
+- `screenshots/r3-390/share_card_780x1200.png`: High-resolution 780×1200 generated share card graphic.

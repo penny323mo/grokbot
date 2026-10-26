@@ -1,0 +1,140 @@
+# 12碼讀心戰 (Penalty Mind Game v2) - Round 2 Fix Report
+
+**Date**: 2026-10-24
+**Status**: COMPLETE (ALL CRITICAL, MAJOR & SENSIBLE MINOR ISSUES RESOLVED)
+**Verification**: All 8 test suites (65 tests) passing + Headless Chrome 390×844 CDP E2E validation 0 errors
+
+---
+
+## 1. Summary of Issues & Resolution
+
+### CRITICAL 1: `takerDecision.targetPoint` Property Mismatch (`src/main.js`, `src/takerAI.js`)
+- **Problem**: `_onCpuTakerStrike` accessed `takerDecision.target.x` / `takerDecision.target.y`, but `TakerAIModel.decideShot` returned `{ targetZone, targetPoint: { x, y }, speed, curve, ... }`, throwing `PAGEERROR: Cannot read properties of undefined (reading 'x')` on the first CPU kick.
+- **Fix**:
+  - In `src/main.js`, read `takerDecision.targetPoint || takerDecision.target`.
+  - In `src/takerAI.js`, exported `target: targetPoint` alias in `decideShot()` return object.
+- **Result**: Zero PAGEERROR on CPU striker kick.
+
+### CRITICAL 2: `simulate`-Compatible Launch for CPU Striker (`src/shot.js`, `src/main.js`)
+- **Problem**: `_onCpuTakerStrike` created an ad-hoc launch object `{ vx, vy, speed, spin, power, targetX, targetY }` lacking `position` and formatted `velocity`, crashing `simulate(launch)`.
+- **Fix**:
+  - Implemented and exported `pointToLaunch(targetPoint, speed, curve, tuning)` in `src/shot.js` that computes exact ballistic velocity `(vx, vy, vz)` compensating for gravity, aerodynamic drag, and Magnus spin.
+  - Used `pointToLaunch` in `_onCpuTakerStrike`.
+  - Added unit test in `tests/shot.test.js` validating that `simulate(pointToLaunch(...))` runs cleanly to goal line crossing.
+- **Result**: CPU striker trajectories simulate with accurate ballistics and collision detection.
+
+### CRITICAL 3: `recordPlayerDive` Live Path Method Alignment (`src/main.js`, `src/takerAI.js`)
+- **Problem**: `src/main.js:907` called `this.takerAI.recordDive(actualDiveZone)`, but the method was named `recordPlayerDive`.
+- **Fix**:
+  - Updated call in `src/main.js` to `this.takerAI.recordPlayerDive(actualDiveZone)`.
+  - Added `recordDive` alias in `src/takerAI.js` to prevent any future method name mismatch.
+- **Result**: Player's dive history and bigram habits are actively learned across rounds in live matches.
+
+### MAJOR 4: Keeper-Mode Swipe Zone Determination (`src/main.js`)
+- **Problem**: `_onPlayerKeeperSwipe` accessed `launch.vx`, `launch.targetY`, and `launch.vy` (which did not exist on `launch`), falling back to `BM` center dive for every player swipe.
+- **Fix**:
+  - Read `launch.target` coordinates (or scaled velocity vector) and evaluated zone via `getZoneFromPoint(targetX, targetY, TUNING)`.
+- **Result**: Swipes reliably trigger dives across all 6 zones (`TL`, `TM`, `TR`, `BL`, `BM`, `BR`).
+
+### MAJOR 5: Difficulty Modulation for Goalkeeper AI (`src/keeperAI.js`, `src/difficulty.js`)
+- **Problem**: `decide(modelProbs, difficultyConfig)` looked for `difficulty.reactionDelay` and `difficulty.reachMultiplier`, but `difficulty.js` provided `keeperReactTime` (0.22→0.11) and `keeperReach` (0.38→0.50). As a result, reaction time defaulted to undefined and reach multiplier fell through to 1.0.
+- **Fix**:
+  - In `src/keeperAI.js`, read `difficulty.keeperReactTime ?? difficulty.reactionDelay ?? null` and computed `reachMultiplier = difficulty.keeperReach / tuning.keeper.gloveReachRadius`.
+  - Added alias fields in `src/difficulty.js` across all 4 tiers (`EASY`, `MEDIUM`, `HARD`, `HELL`).
+  - Added test assertion in `tests/difficulty.test.js` verifying `decide(probs, getDifficultyConfig('HELL')).reactTime === 0.11`.
+- **Result**: Goalkeeper reaction delays and reach volumes scale dynamically across difficulty tiers.
+
+### MAJOR 6 & MINOR 11: Dedicated Keeper-Turn Camera Rig (`src/scene.js`, `src/taker.js`, `src/main.js`)
+- **Problem**: Camera remained in `MAIN` behind-the-spot mode during keeper turns, causing the striker at `z=13.8` to occlude the goal as an extreme close-up.
+- **Fix**:
+  - In `src/scene.js`, introduced `'KEEPER'` camera mode: `keeperCameraPos = new THREE.Vector3(0, 2.35, 18.2)` and `keeperLookTarget = new THREE.Vector3(0, 1.15, 1.0)`.
+  - In `src/main.js`, switched camera to `'KEEPER'` in `startKeeperTurn()`, and restored to `'MAIN'` in `startPlayerTurn()`.
+  - In `src/taker.js`, set striker run-up start to `(-0.65, 0, 14.2)` (≥3.2m behind the spot and ≥4.0m in front of camera), framing the entire goal, keeper, and human-sized striker without occlusion.
+- **Result**: Clear, unobstructed broadcast-style view of the penalty box during player goalkeeping.
+
+### MAJOR 7: Seated 3D Spectators on Stepped Terraces (`src/scene.js`)
+- **Problem**: Stadium crowd previously consisted of flat candy-colored billboard planes on the terrace steps.
+- **Fix**:
+  - Replaced billboard quads with 260 true 3D seated spectators (torso box `0.38×0.44×0.28m` + head box `0.20×0.22×0.20m`) sitting directly on the concrete steps.
+  - Used realistic desaturated kit colors (navy, slate, burgundy, forest green, warm amber, charcoal) and skin/hair tones.
+  - Updated bobbing animation in `stadium.update()` so torso and head bob synchronously.
+- **Result**: Grandstand looks like an authentic stadium crowd.
+
+### MAJOR 8: In-Scene Mind-Reading Reveal Unwrapping & 2D Glove Point (`src/main.js`, `src/fx.js`)
+- **Problem**: `main.js:912` wrapped `diveProbs` as `{ probabilities: diveProbs }`, resulting in undefined zone probabilities and an all-16% fallback; also passed 3D root group to reach marker.
+- **Fix**:
+  - Passed `diveProbs` directly without nesting.
+  - Passed 2D goal mouth coordinates `{ x, y }` from `divePlan.target`.
+  - Added HUD reveal pill in keeper mode displaying player's dive habit recognition.
+- **Result**: 6-zone heat overlay displays live model confidence percentages and marks accurate physical crossing coordinates.
+
+### MAJOR 9: Deciding Kick Slow-Motion Replay Rewind (`src/main.js`)
+- **Problem**: `triggerDecidingReplay()` previously performed a camera cut to an idle keeper without rewinding or replaying the deciding trajectory.
+- **Fix**:
+  - Stashed complete deciding kick snapshot (`sim`, `divePlan`, `saveCheck`, `isGoal`, `isKeeperTurn`).
+  - Rewound ball and keeper poses to $t=0$, switched to side TV broadcast camera (`x=5.8m, y=1.8m, z=4.2m`), and replayed the exact trajectory at 0.25x slow motion.
+  - Wired skip button (`btn-skip-replay`) to immediately transition to match verdict.
+- **Result**: Slow-motion replay relives the decisive play before moving to the end screen.
+
+### MINOR 10: Tidy v1 Archive in `CHANGELOG.md`
+- Clarified `## v1 Archive (Legacy 2D Prototype)` section heading and appended `## v2 Round 2 fixes`.
+
+---
+
+## 2. Test Execution Results
+
+All 8 test suites executed cleanly with 100% pass rate:
+
+```bash
+cd /workspace/nightly/2026-10-24-penalty-mind-game
+node tests/model.test.js && \
+node tests/shot.test.js && \
+node tests/keeperAI.test.js && \
+node tests/input.test.js && \
+node tests/difficulty.test.js && \
+node tests/takerAI.test.js && \
+node tests/taunts.test.js && \
+node tests/match_integration.test.js
+```
+
+### Unit & Integration Test Summary:
+1. `tests/model.test.js`: **14 / 14 PASS** (Laplace smoothing, n-gram learning, predictability scoring, ambiguity handling)
+2. `tests/shot.test.js`: **7 / 7 PASS** (ballistics, Magnus curve, overpower lift, zone bins, pointToLaunch simulation)
+3. `tests/keeperAI.test.js`: **6 / 6 PASS** (deterministic 3D capsule saves, parry vs catch, unstoppable top corner)
+4. `tests/input.test.js`: **3 / 3 PASS** (PointerEvents capture, bottom 75% swipe band, touch fallback)
+5. `tests/difficulty.test.js`: **4 / 4 PASS** (EASY to HELL scaling, gaze hint flags, keeperAI.decide config consumption)
+6. `tests/takerAI.test.js`: **4 / 4 PASS** (dive habit Markov model, early dive punishment, Hell corner targeting)
+7. `tests/taunts.test.js`: **22 / 22 PASS** (33 authentic HK Cantonese lines, tell honesty and deception rates)
+8. `tests/match_integration.test.js`: **5 / 5 PASS** (full 5-round shootouts across EASY/MEDIUM/HARD/HELL without throwing)
+
+**Total: 65 / 65 PASS**
+
+---
+
+## 3. End-to-End Headless Browser Validation (CDP @ 390×844)
+
+Executed automated browser test in headless Google Chrome (`tests/full_match_e2e.js`):
+- Full 5-round regulation shootout (5 player shots + 5 CPU keeper-mode strikes) executed from start to final whistle.
+- **Console errors**: 0
+- **Turn transitions**: 10 clean alternating turn swaps between `PLAYER_TURN` and `KEEPER_TURN`.
+- **End screen**: Verdict, scores, kick dots, predictability gauge, and 6-zone heatmap populated.
+
+### Reference Screenshots Captured at 390×844 (`screenshots/v2/`):
+- `r2-01-title.png`: Title screen with difficulty chips (🟢 易 / 🟡 中 / 🟠 難 / 🟣 地獄).
+- `r2-02-match-player-turn.png`: Player shooting stance with full ball and grandstand.
+- `r2-03-mind-reading-3d-reveal.png`: In-scene 3D 6-zone heat overlay with confidence percentages.
+- `r2-04-keeper-mode-turn.png`: Keeper mode view showing full goal, keeper, and human-sized striker at penalty spot.
+- `r2-05-keeper-save-taunt.png`: Keeper dive save with authentic Cantonese taunt speech bubble.
+- `r2-06-replay-broadcast.png`: Deciding kick 0.25x slow-motion replay from side broadcast angle.
+- `r2-07-end-screen.png`: Fully rendered end screen with match stats and heatmap.
+
+---
+
+## 4. Compliance Checklist
+
+- [x] Zero external CDN dependencies (100% vendored Three.js r160, offline runnable).
+- [x] Zero git commands run.
+- [x] Unmodified `UPGRADE_PLAN.md`, `prompts/`, and existing reviews.
+- [x] Player-facing copy 100% Traditional Chinese Cantonese.
+- [x] iPhone Safari 390×844 portrait layout compliant with 44px tap targets.
+- [x] `CHANGELOG.md` updated with `## v2 Round 2 fixes`.
