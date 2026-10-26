@@ -23,13 +23,12 @@ progress.md                            # 進度紀錄
 7. 唔好刪或 archive 舊嘅獨立 repo。
 
 ## 首頁 Launcher 功能
-- **Hero 區域**：品牌識別「Grokbot 工作室」、粵語標語（「每晚一個新作品，諗、寫、審一手包辦」）、動態統計欄（收錄項目總數、最新加入項目名稱與日期、涵蓋類別總數），皆由 `manifest.json` 動態計算。
-- **分類篩選晶片（Filter Chips）**：「全部」及各項目類別按鈕，具備無障礙 `aria-pressed` 屬性，手機端橫向平滑滾動，切換篩選即時流暢、無版面跳動（no layout jump）。
+- **Hero 區域**：品牌識別「Grokbot 工作室」、粵語標語（「每晚一個新作品，諗、寫、審一手包辦」）、單行極簡統計摘要（收錄項目總數、最新加入項目名稱與日期），皆由 `manifest.json` 動態計算。
+- **分類篩選晶片（Filter Chips）**：「全部」及各項目類別單選按鈕，具備無障礙 `role="radiogroup"` / `role="radio"` 與 `aria-checked` 屬性，手機端自動折行換行、切換篩選即時流暢且無版面跳動（no layout jump）。
 - **精品作品卡片（Project Cards）**：
-  - 實體封面縮圖：使用 `<img loading="lazy" decoding="async" width="780" height="1040">`，採用 `object-fit: cover` 與頂部對齊裁切（`object-position: top`）。
-  - 精緻擬裝置圓角外框與 Inset 底盤，以各項目之 `accent` 主色呈現微透明質感襯底（低不透明度，非霓虹光效）。
-  - 分類標籤、格式化加入日期（`YYYY年M月D日`）、項目標題與副標題、單行限制簡介（1-line clamp）。
-  - 僅最新加入之項目享有小巧的「NEW」標籤，且最新/旗艦作品於桌面端呈現更大版面（featured card）。
+  - 實體封面縮圖：全幅 3:4 原生比例、頂部對齊裁切（`object-position: top`），首卡 `fetchpriority="high"`、其餘 `loading="eager"` 防止白屏，accent 混色底座優雅回退。
+  - 分類標籤採單一高對比文字配 6px accent 圓點、格式化加入日期（`YYYY年M月D日`）、項目標題與副標題、兩行限制簡介（2-line clamp）。
+  - 僅最新加入之項目享有小巧的「新」標籤，桌面端呈現雙欄雙分割排版（featured card）。
   - 整張卡片為超連結（`<a>`），提供優雅按壓縮放反饋（`:active scale .98`）。
 - **設計與字型規範**：
   - iPhone 優先（390px 基準），320px–430px 無橫向溢出；桌面端（>= 760px）呈現雙欄網格。
