@@ -1,0 +1,31 @@
+已根據 [reviews/grok-review-r2.md](file:///workspace/grokbot/reviews/grok-review-r2.md) 完成所有 P0、P1 及 cheap P2 修復，並通過測試後完成 commit：
+
+### 修復項目摘要
+
+1. **P0**
+   - **封面預載解碼與淡入（P0.1）**：喺渲染卡片前透過 `Promise.all(projects.map(p => new Image().decode()))` 預先解碼；模板內所有封面統一設置 `fetchpriority="high"` 並移除 inline `onerror`；圖片載入完成標記 `.is-ready` 觸發平滑淡入（`opacity: 0 -> 1`），避免首屏滑動白屏（[launcher.js](file:///workspace/grokbot/launcher.js#L83-L125)）。
+   - **41:20 頂部視窗比例與首屏可見度（P0.2）**：`.card-device` 改用 `aspect-ratio: 41 / 20`，桌面端 featured 卡片同步設為 `aspect-ratio: 41 / 20; height: auto`，裁切避開次層篩選列，確保 390px 基準下首張卡片的標題與描述落於首屏內（[style.css](file:///workspace/grokbot/style.css#L315-L325)）。
+
+2. **P1**
+   - **分類晶片鍵盤導航與 Roving Tabindex（P1.1）**：晶片補上 `tabindex="0|-1"`，支援 `ArrowLeft` / `ArrowRight` / `ArrowUp` / `ArrowDown` / `Home` / `End` 循環切換選中與自動聚焦（[launcher.js](file:///workspace/grokbot/launcher.js#L76-L177)）。
+   - **封面空 Alt 避免讀屏重複朗讀（P1.2）**：卡片本身為連結，圖片設為裝飾性 `alt=""`（[launcher.js](file:///workspace/grokbot/launcher.js#L106)）。
+   - **分類導航吸頂常駐（P1.3）**：移除 `body` 的 `overflow-x: hidden`，`.filter-section` 設為 `position: sticky; top: env(safe-area-inset-top); z-index: 2;`（[style.css](file:///workspace/grokbot/style.css#L161-L168)）。
+   - **粵語口語一致性修訂（P1.4）**：
+     - 空狀態引導改為「`撳「全部」睇晒所有作品。`」（[index.html](file:///workspace/grokbot/index.html#L36)）。
+     - 失敗面板標題改為「`作品清單載入唔到`」（[launcher.js](file:///workspace/grokbot/launcher.js#L187)）。
+     - Prompt 工作室描述改為「`…有分鏡、prompt 食譜、收藏，離線都用到。`」（[projects/manifest.json](file:///workspace/grokbot/projects/manifest.json#L8)）。
+
+3. **P2**
+   - **淺色模式圓點對比增強（P2.1）**：淺色模式下 `.card-cat::before` 採用 `color-mix(in srgb, var(--accent) 70%, #191816)`，達到 WCAG 1.4.11 >= 3:1 非文字對比要求（[style.css](file:///workspace/grokbot/style.css#L379-L384)）。
+   - **單行描述空間優化（P2.2）**：移除 `.card-desc` 的 `min-height: calc(1.45em * 2)`，並將 Beat the Bookie 簡介調整為「`用真實賽果同賠率，同電腦鬥邊個睇得準。`」（[projects/manifest.json](file:///workspace/grokbot/projects/manifest.json#L41)、[style.css](file:///workspace/grokbot/style.css#L432-L442)）。
+   - **8px 網格間距對齊（P2.3）**：修準 `.hero-meta`（16px）、`.filter-section`（24px）、`.card-body`（16px）、`.card-headings`（8px）、`.shell`（32px）以及 `.badge-new`（12px、letter-spacing: 0、4px 6px padding）。
+   - **無障礙與結構微調（P2.4）**：
+     - 移除外層 `<nav>` 重複的 `aria-label`；
+     - `.visually-hidden` 增加 `white-space: nowrap`；
+     - 移除 `.card` 的 `user-select: none`，補上 `.card:focus-visible { outline-offset: -3px; }`；
+     - 空清單加入 `role="alert"`；重新載入按鈕改以 JavaScript 事件綁定；
+     - 卡片網格改用語意化 `<ul class="cards-grid">` 內置 `<li>`。
+
+### 驗證與提交
+- 執行 `node tests/check_manifest.mjs` 通過（`OK 4 projects`）。
+- 執行 `git add -A && git commit -m "launcher: apply grok r1 review (agy r3)"` 完成提交（commit `b5a5e57`），未執行 push。
