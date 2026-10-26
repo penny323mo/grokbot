@@ -1,0 +1,32 @@
+The root launcher and covers have been redesigned for a calm, editorial aesthetic with clear visual hierarchy.
+
+### Summary of Changes
+
+1. **Unified SVG Covers (Replaced App Screenshots)**:
+   - Deleted all raw screenshot files (`projects/<id>/cover/cover.webp`).
+   - Created unified 16:9 vector SVG covers (`viewBox="0 0 1600 900"`) on neutral light warm grey (`#EEECE7`):
+     - [Prompt 工作室 cover.svg](file:///workspace/grokbot/projects/prompt-studio/cover/cover.svg): terracotta (`#B0704F`), centered-left pen nib with sparkle lines.
+     - [盤口實驗室 cover.svg](file:///workspace/grokbot/projects/odds-lab/cover/cover.svg): sage (`#6E8B74`), line chart with vertex dots and subtle area tint.
+     - [12碼讀心戰 cover.svg](file:///workspace/grokbot/projects/penalty-mind-game/cover/cover.svg): slate (`#5E7186`), goal frame with flight arc and corner ball.
+     - [你估得贏莊家嗎？ cover.svg](file:///workspace/grokbot/projects/beat-the-bookie/cover/cover.svg): ochre (`#A88A4A`), overlapping cards and coins.
+   - Updated [projects/manifest.json](file:///workspace/grokbot/projects/manifest.json) with `.svg` cover paths and muted desaturated accent values.
+
+2. **Card Hierarchy & Layout**:
+   - Clean linear stack: 16:9 framed cover (14px border radius) $\rightarrow$ small meta row (`category · 加入日期 YYYY年M月D日`, with 「新」 badge only on newest) $\rightarrow$ 20px semibold title $\rightarrow$ 2-line clamped muted description $\rightarrow$ explicit primary pill button 「開始 →」 (44px touch height, right-aligned).
+   - Entire card is an `<a>` link (no nested interactive elements); button is styled as an inner visual pill.
+   - Responsive grid: single-column on mobile (< 760px), 2 columns on desktop ($\ge$ 760px).
+
+3. **Horizontal Category Chips**:
+   - Single row with horizontal scrolling (`overflow-x: auto`), hidden scrollbars, and `scroll-padding`.
+   - Visual height 32px with expanded 44px tap target via pseudo-element.
+   - Hairline border, muted text, solid neutral active state, and removed count pills. Maintained roving tabindex and arrow-key accessibility.
+
+4. **Calm Hero & Cohesive Theme**:
+   - Refined hero: eyebrow (`Penny Lei × Grok Bot`), title (`Grokbot 工作室`), single-line tagline, and single muted stats line without stat boxes.
+   - Neutral warm palettes in both light (`#f7f6f2`) and dark (`#0e0e10`) modes without gradients, glassmorphism, or glow.
+   - Full support for `prefers-reduced-motion` and safe-area insets.
+
+5. **Tests & Documentation**:
+   - Updated [tests/check_manifest.mjs](file:///workspace/grokbot/tests/check_manifest.mjs) to validate that cover paths end in `.svg` or `.webp` and exist on disk.
+   - Updated [AGENTS.md](file:///workspace/grokbot/AGENTS.md) cover specification.
+   - Verified with `node tests/check_manifest.mjs` (passed 4/4) and committed to git as requested.
