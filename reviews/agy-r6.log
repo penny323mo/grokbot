@@ -1,0 +1,27 @@
+Launcher cards have been redesigned into a compact row layout with square glyph tiles.
+
+### Summary of Changes
+
+1. **Compact Row Card Layout** ([`style.css`](file:///workspace/grokbot/style.css), [`launcher.js`](file:///workspace/grokbot/launcher.js)):
+   - **Row Architecture**: Cards now render as a single row (`flex-direction: row; align-items: flex-start; gap: 14px;`) with `padding: 14px; border-radius: 16px;` and `gap: 12px` between cards.
+   - **72×72 Icon Tile**: Left side features a 72×72 rounded (18px) tile containing the project's [`cover.svg`](file:///workspace/grokbot/projects/prompt-studio/cover/cover.svg) with `object-fit: cover`.
+   - **Right Info Column**:
+     - Meta row: Category dot + name, formatted `加入日期`, and the `新` badge on the latest project.
+     - Title: 17px semibold with crisp line-height.
+     - Description: Compact description clamped to 2 lines max.
+     - Action button: Compact pill button (`開始 →`, height 26px) right-aligned below the text.
+   - **Accessibility & Interaction**: Entire card remains a tappable link (`<a>`) with active scale feedback (`scale(0.985)`) and keyboard focus outlines.
+
+2. **Unified Square Glyph Tiles** (240×240 viewBox):
+   - Rewrote all 4 project covers ([`prompt-studio`](file:///workspace/grokbot/projects/prompt-studio/cover/cover.svg), [`odds-lab`](file:///workspace/grokbot/projects/odds-lab/cover/cover.svg), [`penalty-mind-game`](file:///workspace/grokbot/projects/penalty-mind-game/cover/cover.svg), [`beat-the-bookie`](file:///workspace/grokbot/projects/beat-the-bookie/cover/cover.svg)) to `viewBox="0 0 240 240"`:
+     - Neutral base with accent tint (`rx="60"`, 14% tint in light mode, 20% tint in dark mode).
+     - Subtle accent pattern: 2 soft concentric arcs (radii 76 and 102) at ~10% opacity.
+     - Glyph centered and prominent (~45% of tile, ~108px bounding box), stroke 10 with round caps and round joins.
+     - Completely removed the horizontal mid line across all four covers.
+
+3. **Page Height & Documentation**:
+   - Total document height at 390px viewport width is **919px** (well under 1000px, fitting all 4 cards).
+   - Desktop layout (>= 760px) maintains a 2-column grid with 12px gap.
+   - Updated [`AGENTS.md`](file:///workspace/grokbot/AGENTS.md) cover specification to `square 240x240 SVG tile` and documented the compact row card layout.
+   - Verified with `node tests/check_manifest.mjs` (all tests passing).
+   - Committed changes locally with message `"launcher: compact row cards + square glyph tiles (agy r6)"` without pushing.
