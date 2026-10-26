@@ -23,21 +23,13 @@ export class UIRenderer {
     const screen = document.getElementById(screenId);
     if (screen) screen.classList.add("active");
 
-    // Grokbot dataset hook
-    if (screenId === "screenBattle") {
-      document.body.dataset.gbPlaying = "1";
-    } else {
-      delete document.body.dataset.gbPlaying;
-    }
+    // Ensure Grokbot back button remains visible on all screens (including Battle)
+    delete document.body.dataset.gbPlaying;
   }
 
   renderTitleHero() {
     const el = document.getElementById("titleHeroArt");
-    if (el) el.innerHTML = SVG_ART.lantern_full;
-    const titleBackdrop = document.getElementById("titleBackdropSkyline");
-    if (titleBackdrop && !titleBackdrop.innerHTML.trim()) {
-      titleBackdrop.innerHTML = SVG_ART.titleBackdrop;
-    }
+    if (el) el.innerHTML = SVG_ART.titleKeyArt;
   }
 
   renderTopResources(coins, stars) {
@@ -194,7 +186,7 @@ export class UIRenderer {
         if (intentArrows[key] !== undefined) {
           const arrowEl = document.createElement("div");
           arrowEl.className = "intent-path-arrow";
-          arrowEl.innerHTML = `<svg viewBox="0 0 24 24" style="transform: rotate(${intentArrows[key]}deg); width: 22px; height: 22px;"><path d="M12 4 L12 20 M6 14 L12 20 L18 14" fill="none" stroke="#F06A6A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+          arrowEl.innerHTML = `<svg viewBox="0 0 24 24" style="transform: rotate(${intentArrows[key]}deg); width: 20px; height: 20px;"><path d="M12 3 L12 18 M7 13 L12 19 L17 13" fill="none" stroke="#E85D5D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
           tileEl.appendChild(arrowEl);
         }
 

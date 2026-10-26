@@ -220,3 +220,42 @@
 - Verified `npm test`: all 22 rules, intents, save/load, and simulation tests pass with 0 failures.
 - Bot simulations (20 seeds each): 悠閒 100% (20/20), 標準 90% (18/20), 挑戰 A1 85% (17/20).
 - Re-captured all 7 screenshots into `screenshots/v2/` (`title.png`, `battle.png`, `card-selected.png`, `reward.png`, `map.png`, `town.png`, `tutorial.png`) with 0 console errors.
+
+## Round 3 visual overhaul
+
+### 1. Battle Board Courtyard & Fog Atmosphere (Failure 1)
+- Redesigned the 5x6 battle grid from floating dark plastic rounded boxes into a continuous illustrated stone courtyard floor with hairline 1.5px flagstone joints and stone surface stippling.
+- Layered cool, animated drifting fog (`@keyframes driftFog`) across enemy rows 0–2.
+- Created warm radial golden lantern glow pooling outward from town lantern posts (`.lantern-glow-neighbour`) and friendly units (`.guardian-unit::after`).
+- Replaced clunky red intent arrows with calligraphic cinnabar movement arrows and red Chinese seal stamp badges (`.intent-badge`).
+
+### 2. Mature Asian Woodblock & Ink-Wash Art Direction (Failure 2)
+- Overhauled all guardian allies, folklore yokai enemies, and non-summon card vignettes with a cohesive woodblock-print aesthetic:
+  - Allies: Ninja cat scout with bamboo kasa hat & patrol lantern (`cat_patrol`), celadon tea master (`tea_master`), spirit scarecrow (`scarecrow`), tanuki mage (`tanuki_mage`), little dragon (`little_dragon`), courier crane (`crane_courier`), frog bard (`frog_bard`), fox maiden (`fox_maiden`), bear baker (`bear_baker`), lantern crafter (`lantern_crafter`).
+  - Enemies: Folklore yokai silhouettes with contact drop shadows and eerie mist eyes — skull mist wraith (`fog_blob`), shadow rat with quills (`shadow_rat`), karakasa umbrella yokai (`paper_ghost`), hopping pagoda lantern (`hop_lantern`), armored pagoda snail (`armored_snail`), split vortex mist (`split_mist`), windchime funeral wraith (`windchime_spectre`), boulder golem (`mud_golem`), Mist Empress (`boss_mother_of_mist`), Karasu Tengu king (`boss_night_crow_king`), demonic temple lantern furnace (`boss_elder_demon`).
+
+### 3. Enlarged Hand Cards & Active Full Rules Detail Bar (Failure 3)
+- Enlarged hand cards to 86px wide × 136px tall with horizontal smooth scrolling container and snapping.
+- Art frames expanded to 72px tall (>50% of card face) with full-bleed illustration.
+- Added 22px radial gold cost seal with drop shadow and clear archetype badge.
+- Added persistent `#battleHintOrDetail` rules bar above the hand: selecting any card instantly displays its full unabridged mechanics and targeting instructions without any clipping.
+- Widened reward cards to 96px × 150px with dedicated `#rewardCardDescBox` full-description preview.
+
+### 4. Title Screen Key Art Panorama (Failure 4)
+- Designed a full 390×844 panoramic woodblock key art scene featuring a luminous crescent moon, distant mountain ridges, multi-tiered pagoda silhouettes, glowing window lights, festive lantern garlands, and a foreground sacred town stone lantern.
+- Replaced flat single icon with an editorial typographic title "燈籠小鎮守夜人" with warm ambient glow.
+
+### 5. Illustrated Route Map with Medallions (Failure 5)
+- Transformed the map into an atmospheric scroll route across dark misty terrain.
+- Replaced overlapping text buttons with clean 52px circular medallions containing vector icons, radiant amber halos on available nodes, and clear serif node titles rendered beneath each medallion.
+
+### 6. Town Architectural Woodblock Vignettes (Failure 6)
+- Redrew all 10 building illustrations in `SVG_ART.buildings` (`bldg_watchtower`, `bldg_courier`, `bldg_music_hall`, `bldg_fox_shrine`, `bldg_bakery`, `bldg_tea_bush`, `bldg_forge`, `bldg_lucky_stone`, `bldg_herbal_garden`, `bldg_star_pavilion`) with detailed multi-tiered curved tile eaves, wooden brackets, paper screens, hanging lanterns, and hearths.
+- Enhanced town backdrop with deep indigo gradient and subtle star texture.
+
+### 7. Persistent Grokbot Back Button in Battle (Failure 7)
+- Removed `dataset.gbPlaying = "1"` from battle initialization in `js/render/ui.js`, ensuring the `< grokbot` top-left navigation button remains visible and accessible on every screen, including active battle.
+
+### 8. Text Truncation & Layout Polish (Failure 8)
+- Verified all card titles, descriptions, modal sheets, and tooltips at 390px iPhone viewport.
+- All 22 automated rules, intents, persistence, and bot simulation tests pass (100% Relaxed, 90% Standard, 85% Challenging A1).

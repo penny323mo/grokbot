@@ -306,6 +306,9 @@ class LanternWatchApp {
       rowEl.className = "map-row";
 
       rowNodes.forEach((node) => {
+        const itemWrap = document.createElement("div");
+        itemWrap.className = "map-node-wrapper";
+
         const btn = document.createElement("button");
         btn.type = "button";
         const isCurrent = node.id === this.activeRun.currentNodeId;
@@ -321,7 +324,7 @@ class LanternWatchApp {
         if (node.type === "event") iconSvg = SVG_ART.icons.shrine;
         if (node.type === "boss") iconSvg = SVG_ART.icons.boss;
 
-        btn.innerHTML = `<span class="map-node-icon" style="display:inline-flex;width:18px;height:18px;margin-bottom:2px;">${iconSvg}</span><span style="font-size:10px;">${node.name}</span>`;
+        btn.innerHTML = `<span class="map-node-icon" style="display:inline-flex;width:24px;height:24px;">${iconSvg}</span>`;
 
         if (isAvailable) {
           btn.onclick = () => {
@@ -330,7 +333,13 @@ class LanternWatchApp {
           };
         }
 
-        rowEl.appendChild(btn);
+        const label = document.createElement("div");
+        label.className = "map-node-label";
+        label.textContent = node.name;
+
+        itemWrap.appendChild(btn);
+        itemWrap.appendChild(label);
+        rowEl.appendChild(itemWrap);
       });
 
       container.appendChild(rowEl);
@@ -393,6 +402,22 @@ class LanternWatchApp {
       (index, card) => this.handleCardTap(index, card),
       (unit) => this.ui.openUnitInfo(unit, (u) => this.startGuardianMove(u))
     );
+
+    const hintEl = document.getElementById("battleHintOrDetail");
+    if (hintEl) {
+      if (this.ui.selectedHandIndex !== null) {
+        const cardId = this.activeBattle.hand[this.ui.selectedHandIndex];
+        const cardObj = getCardById(cardId);
+        if (cardObj) {
+          const cleanName = cardObj.name.replace(/^召喚：/, "").replace(/！$/, "");
+          hintEl.innerHTML = `<span style="color:var(--lantern-gold);font-weight:800;">【${cleanName}】</span> <span>${cardObj.desc}</span> <span style="color:var(--lantern-gold);font-weight:700;">(點金色格子施放)</span>`;
+        }
+      } else if (this.selectedGuardian) {
+        hintEl.innerHTML = `<span style="color:var(--lantern-gold);font-weight:800;">【${this.selectedGuardian.name}】</span> <span>選擇金色格子進行戰術移動</span>`;
+      } else {
+        hintEl.textContent = "點擊卡牌出牌 · 點友軍戰術移動";
+      }
+    }
   }
 
   selectCardForPlay(handIndex, card) {
@@ -615,8 +640,8 @@ class LanternWatchApp {
     rewardOptions.forEach((c, idx) => {
       const cardEl = document.createElement("div");
       cardEl.className = `card-item card-type-${c.type} ${idx === 0 ? "selected" : ""}`;
-      cardEl.style.width = "92px";
-      cardEl.style.height = "136px";
+      cardEl.style.width = "96px";
+      cardEl.style.height = "150px";
       const cardArtSvg = SVG_ART.cardArt[c.id] || SVG_ART.cardArt.card_summon_cat || "";
       const displayName = c.name.replace(/^召喚：/, "").replace(/！$/, "");
       cardEl.innerHTML = `
@@ -624,8 +649,8 @@ class LanternWatchApp {
           <div class="card-cost-gem">${c.cost}</div>
           <div class="card-type-tag">${getCardTypeLabel(c.type)}</div>
         </div>
-        <div class="card-art-frame" style="height: 64px;">${cardArtSvg}</div>
-        <div class="card-title-serif" style="font-size: 11px;">${displayName}</div>
+        <div class="card-art-frame" style="height: 78px;">${cardArtSvg}</div>
+        <div class="card-title-serif" style="font-size: 11.5px;">${displayName}</div>
       `;
       cardEl.onclick = () => {
         this.sound.playSfx("tap");
