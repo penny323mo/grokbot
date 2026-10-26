@@ -5,7 +5,7 @@
  * - Video Mode
  * - Recipes
  * - Library
- * in both LIGHT and DARK modes into screenshots/v2/after-r1-*.png
+ * in both LIGHT and DARK modes into screenshots/v2/after-r2-*.png
  */
 
 const puppeteer = require("/workspace/nightly/shotkit/node_modules/puppeteer-core");
@@ -71,11 +71,14 @@ async function capture() {
       // Accept dialogs automatically
       page.on("dialog", async (d) => await d.accept());
 
-      // 1. Builder Screen
+      // 1. Builder Screen (Select Cinematic style to show live prompt preview in collapsed sheet)
       await page.goto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: "networkidle0" });
       await sleep(200);
+      await page.click('.style-card[data-style-id="cinematic"]');
+      await page.click('.chip[data-light-id="golden_hour"]');
+      await sleep(200);
 
-      const builderPath = path.join(V2_SCREENSHOTS_DIR, `after-r1-builder-${scheme}.png`);
+      const builderPath = path.join(V2_SCREENSHOTS_DIR, `after-r2-builder-${scheme}.png`);
       await page.screenshot({ path: builderPath });
       console.log(`Saved: ${builderPath}`);
 
@@ -88,9 +91,10 @@ async function capture() {
         await page.click("#card-video .accordion-header");
       }
       await page.click("#btnAddShot");
+      await page.click("#btnAddShot");
       await sleep(200);
 
-      const videoPath = path.join(V2_SCREENSHOTS_DIR, `after-r1-video-${scheme}.png`);
+      const videoPath = path.join(V2_SCREENSHOTS_DIR, `after-r2-video-${scheme}.png`);
       await page.screenshot({ path: videoPath });
       console.log(`Saved: ${videoPath}`);
 
@@ -98,7 +102,7 @@ async function capture() {
       await page.click("#nav-tab-recipes");
       await sleep(200);
 
-      const recipesPath = path.join(V2_SCREENSHOTS_DIR, `after-r1-recipes-${scheme}.png`);
+      const recipesPath = path.join(V2_SCREENSHOTS_DIR, `after-r2-recipes-${scheme}.png`);
       await page.screenshot({ path: recipesPath });
       console.log(`Saved: ${recipesPath}`);
 
@@ -125,7 +129,7 @@ async function capture() {
       await page.click("#nav-tab-library");
       await sleep(200);
 
-      const libraryPath = path.join(V2_SCREENSHOTS_DIR, `after-r1-library-${scheme}.png`);
+      const libraryPath = path.join(V2_SCREENSHOTS_DIR, `after-r2-library-${scheme}.png`);
       await page.screenshot({ path: libraryPath });
       console.log(`Saved: ${libraryPath}`);
 

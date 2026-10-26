@@ -27,33 +27,33 @@
   }
 
   /**
-   * Returns a fresh, complete default builder state
+   * Returns a fresh, clean default builder state (empty canvas)
    */
   function getDefaultState(mode = "image") {
     return {
       mode: mode === "video" ? "video" : "image",
-      subject: "a stylish young woman in a dark trench coat with a confident gaze",
-      subjectEn: "a stylish young woman in a dark trench coat with a confident gaze",
-      subjectZh: "一位穿著深色風衣、眼神自信堅毅的年輕女性",
-      subjectCategory: "portrait",
-      scene: "city_night",
+      subject: "",
+      subjectEn: "",
+      subjectZh: "",
+      subjectCategory: null,
+      scene: null,
       sceneCustom: "",
-      style: "cinematic",
-      styleModifiers: ["highly_detailed", "sharp_focus"],
-      lighting: "golden_hour",
-      cameraShotSize: "medium_shot",
-      cameraAngle: "eye_level",
-      cameraLens: "lens_35mm",
-      cameraAperture: "ap_f1_8",
-      composition: "rule_of_thirds",
-      mood: "dreamy",
-      palette: "teal_orange",
+      style: null,
+      styleModifiers: [],
+      lighting: null,
+      cameraShotSize: null,
+      cameraAngle: null,
+      cameraLens: null,
+      cameraAperture: null,
+      composition: null,
+      mood: null,
+      palette: null,
       aspectRatio: "16_9",
       arSuffix: false,
-      negativeChips: ["blurry", "low_res", "bad_hands", "watermark_text"],
+      negativeChips: [],
       negativeCustom: "",
       // Video-only
-      cameraMovement: "push_in",
+      cameraMovement: mode === "video" ? "push_in" : null,
       duration: 5,
       pacing: "smooth_steady",
       subjectMotion: "",

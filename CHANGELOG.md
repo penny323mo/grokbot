@@ -113,3 +113,56 @@ All notable changes to the Prompt Studio project will be documented in this file
   - **無障礙與尺寸**：全站所有按鈕與觸控標的皆嚴格 $\ge 44\times 44\text{px}$，在 390px 視口下 0 水平溢出（0 horizontal overflow）。
 - **截圖驗證**：
   - 於 `screenshots/v2/` 產出淺色與深色模式之 Builder、Video Mode、Recipes、Library 390px 寬度截圖。
+
+## V2 Round 2 fixes
+
+### 🛠️ Grok R1 審查問題修復對照 (P0, P1, P2 Fixes)
+
+1. **P0 #1 (收起狀態 Prompt 預覽與分頁隔離)**：
+   - **收起狀態精簡呈現**：預覽抽屜收起高度設為約 115-128px，收起時隱藏頂欄與次要收合區，直接呈現 2 行等寬純英文 Prompt 預覽卡片（`#promptDisplay`），緊鄰「複製 Prompt」主要按鈕與「儲存」按鈕，使用者無需展開即可清晰閱讀與單擊複製英文提示詞。
+   - **非創作分頁隱藏**：於「靈感配方」與「提示詞庫」分頁中徹底隱藏預覽抽屜（`display: none !important`），並將頁面底部間距恢復為底部分頁欄與安全區尺寸，徹底釋放兩頁空間，不再遮擋卡片與按鈕。
+
+2. **P0 #2 (提示詞庫工具列 390px 溢出修復)**：
+   - 搜尋框容器 `.search-input-wrap` 加上 `min-width: 0`，精簡 Placeholder 為「搜尋提示詞或標籤...」。
+   - 匯出（`#btnExportJSON`）與匯入（`#btnImportJSON`）按鈕在 390px 寬度下轉為純圖標按鈕（具備 `aria-label` 與 `title`），確保搜尋列與操作按鈕在單列平滑展示，`scrollWidth <= 390`，徹底解決橫向裁切與畫面溢出。
+
+3. **P1 #3 (頂欄標題 390px 寬度釋放與雙列原生導航)**：
+   - 頂部導航重構為原生雙列結構：第一列配置品牌圖標、完整「Prompt 工作室」字樣（標題不再被省略為「Prompt 工…」）與模式徽章，右側提供隨機（🎲）與清空（🧹）按鈕；第二列配置全寬居中的 `UISegmentedControl`（圖片 / 影片）。
+   - 在靈感配方與提示詞庫分頁自動隱藏創作分段控制器，界面更為純粹整潔。
+
+4. **P1 #4 (分鏡新增按鈕折行修復)**：
+   - 為「＋ 新增鏡頭」（`#btnAddShot`）按鈕添加 `white-space: nowrap !important; flex-shrink: 0 !important;`，徹底消除「＋ 新增 / 鏡頭」雙行換行現象。
+
+5. **P1 #5 (`--fill-secondary` 主題變數補齊)**：
+   - 於 `:root` 定義 `--fill-secondary: rgba(118, 118, 128, 0.20)`，深色模式定義為 `0.32`，解決晶片 hover、複製晶片 active 及次要按鈕 active 時因變數未定義導致背景閃爍的問題。
+
+6. **P1 #6 (清空按鈕重置為空白畫布)**：
+   - 修正 `getDefaultState`，回歸 SPEC 的空白畫布預設（`subject: ""`、無預設晶片選取），點擊「清空」時真正還原為乾淨畫布，提示詞卡片引導使用者「請於上方選擇主體、風格或場景以生成 Prompt...」，解決清空後重新填入人像預設之邏輯瑕疵。
+
+7. **P1 #7 (iOS 鍵盤事件 Transform 衝突修復)**：
+   - 移除 `setupVisualViewport` 中覆蓋 CSS 置中的內聯 `style.transform`（避免遺失 `translateX(-50%)` 導致抽屜右偏），改為純 class 控制 `body.keyboard-open`，在虛擬鍵盤彈起時平滑收起底部組件。
+
+8. **P2 #8 (iOS Large Title 原生排版引入)**：
+   - 於靈感配方與提示詞庫頁面頂部引入 Apple 風格的 iOS Large Title（34px / 700粗體「靈感配方」、「提示詞庫」），強化系統原生層級感。
+
+9. **P2 #9 (原生表單控制項支援深色模式)**：
+   - 於 `:root` 及 `@media (prefers-color-scheme: dark)` 宣告 `color-scheme: light dark;`，確保鏡頭選單 `<select>` 與表單控制項在深色模式下呈現正確的深色背景。
+
+10. **P2 #10 (分段控制器幾何比例與點擊熱區優化)**：
+    - 將分段控制器視覺高度保持為 iOS 標準 36px / 按鈕 32px，並透過 `::after` 偽元素擴充點擊熱區（hit slop）至 $\ge 44\text{px}$，兼顧視覺精緻度與觸控易用性。
+
+11. **P2 #11 (分鏡故事板動作按鈕對比度與警示色彩)**：
+    - 提高分鏡卡片上移（▲）、下移（▼）圖標按鈕對比度，刪除按鈕（✕）採用鮮明的系統警示紅色系（`rgba(255, 59, 48, ...)`），並補齊無障礙 `aria-label`。
+
+12. **P2 #12 (PWA 狀態列樣式更新)**：
+    - 將 `apple-mobile-web-app-status-bar-style` 調整為 `black-translucent`，配合雙主題色 meta 標籤，提供深色與淺色無縫的狀態列體驗。
+
+### 📸 截圖驗證與測試驗證
+- **全新截圖產出**：已於 `screenshots/v2/` 產出 8 張 390px 寬度截圖：
+  - `after-r2-builder-light.png` / `after-r2-builder-dark.png`
+  - `after-r2-video-light.png` / `after-r2-video-dark.png`
+  - `after-r2-recipes-light.png` / `after-r2-recipes-dark.png`
+  - `after-r2-library-light.png` / `after-r2-library-dark.png`
+- **測試通過**：
+  - 單元測試：`node --test tests/prompt_studio.test.js`（14/14 全數通過）。
+  - 無頭自動化驗證：`node tests/verify_headless.js`（390x844 下 0 console error, 0 console warning, 0 horizontal overflow 全數通過）。
