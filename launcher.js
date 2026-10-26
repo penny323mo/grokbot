@@ -116,7 +116,7 @@
               <div class="card-meta">
                 <span class="card-cat">${esc(p.category)}</span>
                 <span class="meta-dot" aria-hidden="true">·</span>
-                <time class="card-date" datetime="${esc(p.added)}">${fmtDate(p.added)}</time>
+                <time class="card-date" datetime="${esc(p.added)}">加入日期 ${fmtDate(p.added)}</time>
                 ${isLatest ? '<span class="badge-new" aria-label="最新作品">新</span>' : ''}
               </div>
               <div class="card-headings">
