@@ -30,6 +30,14 @@ export class Board {
     return this.terrain[y]?.[x] || '.';
   }
 
+  setTerrainChar(x, y, char) {
+    if (!this.inBounds(x, y)) return;
+    const row = this.terrain[y];
+    if (typeof row === 'string') {
+      this.terrain[y] = row.substring(0, x) + char + row.substring(x + 1);
+    }
+  }
+
   getTerrain(x, y) {
     const ch = this.getTerrainChar(x, y);
     return TERRAIN_INFO[ch] || TERRAIN_INFO['.'];

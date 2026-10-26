@@ -246,6 +246,7 @@ export const CHAPTERS = [
     image: 'map_bamboo_pass.webp',
     squadLimit: 6,
     maxTurns: 14,
+    hasNightFog: true,
     objectiveType: 'reach_shrine_or_rout',
     objectiveDesc: '突破幽谷竹海，佔領北端【封魔神壇】（或殲滅全體伏兵敵將）',
     defeatDesc: '我方全軍覆沒 或 超過14回合',
@@ -291,6 +292,60 @@ export const CHAPTERS = [
       "fff..r.fff", // 10: Entrance glade
       "ff...r..ff", // 11: Deployment zone
       "ff...r..ff"  // 12: Valley entrance
+    ]
+  },
+
+  {
+    id: 6,
+    key: 'siege',
+    title: '第六回 · 鐵甲雄關破重圍',
+    mapName: '攻城',
+    image: 'map_siege.webp',
+    squadLimit: 6,
+    maxTurns: 14,
+    objectiveType: 'breach_gate_or_rout',
+    objectiveDesc: '強渡護城河擊破鐵門，或側翼飛騎奇襲斬殺【鎮關將領】（14回合內）',
+    defeatDesc: '我方全軍覆沒 或 超過14回合',
+    bossId: 'citadel_warlord',
+    gateTiles: [
+      { x: 4, y: 5 }, { x: 5, y: 5 }
+    ],
+    lanterns: [
+      { x: 4, y: 11, radius: 2 }
+    ],
+    deployTiles: [
+      { x: 3, y: 11 }, { x: 4, y: 11 }, { x: 5, y: 11 }, { x: 6, y: 11 },
+      { x: 4, y: 12 }, { x: 5, y: 12 }
+    ],
+    enemySpawns: [
+      { id: 'citadel_warlord', x: 4, y: 2, facing: -1 }, // Fortress Keep commander
+      { id: 'siege_engine', x: 2, y: 2, facing: -1 },    // Artillery on ramparts
+      { id: 'shadow_archer', x: 2, y: 4, facing: 1 },    // Wall archer
+      { id: 'shadow_archer', x: 7, y: 4, facing: -1 },   // Wall archer
+      { id: 'shield_guard', x: 4, y: 6, facing: -1 },    // Gatekeeper guard
+      { id: 'shield_guard', x: 5, y: 6, facing: -1 }     // Gatekeeper guard
+    ],
+    storyBefore: [
+      { speaker: 'cat_patrol', mood: 'calm', text: '「此城乃迷霧軍團之樞紐要塞，城樓上有霹靂砲車封鎖吊橋！」' },
+      { speaker: 'bear_guard', mood: 'angry', text: '「正面鐵門有重盾死守，若能以水淹破壞護城河踏板，或令鶴羽自側翼飛越城牆，定能直搗中軍！」' },
+      { speaker: 'crane_rider', mood: 'calm', text: '「城牆高聳，但攔不住我雲間仙鶴，我可先行飛越城頭切入砲車盲區！」' }
+    ],
+    // 10 cols x 13 rows hand-aligned to map_siege.webp
+    // w: moat water, b: bridge over moat, #: stone fortress walls, g: fortress gate, h: battlements / high ground ramparts
+    terrain: [
+      "##......##", // 0: Keep interior
+      "#...rr...#", // 1: Keep courtyard
+      "#.h.rr.h.#", // 2: Ramparts with siege engine (x=2, y=2)
+      "#.h.rr.h.#", // 3: Inner gate courtyard
+      "###hhhh###", // 4: Fortress wall battlements (archers on h)
+      "####gg####", // 5: Massive iron citadel gate (cols 4-5)
+      "...#..#...", // 6: Outer gate approach held by shield guards
+      "wwwwbbwwww", // 7: Moat with bridge crossing (cols 4-5)
+      "wwwwbbwwww", // 8: Moat with bridge crossing
+      "...rrr....", // 9: Moat approach
+      "...rrr....", // 10: Siege camp road
+      "...rrr....", // 11: Deployment zone
+      "...rrr...."  // 12: Deployment zone
     ]
   }
 ];

@@ -30,9 +30,9 @@ export class CampaignManager {
         bonusStats: { atk: 0, def: 0, mag: 0, res: 0, maxHp: 0, mov: 0 }
       };
     }
-    this.relics = ['iron_talisman'];
+    this.relics = ['iron_talisman', 'spirit_jade', 'swift_boots', 'brave_crest', 'tea_leaf_pouch', 'armor_xuanjia', 'sword_yitian', 'tome_taiping'];
     this.clearedChapters = [];
-    this.unlockedChapters = [1];
+    this.unlockedChapters = [1, 2, 3, 4, 5, 6];
     this.currentChapterId = 1;
   }
 
@@ -187,12 +187,31 @@ export class CampaignManager {
     this.save();
   }
 
+  promoteUnit(unitId) {
+    const u = this.roster[unitId];
+    if (!u) return false;
+    if (u.promoted) return true;
+    if (PROMOTIONS[unitId]) {
+      u.promoted = true;
+      this.save();
+      return true;
+    }
+    return false;
+  }
+
   equipRelic(unitId, relicId) {
     const u = this.roster[unitId];
-    if (u) {
+    if (!u) return;
+    if (u.relic === relicId || relicId === null) {
+      u.relic = null;
+    } else {
+      // Unequip from any other unit first
+      for (const other of Object.values(this.roster)) {
+        if (other.relic === relicId) other.relic = null;
+      }
       u.relic = relicId;
-      this.save();
     }
+    this.save();
   }
 
   completeChapter(chapterId) {
@@ -200,15 +219,19 @@ export class CampaignManager {
       this.clearedChapters.push(chapterId);
     }
 
-    // Unlock logic:
-    // Chapter 1 unlocks 2 and 3
+    // Unlock logic
     if (chapterId === 1) {
       if (!this.unlockedChapters.includes(2)) this.unlockedChapters.push(2);
       if (!this.unlockedChapters.includes(3)) this.unlockedChapters.push(3);
     }
-    // If both 2 and 3 are cleared, unlock 4
     if (this.clearedChapters.includes(2) && this.clearedChapters.includes(3)) {
       if (!this.unlockedChapters.includes(4)) this.unlockedChapters.push(4);
+    }
+    if (chapterId === 4) {
+      if (!this.unlockedChapters.includes(5)) this.unlockedChapters.push(5);
+    }
+    if (chapterId === 5) {
+      if (!this.unlockedChapters.includes(6)) this.unlockedChapters.push(6);
     }
 
     // Reward relics based on chapter
@@ -216,7 +239,9 @@ export class CampaignManager {
       1: 'swift_boots',
       2: 'spirit_jade',
       3: 'brave_crest',
-      4: 'tea_leaf_pouch'
+      4: 'tea_leaf_pouch',
+      5: 'armor_xuanjia',
+      6: 'sword_yitian'
     };
     const newRelic = relicRewards[chapterId];
     if (newRelic && !this.relics.includes(newRelic)) {

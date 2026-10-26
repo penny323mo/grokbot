@@ -116,6 +116,22 @@ class LanternTacticsApp {
       this.openWorldMap();
     };
 
+    const btnOpenCamp = document.getElementById('btnOpenCamp');
+    if (btnOpenCamp) {
+      btnOpenCamp.onclick = () => {
+        this.sound?.playSfx('tap');
+        this.openCampScreen();
+      };
+    }
+
+    const btnCampBackToMap = document.getElementById('btnCampBackToMap');
+    if (btnCampBackToMap) {
+      btnCampBackToMap.onclick = () => {
+        this.sound?.playSfx('tap');
+        this.openWorldMap();
+      };
+    }
+
     document.getElementById('btnOpenRoster').onclick = () => {
       this.sound?.playSfx('tap');
       const inst = this.campaign.getUnitInstance('cat_patrol');
@@ -149,6 +165,28 @@ class LanternTacticsApp {
     this.ui.renderWorldMap(this.campaign, (chapterId) => {
       const ch = CHAPTERS.find(c => c.id === chapterId);
       if (ch) this.openPreBattle(ch);
+    });
+  }
+
+  openCampScreen(unitId = 'cat_patrol') {
+    this.campSelectedUnitId = unitId;
+    this.ui.showScreen('screenCamp');
+    this.ui.renderCampScreen(this.campaign, this.campSelectedUnitId, {
+      onSelectUnit: (uid) => {
+        this.openCampScreen(uid);
+      },
+      onEquipRelic: (uid, relicId) => {
+        this.sound?.playSfx('tap');
+        this.campaign.equipRelic(uid, relicId);
+        this.openCampScreen(uid);
+      },
+      onPromoteUnit: (uid) => {
+        const success = this.campaign.promoteUnit(uid);
+        if (success) {
+          this.sound?.playSfx('buff');
+        }
+        this.openCampScreen(uid);
+      }
     });
   }
 
@@ -486,8 +524,9 @@ class LanternTacticsApp {
     const rangeTiles = getAttackRangeTiles(this.battle.board, unit, unit.x, unit.y);
     this.attackableTiles = new Set(rangeTiles.filter(t => !this.battle.board.isImpassable(t.x, t.y, false)).map(t => `${t.x},${t.y}`));
 
+    const vision = this.battle.isFogActive() ? this.battle.calculateVisionMap() : null;
     const enemiesInRange = this.battle.enemies.filter(e =>
-      e.hp > 0 && rangeTiles.some(t => t.x === e.x && t.y === e.y) && canTargetUnit(unit, e, this.battle.board)
+      e.hp > 0 && rangeTiles.some(t => t.x === e.x && t.y === e.y) && canTargetUnit(unit, e, this.battle.board, vision)
     );
 
     const hasSkill = !!unit.skill;
@@ -614,8 +653,9 @@ class LanternTacticsApp {
     const rTiles = getAttackRangeTiles(this.battle.board, unit, unit.x, unit.y);
     this.attackableTiles = new Set(rTiles.filter(t => !this.battle.board.isImpassable(t.x, t.y, false)).map(t => `${t.x},${t.y}`));
 
+    const vision = this.battle.isFogActive() ? this.battle.calculateVisionMap() : null;
     const validTargets = this.battle.enemies.filter(e =>
-      e.hp > 0 && rTiles.some(t => t.x === e.x && t.y === e.y) && canTargetUnit(unit, e, this.battle.board)
+      e.hp > 0 && rTiles.some(t => t.x === e.x && t.y === e.y) && canTargetUnit(unit, e, this.battle.board, vision)
     );
     if (validTargets.length > 0) {
       this.evaluateTargetPreview(validTargets[0]);
@@ -726,7 +766,7 @@ class LanternTacticsApp {
       setTimeout(() => {
         this.ui.showBattleResult(this.battle.status, this.activeChapter, () => {
           this.openWorldMap();
-        }, this.campaign, this.battle.allies);
+        }, this.campaign, this.battle.allies, this.battle);
       }, 600);
       return;
     }
@@ -756,7 +796,7 @@ class LanternTacticsApp {
       if (this.battle.status.finished) {
         this.ui.showBattleResult(this.battle.status, this.activeChapter, () => {
           this.openWorldMap();
-        }, this.campaign, this.battle.allies);
+        }, this.campaign, this.battle.allies, this.battle);
         return;
       }
 
@@ -871,6 +911,7 @@ class LanternTacticsApp {
       getCampaign: () => this.campaign,
       showScreen: (s) => this.ui.showScreen(s),
       openWorldMap: () => this.openWorldMap(),
+      openCamp: (unitId = 'cat_patrol') => this.openCampScreen(unitId),
       openPreBattle: (chId = 1) => {
         const ch = CHAPTERS.find(c => c.id === chId) || CHAPTERS[0];
         this.openPreBattle(ch);
@@ -936,7 +977,10 @@ class LanternTacticsApp {
       showBattleResultModal: (victory = true, chId = 1) => {
         const ch = CHAPTERS.find(c => c.id === chId) || CHAPTERS[0];
         const status = { victory, reason: victory ? '天光破曉 · 突破隘口' : '夜霧重重 · 退守整軍' };
-        this.ui.showBattleResult(status, ch, () => {}, this.campaign, this.battle?.allies);
+        this.ui.showBattleResult(status, ch, () => {}, this.campaign, this.battle?.allies, this.battle);
+      },
+      openCampScreen: (unitId = 'cat_patrol') => {
+        this.openCampScreen(unitId);
       },
       showDialogue: (chId = 1) => {
         const ch = CHAPTERS.find(c => c.id === chId) || CHAPTERS[0];

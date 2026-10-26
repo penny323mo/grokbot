@@ -326,6 +326,41 @@ function executeAllyBotTurn(battle, botType, rng) {
         // Gate: stay close to gate tiles
         const dGate = Math.abs(m.x - 4.5) + Math.abs(m.y - 6);
         score = -dGate * 6;
+      } else if (chapter.id === 6) {
+        // Chapter 6: Siege
+        // Crane Rider uses flight to flank siege engine blind zone (dist 1)
+        if (ally.id === 'crane_rider') {
+          const siege = livingEnemies.find(e => e.id === 'siege_engine');
+          if (siege) {
+            const dSiege = Board.manhattan(m.x, m.y, siege.x, siege.y);
+            score = -Math.abs(dSiege - 1) * 9;
+          } else {
+            const boss = livingEnemies.find(e => e.id === 'citadel_warlord');
+            const targetPos = boss ? { x: boss.x, y: boss.y } : { x: 4, y: 2 };
+            score = -Board.manhattan(m.x, m.y, targetPos.x, targetPos.y) * 6;
+          }
+        } else if (ally.id === 'bear_guard') {
+          // Bear Guard takes bridge chokepoint and breaches gate
+          const dGate = Math.abs(m.x - 4.5) + Math.abs(m.y - 5);
+          score = -dGate * 8;
+        } else if (ally.id === 'tea_master') {
+          // Tea stays behind frontliner
+          const bear = battle.allies.find(a => a.id === 'bear_guard' && a.hp > 0);
+          if (bear) {
+            const dBear = Board.manhattan(m.x, m.y, bear.x, bear.y);
+            score = -Math.abs(dBear - 1.5) * 6;
+          } else {
+            const dGate = Math.abs(m.x - 4.5) + Math.abs(m.y - 5);
+            score = -dGate * 5;
+          }
+        } else {
+          // DPS units push bridge / gate
+          let minD = Infinity;
+          for (const e of livingEnemies) {
+            minD = Math.min(minD, Board.manhattan(m.x, m.y, e.x, e.y));
+          }
+          score = -minD * 5 + (12 - m.y) * 2;
+        }
       } else {
         // Closer to squishiest enemy
         let minD = Infinity;
@@ -368,6 +403,7 @@ test('Simulation: Encounters heuristic bot test table & naive failure check', ()
   const ch3 = CHAPTERS.find(c => c.key === 'market');
   const ch4 = CHAPTERS.find(c => c.key === 'mountain');
   const ch5 = CHAPTERS.find(c => c.key === 'bamboo_pass');
+  const ch6 = CHAPTERS.find(c => c.key === 'siege');
 
   console.log('\n================ ENCOUNTER SIMULATION RESULTS ================');
   console.log('| Chapter | Comp Name | Squad | Stratagem | Result | Turns |');
@@ -428,14 +464,27 @@ test('Simulation: Encounters heuristic bot test table & naive failure check', ()
   assert.strictEqual(b5B.status.victory, true, 'Chapter 5 Solution B must win');
   console.log(`| Ch 5    | Solution B | 墨影+鶴羽+熊岳+茶翁+狐火+雷狸 | 火攻 | ${b5B.status.victory ? 'WIN ' : 'FAIL'} | ${b5B.currentTurn} 回合 |`);
 
+  // Chapter 6: Siege
+  // Solution A: Bear + Tea + Crane + Cat + Fox + Tanuki, Stratagem: 鼓舞
+  const b6A = runBotBattle(ch6, ['bear_guard', 'tea_master', 'crane_rider', 'cat_patrol', 'fox_maiden', 'tanuki_mage'], 'inspire', 601, 'heuristic');
+  assert.strictEqual(b6A.status.victory, true, 'Chapter 6 Solution A must win');
+  console.log(`| Ch 6    | Solution A | 熊岳+茶翁+鶴羽+墨影+狐火+雷狸 | 鼓舞 | ${b6A.status.victory ? 'WIN ' : 'FAIL'} | ${b6A.currentTurn} 回合 |`);
+
+  // Solution B: Bear + Tea + Crane + Fox + Tanuki + Lantern, Stratagem: 夜襲
+  const b6B = runBotBattle(ch6, ['bear_guard', 'tea_master', 'crane_rider', 'fox_maiden', 'tanuki_mage', 'lantern_crafter'], 'night_raid', 602, 'heuristic');
+  assert.strictEqual(b6B.status.victory, true, 'Chapter 6 Solution B must win');
+  console.log(`| Ch 6    | Solution B | 熊岳+茶翁+鶴羽+狐火+雷狸+燈娘 | 夜襲 | ${b6B.status.victory ? 'WIN ' : 'FAIL'} | ${b6B.currentTurn} 回合 |`);
+
   console.log('==============================================================\n');
 
   // Verify that a naive "charge nearest" bot does NOT win all 4 battles with the same comp
   // E.g. Naive bot with Cat + Fox + Tanuki + Archer charging headlong into Chapter 2 (Gate) or Chapter 1 (abandoning cart)
   const naiveCh1 = runBotBattle(ch1, ['cat_patrol', 'fox_maiden', 'tanuki_mage', 'lantern_crafter'], null, 101, 'naive');
   const naiveCh2 = runBotBattle(ch2, ['cat_patrol', 'fox_maiden', 'tanuki_mage', 'lantern_crafter', 'crane_rider'], null, 201, 'naive');
+  const naiveCh6 = runBotBattle(ch6, ['cat_patrol', 'fox_maiden', 'tanuki_mage', 'lantern_crafter', 'crane_rider', 'tea_master'], null, 601, 'naive');
 
-  const naiveAllWon = (naiveCh1.status.victory && naiveCh2.status.victory);
+  const naiveAllWon = (naiveCh1.status.victory && naiveCh2.status.victory && naiveCh6.status.victory);
   assert.strictEqual(naiveAllWon, false, 'Naive brute-force bot must fail at least one tactical objective without strategy');
-  console.log(`[Validation] Naive bot failed tactical challenge as expected (Ch1: ${naiveCh1.status.victory ? 'WIN' : 'FAIL'}, Ch2: ${naiveCh2.status.victory ? 'WIN' : 'FAIL'})`);
+  assert.strictEqual(naiveCh6.status.victory, false, 'Naive charge must fail against Chapter 6 siege engine bombardment');
+  console.log(`[Validation] Naive bot failed tactical challenge as expected (Ch1: ${naiveCh1.status.victory ? 'WIN' : 'FAIL'}, Ch2: ${naiveCh2.status.victory ? 'WIN' : 'FAIL'}, Ch6: ${naiveCh6.status.victory ? 'WIN' : 'FAIL'})`);
 });

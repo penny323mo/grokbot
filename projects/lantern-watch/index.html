@@ -79,8 +79,14 @@
     <section class="screen" id="screenWorldMap">
       <div class="worldmap-container">
         <div class="worldmap-header-bar">
-          <h2 class="worldmap-title">天下夜影圖</h2>
-          <span class="worldmap-subtitle">選擇要進軍破霧的戰略關卡</span>
+          <div class="worldmap-header-left">
+            <h2 class="worldmap-title">天下夜影圖</h2>
+            <span class="worldmap-subtitle">選擇要進軍破霧的戰略關卡</span>
+          </div>
+          <button type="button" class="btn-brush-secondary" id="btnOpenCamp">
+            <span class="brush-icon">營</span>
+            <span>軍略營帳</span>
+          </button>
         </div>
         <div class="worldmap-scrollable" id="worldMapScrollable">
           <div class="worldmap-art-stage" id="worldMapStage">
@@ -88,6 +94,34 @@
             <!-- Dynamic route paths and chapter pin nodes are rendered here -->
             <div class="worldmap-nodes-layer" id="worldMapNodes"></div>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCREEN 2B: CAMP (營帳) SCREEN -->
+    <section class="screen" id="screenCamp">
+      <div class="camp-container">
+        <div class="camp-header-bar">
+          <button type="button" class="btn-brush-secondary" id="btnCampBackToMap" style="padding: 4px 8px; font-size: 12px;">
+            <span class="brush-icon">◀</span>
+            <span>地圖</span>
+          </button>
+          <div class="camp-title-wrap">
+            <h2 class="camp-title">軍略營帳</h2>
+            <span class="camp-subtitle">名冊 · 寶具 · 破境</span>
+          </div>
+          <div class="camp-header-spacer"></div>
+        </div>
+
+        <div class="camp-content-scrollable">
+          <!-- Roster selector strip -->
+          <div class="camp-roster-section">
+            <div class="camp-section-title">✦ 參戰將士名冊 ✦</div>
+            <div class="camp-roster-grid" id="campRosterGrid"></div>
+          </div>
+
+          <!-- Selected character profile & progression -->
+          <div class="camp-profile-section" id="campProfileDetails"></div>
         </div>
       </div>
     </section>

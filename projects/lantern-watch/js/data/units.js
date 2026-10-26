@@ -665,6 +665,65 @@ export const ENEMY_PROTOS = {
     tacticalHint: '遁影潛行奇襲 · 優先狙擊後排與燈車',
     bark: '「無聲無息，暗刃穿喉！」',
     backstory: '潛伏於暗處的幽影斥候，步法輕盈無聲，專門穿透前線直刺我軍燈車與後排。'
+  },
+
+  siege_engine: {
+    id: 'siege_engine',
+    name: '霹靂砲車',
+    title: '玄銅重砲',
+    cls: '砲車',
+    role: 'siege_engine',
+    team: 'enemy',
+    element: 'fire',
+    mov: 2,
+    hp: 36,
+    maxHp: 36,
+    mp: 6,
+    maxMp: 6,
+    atk: 16,
+    def: 8,
+    mag: 0,
+    res: 4,
+    spd: 4,
+    range: [3, 5],
+    flyer: false,
+    trait: {
+      id: 'siege_bombardment',
+      name: '霹靂重砲',
+      desc: '射程3-5格超遠程轟擊；近身1-2格為射程盲區無法攻擊或反擊，需騎兵或近戰急襲'
+    },
+    tacticalHint: '射程3-5格轟天落石 · 近身1-2格為盲區無反擊',
+    bark: '「玄銅巨彈，崩山碎石！」',
+    backstory: '守關重型霹靂投石重砲，裝填火藥雷石，能對極遠處造成毀滅打擊，但機動笨拙且近身毫無還手之力。'
+  },
+
+  citadel_warlord: {
+    id: 'citadel_warlord',
+    name: '鎮關將領',
+    title: '雄關大將',
+    cls: '主將',
+    role: 'commander',
+    team: 'enemy',
+    mov: 3,
+    hp: 55,
+    maxHp: 55,
+    mp: 8,
+    maxMp: 8,
+    atk: 16,
+    def: 12,
+    mag: 6,
+    res: 8,
+    spd: 7,
+    range: 1,
+    flyer: false,
+    trait: {
+      id: 'citadel_command',
+      name: '固若金湯',
+      desc: '在城樓要塞之內防禦提升；生命低於50%時召喚親衛增援'
+    },
+    tacticalHint: '雄關主將 · 需破城攻門或側翼飛騎突入斬首',
+    bark: '「此城乃天險雄關，任爾等如何攻打也是徒勞！」',
+    backstory: '鎮守關隘的百戰宿將，熟諳攻防陣列，率親衛死守關內大廳。'
   }
 };
 
@@ -868,7 +927,7 @@ export const STRATAGEMS = [
   { id: 'fire_attack', name: '火攻', icon: '火', desc: '第1回合向指定3×3林地/市集降下烈焰，造成10點傷害（水相無效）' },
   { id: 'ambush', name: '伏兵', icon: '伏', desc: '戰鬥開始時，一名我方隊友可直接部署於任意樹林深處' },
   { id: 'feint', name: '佯攻', icon: '計', desc: '第1回合吸引敵方騎兵朝誘餌方向移動' },
-  { id: 'flood', name: '水淹', icon: '水', mapReq: 4, desc: '【僅第4關可用】決堤放水，沖淹下方低窪道路，對row≥9單位造成15點傷害' },
+  { id: 'flood', name: '水淹', icon: '水', desc: '引大河或山隘之水淹沒淺灘2回合，使淺灘化為深水，造成12點水傷並擊退陸行單位（墜水溺斃）' },
   { id: 'night_raid', name: '夜襲', icon: '夜', desc: '借夜色急襲，敵方全體第1回合無法行動' },
   { id: 'inspire', name: '鼓舞', icon: '鼓', desc: '號角齊鳴，我方全體第1與第2回合傷害提升20%' }
 ];

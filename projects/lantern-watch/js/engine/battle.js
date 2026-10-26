@@ -30,6 +30,9 @@ export class Battle {
     this.enemies = [];
     this.eventLog = [];
     this.usedBondPairThisBattle = false;
+    this.actionScores = {};
+    this.floodedTiles = new Map();
+    this.originalTerrain = new Map();
 
     this.initUnits(squadUnits, this.options);
     this.applyStratagemAtStart();
@@ -119,15 +122,17 @@ export class Battle {
     } else if (this.stratagemId === 'night_raid') {
       this.enemySkipsTurn1 = true;
       this.eventLog.push({ type: 'stratagem', name: '夜襲', msg: '借夜色掩護急襲，敵方第1回合全體無法行動！' });
-    } else if (this.stratagemId === 'flood' && this.chapter.id === 4) {
-      // Floods lower path rows >= 9
-      this.eventLog.push({ type: 'stratagem', name: '水淹', msg: '天池開閘決堤，巨浪席捲山道！' });
-      for (const e of this.enemies) {
-        if (e.y >= 9) {
-          e.hp = Math.max(0, e.hp - 15);
-          this.eventLog.push({ type: 'flood_hit', target: e.id, damage: 15 });
+    } else if (this.stratagemId === 'flood') {
+      if (this.chapter.id === 4) {
+        this.eventLog.push({ type: 'stratagem', name: '水淹', msg: '天池開閘決堤，巨浪席捲山道！' });
+        for (const e of this.enemies) {
+          if (e.y >= 6 && e.y <= 10) {
+            e.hp = Math.max(0, e.hp - 15);
+            this.eventLog.push({ type: 'flood_hit', target: e.id, damage: 15, msg: `天池巨浪重創【${e.name}】！` });
+          }
         }
       }
+      this.triggerWaterFlood(this.chapter.id === 4 ? 6 : 4, this.chapter.id === 4 ? 10 : 8);
     } else if (this.stratagemId === 'fire_attack') {
       let center = this.fireCenter || this.options.fireCenter;
       if (!center && this.options.manualFireAttack) {
@@ -211,6 +216,182 @@ export class Battle {
     }
   }
 
+  triggerWaterFlood(targetRowMin = 4, targetRowMax = 8) {
+    if (!this.floodedTiles) this.floodedTiles = new Map();
+    this.eventLog.push({ type: 'stratagem', name: '水淹', msg: '江河開閘決堤，巨浪滔天席捲淺灘河道！' });
+
+    for (let r = targetRowMin; r <= targetRowMax; r++) {
+      for (let c = 0; c < 10; c++) {
+        const char = this.board.getTerrainChar(c, r);
+        if (char === 's') {
+          const key = `${c},${r}`;
+          this.floodedTiles.set(key, 2);
+          if (!this.originalTerrain) this.originalTerrain = new Map();
+          if (!this.originalTerrain.has(key)) this.originalTerrain.set(key, char);
+          this.board.setTerrainChar(c, r, 'w');
+        }
+      }
+    }
+
+    for (const e of this.enemies) {
+      if (this.floodedTiles.has(`${e.x},${e.y}`)) {
+        if (!e.flyer) {
+          e.hp = Math.max(0, e.hp - 12);
+          this.eventLog.push({ type: 'flood_hit', target: e.id, damage: 12, msg: `巨浪衝擊【${e.name}】造成12點傷害！` });
+          if (e.hp > 0) {
+            const pushY = Math.min(12, e.y + 1);
+            if (!this.getUnitAt(e.x, pushY) && !this.board.isImpassable(e.x, pushY, false)) {
+              e.y = pushY;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  tickFloodedTiles() {
+    if (!this.floodedTiles || this.floodedTiles.size === 0) return;
+    for (const [key, turns] of this.floodedTiles.entries()) {
+      if (turns <= 1) {
+        const [c, r] = key.split(',').map(Number);
+        const orig = this.originalTerrain?.get(key) || '.';
+        this.board.setTerrainChar(c, r, orig);
+        this.floodedTiles.delete(key);
+      } else {
+        this.floodedTiles.set(key, turns - 1);
+      }
+    }
+  }
+
+  isFogActive() {
+    return Boolean(this.chapter.hasNightFog || this.chapter.id === 5);
+  }
+
+  calculateVisionMap() {
+    const visibleTiles = new Set();
+    if (!this.isFogActive()) {
+      for (let r = 0; r < 13; r++) {
+        for (let c = 0; c < 10; c++) {
+          visibleTiles.add(`${c},${r}`);
+        }
+      }
+      return visibleTiles;
+    }
+
+    // Allied unit vision
+    for (const ally of this.allies) {
+      if (ally.hp <= 0) continue;
+      const radius = (ally.id === 'cat_patrol' || ally.id === 'mist_scout' || ally.id === 'lantern_crafter' || ally.role === 'scout') ? 4 : 2;
+      for (let dy = -radius; dy <= radius; dy++) {
+        for (let dx = -radius; dx <= radius; dx++) {
+          const nx = ally.x + dx;
+          const ny = ally.y + dy;
+          if (this.board.inBounds(nx, ny)) {
+            if (Math.abs(dx) + Math.abs(dy) <= radius + 1) {
+              visibleTiles.add(`${nx},${ny}`);
+            }
+          }
+        }
+      }
+    }
+
+    // Active placed lanterns & chapter lanterns
+    const allLanterns = [...(this.board.placedLanterns || []), ...(this.chapter.lanterns || [])];
+    for (const lantern of allLanterns) {
+      const rad = lantern.radius || 2;
+      for (let dy = -rad; dy <= rad; dy++) {
+        for (let dx = -rad; dx <= rad; dx++) {
+          const nx = lantern.x + dx;
+          const ny = lantern.y + dy;
+          if (this.board.inBounds(nx, ny)) {
+            visibleTiles.add(`${nx},${ny}`);
+          }
+        }
+      }
+    }
+
+    return visibleTiles;
+  }
+
+  isUnitVisible(unit) {
+    if (!this.isFogActive()) return true;
+    if (unit.team === 'ally') return true;
+    const vision = this.calculateVisionMap();
+    return vision.has(`${unit.x},${unit.y}`);
+  }
+
+  calculateEnemyVisionMap() {
+    if (!this.isFogActive()) {
+      const all = new Set();
+      for (let r = 0; r < 13; r++) {
+        for (let c = 0; c < 10; c++) {
+          all.add(`${c},${r}`);
+        }
+      }
+      return all;
+    }
+    const visibleTiles = new Set();
+    for (const enemy of this.enemies) {
+      if (enemy.hp <= 0) continue;
+      const radius = (enemy.role === 'scout' || enemy.id === 'mist_scout') ? 4 : 2;
+      for (let dy = -radius; dy <= radius; dy++) {
+        for (let dx = -radius; dx <= radius; dx++) {
+          const nx = enemy.x + dx;
+          const ny = enemy.y + dy;
+          if (this.board.inBounds(nx, ny) && Math.abs(dx) + Math.abs(dy) <= radius + 1) {
+            visibleTiles.add(`${nx},${ny}`);
+          }
+        }
+      }
+    }
+    const allLanterns = [...(this.board.placedLanterns || []), ...(this.chapter.lanterns || [])];
+    for (const lantern of allLanterns) {
+      const rad = lantern.radius || 2;
+      for (let dy = -rad; dy <= rad; dy++) {
+        for (let dx = -rad; dx <= rad; dx++) {
+          const nx = lantern.x + dx;
+          const ny = lantern.y + dy;
+          if (this.board.inBounds(nx, ny)) {
+            visibleTiles.add(`${nx},${ny}`);
+          }
+        }
+      }
+    }
+    return visibleTiles;
+  }
+
+  calculateBattleRewards() {
+    let mvpId = null;
+    let maxScore = -1;
+    for (const ally of this.allies) {
+      if (ally.role === 'npc' || ally.role === 'objective') continue;
+      const score = (this.actionScores[ally.id] || 0) + (ally.hp > 0 ? 25 : 0);
+      if (score > maxScore) {
+        maxScore = score;
+        mvpId = ally.id;
+      }
+    }
+
+    const awards = [];
+    for (const ally of this.allies) {
+      if (ally.role === 'npc' || ally.role === 'objective') continue;
+      const isMvp = (ally.id === mvpId);
+      const baseExp = 35;
+      const actionExp = Math.min(35, Math.floor((this.actionScores[ally.id] || 0) * 0.8));
+      const mvpBonus = isMvp ? 30 : 0;
+      const totalExp = baseExp + actionExp + mvpBonus;
+      awards.push({
+        id: ally.id,
+        name: ally.name,
+        isMvp,
+        score: this.actionScores[ally.id] || 0,
+        expGained: totalExp,
+        reason: isMvp ? '【本戰MVP】斬將拔旗，戰功卓著！' : '作戰英勇，獲軍略功勳'
+      });
+    }
+    return { awards, mvpId };
+  }
+
   getAllLivingUnits() {
     return [...this.allies, ...this.enemies].filter(u => u.hp > 0);
   }
@@ -287,7 +468,16 @@ export class Battle {
         unit.acted = true;
         unit.moved = false;
 
-        // Gain EXP
+        // Gain EXP & track action score
+        if (unit.team === 'ally') {
+          const hit = combatRes.events?.find(e => e.type === 'hit');
+          if (hit) {
+            this.actionScores[unit.id] = (this.actionScores[unit.id] || 0) + (hit.damage || 10);
+            if (target.hp <= 0) {
+              this.actionScores[unit.id] = (this.actionScores[unit.id] || 0) + 30;
+            }
+          }
+        }
         if (this.campaign && unit.team === 'ally' && unit.role !== 'npc' && unit.role !== 'objective') {
           const expRes = this.campaign.addExp(unit.id, 30);
           result.expGained = 30;
@@ -569,6 +759,7 @@ export class Battle {
     this.phase = 'ally';
 
     this.tickBurningTiles();
+    this.tickFloodedTiles();
 
     for (const a of this.allies) {
       a.acted = false;

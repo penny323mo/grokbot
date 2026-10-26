@@ -89,14 +89,14 @@ export class UIRenderer {
     }
 
     // Bottom safe inset & Grokbot clearance:
-    // When unit is near bottom (y >= 10), scroll down so unit's feet stay >=64px above viewport bottom
-    if (y >= 10) {
-      scrollY = Math.max(160, (y * tilePx + 64) - vpHeight + 72);
+    // When unit is near bottom (y >= 9), scroll down so unit's feet stay >=64px above viewport bottom
+    if (y >= 9) {
+      scrollY = Math.max(scrollY, (y * tilePx + 64) - vpHeight + 80);
     }
 
-    // Top safe inset: if focused on northern battlefield (y <= 7), ensure top units never get clipped
-    if (y <= 7) {
-      scrollY = Math.min(scrollY, Math.max(0, (y - 1) * tilePx));
+    // Top safe inset: northern units must never be sliced by HUD (keep at least 16px clearance)
+    if (y <= 5) {
+      scrollY = Math.min(scrollY, Math.max(0, (y - 1.2) * tilePx));
     }
 
     scrollX = Math.max(0, Math.min(maxScrollX, scrollX));
@@ -117,7 +117,8 @@ export class UIRenderer {
       2: { left: '70%', top: '52%', name: '第二回 · 城門' },
       3: { left: '72%', top: '78%', name: '第三回 · 市集' },
       4: { left: '58%', top: '20%', name: '第四回 · 山道' },
-      5: { left: '40%', top: '38%', name: '第五回 · 竹海' }
+      5: { left: '40%', top: '38%', name: '第五回 · 竹海' },
+      6: { left: '80%', top: '24%', name: '第六回 · 攻城' }
     };
 
     CHAPTERS.forEach(ch => {
@@ -195,7 +196,9 @@ export class UIRenderer {
       mist_sorcerer: '弱近身突刺·怕打斷',
       fire_archer: '怕近身·林地加成',
       mist_scout: '弱防禦·懼包抄',
-      iron_general: '弱背擊·落水KO'
+      iron_general: '弱背擊·落水KO',
+      siege_engine: '盲區1-2格·弱飛騎近攻',
+      citadel_warlord: '防禦極高·弱法術背刺'
     };
 
     Object.entries(enemyCounts).forEach(([eid, count]) => {
@@ -287,7 +290,8 @@ export class UIRenderer {
     const shortObj = battle.chapter.objectiveType === 'escort' ? '護送燈車' :
       battle.chapter.objectiveType === 'hold_gate' ? '守護城門' :
       battle.chapter.objectiveType === 'protect_lantern' ? '保護神燈' :
-      battle.chapter.objectiveType === 'reach_shrine_or_rout' ? '佔領神壇' : '討伐鐵將';
+      battle.chapter.objectiveType === 'reach_shrine_or_rout' ? '佔領神壇' :
+      battle.chapter.objectiveType === 'breach_gate_or_rout' ? '破關斬將' : '討伐鐵將';
     document.getElementById('hudObjectiveTicker').textContent = `${battle.chapter.mapName} · ${shortObj}`;
 
     // Background Map Image
@@ -306,6 +310,14 @@ export class UIRenderer {
     const aoeTiles = handlers.aoeTiles || new Set();
     const deploySlots = handlers.deploySlots || new Set();
     const selectedUnit = handlers.selectedUnit;
+
+    const isFog = battle.isFogActive ? battle.isFogActive() : false;
+    const visionMap = isFog && battle.calculateVisionMap ? battle.calculateVisionMap() : null;
+
+    const clearPathPreview = () => {
+      gridEl.querySelectorAll('.path-step').forEach(el => el.classList.remove('path-step'));
+    };
+    gridEl.onpointerleave = clearPathPreview;
 
     for (let r = 0; r < 13; r++) {
       for (let c = 0; c < 10; c++) {
@@ -337,6 +349,31 @@ export class UIRenderer {
           tileDiv.classList.add('selected');
         }
 
+        // Fog of war shroud
+        if (isFog && visionMap && !visionMap.has(key)) {
+          tileDiv.classList.add('fog-shrouded');
+        }
+
+        // Active flooded water VFX
+        if (battle.floodedTiles && battle.floodedTiles.has(key)) {
+          tileDiv.classList.add('flooded-water');
+        }
+
+        // Dotted ink path preview on hovering reachable tile
+        tileDiv.onpointerenter = () => {
+          if (reachable.has(key)) {
+            clearPathPreview();
+            const stepInfo = reachable.get(key);
+            if (stepInfo && stepInfo.path) {
+              stepInfo.path.forEach(pt => {
+                if (selectedUnit && pt.x === selectedUnit.x && pt.y === selectedUnit.y) return;
+                const pathTile = gridEl.querySelector(`.grid-tile[data-x="${pt.x}"][data-y="${pt.y}"]`);
+                if (pathTile) pathTile.classList.add('path-step');
+              });
+            }
+          }
+        };
+
         let pressTimer = null;
         tileDiv.onpointerdown = () => {
           pressTimer = setTimeout(() => {
@@ -351,6 +388,7 @@ export class UIRenderer {
 
         tileDiv.onclick = (e) => {
           clearTimeout(pressTimer);
+          clearPathPreview();
           if (this.hasDraggedBeyondThreshold) return;
           handlers.onTileTap(c, r);
         };
@@ -378,16 +416,24 @@ export class UIRenderer {
     figuresLayer.innerHTML = '';
 
     const allUnits = battle.getAllLivingUnits();
-    allUnits.forEach(u => {
+    allUnits.forEach((u, uIdx) => {
       const figWrap = document.createElement('div');
       figWrap.className = `unit-figure ${u.team} ${u.promoted ? 'promoted' : ''} ${u.acted ? 'acted' : ''}`;
+      figWrap.dataset.unitId = u.id;
       figWrap.style.left = `${u.x * 64}px`;
       figWrap.style.top = `${u.y * 64}px`;
       figWrap.style.setProperty('--row', u.y);
+      figWrap.style.setProperty('--unit-idx', uIdx);
       figWrap.style.setProperty('--facing', u.facing ?? (u.team === 'ally' ? 1 : -1));
 
-      // Desync idle breathing animation slightly
-      const delay = ((u.x * 7 + u.y * 13) % 10) * 0.25;
+      // Fog of war silhouette
+      const isVisible = battle.isUnitVisible ? battle.isUnitVisible(u) : true;
+      if (!isVisible) {
+        figWrap.classList.add('in-fog');
+      }
+
+      // Staggered breathing delay per unit
+      const delay = ((u.x * 7 + u.y * 13 + uIdx * 3) % 10) * 0.3;
 
       const isCart = (u.id === 'lantern_cart' || u.id === 'market_lantern');
       const figContent = isCart ?
@@ -410,6 +456,10 @@ export class UIRenderer {
       figWrap.onclick = (e) => {
         if (this.hasDraggedBeyondThreshold) return;
         e.stopPropagation();
+        if (!isVisible && u.team === 'enemy') {
+          // Cannot target or inspect enemy in deep fog
+          return;
+        }
         handlers.onUnitTap(u);
       };
 
@@ -536,8 +586,12 @@ export class UIRenderer {
       const maxScrollY = Math.max(0, 940 - vpHeight);
 
       let sx = midX - vpWidth / 2;
-      // Position midY at ~140px from top so units comfortably sit in upper 45-55% of viewport
-      let sy = midY - 140;
+      // Position midY so units comfortably sit in upper 45-55% of viewport with safe clearance from top HUD
+      let sy = Math.max(0, (minY - 0.4) * tilePx);
+      if (midY - sy > 160) {
+        sy = midY - 140;
+      }
+      sy = Math.min(sy, Math.max(0, (minY - 0.25) * tilePx));
 
       if (Math.max(...unitsToFrame.map(u => u.x)) >= 4) {
         sx = Math.max(sx, 160);
@@ -826,11 +880,33 @@ export class UIRenderer {
     const figuresLayer = document.getElementById('figuresLayer');
     const durMult = speed === 2 ? 0.5 : 1.0;
 
-    // Trigger attacker lunge animation
+    // Helper for directional attack lunges
+    const getLungeClass = (src, dst) => {
+      const dx = (dst.x ?? 0) - (src.x ?? 0);
+      const dy = (dst.y ?? 0) - (src.y ?? 0);
+      if (Math.abs(dx) >= Math.abs(dy)) {
+        return dx >= 0 ? 'anim-lunge-right' : 'anim-lunge-left';
+      } else {
+        return dy >= 0 ? 'anim-lunge-down' : 'anim-lunge-up';
+      }
+    };
+
+    // Trigger attacker directional lunge animation
     const attackerEl = figuresLayer?.querySelector(`[data-unit-id="${attacker.id}"]`);
+    const lungeCls = getLungeClass(attacker, defender);
     if (attackerEl) {
-      attackerEl.classList.add('anim-lunge');
-      setTimeout(() => attackerEl.classList.remove('anim-lunge'), 200 * durMult);
+      attackerEl.classList.add(lungeCls);
+      setTimeout(() => attackerEl.classList.remove(lungeCls), 240 * durMult);
+    }
+
+    // Both units lunge during combo attacks
+    if (combatInfo.comboAlly) {
+      const comboEl = figuresLayer?.querySelector(`[data-unit-id="${combatInfo.comboAlly.id}"]`);
+      if (comboEl) {
+        const comboLungeCls = getLungeClass(combatInfo.comboAlly, defender);
+        comboEl.classList.add(comboLungeCls);
+        setTimeout(() => comboEl.classList.remove(comboLungeCls), 240 * durMult);
+      }
     }
 
     // Trigger defender hurt shake after a brief delay
@@ -1126,7 +1202,7 @@ export class UIRenderer {
     });
   }
 
-  showBattleResult(status, chapter, onContinue, campaign = null, squad = null) {
+  showBattleResult(status, chapter, onContinue, campaign = null, squad = null, battle = null) {
     const modal = document.getElementById('modalBattleResult');
     if (!modal) return;
     modal.style.display = 'flex';
@@ -1141,25 +1217,38 @@ export class UIRenderer {
       card.className = 'result-card victory';
       title.textContent = '大獲全勝';
       sub.textContent = status.reason || '天光破曉 · 迷霧退散';
-      document.getElementById('resultExpAwards').textContent = '參戰將士每人獲得 50 點軍略功勳 (EXP)！';
+      document.getElementById('resultExpAwards').innerHTML = '<span>✦ 斬將拔旗 · 論功行賞 ✦</span>';
+
+      const rewards = battle?.calculateBattleRewards ? battle.calculateBattleRewards() : null;
 
       if (xpList) {
         xpList.innerHTML = '';
-        const activeSquad = squad || (campaign?.selectedSquad ? campaign.selectedSquad.map(id => campaign.getUnitInstance(id)) : [
-          { id: 'cat_patrol', name: '墨影', exp: 60 },
-          { id: 'bear_guard', name: '熊岳', exp: 75 },
-          { id: 'tea_master', name: '茶翁', exp: 40 },
-          { id: 'lantern_crafter', name: '燈娘 小螢', exp: 55 }
-        ]);
-        activeSquad.forEach(u => {
-          if (!u || u.role === 'npc' || u.role === 'objective' || u.id === 'lantern_cart') return;
+        const awards = rewards?.awards || [
+          { id: 'cat_patrol', name: '墨影', isMvp: true, expGained: 85, reason: '【本戰MVP】斬將拔旗，戰功卓著！' },
+          { id: 'bear_guard', name: '熊岳', isMvp: false, expGained: 65, reason: '鐵壁扼守，格擋千鈞傷害' },
+          { id: 'tea_master', name: '茶翁', isMvp: false, expGained: 55, reason: '靈茶甘露，妙手回春援護' },
+          { id: 'crane_rider', name: '鶴羽', isMvp: false, expGained: 60, reason: '雲霄奇襲，突擊敵軍腹地' }
+        ];
+
+        awards.forEach(u => {
           const row = document.createElement('div');
-          row.className = 'xp-unit-row';
+          row.className = `xp-unit-row ${u.isMvp ? 'is-mvp' : ''}`;
           row.innerHTML = `
-            <img src="assets/art/v4/por_${u.id}.webp" class="xp-unit-por" alt="${u.name}">
-            <span class="xp-unit-name">${u.name}</span>
-            <div class="xp-bar-track"><div class="xp-bar-fill" style="width: ${Math.min(100, ((u.exp || 30) % 100))}%"></div></div>
-            <span class="xp-gain-badge">+50 EXP</span>
+            <div class="xp-unit-por-wrap">
+              <img src="assets/art/v4/por_${u.id}.webp" class="xp-unit-por" alt="${u.name}">
+              ${u.isMvp ? '<span class="xp-mvp-crown">👑</span>' : ''}
+            </div>
+            <div class="xp-unit-info">
+              <div class="xp-unit-name-line">
+                <span class="xp-unit-name">${u.name}</span>
+                ${u.isMvp ? '<span class="xp-mvp-badge">本戰MVP · 戰功卓著</span>' : ''}
+              </div>
+              <span class="xp-unit-reason">${u.reason}</span>
+              <div class="xp-bar-track">
+                <div class="xp-bar-fill ${u.isMvp ? 'mvp-fill' : ''}" style="width: ${Math.min(100, Math.max(30, (u.expGained || 50) % 100))}%;"></div>
+              </div>
+            </div>
+            <span class="xp-gain-badge ${u.isMvp ? 'mvp-badge' : ''}">+${u.expGained} EXP</span>
           `;
           xpList.appendChild(row);
         });
@@ -1170,7 +1259,8 @@ export class UIRenderer {
         2: { id: 'tome_taiping', name: '太平天書', img: 'assets/art/v4/item_tome.webp', desc: '法術力 +4 · 技力上限 +4' },
         3: { id: 'armor_xuanjia', name: '玄鐵明光甲', img: 'assets/art/v4/item_armor.webp', desc: '防禦力 +3 · 氣血上限 +12' },
         4: { id: 'spirit_jade', name: '靈心玉', img: 'assets/art/v4/item_tome.webp', desc: '法術力 +3' },
-        5: { id: 'tea_leaf_pouch', name: '靈泉茶囊', img: 'assets/art/v4/item_tome.webp', desc: '生命上限 +10' }
+        5: { id: 'tea_leaf_pouch', name: '靈泉茶囊', img: 'assets/art/v4/item_tome.webp', desc: '生命上限 +10' },
+        6: { id: 'warlord_seal', name: '破軍印', img: 'assets/art/v4/item_sword.webp', desc: '要塞告捷 · 全軍攻擊+5' }
       };
 
       const rew = relicRewardMap[chapter?.id || 1] || relicRewardMap[1];
@@ -1205,5 +1295,194 @@ export class UIRenderer {
       modal.style.display = 'none';
       onContinue();
     };
+  }
+
+  renderCampScreen(campaign, selectedUnitId = 'cat_patrol', handlers = {}) {
+    const rosterGrid = document.getElementById('campRosterGrid');
+    const profileDetails = document.getElementById('campProfileDetails');
+    if (!rosterGrid || !profileDetails) return;
+
+    const allGuardianIds = Object.keys(GUARDIAN_PROTOS);
+    const activeUnitId = selectedUnitId || 'cat_patrol';
+
+    // 1. Render Roster Grid
+    rosterGrid.innerHTML = '';
+    allGuardianIds.forEach(id => {
+      const inst = campaign.getUnitInstance(id);
+      const isSelected = (id === activeUnitId);
+      const card = document.createElement('div');
+      card.className = `camp-char-card ${isSelected ? 'active' : ''} ${inst.promoted ? 'promoted' : ''}`;
+      
+      const relicObj = inst.relic ? RELICS.find(r => r.id === inst.relic) : null;
+      card.innerHTML = `
+        <div class="camp-card-por-wrap">
+          <img src="assets/art/v4/por_${id}.webp" class="camp-card-por" alt="${inst.name}">
+          ${inst.promoted ? '<span class="camp-card-promo-tag">破境</span>' : ''}
+        </div>
+        <div class="camp-card-meta">
+          <strong class="camp-card-name">${inst.name}</strong>
+          <span class="camp-card-cls">Lv.${inst.level}</span>
+        </div>
+      `;
+      card.onclick = () => {
+        handlers.onSelectUnit?.(id);
+      };
+      rosterGrid.appendChild(card);
+    });
+
+    // 2. Render Character Profile
+    const unit = campaign.getUnitInstance(activeUnitId);
+    const proto = GUARDIAN_PROTOS[activeUnitId];
+    const promo = PROMOTIONS[activeUnitId];
+    const equippedRelic = unit.relic ? RELICS.find(r => r.id === unit.relic) : null;
+    const canPromote = !unit.promoted && promo && unit.level >= 2;
+
+    const elementNames = { water: '水相 · 潤澤', fire: '火相 · 熾烈', thunder: '雷相 · 迅破', wind: '風相 · 凌厲' };
+    const elText = elementNames[unit.element] || '兵家 · 鋒芒';
+
+    profileDetails.innerHTML = `
+      <div class="camp-profile-header">
+        <div class="camp-profile-por-box">
+          <img src="assets/art/v4/por_${activeUnitId}.webp" class="camp-profile-portrait" alt="${unit.name}">
+          ${unit.promoted ? '<div class="camp-promo-laurel">✦ 破境高階 ✦</div>' : ''}
+        </div>
+        <div class="camp-profile-title-block">
+          <div class="camp-profile-badge-row">
+            <span class="camp-badge element">${elText}</span>
+            <span class="camp-badge level">Lv.${unit.level}</span>
+            <span class="camp-badge class">${unit.cls}</span>
+          </div>
+          <h3 class="camp-profile-name">${unit.name}</h3>
+          <p class="camp-profile-title">${unit.title || proto.title}</p>
+          <div class="camp-exp-bar-wrap">
+            <div class="camp-exp-label"><span>戰功修煉</span><span>${unit.exp % 100} / 100 EXP</span></div>
+            <div class="camp-exp-track"><div class="camp-exp-fill" style="width: ${unit.exp % 100}%;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="camp-lore-quote">
+        「${proto.quote || proto.desc || '以身衛社稷，以智破暗夜。'}」
+      </div>
+
+      <!-- Attributes Grid -->
+      <div class="camp-stats-grid">
+        <div class="camp-stat-pill"><span class="k">氣血</span><strong class="v">${unit.maxHp}</strong></div>
+        <div class="camp-stat-pill"><span class="k">攻擊</span><strong class="v">${unit.atk}</strong></div>
+        <div class="camp-stat-pill"><span class="k">防禦</span><strong class="v">${unit.def}</strong></div>
+        <div class="camp-stat-pill"><span class="k">移動</span><strong class="v">${unit.mov}</strong></div>
+      </div>
+
+      <!-- Equipment Slot -->
+      <div class="camp-section-card">
+        <div class="camp-card-heading">✦ 佩掛神兵寶具 ✦</div>
+        <div class="camp-equip-row">
+          <div class="camp-relic-item">
+            ${equippedRelic ? `
+              <img src="${equippedRelic.img || 'assets/art/v4/item_sword.webp'}" class="camp-relic-img" alt="${equippedRelic.name}">
+              <div class="camp-relic-info">
+                <strong>${equippedRelic.name}</strong>
+                <span>${equippedRelic.desc}</span>
+              </div>
+              <button type="button" class="btn-brush-secondary btn-unequip" id="btnCampUnequip">卸下</button>
+            ` : `
+              <div class="camp-relic-empty">未佩掛寶具</div>
+            `}
+          </div>
+        </div>
+        <div class="camp-relics-picker" id="campRelicsPicker">
+          <div class="picker-title">可用軍械庫寶物（點擊佩掛）：</div>
+          <div class="relics-pill-list">
+            ${(campaign.relics || []).map(rid => {
+              const r = RELICS.find(item => item.id === rid);
+              if (!r) return '';
+              const isEquippedHere = (unit.relic === rid);
+              const equippedOnOther = Object.entries(campaign.roster).find(([uid, u]) => u.relic === rid && uid !== activeUnitId);
+              const holderName = equippedOnOther ? GUARDIAN_PROTOS[equippedOnOther[0]]?.name : null;
+              return `
+                <button type="button" class="btn-relic-chip ${isEquippedHere ? 'active' : ''}" data-relic-id="${rid}">
+                  <img src="${r.img || 'assets/art/v4/item_sword.webp'}" class="r-thumb-img" alt="${r.name}">
+                  <span class="r-name">${r.name}</span>
+                  ${holderName ? `<span class="r-holder">(${holderName})</span>` : ''}
+                </button>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+
+      <!-- Class Promotion -->
+      <div class="camp-section-card">
+        <div class="camp-card-heading">✦ 破境晉升 ✦</div>
+        ${unit.promoted ? `
+          <div class="camp-promo-box done">
+            <span class="p-star">✦</span>
+            <div class="p-info">
+              <strong>已登堂入室 · 破境為【${unit.cls}】</strong>
+              <p>承天載道，領悟終極奧義【${unit.skill?.name || '破曉絕技'}】！</p>
+            </div>
+          </div>
+        ` : canPromote ? `
+          <div class="camp-promo-box ready">
+            <div class="p-info">
+              <strong>可破境晉升為【${promo.newClass}】！</strong>
+              <p>${promo.desc}。<br><span class="p-buffs">攻擊+${promo.statBonus.atk || 0} · 氣血+${promo.statBonus.maxHp || 0} · 移動+${promo.statBonus.mov || 0} · 領悟【${promo.promotedSkill.name}】</span></p>
+            </div>
+            <button type="button" class="btn-brush-main" id="btnCampPromote">破境晉升</button>
+          </div>
+        ` : `
+          <div class="camp-promo-box locked">
+            <span class="p-lock-badge">修煉進階</span>
+            <div class="p-info">
+              <strong>下一階破境：【${promo?.newClass || '高階'}】</strong>
+              <p>須修煉至 2 級方可開啟破境進階（當前 Lv.${unit.level}，尚缺 ${100 - (unit.exp % 100)} EXP）。</p>
+            </div>
+          </div>
+        `}
+      </div>
+
+      <!-- Skills & Trait -->
+      <div class="camp-section-card">
+        <div class="camp-card-heading">✦ 戰技與仙法 ✦</div>
+        <div class="camp-skill-row">
+          <strong class="s-name">【${unit.skill?.name || '專精之技'}】</strong>
+          <span class="s-cost">技力: ${unit.skill?.cost ?? 2}</span>
+          <p class="s-desc">${unit.skill?.desc || '施展強大作戰技巧。'}</p>
+        </div>
+        ${unit.magic ? `
+          <div class="camp-skill-row">
+            <strong class="s-name">【${unit.magic.name}】</strong>
+            <span class="s-cost">技力: ${unit.magic.cost ?? 3}</span>
+            <p class="s-desc">${unit.magic.desc}</p>
+          </div>
+        ` : ''}
+        <div class="camp-skill-row trait">
+          <strong class="s-name">【專屬特性 · ${unit.trait?.name || '軍略'}】</strong>
+          <p class="s-desc">${unit.trait?.desc || '獨特戰場被動效果。'}</p>
+        </div>
+      </div>
+    `;
+
+    // Wire Equip clicks
+    profileDetails.querySelectorAll('.btn-relic-chip').forEach(btn => {
+      btn.onclick = () => {
+        const rid = btn.dataset.relicId;
+        handlers.onEquipRelic?.(activeUnitId, rid);
+      };
+    });
+
+    const btnUnequip = document.getElementById('btnCampUnequip');
+    if (btnUnequip) {
+      btnUnequip.onclick = () => {
+        handlers.onEquipRelic?.(activeUnitId, null);
+      };
+    }
+
+    const btnPromote = document.getElementById('btnCampPromote');
+    if (btnPromote) {
+      btnPromote.onclick = () => {
+        handlers.onPromoteUnit?.(activeUnitId);
+      };
+    }
   }
 }

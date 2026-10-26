@@ -29,8 +29,14 @@ export function getAttackDirection(attackerPos, defenderPos, defenderFacing) {
 /**
  * Checks whether a defender can be targeted (handles shadow_rat mist shroud)
  */
-export function canTargetUnit(attacker, defender, board) {
+export function canTargetUnit(attacker, defender, board, visionTiles = null) {
   if (defender.hp <= 0) return false;
+
+  // Fog of war: if visionTiles set is provided and defender is outside vision, cannot target
+  if (visionTiles && !visionTiles.has(`${defender.x},${defender.y}`)) {
+    return false;
+  }
+
   if (!defender.isShrouded && defender.trait?.id !== 'mist_shroud') return true;
 
   // Shrouded units are revealable if:

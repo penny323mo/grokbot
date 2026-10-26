@@ -159,3 +159,40 @@ test('Objectives: Bamboo Pass chapter (reach shrine or rout all enemies)', () =>
   assert.strictEqual(status.finished, true);
   assert.strictEqual(status.victory, true);
 });
+
+test('Objectives: Siege chapter (breach gate or defeat citadel warlord)', () => {
+  const chapter = CHAPTERS.find(c => c.key === 'siege');
+  assert.ok(chapter, 'Chapter 6 should exist');
+
+  // Case 1: Citadel warlord defeated -> WIN!
+  const bossDead = { id: 'citadel_warlord', hp: 0, x: 4, y: 2 };
+  const wallArcher = { id: 'shadow_archer', hp: 15, x: 2, y: 4 };
+  const ally = { id: 'crane_rider', role: 'flanker', hp: 22, x: 4, y: 3 };
+
+  let status = checkBattleStatus(chapter, {
+    currentTurn: 6,
+    allies: [ally],
+    enemies: [bossDead, wallArcher]
+  });
+  assert.strictEqual(status.finished, true);
+  assert.strictEqual(status.victory, true);
+  assert.ok(status.reason.includes('斬殺鎮關主將'));
+
+  // Case 2: All enemies routed -> WIN!
+  status = checkBattleStatus(chapter, {
+    currentTurn: 8,
+    allies: [ally],
+    enemies: []
+  });
+  assert.strictEqual(status.finished, true);
+  assert.strictEqual(status.victory, true);
+
+  // Case 3: Turn limit exceeded -> LOSE!
+  status = checkBattleStatus(chapter, {
+    currentTurn: 15, // max 14
+    allies: [ally],
+    enemies: [wallArcher]
+  });
+  assert.strictEqual(status.finished, true);
+  assert.strictEqual(status.victory, false);
+});

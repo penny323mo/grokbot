@@ -605,3 +605,107 @@ test('Rules: Class promotion stat bonuses and upgraded skill (劍客→劍聖 �
   assert.ok(promotedCat.promotedSkill, 'Should unlock promoted skill');
   assert.strictEqual(promotedCat.promotedSkill.name, '萬劍歸宗');
 });
+
+test('Rules: Fog-of-war vision and hidden enemy untargetability', () => {
+  const chapter = {
+    id: 5,
+    hasNightFog: true,
+    terrain: new Array(13).fill('..........'),
+    lanterns: [{ x: 5, y: 5, radius: 2 }],
+    deployTiles: [{ x: 0, y: 0 }],
+    enemySpawns: []
+  };
+
+  const scout = { id: 'mist_scout', team: 'ally', role: 'scout', hp: 20, maxHp: 20, x: 1, y: 1 };
+  const battle = new Battle(chapter, [scout], null, null, new RNG(1));
+
+  const vision = battle.calculateVisionMap();
+  assert.ok(vision.has('1,1'), 'Scout sees self tile');
+  assert.ok(vision.has('4,1'), 'Scout sees tile at distance 3');
+  assert.ok(vision.has('5,5'), 'Lantern center is lit');
+  assert.ok(vision.has('6,6'), 'Lantern perimeter is lit');
+  assert.ok(!vision.has('9,9'), 'Tile (9,9) should be shrouded in fog');
+
+  const hiddenEnemy = { id: 'dummy_enemy', hp: 20, x: 9, y: 9 };
+  assert.strictEqual(canTargetUnit(scout, hiddenEnemy, battle.board, vision), false, 'Enemy in fog cannot be targeted');
+
+  const revealedEnemy = { id: 'dummy_revealed', hp: 20, x: 5, y: 5 };
+  assert.strictEqual(canTargetUnit(scout, revealedEnemy, battle.board, vision), true, 'Revealed enemy can be targeted');
+});
+
+test('Rules: 水淹 (Water Flood) terrain conversion and push/damage', () => {
+  const terrain = [
+    "....s.....",
+    "....s.....",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    ".........."
+  ];
+  const chapter = { id: 1, terrain, deployTiles: [{ x: 0, y: 0 }], enemySpawns: [] };
+  const battle = new Battle(chapter, [{ id: 'cat_patrol', x: 0, y: 0, hp: 20, maxHp: 20 }], null, null, new RNG(1));
+
+  assert.strictEqual(battle.board.getTerrainChar(4, 1), 's', 'Initially shallows');
+
+  const enemy = { id: 'heavy_guard', name: '重甲衛', team: 'enemy', x: 4, y: 1, hp: 25, maxHp: 25, flyer: false };
+  battle.enemies.push(enemy);
+
+  battle.triggerWaterFlood(0, 1);
+
+  assert.strictEqual(battle.board.getTerrainChar(4, 1), 'w', 'Shallows should convert to deep water w');
+  assert.strictEqual(enemy.hp, 13, 'Enemy standing in flooded shallows takes 12 flood damage');
+  assert.strictEqual(enemy.y, 2, 'Enemy is pushed down to dry ground (y=2) by flood wave');
+
+  battle.tickFloodedTiles();
+  battle.tickFloodedTiles();
+  assert.strictEqual(battle.board.getTerrainChar(4, 1), 's', 'Water recedes and restores shallows s');
+});
+
+test('Rules: Siege engine (霹靂砲車) long-range bombardment and blind-zone rush', () => {
+  const terrain = new Array(13).fill('..........');
+  const board = new Board(terrain);
+
+  const siege = { ...ENEMY_PROTOS['siege_engine'], x: 5, y: 5, hp: 30, maxHp: 30 };
+  const targetFar = { id: 'player_far', team: 'ally', x: 5, y: 1, hp: 30, maxHp: 30, def: 2 };
+  const targetMelee = { id: 'player_melee', team: 'ally', x: 5, y: 6, hp: 30, maxHp: 30, def: 2, atk: 15 };
+
+  const resFar = calculateCombat(siege, targetFar, board);
+  assert.ok(resFar.expectedDamage > 0, 'Siege engine should bombard target at distance 4');
+
+  const resMelee = calculateCombat(targetMelee, siege, board);
+  assert.ok(resMelee.expectedDamage > 0, 'Player deals melee damage to siege engine');
+  assert.strictEqual(resMelee.counterDamage, 0, 'Siege engine CANNOT counter-attack at distance 1 (blind zone)');
+});
+
+test('Rules: Varied action XP and MVP calculation', () => {
+  const chapter = {
+    id: 1,
+    terrain: new Array(13).fill('..........'),
+    deployTiles: [{ x: 0, y: 0 }, { x: 1, y: 0 }],
+    enemySpawns: []
+  };
+  const allyA = { id: 'cat_patrol', name: '墨影', hp: 20, maxHp: 20, role: 'dps', team: 'ally' };
+  const allyB = { id: 'bear_guard', name: '熊岳', hp: 30, maxHp: 30, role: 'tank', team: 'ally' };
+
+  const battle = new Battle(chapter, [allyA, allyB], null, null, new RNG(1));
+
+  battle.actionScores['cat_patrol'] = 65;
+  battle.actionScores['bear_guard'] = 10;
+
+  const rewards = battle.calculateBattleRewards();
+  assert.strictEqual(rewards.mvpId, 'cat_patrol', 'Ally with highest action score should be MVP');
+
+  const mvpAward = rewards.awards.find(a => a.id === 'cat_patrol');
+  const normalAward = rewards.awards.find(a => a.id === 'bear_guard');
+
+  assert.strictEqual(mvpAward.isMvp, true);
+  assert.ok(mvpAward.expGained > normalAward.expGained, 'MVP should receive significantly more EXP than other units');
+  assert.ok(mvpAward.reason.includes('MVP'), 'Award should highlight MVP accomplishment');
+});

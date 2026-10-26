@@ -342,5 +342,132 @@
 - **MINOR #12 (River Water Terrain & Grid Alignment)**: Updated `isWalkable` in `ui.js` to strictly exclude shallows (`s`) and deep water (`w`) from `.walkable` gold hairline borders, eliminating all lattice lines across river surfaces.
 - **MINOR #13 (Promotion Documentation Sync)**: Updated CHANGELOG to accurately describe `連弩手` and `連弩驟雨` matching in-game code.
 
+---
+
+## Improve round 3
+
+### 1. Art & Board Readability
+- **Soft Painterly Ink-Wash Range Highlights**:
+  - Replaced flat opaque rectangular grids with soft translucent ink-wash radial treatments:
+    - Movement range (`.grid-tile.in-move-range`): Feathered cyan-azure wash with a subtle pulsing rim and rounded corners.
+    - Attack range (`.grid-tile.in-attack-range`): Translucent vermilion-red ink wash.
+    - Skill / AoE range (`.grid-tile.in-skill-range`, `.grid-tile.aoe-preview`): Warm golden aura wash.
+  - Added glowing dotted ink path preview (`.path-step`): when hovering over a reachable destination tile, a glowing dotted ink trail traces the optimal traversal route from the selected unit to the target destination.
+- **Permanent Grid Lattice Elimination**:
+  - Removed permanent hairline borders across all painted terrain tiles.
+  - Borders now appear only on hover or selection (`.grid-tile:hover`, `.grid-tile.selected`), keeping painted landscape vistas, rivers, and cliffs pristine.
+- **Figure Scaling, Row Z-Sorting & Clear HP Visibility**:
+  - Rescaled all unit figures to ~1.15 cells (`max-width: 58px; height: 70px; bottom: 8px;`), anchoring feet firmly at cell center.
+  - Implemented dynamic row z-sorting (`z-index: calc(var(--row, 0) * 10 + 5)`), ensuring foreground units never occlude the feet or HP/MP bars of units in the row above.
+  - HP/MP bars remain clearly legible at the base of each tile without clipping or visual overlap.
+- **Staggered Idle Breathing Animations**:
+  - Assigned staggered CSS breathing animation delays (`animation-delay: -${delay}s`) across all units, giving living organic rhythm to squads on the battlefield rather than uniform lockstep idling.
+
+### 2. Gameplay: Dynamic Terrain Stratagems & New Archetypes
+- **Chapter 5 True Fog-of-War Vision System**:
+  - Implemented authentic fog-of-war vision rules in `js/engine/battle.js` and `js/engine/combat.js`:
+    - 斥候 (Scouts) and 燈娘 / lantern bearers reveal a radius of 4 tiles; other units reveal a radius of 2 tiles.
+    - Lit lanterns illuminate a radius of 2 tiles.
+    - Enemies outside player vision render as shadowy silhouettes (`.in-fog`) and are untargetable by direct attacks, skills, or spells (`canTargetUnit` enforces vision).
+    - AI respects fog fairly (`calculateEnemyVisionMap`), targeting only player units that enter enemy vision range.
+- **Dynamic 水淹 (Water Flood) Stratagem**:
+  - Dynamically mutates board terrain using `Board.prototype.setTerrainChar`:
+    - Floods river and shallow cells (`s`) into impassable deep water (`w`) for 2 full turns.
+    - Inflicts 12 water damage on non-flying units caught in flooded shallows and pushes them 1 tile back to dry ground.
+    - Deep water instantly drowns non-flying units pushed or stranded into it.
+    - Active pulsing water ripples (`.flooded-water`) rendered dynamically over flooded tiles until recession after 2 turns.
+- **New Enemy Archetype: 霹靂砲車 (Siege Engine)**:
+  - Long-range bombardment catapult (`siege_engine`) with range [3, 5] and heavy physical damage (26 ATK).
+  - Minimum range blind zone (range 1-2): completely unable to attack or counter-attack in melee, forcing players to rush with cavalry or agile flyers to eliminate it safely.
+  - Dedicated AI (`decideSiegeEngineAction`) in `js/engine/ai.js` that bombards clusters from afar and attempts tactical retreats when engaged in melee.
+  - Validated via automated simulation tests proving naive rush fails and tactical focus wins.
+
+### 3. Progression: Action XP, MVP & Camp (營帳)
+- **Varied Action-Based XP & Post-Battle MVP**:
+  - Replaced flat +50 XP with dynamic action scoring (`actionScores`): awards XP for damage inflicted, enemy kills, heals, stratagems, and objective milestones.
+  - Crowned top contributor on the post-battle victory screen with gold laurels and 【👑 本戰MVP · 戰功卓著】 badge with custom golden XP progress bar (`.xp-unit-row.is-mvp`).
+- **Between-Battle Camp (營帳) Screen (`#screenCamp`)**:
+  - Accessible anytime from World Map via the top header `【營帳】` button.
+  - Roster view displaying all unlocked guardians with painted portraits and class tags.
+  - Character Profile view: detailed backstory lore, traits, base stats, and skill/magic sheets with MP costs and descriptions.
+  - Relic & Equipment management: dynamically equip/unequip unlocked weapons, armour, and treasures (`equipRelic`).
+  - Class Promotion: eligible guardians (Level ≥ 2) can select their advanced promotion path (e.g. 劍客 → 劍聖) directly in Camp.
+  - All camp loadouts and promotions are fully persisted in `localStorage` save state.
+
+### 4. New Encounter: Chapter 6 攻城之役 (Citadel Siege)
+- **New Painted Battlemap & Landscape Banner**:
+  - Created high-resolution painted raster battlefield `assets/art/v4/map_siege.webp` (citadel walls, moat, fortified bridge, iron gate, ramparts, keep) and panoramic chapter header `assets/art/v4/banner_ch6.webp`.
+  - Added new painted unit sprites and portraits: `assets/art/v4/fig_siege_engine.webp`, `por_siege_engine.webp`, `fig_citadel_warlord.webp`, `por_citadel_warlord.webp`.
+- **Citadel Siege Encounter (`chapter_6`)**:
+  - Enemy composition: 鎮關將領 (`citadel_warlord`), 霹靂砲車 (`siege_engine`), 高地影弓 (`shadow_archer`), 玄甲盾衛 (`shield_guard`).
+  - Objective: `breach_gate_or_rout` (破關斬將: 攻破鐵門佔領城樓或斬殺鎮關將領).
+  - Fully integrated into World Map navigation, Campaign progression, pre-battle intel, and encounter bot heuristic simulations.
+
+### 5. Polish
+- **Repainted Title Screen Key Art (`assets/art/v4/title_keyart.webp`)**:
+  - Repainted fortress banners to feature glowing golden lantern crests, completely removing legacy 蜀漢 marks.
+- **Directional Combat Lunges & Combo Lunges**:
+  - Every single attack now features a directional lunge toward the defender's tile (`lunge-up`, `lunge-down`, `lunge-left`, `lunge-right`).
+  - Coordinated combo attacks trigger simultaneous directional lunges for both the primary attacker and adjacent combo assist ally.
+
+### 6. Screenshots & Test Suite Verification
+- **Test Suite**:
+  - 36 automated unit and simulation tests across 5 test suites (`rules.test.mjs`, `ai.test.mjs`, `objectives.test.mjs`, `name.test.mjs`, `encounters.sim.test.mjs`) passing with 100% success (0 failures).
+  - 12 automated bot encounter solutions (2 per chapter across all 6 chapters) achieve victory.
+  - Validation test proves naive bot fails on Chapters 1, 2, and 6.
+- **Fresh 390px Screenshots (`screenshots/v7/`)**:
+  - `00-title.png`: Repainted key art with golden lantern crest and clean layout.
+  - `01-worldmap-camp.png`: World map with Chapter 6 node and 【營帳】 Camp navigation.
+  - `02-camp-profile.png`: Camp roster, detailed character profile, relics, and class promotion interface.
+  - `03-prebattle.png`: Chapter 6 pre-battle screen with painted siege banner and scout intel.
+  - `04-move-range.png`: Soft radial ink-wash movement highlight and glowing dotted ink path preview.
+  - `05-attack-preview.png`: Directional attack preview with compact forecast card.
+  - `06-fog-of-war.png`: Chapter 5 battlefield with true fog-of-war shroud and hidden enemy silhouettes.
+  - `07-stratagem-flood.png`: 水淹 (Water Flood) dynamic deep water conversion and pulsing water VFX.
+  - `08-archetype-siege.png`: 霹靂砲車 (Siege Engine) long-range bombardment arc and blind-zone rush tactic.
+  - `09-ch6-siege-board.png`: Chapter 6 siege battlefield showing fortress walls, moat, gate, and commanders.
+  - `10-post-battle-mvp.png`: Post-battle victory screen with varied action XP bars and 【👑 本戰MVP · 戰功卓著】 laurels.
+
+---
+
+## Round 3 fixes
+
+### Major Issues Resolved (Grok Review Round 3)
+- **MAJOR #1 (Adjacent-Row Figure Scaling & Clean HP Bar Visibility)**:
+  - Rescaled all unit figures in `css/style.css` to `height: 56px; max-width: 52px; bottom: 8px;`, ensuring sprite tops stay strictly within cell boundaries (≤64px) without overflowing into the row above.
+  - Positioned `.unit-hp-bar` at `bottom: 4px;` and `.unit-mp-bar` at `bottom: 0px;` with `z-index: 6`, completely preventing foreground unit figures from occluding the feet or HP/MP bars of units in northern rows.
+  - Recaptured `04-move-range.png` and `06-fog-of-war.png` demonstrating 100% visible, crisp HP/MP bars across tight clusters (燈娘/狐火, 雷狸/熊岳) with zero overlap.
+- **MAJOR #2 (Grokbot & Top HUD Safe Clearance Across Battlefield)**:
+  - Enhanced camera centering and safe viewport bounds in `centerCameraOn` and `showTargetPreview`: ensures northern units have ≥16px safe top clearance below the HUD chrome, and southern ranks have ≥72px buffer above the bottom viewport fold.
+  - Reframed all battlefield screenshots (`05-attack-preview.png`, `07-stratagem-flood.png`, `08-archetype-siege.png`, `09-ch6-siege-board.png`):
+    - `05`: Attacker and combo assist ally lunging cleanly in upper viewport; zero northern units sliced by HUD; preview card clears Grokbot.
+    - `07`: Armies positioned at bridgehead (rows 4–5) and south bank (rows 9–10) with surging flood waters between them; no units under Grokbot or cut by HUD.
+    - `08`: Catapult at (2, 2) on ramparts with allies rushing into the blind zone at (2, 3) and (3, 2); no units in bottom-left corner under Grokbot.
+    - `09`: Full panoramic siege battlefield with keep commander, wall archers, gatekeeper guards, and bridgehead deployment all framed between rows 2 and 9 without clipping.
+- **MAJOR #3 (Camp Screen Roster, Equipped Relic & Class Promotion Visibility)**:
+  - Streamlined Camp layout (`#screenCamp`) by placing 【✦ 佩掛神兵寶具 ✦】 and 【✦ 破境晉升 ✦】 directly beneath the compact 4-stat attributes grid.
+  - Replaced horizontal roster grid with a sleek, compact horizontal scroll strip, saving >120px of vertical space.
+  - Shortened Camp subtitle to 「名冊 · 寶具 · 破境」 with `white-space: nowrap` to prevent header line wraps on 390px viewports.
+  - Recaptured `02-camp-profile.png` showing 墨影 portrait, stats, equipped 倚天古劍 (`item_sword.webp`) with 【卸下】 button, and locked 【劍聖】 class promotion path (Lv.2 requirement, +4 ATK, +2 DEF, +1 MOV, 【萬劍歸宗】) all readable and fully visible above Grokbot.
+- **MAJOR #4 (Chapter 6 Scouting Intel 2×2 Grid Above the Fold)**:
+  - Fixed pre-battle scroll offset to start at `scrollTop = 0` so the 2×2 enemy scout intel grid sits prominently at the top of the body fold.
+  - Streamlined weakness text in `WEAKNESS_ZH`: `siege_engine` (盲區1-2格·弱飛騎近攻) and `citadel_warlord` (防禦極高·弱法術背刺).
+  - Recaptured `03-prebattle.png` displaying painted siege banner, chapter objectives, and all 4 enemy types (鎮關將領, 霹靂砲車, 影弓, 盾衛) without scrolling.
+
+### Minor Issues Resolved
+- **MINOR #5 (Painted Flood Water Wave VFX & Accurate Stratagem Text)**:
+  - Overhauled `.grid-tile.flooded-water` from a flat radial CSS gradient to authentic painted azure water ripples using `assets/art/v4/vfx_water.webp` with animated ripple surge.
+  - Updated `STRATAGEMS.flood` copy in `js/data/units.js` to accurately describe the 2-turn shallow-to-deep-water conversion, 12 damage, push, and drowning KO effects.
+- **MINOR #6 (Softened Catapult AoE Range Footprint)**:
+  - Softened `.grid-tile.aoe-preview` into a painterly translucent gold ink wash with feathered rounded borders (`border-radius: 12px; border: 1px solid rgba(255, 190, 50, 0.45);`).
+  - In `08-archetype-siege.png`, restricted bombardment footprint strictly to passable ground cells, eliminating debug lattices over impassable night sky and solid cliff faces.
+- **MINOR #7 (Eliminated Residual Emoji & Unified Chinese Nomenclature in Camp)**:
+  - Replaced `r.icon` emoji in relic selector chips with painted item raster thumbnails (`assets/art/v4/item_sword.webp`, `item_armor.webp`, `item_tome.webp`).
+  - Replaced `🔒` emoji in promotion lock box with stylized Chinese badge `【修煉進階】`.
+  - Replaced fallback element label `天元 · 調和` with authentic martial archetype tag `兵家 · 鋒芒`.
+- **MINOR #8 (Coordinated Directional Combo Lunge Proof)**:
+  - In `05-attack-preview.png`, applied directional lunge classes to both primary attacker (`lunge-right` on 墨影) and combo assist ally (`lunge-down` on 熊岳), visually proving the synchronized combo strike mechanic in the final contact sheet.
+
+
 
 

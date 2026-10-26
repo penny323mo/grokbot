@@ -12,11 +12,22 @@ import { calculateCombat, canTargetUnit } from './combat.js';
 export function decideEnemyTurn(enemy, battleState, rng) {
   const { board, allies, enemies } = battleState;
   // Note: in battleState, allies = player guardians; enemies = enemy squad
-  const playerUnits = allies.filter(u => u.hp > 0);
+  let playerUnits = allies.filter(u => u.hp > 0);
   const enemyUnits = enemies.filter(u => u.hp > 0 && u.id !== enemy.id);
   const allUnits = [...allies, ...enemies];
 
   if (playerUnits.length === 0) return { type: 'wait', move: { x: enemy.x, y: enemy.y } };
+
+  // AI respects fog of war: only targets player units within enemy vision
+  if (battleState.isFogActive && battleState.isFogActive()) {
+    const enemyVision = battleState.calculateEnemyVisionMap ? battleState.calculateEnemyVisionMap() : null;
+    if (enemyVision) {
+      const visiblePlayers = playerUnits.filter(u => enemyVision.has(`${u.x},${u.y}`));
+      if (visiblePlayers.length > 0) {
+        playerUnits = visiblePlayers;
+      }
+    }
+  }
 
   // Calculate reachable movement tiles
   const reachable = getReachableTiles(board, enemy, allUnits);
@@ -40,6 +51,8 @@ export function decideEnemyTurn(enemy, battleState, rng) {
     case 'shrouded':
     case 'scout':
       return decideScoutAction(enemy, reachableList, playerUnits, board, rng);
+    case 'siege_engine':
+      return decideSiegeEngineAction(enemy, reachableList, playerUnits, board, rng);
     case 'sorcerer':
       return decideSorcererAction(enemy, reachableList, playerUnits, board, rng);
     case 'boss':
@@ -233,6 +246,46 @@ function decideArcherAction(enemy, reachableList, playerUnits, board, rng) {
   }
 
   return { type: 'wait', move: bestMove };
+}
+
+/**
+ * Siege Engine: High-ground bombarder with range [3, 5], blind zone at range 1-2
+ */
+function decideSiegeEngineAction(enemy, reachableList, playerUnits, board, rng) {
+  let bestAction = null;
+  let bestScore = -Infinity;
+
+  for (const m of reachableList) {
+    const rangeTiles = getAttackRangeTiles(board, enemy, m.x, m.y);
+
+    for (const p of playerUnits) {
+      if (!canTargetUnit(enemy, p, board)) continue;
+      const inRange = rangeTiles.some(t => t.x === p.x && t.y === p.y);
+      if (inRange) {
+        const combat = calculateCombat(enemy, p, board, { attackerX: m.x, attackerY: m.y });
+        let score = combat.expectedDamage * 2;
+        let clusterCount = 0;
+        for (const other of playerUnits) {
+          if (other.id !== p.id && Board.manhattan(p.x, p.y, other.x, other.y) <= 2) {
+            clusterCount++;
+          }
+        }
+        score += clusterCount * 8;
+        if (score > bestScore) {
+          bestScore = score;
+          bestAction = {
+            type: 'attack',
+            move: m,
+            target: p,
+            newFacing: p.x < m.x ? -1 : 1
+          };
+        }
+      }
+    }
+  }
+
+  if (bestAction) return bestAction;
+  return { type: 'wait', move: { x: enemy.x, y: enemy.y } };
 }
 
 /**

@@ -123,6 +123,20 @@ export function checkBattleStatus(chapter, battleState) {
       break;
     }
 
+    case 'breach_gate_or_rout': {
+      const boss = enemies.find(u => u.id === (chapter.bossId || 'citadel_warlord'));
+      if (boss && boss.hp <= 0) {
+        return { finished: true, victory: true, reason: '斬殺鎮關主將！要塞群龍無首，鐵甲雄關告破！' };
+      }
+      if (livingEnemies.length === 0) {
+        return { finished: true, victory: true, reason: '全殲要塞守軍，雄關徹底光復！' };
+      }
+      if (currentTurn > chapter.maxTurns) {
+        return { finished: true, victory: false, reason: '攻城受阻耗盡回合，要塞援軍已至！' };
+      }
+      break;
+    }
+
     default: {
       if (livingEnemies.length === 0) {
         return { finished: true, victory: true, reason: '全殲敵軍，大獲全勝！' };
