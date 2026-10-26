@@ -77,6 +77,11 @@ html, body {
   touch-action: manipulation;
 }
 
+input, select, textarea {
+  font-family: inherit;
+  font-size: 16px; /* iOS Safari minimum to prevent auto-zoom */
+}
+
 /* App Container */
 .app-container {
   display: flex;
@@ -154,13 +159,13 @@ html, body {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  min-height: 32px;
-  padding: 0 11px;
+  min-height: 44px;
+  padding: 0 14px;
   border-radius: var(--radius-pill);
   background: transparent;
   border: none;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -179,10 +184,10 @@ html, body {
 }
 
 .btn-icon {
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  min-height: 36px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border-subtle);
@@ -191,7 +196,7 @@ html, body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 18px;
   transition: background 0.15s, transform 0.1s;
 }
 
@@ -298,12 +303,14 @@ html, body {
 }
 
 .btn-section-dice {
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: var(--radius-xs);
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--border-subtle);
-  font-size: 14px;
+  font-size: 16px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -393,15 +400,17 @@ html, body {
 
 .btn-input-clear {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 26px;
-  height: 26px;
+  top: 0;
+  right: 0;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
+  background: transparent;
   border: none;
-  color: #fff;
-  font-size: 12px;
+  color: var(--text-muted);
+  font-size: 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -741,15 +750,15 @@ html, body {
 }
 
 .btn-shot-action {
-  width: 32px;
-  height: 32px;
-  min-width: 32px;
-  min-height: 32px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: var(--radius-xs);
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -767,34 +776,37 @@ html, body {
 
 .shot-move-select {
   flex: 1;
-  height: 40px;
+  height: 44px;
+  min-height: 44px;
   background: var(--bg-card-solid);
   border: 1px solid var(--border-card);
   border-radius: var(--radius-xs);
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: 16px; /* Prevents iOS auto-zoom */
   padding: 0 8px;
 }
 
 .shot-sec-select {
-  width: 76px;
-  height: 40px;
+  width: 88px;
+  height: 44px;
+  min-height: 44px;
   background: var(--bg-card-solid);
   border: 1px solid var(--border-card);
   border-radius: var(--radius-xs);
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: 16px; /* Prevents iOS auto-zoom */
   padding: 0 8px;
 }
 
 .shot-desc-input {
   width: 100%;
-  height: 40px;
+  height: 44px;
+  min-height: 44px;
   background: var(--bg-card-solid);
   border: 1px solid var(--border-card);
   border-radius: var(--radius-xs);
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: 16px; /* Prevents iOS auto-zoom */
   padding: 0 10px;
 }
 
@@ -925,12 +937,13 @@ html, body {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 8px;
+  min-height: 44px;
+  padding: 0 14px;
   border-radius: var(--radius-pill);
   background: rgba(245, 158, 11, 0.15);
   border: 1px solid rgba(245, 158, 11, 0.4);
   color: #fed7aa;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -1241,7 +1254,7 @@ html, body {
 
 .btn-use-recipe {
   width: 100%;
-  min-height: 42px;
+  min-height: 44px;
   border-radius: var(--radius-sm);
   background: rgba(245, 158, 11, 0.15);
   border: 1px solid var(--accent-gold);
@@ -1396,9 +1409,16 @@ html, body {
 }
 
 .btn-lib-fav {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
-  font-size: 16px;
+  font-size: 18px;
   cursor: pointer;
   color: var(--text-muted);
 }
@@ -1446,12 +1466,12 @@ html, body {
 
 .btn-lib-action-sm {
   flex: 1;
-  min-height: 36px;
+  min-height: 44px;
   border-radius: var(--radius-xs);
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   display: flex;
@@ -1758,10 +1778,10 @@ html, body {
   margin: 12px 0;
 }
 .btn-sm {
-  min-height: 32px;
-  padding: 0 10px;
+  min-height: 44px;
+  padding: 0 14px;
   border-radius: var(--radius-pill);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -1773,6 +1793,19 @@ html, body {
 
 /* Accessible focus styling */
 button:focus-visible, input:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+}
+
+/* Virtual Keyboard / Visual Viewport Accommodation */
+body.keyboard-open .prompt-sheet,
+body.keyboard-open .bottom-tab-bar {
+  display: none !important;
+}
+
+.style-card:focus-visible,
+.palette-card:focus-visible,
+.ar-chip:focus-visible {
   outline: 2px solid var(--accent-gold);
   outline-offset: 2px;
 }

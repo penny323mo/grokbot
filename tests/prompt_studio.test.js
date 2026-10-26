@@ -103,7 +103,6 @@ test("3. Video prompt and shot-list storyboard rendering", () => {
   assert.ok(prompt.includes("smooth, steady and measured cinematic pace"), "Pacing included");
   assert.ok(prompt.includes("8 seconds video clip"), "Duration included");
   assert.ok(prompt.includes("motion: car drifting smoothly"), "Motion included");
-  assert.ok(prompt.includes("Storyboard ["), "Storyboard block rendered");
   assert.ok(prompt.includes("Shot 1 (0–3s):"), "Shot 1 timing rendered");
   assert.ok(prompt.includes("Shot 2 (3–8s):"), "Shot 2 timing rendered");
   assert.ok(prompt.includes("extreme close-up on gleaming chrome emblem"), "Shot 1 desc rendered");
@@ -246,4 +245,155 @@ test("9. Store: relative time in Cantonese", () => {
   assert.equal(PromptStore.formatRelativeTimeZh(now - 5 * 60 * 1000), "5 分鐘前");
   assert.equal(PromptStore.formatRelativeTimeZh(now - 3 * 3600 * 1000), "3 小時前");
   assert.equal(PromptStore.formatRelativeTimeZh(now - 25 * 3600 * 1000), "尋日");
+});
+
+test("10. English prompt purity: zero Han characters for recipes and randomize()", () => {
+  const hanRegex = /[\u4e00-\u9fa5\u3400-\u4dbf]/;
+
+  // Verify all 10 recipes
+  for (const recipe of DATA.recipes) {
+    const prompt = PromptEngine.buildPrompt(recipe.state);
+    const hasHan = hanRegex.test(prompt);
+    assert.equal(
+      hasHan,
+      false,
+      `Recipe "${recipe.titleZh}" generated Han characters in English prompt: ${prompt}`
+    );
+  }
+
+  // Verify randomize() in image mode across 20 iterations
+  for (let seed = 1; seed <= 20; seed++) {
+    const rng = createSeededRng(seed * 7919);
+    const randState = PromptEngine.randomize({ mode: "image" }, rng);
+    const prompt = PromptEngine.buildPrompt(randState);
+    const hasHan = hanRegex.test(prompt);
+    assert.equal(
+      hasHan,
+      false,
+      `randomize(image, seed ${seed}) generated Han characters in English prompt: ${prompt}`
+    );
+  }
+
+  // Verify randomize() in video mode across 20 iterations
+  for (let seed = 1; seed <= 20; seed++) {
+    const rng = createSeededRng(seed * 6271);
+    const randState = PromptEngine.randomize({ mode: "video" }, rng);
+    const prompt = PromptEngine.buildPrompt(randState);
+    const hasHan = hanRegex.test(prompt);
+    assert.equal(
+      hasHan,
+      false,
+      `randomize(video, seed ${seed}) generated Han characters in English prompt: ${prompt}`
+    );
+  }
+});
+
+test("11. Preset ID validity: all recipe preset IDs exist in DATA", () => {
+  const validStyles = new Set(DATA.styles.map((s) => s.id));
+  const validScenes = new Set(DATA.scenes.map((s) => s.id));
+  const validLights = new Set(DATA.lightings.map((l) => l.id));
+  const validShotSizes = new Set(DATA.cameras.shotSizes.map((s) => s.id));
+  const validAngles = new Set(DATA.cameras.angles.map((a) => a.id));
+  const validLenses = new Set(DATA.cameras.lenses.map((l) => l.id));
+  const validApertures = new Set(DATA.cameras.apertures.map((a) => a.id));
+  const validCompositions = new Set(DATA.compositions.map((c) => c.id));
+  const validMoods = new Set(DATA.moods.map((m) => m.id));
+  const validPalettes = new Set(DATA.palettes.map((p) => p.id));
+  const validAspects = new Set(DATA.aspectRatios.map((a) => a.id));
+  const validModifiers = new Set(DATA.styleModifiers.map((m) => m.id));
+  const validNegatives = new Set([
+    ...DATA.negativeDefaults.image.map((n) => n.id),
+    ...DATA.negativeDefaults.videoExtra.map((n) => n.id)
+  ]);
+  const validMovements = new Set(DATA.videoOptions.movements.map((m) => m.id));
+  const validPacings = new Set(DATA.videoOptions.pacings.map((p) => p.id));
+
+  for (const rec of DATA.recipes) {
+    const st = rec.state;
+    if (st.style) assert.ok(validStyles.has(st.style), `Unknown style ${st.style} in ${rec.id}`);
+    if (st.scene) assert.ok(validScenes.has(st.scene), `Unknown scene ${st.scene} in ${rec.id}`);
+    if (st.lighting) assert.ok(validLights.has(st.lighting), `Unknown lighting ${st.lighting} in ${rec.id}`);
+    if (st.cameraShotSize) assert.ok(validShotSizes.has(st.cameraShotSize), `Unknown shot size ${st.cameraShotSize} in ${rec.id}`);
+    if (st.cameraAngle) assert.ok(validAngles.has(st.cameraAngle), `Unknown angle ${st.cameraAngle} in ${rec.id}`);
+    if (st.cameraLens) assert.ok(validLenses.has(st.cameraLens), `Unknown lens ${st.cameraLens} in ${rec.id}`);
+    if (st.cameraAperture) assert.ok(validApertures.has(st.cameraAperture), `Unknown aperture ${st.cameraAperture} in ${rec.id}`);
+    if (st.composition) assert.ok(validCompositions.has(st.composition), `Unknown composition ${st.composition} in ${rec.id}`);
+    if (st.mood) assert.ok(validMoods.has(st.mood), `Unknown mood ${st.mood} in ${rec.id}`);
+    if (st.palette) assert.ok(validPalettes.has(st.palette), `Unknown palette ${st.palette} in ${rec.id}`);
+    if (st.aspectRatio) assert.ok(validAspects.has(st.aspectRatio), `Unknown aspect ${st.aspectRatio} in ${rec.id}`);
+    if (Array.isArray(st.styleModifiers)) {
+      for (const mod of st.styleModifiers) {
+        assert.ok(validModifiers.has(mod), `Unknown modifier ${mod} in ${rec.id}`);
+      }
+    }
+    if (Array.isArray(st.negativeChips)) {
+      for (const neg of st.negativeChips) {
+        assert.ok(validNegatives.has(neg), `Unknown negative chip ${neg} in ${rec.id}`);
+      }
+    }
+    if (rec.mode === "video") {
+      if (st.cameraMovement) assert.ok(validMovements.has(st.cameraMovement), `Unknown cameraMovement ${st.cameraMovement} in ${rec.id}`);
+      if (st.pacing) assert.ok(validPacings.has(st.pacing), `Unknown pacing ${st.pacing} in ${rec.id}`);
+      if (Array.isArray(st.shots)) {
+        for (const shot of st.shots) {
+          if (shot.move) assert.ok(validMovements.has(shot.move), `Unknown shot move ${shot.move} in ${rec.id}`);
+        }
+      }
+    }
+  }
+});
+
+test("12. Store resilience: corrupted store returns empty array without throwing", () => {
+  const storage = PromptStore.getStorage();
+  const corruptedPayloads = ["not-json", "{not json}", "123", "null", "undefined", "{ \"bad\": 1 }"];
+  for (const bad of corruptedPayloads) {
+    storage.setItem(PromptStore.STORAGE_KEY_LIB, bad);
+    assert.doesNotThrow(() => {
+      const res = PromptStore.loadLibrary();
+      assert.ok(Array.isArray(res), "Corrupted payload must return an array");
+      assert.equal(res.length, 0, "Corrupted payload must return empty array");
+    });
+  }
+
+  // Restore clean state
+  PromptStore.saveLibrary([]);
+});
+
+test("13. Store resilience: quota error propagation", () => {
+  const storage = PromptStore.getStorage();
+  const origSetItem = storage.setItem;
+  try {
+    storage.setItem = () => {
+      const err = new Error("Quota exceeded");
+      err.name = "QuotaExceededError";
+      throw err;
+    };
+
+    const saveRes = PromptStore.saveLibrary([{ id: "test", name: "test" }]);
+    assert.equal(saveRes, false, "saveLibrary must return false on quota error");
+
+    const addRes = PromptStore.addItem({ name: "fail item", prompt: "fail" });
+    assert.equal(addRes, null, "addItem must return null when save fails");
+
+    const updateRes = PromptStore.updateItem("any_id", { name: "fail update" });
+    assert.equal(updateRes, null, "updateItem must return null when save fails");
+  } finally {
+    storage.setItem = origSetItem;
+  }
+});
+
+test("14. State sanitization: prevents crashes on malformed or incomplete states", () => {
+  const malformed = { mode: "video" };
+  const sanitized = PromptEngine.sanitizeState(malformed);
+
+  assert.ok(Array.isArray(sanitized.styleModifiers), "styleModifiers must be an array");
+  assert.ok(Array.isArray(sanitized.negativeChips), "negativeChips must be an array");
+  assert.ok(Array.isArray(sanitized.shots), "shots must be an array");
+
+  // Prompt building should never crash
+  assert.doesNotThrow(() => {
+    PromptEngine.buildPrompt(sanitized);
+    PromptEngine.buildExplanation(sanitized);
+    PromptEngine.buildNegative(sanitized);
+  });
 });

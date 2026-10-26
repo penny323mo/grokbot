@@ -1,11 +1,11 @@
 /**
  * sw.js - Service Worker for Prompt Studio offline app shell caching.
+ * Version: prompt-studio-v2
  */
 
-const CACHE_NAME = "prompt-studio-v1";
+const CACHE_NAME = "prompt-studio-v2";
 
 const APP_SHELL_FILES = [
-  "./",
   "./index.html",
   "./css/style.css",
   "./js/data.js",
@@ -20,11 +20,17 @@ const APP_SHELL_FILES = [
   "./assets/favicon.svg"
 ];
 
-// Install event - Pre-cache app shell
+// Install event - Pre-cache app shell with individual failure tolerance
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(APP_SHELL_FILES);
+      return Promise.all(
+        APP_SHELL_FILES.map((url) =>
+          cache.add(new Request(url, { redirect: "follow" })).catch((err) => {
+            console.warn("[SW] Non-critical: Failed to cache", url, err);
+          })
+        )
+      );
     }).then(() => self.skipWaiting())
   );
 });
@@ -44,12 +50,15 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Fetch event - Stale-while-revalidate strategy
+// Fetch event - Stale-while-revalidate strategy for same-origin app shell files
 self.addEventListener("fetch", (event) => {
-  // Only handle GET requests for http/https
   if (event.request.method !== "GET") return;
   const url = new URL(event.request.url);
-  if (!url.protocol.startsWith("http")) return;
+
+  // Only handle same-origin http/https requests
+  if (!url.protocol.startsWith("http") || url.origin !== self.location.origin) {
+    return;
+  }
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {

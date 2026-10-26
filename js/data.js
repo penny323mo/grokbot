@@ -98,6 +98,8 @@ const PROMPT_DATA = {
     { id: "golden_beach", zh: "黃昏沙灘", en: "tranquil ocean beach with gentle rolling waves at golden sunset", snippetZh: "夕陽餘暉下海浪輕湧的寧靜沙灘" },
     { id: "cozy_cafe", zh: "溫暖咖啡館", en: "cozy warm coffee shop with wooden interior and rain outside the window", snippetZh: "窗外微雨、原木質感的溫馨咖啡館" },
     { id: "outer_space", zh: "浩瀚外太空", en: "vast deep space nebula with distant shimmering star clusters and cosmic dust", snippetZh: "深邃瑰麗的星雲與璀璨宇宙星塵" },
+    { id: "harbour_waterfront", zh: "海港天際線", en: "vibrant Victoria Harbour waterfront with panoramic cityscape skyline", snippetZh: "波光粼粼的維港水面與繁華都市天際線" },
+    { id: "alien_desert", zh: "外星異星荒漠", en: "desolate alien desert planet with monolithic rock formations and atmospheric haze", snippetZh: "廣袤神秘的外星荒漠與發光巨石遺跡" },
     { id: "zen_garden", zh: "枯山水庭園", en: "traditional serene Japanese zen stone garden with raked gravel and moss", snippetZh: "充滿禪意的日式枯山水青苔庭園" },
     { id: "modern_penthouse", zh: "高空頂層公寓", en: "luxurious modern penthouse apartment with floor-to-ceiling panoramic skyline view", snippetZh: "俯瞰壯麗城市天際線的奢華落地窗天際複式" },
     { id: "underwater_reef", zh: "蔚藍珊瑚礁", en: "vibrant underwater coral reef illuminated by shafts of sunlight through turquoise water", snippetZh: "陽光穿透湛藍海水灑落的繽紛珊瑚礁" },
@@ -127,7 +129,7 @@ const PROMPT_DATA = {
     {
       id: "ghibli",
       zh: "吉卜力動畫風",
-      en: "Studio Ghibli style, Hayao Miyazaki aesthetic, hand-drawn anime background, lush painted scenery",
+      en: "Studio Ghibli-like hand-drawn anime background, lush painted scenery, nostalgic pastoral aesthetic",
       hintEn: "Studio Ghibli Anime",
       descZh: "溫暖柔和的日系手繪厚塗水彩動畫質感",
       cssThumb: "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)",
@@ -279,7 +281,7 @@ const PROMPT_DATA = {
     { id: "octane_render", zh: "Octane 頂級渲染", en: "octane render engine" },
     { id: "unreal_engine_5", zh: "虛幻引擎 5 質感", en: "unreal engine 5 graphics" },
     { id: "ray_tracing", zh: "光線追蹤反射", en: "realistic ray tracing reflections" },
-    { id: "volumetric_light", zh: "體積光丁達爾效應", en: "volumetric god rays" },
+    { id: "volumetric_light", zh: "體積光丁達爾效應", en: "atmospheric volumetric light beams" },
     { id: "masterpiece", zh: "傑作級質感", en: "masterpiece quality" }
   ],
 
@@ -329,6 +331,7 @@ const PROMPT_DATA = {
     ],
     apertures: [
       { id: "ap_f1_4", zh: "f/1.4 夢幻淺景深", en: "f/1.4 wide aperture, extreme shallow depth of field, creamy blurred background", snippetZh: "背景極度虛化奶油散景" },
+      { id: "ap_f1_8", zh: "f/1.8 柔和淺景深", en: "f/1.8 shallow depth of field, pleasing background blur", snippetZh: "主體突出、背景柔美虛化" },
       { id: "ap_f2_8", zh: "f/2.8 平衡景深", en: "f/2.8 moderate shallow depth of field with distinct subject separation", snippetZh: "主體凸顯、背景微虛" },
       { id: "ap_f8_0", zh: "f/8.0 前後全清", en: "f/8.0 deep focus, tack-sharp edge-to-edge clarity throughout", snippetZh: "全畫面清晰銳利深景深" }
     ]
@@ -421,7 +424,7 @@ const PROMPT_DATA = {
   // 9. 比例 (Aspect Ratios)
   aspectRatios: [
     { id: "1_1", label: "1:1", ratio: "1:1", descZh: "正方形 (頭像/IG方圖)", param: "--ar 1:1" },
-    { id: "4_5", label: "4:5", ratio: "4:5", descZh: "直倒 (IG Feed 最佳比例)", param: "--ar 4:5" },
+    { id: "4_5", label: "4:5", ratio: "4:5", descZh: "直向 (IG Feed 最佳比例)", param: "--ar 4:5" },
     { id: "3_4", label: "3:4", ratio: "3:4", descZh: "經典直畫 (小紅書/日常肖像)", param: "--ar 3:4" },
     { id: "9_16", label: "9:16", ratio: "9:16", descZh: "垂直全螢幕 (Reels/Shorts/Sora)", param: "--ar 9:16" },
     { id: "16_9", label: "16:9", ratio: "16:9", descZh: "橫向闊銀幕 (YouTube/桌面)", param: "--ar 16:9" },
@@ -494,8 +497,9 @@ const PROMPT_DATA = {
       thumbGradient: "linear-gradient(135deg, #0f172a 0%, #3b0764 50%, #06b6d4 100%)",
       state: {
         mode: "image",
-        subject: "一名撐著黑色雨傘的女子，站在澳門老城區石板路上回眸",
+        subject: "a lone woman holding a black umbrella looking over her shoulder on a wet cobblestone street",
         subjectEn: "a lone woman holding a black umbrella looking over her shoulder on a wet cobblestone street",
+        subjectZh: "一名撐著黑色雨傘的女子，站在澳門老城區石板路上回眸",
         scene: "macau_old_street",
         style: "cinematic",
         styleModifiers: ["highly_detailed", "sharp_focus", "film_grain"],
@@ -520,8 +524,9 @@ const PROMPT_DATA = {
       thumbGradient: "linear-gradient(135deg, #059669 0%, #10b981 50%, #fef08a 100%)",
       state: {
         mode: "image",
-        subject: "一隻睡眼惺忪的小橘貓趴在咖啡館木質吧枱上打瞌睡，旁邊放著冒著熱氣的拿鐵",
+        subject: "a sleepy ginger kitten napping on a rustic wooden café counter next to a steaming cup of latte",
         subjectEn: "a sleepy ginger kitten napping on a rustic wooden café counter next to a steaming cup of latte",
+        subjectZh: "一隻睡眼惺忪的小橘貓趴在咖啡館木質吧枱上打瞌睡，旁邊放著冒著熱氣的拿鐵",
         scene: "cozy_cafe",
         style: "ghibli",
         styleModifiers: ["highly_detailed", "masterpiece"],
@@ -546,8 +551,9 @@ const PROMPT_DATA = {
       thumbGradient: "linear-gradient(135deg, #18181b 0%, #71717a 50%, #fde047 100%)",
       state: {
         mode: "image",
-        subject: "一瓶幾何切面雕花的高級琥珀色香水瓶，細小水珠凝結在瓶身邊緣",
+        subject: "a luxury geometric cut-crystal amber perfume bottle with microscopic dew condensation droplets",
         subjectEn: "a luxury geometric cut-crystal amber perfume bottle with microscopic dew condensation droplets",
+        subjectZh: "一瓶幾何切面雕花的高級琥珀色香水瓶，細小水珠凝結在瓶身邊緣",
         scene: "studio_backdrop",
         style: "photorealistic",
         styleModifiers: ["highly_detailed", "sharp_focus", "octane_render", "ray_tracing"],
@@ -572,11 +578,12 @@ const PROMPT_DATA = {
       thumbGradient: "linear-gradient(135deg, #09090b 0%, #3f3f46 60%, #e4e4e7 100%)",
       state: {
         mode: "image",
-        subject: "一條巨大的青色神龍穿行在層疊雲霧與陡峭黃山山峰之間",
+        subject: "a colossal azure mythical dragon soaring through cascading misty clouds and jagged Huangshan mountain peaks",
         subjectEn: "a colossal azure mythical dragon soaring through cascading misty clouds and jagged Huangshan mountain peaks",
+        subjectZh: "一條巨大的青色神龍穿行在層疊雲霧與陡峭黃山山峰之間",
         scene: "misty_forest",
         style: "ink_wash",
-        styleModifiers: ["masterpiece", "volumetric_light"],
+        styleModifiers: ["masterpiece", "unreal_engine_5"],
         lighting: "god_rays",
         cameraShotSize: "wide_establishing",
         cameraAngle: "low_angle",
@@ -598,8 +605,9 @@ const PROMPT_DATA = {
       thumbGradient: "linear-gradient(135deg, #ff007f 0%, #7928ca 50%, #00f0ff 100%)",
       state: {
         mode: "image",
-        subject: "一隻半機械化的黑貓蹲在屋頂邊緣，眼部散發著青色全息光芒，頸部有發光電路",
+        subject: "a semi-cybernetic black cat perched on a rooftop ledge with glowing cyan holographic optical eyes and exposed gold circuitry",
         subjectEn: "a semi-cybernetic black cat perched on a rooftop ledge with glowing cyan holographic optical eyes and exposed gold circuitry",
+        subjectZh: "一隻半機械化的黑貓蹲在屋頂邊緣，眼部散發著青色全息光芒，頸部有發光電路",
         scene: "cyberpunk_street",
         style: "cyberpunk_neon",
         styleModifiers: ["highly_detailed", "sharp_focus", "unreal_engine_5"],
@@ -612,7 +620,7 @@ const PROMPT_DATA = {
         mood: "mysterious",
         palette: "cyber_synth",
         aspectRatio: "3_4",
-        negativeChips: ["blurry", "low_res", "deformed", "watermark_text"]
+        negativeChips: ["blurry", "low_res", "bad_hands", "watermark_text"]
       }
     },
     {
@@ -624,8 +632,9 @@ const PROMPT_DATA = {
       thumbGradient: "linear-gradient(135deg, #7c2d12 0%, #b45309 50%, #a855f7 100%)",
       state: {
         mode: "image",
-        subject: "一名短髮女子坐在霓虹燈閃爍的街角茶餐廳，眼神若有所思",
+        subject: "a stylish young woman with short vintage bob haircut sitting in a neon-lit Hong Kong cha chaan teng diner with a thoughtful gaze",
         subjectEn: "a stylish young woman with short vintage bob haircut sitting in a neon-lit Hong Kong cha chaan teng diner with a thoughtful gaze",
+        subjectZh: "一名短髮女子坐在霓虹燈閃爍的街角茶餐廳，眼神若有所思",
         scene: "city_night",
         style: "polaroid_35mm",
         styleModifiers: ["film_grain", "creamy_bokeh"],
@@ -650,9 +659,10 @@ const PROMPT_DATA = {
       thumbGradient: "linear-gradient(135deg, #1e3a8a 0%, #be123c 60%, #f59e0b 100%)",
       state: {
         mode: "video",
-        subject: "夕陽西下時分的繁忙港口海面，渡輪在波光粼粼的水面劃開金色尾波",
+        subject: "bustling harbour waters at sunset with passenger ferries carving golden wakes across glistening waves",
         subjectEn: "bustling harbour waters at sunset with passenger ferries carving golden wakes across glistening waves",
-        scene: "golden_beach",
+        subjectZh: "夕陽西下時分的繁忙港口海面，渡輪在波光粼粼的水面劃開金色尾波",
+        scene: "harbour_waterfront",
         style: "cinematic",
         styleModifiers: ["highly_detailed", "sharp_focus"],
         lighting: "golden_hour",
@@ -684,8 +694,9 @@ const PROMPT_DATA = {
       thumbGradient: "linear-gradient(135deg, #451a03 0%, #78350f 50%, #fde68a 100%)",
       state: {
         mode: "video",
-        subject: "熱氣騰騰的濃縮咖啡上方，白色蒸奶緩緩注入杯中形成優美的拉花圖案",
+        subject: "velvety steamed white milk pouring gracefully into rich dark espresso forming intricate latte art",
         subjectEn: "velvety steamed white milk pouring gracefully into rich dark espresso forming intricate latte art",
+        subjectZh: "熱氣騰騰的濃縮咖啡上方，白色蒸奶緩緩注入杯中形成優美的拉花圖案",
         scene: "cozy_cafe",
         style: "photorealistic",
         styleModifiers: ["sharp_focus", "creamy_bokeh"],
@@ -718,8 +729,9 @@ const PROMPT_DATA = {
       thumbGradient: "linear-gradient(135deg, #3b0764 0%, #c026d3 50%, #06b6d4 100%)",
       state: {
         mode: "video",
-        subject: "身穿黑色反光皮褸的男子站在雨夜路口，轉身凝視鏡頭",
+        subject: "a cool man in a reflective black leather jacket standing at a rainy crossroad, turning slowly towards camera",
         subjectEn: "a cool man in a reflective black leather jacket standing at a rainy crossroad, turning slowly towards camera",
+        subjectZh: "身穿黑色反光皮褸的男子站在雨夜路口，轉身凝視鏡頭",
         scene: "cyberpunk_street",
         style: "cinematic",
         styleModifiers: ["highly_detailed", "sharp_focus", "film_grain"],
@@ -752,9 +764,10 @@ const PROMPT_DATA = {
       thumbGradient: "linear-gradient(135deg, #09090b 0%, #1e1b4b 50%, #818cf8 100%)",
       state: {
         mode: "video",
-        subject: "一名孤獨的太空宇航員在未知外星荒漠中探索神秘發光巨石",
+        subject: "a lone astronaut in an illuminated space suit exploring glowing alien monoliths in a desert landscape",
         subjectEn: "a lone astronaut in an illuminated space suit exploring glowing alien monoliths in a desert landscape",
-        scene: "outer_space",
+        subjectZh: "一名孤獨的太空宇航員在未知外星荒漠中探索神秘發光巨石",
+        scene: "alien_desert",
         style: "cinematic",
         styleModifiers: ["highly_detailed", "sharp_focus", "unreal_engine_5"],
         lighting: "cinematic_dramatic",
@@ -771,9 +784,9 @@ const PROMPT_DATA = {
         pacing: "smooth_steady",
         subjectMotion: "astronaut walking slowly forward, glowing dust swirling around boots",
         shots: [
-          { descZh: "Shot 1 (0-3s): 遠景航拍，太空人在廣袤荒原中前行", descEn: "Shot 1 (0-3s): high-altitude crane down revealing vast alien plains and tiny lone astronaut walking", move: "crane_up", seconds: 3 },
-          { descZh: "Shot 2 (3-7s): 中景軌道跟拍，太空人接近發光黑石", descEn: "Shot 2 (3-7s): dolly tracking shot following astronaut walking towards the towering monolith", move: "dolly_track", seconds: 4 },
-          { descZh: "Shot 3 (7-10s): 面罩特寫推進，雙眼倒映外星雙日", descEn: "Shot 3 (7-10s): close-up slow push-in onto visor reflecting twin alien suns in deep purple sky", move: "push_in", seconds: 3 }
+          { descZh: "遠景航拍，太空人在廣袤荒原中前行", descEn: "high-altitude crane down revealing vast alien plains and tiny lone astronaut walking", move: "crane_up", seconds: 3 },
+          { descZh: "中景軌道跟拍，太空人接近發光黑石", descEn: "dolly tracking shot following astronaut walking towards the towering monolith", move: "dolly_track", seconds: 4 },
+          { descZh: "面罩特寫推進，雙眼倒映外星雙日", descEn: "close-up slow push-in onto visor reflecting twin alien suns in deep purple sky", move: "push_in", seconds: 3 }
         ],
         negativeChips: ["blurry", "low_res", "flickering", "temporal_jitter", "morphing", "bad_hands"]
       }

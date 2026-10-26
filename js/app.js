@@ -12,6 +12,13 @@
   let undoStack = [];
   let currentEditingItemId = null; // ID if loaded from library
 
+  // Dynamic filter state for Library
+  let currentLibFilter = "all";
+  let currentLibTagFilter = null;
+  let currentLibSearch = "";
+  let currentRecipeFilter = "all";
+  let selectedRecipeForModal = null;
+
   // DOM Elements cache
   const el = {};
 
@@ -86,6 +93,7 @@
     el.btnSheetCopyMain = document.getElementById("btnSheetCopyMain");
     el.btnSheetSave = document.getElementById("btnSheetSave");
     el.btnSheetSurprise = document.getElementById("btnSheetSurprise");
+    el.btnSheetClear = document.getElementById("btnSheetClear");
 
     // Tab 2: Recipes
     el.containerRecipeFilterChips = document.getElementById("containerRecipeFilterChips");
@@ -95,6 +103,8 @@
     el.inputLibrarySearch = document.getElementById("inputLibrarySearch");
     el.btnClearLibrarySearch = document.getElementById("btnClearLibrarySearch");
     el.containerLibFilterChips = document.getElementById("containerLibFilterChips");
+    el.containerLibTagFilters = document.getElementById("containerLibTagFilters");
+    el.containerLibTagChips = document.getElementById("containerLibTagChips");
     el.containerLibraryList = document.getElementById("containerLibraryList");
     el.libEmptyState = document.getElementById("libEmptyState");
     el.btnEmptyGoBuild = document.getElementById("btnEmptyGoBuild");
@@ -111,6 +121,7 @@
     el.inputSaveTags = document.getElementById("inputSaveTags");
     el.btnCloseSaveModal = document.getElementById("btnCloseSaveModal");
     el.btnCancelSave = document.getElementById("btnCancelSave");
+    el.btnSaveAsNew = document.getElementById("btnSaveAsNew");
     el.btnConfirmSave = document.getElementById("btnConfirmSave");
 
     el.modalRecipe = document.getElementById("modalRecipe");
@@ -132,6 +143,60 @@
     el.btnConfirmImport = document.getElementById("btnConfirmImport");
 
     el.toastContainer = document.getElementById("toastContainer");
+  }
+
+  // ================= UTILITIES =================
+
+  function escapeHtml(str) {
+    if (typeof str !== "string") return "";
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function showModal(modalEl) {
+    if (!modalEl) return;
+    modalEl.setAttribute("aria-hidden", "false");
+    modalEl.style.display = "flex";
+  }
+
+  function hideModal(modalEl) {
+    if (!modalEl) return;
+    modalEl.setAttribute("aria-hidden", "true");
+    modalEl.style.display = "none";
+  }
+
+  function makeAccessibleButton(element, onClick) {
+    element.setAttribute("role", "button");
+    element.setAttribute("tabindex", "0");
+    element.addEventListener("click", onClick);
+    element.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onClick(e);
+      }
+    });
+  }
+
+  function isBuilderDirty() {
+    if (currentEditingItemId) return true;
+    const def = window.PromptEngine.getDefaultState(state.mode);
+    if (state.subject && state.subject !== def.subject) return true;
+    if (state.scene !== def.scene) return true;
+    if (state.sceneCustom && state.sceneCustom.trim()) return true;
+    if (state.style !== def.style) return true;
+    if (state.lighting !== def.lighting) return true;
+    if (state.cameraShotSize !== def.cameraShotSize) return true;
+    if (state.composition !== def.composition) return true;
+    if (state.mood !== def.mood) return true;
+    if (state.palette !== def.palette) return true;
+    if (Array.isArray(state.styleModifiers) && state.styleModifiers.length > (def.styleModifiers || []).length) return true;
+    if (Array.isArray(state.negativeChips) && state.negativeChips.length !== (def.negativeChips || []).length) return true;
+    if (state.mode === "video" && Array.isArray(state.shots) && state.shots.length > 0) return true;
+    return false;
   }
 
   // ================= PUSH STATE TO UNDO =================
@@ -199,21 +264,30 @@
   function fallbackCopy(text, successMessage) {
     const ta = document.createElement("textarea");
     ta.value = text;
+    ta.setAttribute("readonly", "");
     ta.style.position = "fixed";
-    ta.style.opacity = "0";
-    ta.style.top = "-9999px";
+    ta.style.top = "0";
+    ta.style.left = "0";
+    ta.style.width = "1px";
+    ta.style.height = "1px";
+    ta.style.padding = "0";
+    ta.style.border = "none";
+    ta.style.outline = "none";
+    ta.style.boxShadow = "none";
+    ta.style.background = "transparent";
+    ta.style.opacity = "0.01";
     document.body.appendChild(ta);
     ta.focus();
-    ta.select();
+    ta.setSelectionRange(0, text.length);
     try {
       const successful = document.execCommand("copy");
       if (successful) {
         showToast(successMessage);
       } else {
-        showToast("複製失敗，請手動複製");
+        showToast("複製失敗，請手動選取複製");
       }
     } catch (err) {
-      showToast("複製失敗，請手動複製");
+      showToast("複製失敗，請手動選取複製");
     }
     document.body.removeChild(ta);
   }
@@ -230,13 +304,17 @@
       chip.type = "button";
       chip.className = "chip";
       chip.dataset.subCat = cat.id;
+      chip.setAttribute("aria-pressed", "false");
       chip.innerHTML = `${cat.zh} <span class="chip-sub">(${cat.en})</span>`;
       chip.addEventListener("click", () => {
         pushUndo();
         state.subjectCategory = state.subjectCategory === cat.id ? null : cat.id;
-        if (state.subjectCategory && (!state.subject || !state.subject.trim())) {
-          state.subject = cat.sampleZh;
-          el.inputSubject.value = cat.sampleZh;
+        if (state.subjectCategory) {
+          // Put clean English sample in subject & subjectEn, Cantonese in subjectZh
+          state.subject = cat.sampleEn;
+          state.subjectEn = cat.sampleEn;
+          state.subjectZh = cat.sampleZh;
+          el.inputSubject.value = cat.sampleEn;
           el.btnClearSubject.style.display = "flex";
         }
         updateUI();
@@ -251,6 +329,7 @@
       chip.type = "button";
       chip.className = "chip";
       chip.dataset.sceneId = sc.id;
+      chip.setAttribute("aria-pressed", "false");
       chip.innerHTML = `${sc.zh}`;
       chip.addEventListener("click", () => {
         pushUndo();
@@ -273,7 +352,7 @@
           <span class="style-card-hint">${st.hintEn}</span>
         </div>
       `;
-      card.addEventListener("click", () => {
+      makeAccessibleButton(card, () => {
         pushUndo();
         state.style = st.id;
         updateUI();
@@ -288,9 +367,11 @@
       chip.type = "button";
       chip.className = "chip";
       chip.dataset.modId = m.id;
+      chip.setAttribute("aria-pressed", "false");
       chip.textContent = m.zh;
       chip.addEventListener("click", () => {
         pushUndo();
+        if (!Array.isArray(state.styleModifiers)) state.styleModifiers = [];
         const idx = state.styleModifiers.indexOf(m.id);
         if (idx >= 0) {
           state.styleModifiers.splice(idx, 1);
@@ -309,6 +390,7 @@
       chip.type = "button";
       chip.className = "chip";
       chip.dataset.lightId = lt.id;
+      chip.setAttribute("aria-pressed", "false");
       chip.textContent = lt.zh;
       chip.addEventListener("click", () => {
         pushUndo();
@@ -331,6 +413,7 @@
       chip.type = "button";
       chip.className = "chip";
       chip.dataset.compId = comp.id;
+      chip.setAttribute("aria-pressed", "false");
       chip.textContent = comp.zh;
       chip.addEventListener("click", () => {
         pushUndo();
@@ -347,6 +430,7 @@
       chip.type = "button";
       chip.className = "chip";
       chip.dataset.moodId = m.id;
+      chip.setAttribute("aria-pressed", "false");
       chip.textContent = m.zh;
       chip.addEventListener("click", () => {
         pushUndo();
@@ -371,7 +455,7 @@
         <div class="palette-dots">${dotsHtml}</div>
         <span class="palette-name">${pal.zh}</span>
       `;
-      card.addEventListener("click", () => {
+      makeAccessibleButton(card, () => {
         pushUndo();
         state.palette = state.palette === pal.id ? null : pal.id;
         updateUI();
@@ -389,7 +473,7 @@
         <span class="ar-label">${ar.label}</span>
         <span class="ar-desc">${ar.descZh}</span>
       `;
-      chip.addEventListener("click", () => {
+      makeAccessibleButton(chip, () => {
         pushUndo();
         state.aspectRatio = ar.id;
         updateUI();
@@ -404,6 +488,7 @@
       chip.type = "button";
       chip.className = "chip";
       chip.dataset.vidMove = mv.id;
+      chip.setAttribute("aria-pressed", "false");
       chip.textContent = mv.zh;
       chip.addEventListener("click", () => {
         pushUndo();
@@ -418,7 +503,8 @@
       const chip = document.createElement("button");
       chip.type = "button";
       chip.className = "chip";
-      chip.dataset.vidDuration = d.seconds;
+      chip.dataset.vidDuration = String(d.seconds);
+      chip.setAttribute("aria-pressed", "false");
       chip.textContent = d.label;
       chip.addEventListener("click", () => {
         pushUndo();
@@ -434,6 +520,7 @@
       chip.type = "button";
       chip.className = "chip";
       chip.dataset.vidPacing = pc.id;
+      chip.setAttribute("aria-pressed", "false");
       chip.textContent = pc.zh;
       chip.addEventListener("click", () => {
         pushUndo();
@@ -454,6 +541,7 @@
       chip.type = "button";
       chip.className = "chip";
       chip.dataset.id = item.id;
+      chip.setAttribute("aria-pressed", "false");
       chip.textContent = item.zh;
       chip.addEventListener("click", () => {
         pushUndo();
@@ -476,9 +564,11 @@
       chip.type = "button";
       chip.className = "chip";
       chip.dataset.negId = neg.id;
+      chip.setAttribute("aria-pressed", "false");
       chip.textContent = neg.zh;
       chip.addEventListener("click", () => {
         pushUndo();
+        if (!Array.isArray(state.negativeChips)) state.negativeChips = [];
         const idx = state.negativeChips.indexOf(neg.id);
         if (idx >= 0) {
           state.negativeChips.splice(idx, 1);
@@ -498,7 +588,7 @@
     el.containerShotList.innerHTML = "";
 
     if (!Array.isArray(state.shots) || state.shots.length === 0) {
-      el.containerShotList.innerHTML = `<div class="text-muted" style="font-size:12px;padding:8px;text-align:center;">暫無分鏡，撳「＋ 新增鏡頭」開始規劃故事板</div>`;
+      el.containerShotList.innerHTML = `<div class="text-muted" style="font-size:14px;padding:12px;text-align:center;">暫無分鏡，撳下方「＋ 新增鏡頭」規劃故事板</div>`;
       return;
     }
 
@@ -535,8 +625,16 @@
           <select class="shot-move-select" data-idx="${index}">${moveOptions}</select>
           <select class="shot-sec-select" data-idx="${index}">${secOptions}</select>
         </div>
-        <input type="text" class="shot-desc-input" data-idx="${index}" value="${shot.descZh || shot.descEn || ""}" placeholder="描述此鏡頭畫面（中英皆可）...">
       `;
+
+      // Create input element safely to avoid HTML injection
+      const descInput = document.createElement("input");
+      descInput.type = "text";
+      descInput.className = "shot-desc-input";
+      descInput.dataset.idx = String(index);
+      descInput.value = shot.descZh || shot.descEn || "";
+      descInput.placeholder = "描述此鏡頭畫面（如：主角推開咖啡店門、特寫手部動作）...";
+      card.appendChild(descInput);
 
       el.containerShotList.appendChild(card);
     });
@@ -606,15 +704,16 @@
   // ================= UPDATE UI SYNC =================
 
   function updateUI() {
+    state = window.PromptEngine.sanitizeState(state);
     const DATA = window.PROMPT_DATA;
     const isVideo = state.mode === "video";
 
     // Mode Toggle Sync
     el.modeIndicator.textContent = isVideo ? "影片模式" : "圖片模式";
     el.btnModeImage.classList.toggle("active", !isVideo);
-    el.btnModeImage.setAttribute("aria-pressed", !isVideo);
+    el.btnModeImage.setAttribute("aria-pressed", !isVideo ? "true" : "false");
     el.btnModeVideo.classList.toggle("active", isVideo);
-    el.btnModeVideo.setAttribute("aria-pressed", isVideo);
+    el.btnModeVideo.setAttribute("aria-pressed", isVideo ? "true" : "false");
 
     el.cardVideo.style.display = isVideo ? "block" : "none";
 
@@ -628,18 +727,22 @@
     }
     el.inputNegativeCustom.value = state.negativeCustom || "";
 
-    // Sync active classes
+    // Sync active classes and aria-pressed
     syncChipActive(el.containerSubjectChips, "subCat", state.subjectCategory);
     syncChipActive(el.containerSceneChips, "sceneId", state.scene);
 
     // Style active
     document.querySelectorAll(".style-card").forEach((card) => {
-      card.classList.toggle("active", card.dataset.styleId === state.style);
+      const isAct = card.dataset.styleId === state.style;
+      card.classList.toggle("active", isAct);
+      card.setAttribute("aria-pressed", isAct ? "true" : "false");
     });
 
     // Style modifiers
     document.querySelectorAll("#containerStyleModifiers .chip").forEach((chip) => {
-      chip.classList.toggle("active", state.styleModifiers.includes(chip.dataset.modId));
+      const isAct = (state.styleModifiers || []).includes(chip.dataset.modId);
+      chip.classList.toggle("active", isAct);
+      chip.setAttribute("aria-pressed", isAct ? "true" : "false");
     });
 
     // Lighting
@@ -657,12 +760,16 @@
 
     // Palette
     document.querySelectorAll(".palette-card").forEach((c) => {
-      c.classList.toggle("active", c.dataset.paletteId === state.palette);
+      const isAct = c.dataset.paletteId === state.palette;
+      c.classList.toggle("active", isAct);
+      c.setAttribute("aria-pressed", isAct ? "true" : "false");
     });
 
     // Aspect
     document.querySelectorAll(".ar-chip").forEach((c) => {
-      c.classList.toggle("active", c.dataset.arId === state.aspectRatio);
+      const isAct = c.dataset.arId === state.aspectRatio;
+      c.classList.toggle("active", isAct);
+      c.setAttribute("aria-pressed", isAct ? "true" : "false");
     });
 
     // Video options
@@ -675,7 +782,9 @@
 
     // Negative chips
     document.querySelectorAll("#containerNegativeChips .chip").forEach((chip) => {
-      chip.classList.toggle("active", state.negativeChips.includes(chip.dataset.negId));
+      const isAct = (state.negativeChips || []).includes(chip.dataset.negId);
+      chip.classList.toggle("active", isAct);
+      chip.setAttribute("aria-pressed", isAct ? "true" : "false");
     });
 
     // Summaries on accordion headers
@@ -692,7 +801,9 @@
     if (!container) return;
     container.querySelectorAll(".chip").forEach((chip) => {
       const val = chip.dataset[dataAttr];
-      chip.classList.toggle("active", val === targetValue);
+      const isActive = val === String(targetValue);
+      chip.classList.toggle("active", isActive);
+      chip.setAttribute("aria-pressed", isActive ? "true" : "false");
     });
   }
 
@@ -752,7 +863,7 @@
     }
 
     // Negative
-    el.summaryNegative.textContent = `已啟用 ${state.negativeChips.length} 項過濾`;
+    el.summaryNegative.textContent = `已啟用 ${(state.negativeChips || []).length} 項過濾`;
   }
 
   function syncLivePromptOnly() {
@@ -797,7 +908,7 @@
     el.tabNavBtns.forEach((b) => {
       const active = b.dataset.tab === tabId;
       b.classList.toggle("active", active);
-      b.setAttribute("aria-selected", active);
+      b.setAttribute("aria-selected", active ? "true" : "false");
     });
 
     el.tabPanes.forEach((p) => {
@@ -813,13 +924,15 @@
 
   // ================= TAB 2: RECIPES =================
 
-  let currentRecipeFilter = "all";
-
   function setupRecipesTab() {
     el.containerRecipeFilterChips.querySelectorAll(".chip").forEach((btn) => {
       btn.addEventListener("click", () => {
-        el.containerRecipeFilterChips.querySelectorAll(".chip").forEach((c) => c.classList.remove("active"));
+        el.containerRecipeFilterChips.querySelectorAll(".chip").forEach((c) => {
+          c.classList.remove("active");
+          c.setAttribute("aria-pressed", "false");
+        });
         btn.classList.add("active");
+        btn.setAttribute("aria-pressed", "true");
         currentRecipeFilter = btn.dataset.recipeFilter;
         renderRecipesTab();
       });
@@ -834,8 +947,8 @@
       if (currentRecipeFilter === "all") return true;
       if (currentRecipeFilter === "image") return rec.mode === "image";
       if (currentRecipeFilter === "video") return rec.mode === "video";
-      if (currentRecipeFilter === "cinematic") return rec.tags.includes("電影感") || rec.tags.includes("航拍");
-      if (currentRecipeFilter === "anime") return rec.tags.includes("吉卜力") || rec.tags.includes("東方美學");
+      if (currentRecipeFilter === "cinematic") return (rec.tags || []).includes("電影感") || (rec.tags || []).includes("航拍");
+      if (currentRecipeFilter === "anime") return (rec.tags || []).includes("吉卜力") || (rec.tags || []).includes("東方美學");
       return true;
     });
 
@@ -843,8 +956,8 @@
       const card = document.createElement("div");
       card.className = "recipe-card";
 
-      const tagsHtml = rec.tags
-        .map((t) => `<span class="recipe-tag-pill">#${t}</span>`)
+      const tagsHtml = (rec.tags || [])
+        .map((t) => `<span class="recipe-tag-pill">#${escapeHtml(t)}</span>`)
         .join("");
 
       card.innerHTML = `
@@ -852,8 +965,8 @@
           <span class="recipe-mode-tag">${rec.mode === "video" ? "🎬 影片運鏡" : "🖼️ 圖片"}</span>
         </div>
         <div class="recipe-card-body">
-          <h3 class="recipe-card-title">${rec.titleZh}</h3>
-          <p class="recipe-card-desc">${rec.descZh}</p>
+          <h3 class="recipe-card-title">${escapeHtml(rec.titleZh)}</h3>
+          <p class="recipe-card-desc">${escapeHtml(rec.descZh)}</p>
           <div class="recipe-tags-row">${tagsHtml}</div>
           <button type="button" class="btn-use-recipe">🔥 用呢個配方</button>
         </div>
@@ -872,8 +985,6 @@
     });
   }
 
-  let selectedRecipeForModal = null;
-
   function openRecipeDetailModal(recipe) {
     selectedRecipeForModal = recipe;
     el.modalRecipeTitle.textContent = recipe.titleZh;
@@ -884,27 +995,30 @@
     const samplePrompt = window.PromptEngine.buildPrompt(recipe.state);
     el.modalRecipePromptText.textContent = samplePrompt;
 
-    el.modalRecipe.style.display = "flex";
+    showModal(el.modalRecipe);
   }
 
   function applySelectedRecipe() {
     if (!selectedRecipeForModal) return;
+
+    if (isBuilderDirty()) {
+      const confirmed = window.confirm("而家嘅創作尚未儲存，確定用呢個配方覆蓋？");
+      if (!confirmed) return;
+    }
+
     pushUndo();
 
-    // Deep clone recipe state
-    state = JSON.parse(JSON.stringify(selectedRecipeForModal.state));
+    // Deep clone & sanitize recipe state
+    state = window.PromptEngine.sanitizeState(selectedRecipeForModal.state);
     currentEditingItemId = null;
 
     updateUI();
-    el.modalRecipe.style.display = "none";
+    hideModal(el.modalRecipe);
     switchTab("tab-build");
     showToast(`已載入靈感配方：${selectedRecipeForModal.titleZh}`);
   }
 
   // ================= TAB 3: LIBRARY =================
-
-  let currentLibFilter = "all";
-  let currentLibSearch = "";
 
   function setupLibraryTab() {
     el.inputLibrarySearch.addEventListener("input", () => {
@@ -922,8 +1036,12 @@
 
     el.containerLibFilterChips.querySelectorAll(".chip").forEach((btn) => {
       btn.addEventListener("click", () => {
-        el.containerLibFilterChips.querySelectorAll(".chip").forEach((c) => c.classList.remove("active"));
+        el.containerLibFilterChips.querySelectorAll(".chip").forEach((c) => {
+          c.classList.remove("active");
+          c.setAttribute("aria-pressed", "false");
+        });
         btn.classList.add("active");
+        btn.setAttribute("aria-pressed", "true");
         currentLibFilter = btn.dataset.libFilter;
         renderLibraryTab();
       });
@@ -934,7 +1052,7 @@
       el.importErrorMsg.style.display = "none";
       el.textareaImportJSON.value = "";
       el.fileImportInput.value = "";
-      el.modalImport.style.display = "flex";
+      showModal(el.modalImport);
     });
   }
 
@@ -947,7 +1065,7 @@
     el.countLibImg.textContent = library.filter((it) => it.mode === "image").length;
     el.countLibVid.textContent = library.filter((it) => it.mode === "video").length;
 
-    // Filter
+    // Filter by type
     let filtered = library.filter((it) => {
       if (currentLibFilter === "favorite") return it.favorite;
       if (currentLibFilter === "image") return it.mode === "image";
@@ -955,12 +1073,54 @@
       return true;
     });
 
+    // Filter by tag if selected
+    if (currentLibTagFilter) {
+      filtered = filtered.filter((it) => Array.isArray(it.tags) && it.tags.includes(currentLibTagFilter));
+    }
+
     // Search
     if (currentLibSearch) {
       filtered = filtered.filter((it) => {
         const text = `${it.name} ${it.prompt} ${(it.tags || []).join(" ")}`.toLowerCase();
         return text.includes(currentLibSearch);
       });
+    }
+
+    // Dynamic tag filter chips
+    const allTags = Array.from(new Set(library.flatMap((it) => it.tags || []))).filter(Boolean);
+    if (el.containerLibTagFilters && el.containerLibTagChips) {
+      if (allTags.length > 0) {
+        el.containerLibTagFilters.style.display = "block";
+        el.containerLibTagChips.innerHTML = "";
+
+        // All tags chip
+        const allChip = document.createElement("button");
+        allChip.type = "button";
+        allChip.className = "chip" + (!currentLibTagFilter ? " active" : "");
+        allChip.setAttribute("aria-pressed", !currentLibTagFilter ? "true" : "false");
+        allChip.textContent = "所有標籤";
+        allChip.addEventListener("click", () => {
+          currentLibTagFilter = null;
+          renderLibraryTab();
+        });
+        el.containerLibTagChips.appendChild(allChip);
+
+        allTags.forEach((t) => {
+          const tagChip = document.createElement("button");
+          tagChip.type = "button";
+          const isActive = currentLibTagFilter === t;
+          tagChip.className = "chip" + (isActive ? " active" : "");
+          tagChip.setAttribute("aria-pressed", isActive ? "true" : "false");
+          tagChip.textContent = `#${t}`;
+          tagChip.addEventListener("click", () => {
+            currentLibTagFilter = currentLibTagFilter === t ? null : t;
+            renderLibraryTab();
+          });
+          el.containerLibTagChips.appendChild(tagChip);
+        });
+      } else {
+        el.containerLibTagFilters.style.display = "none";
+      }
     }
 
     el.containerLibraryList.innerHTML = "";
@@ -977,7 +1137,7 @@
       card.className = "lib-card";
 
       const tagsHtml = (item.tags || [])
-        .map((t) => `<span class="lib-tag-pill">#${t}</span>`)
+        .map((t) => `<span class="lib-tag-pill">#${escapeHtml(t)}</span>`)
         .join("");
 
       const relTime = window.PromptStore.formatRelativeTimeZh(item.updatedAt || item.createdAt);
@@ -986,14 +1146,14 @@
         <div class="lib-card-header">
           <div class="lib-card-title-group">
             <span class="lib-mode-badge">${item.mode === "video" ? "🎬 影片" : "🖼️ 圖片"}</span>
-            <span class="lib-card-name">${item.name}</span>
+            <span class="lib-card-name">${escapeHtml(item.name)}</span>
           </div>
           <div class="lib-card-header-actions">
-            <span class="lib-card-time">${relTime}</span>
+            <span class="lib-card-time">${escapeHtml(relTime)}</span>
             <button type="button" class="btn-lib-fav ${item.favorite ? "active" : ""}" data-id="${item.id}" title="最愛">★</button>
           </div>
         </div>
-        <div class="lib-card-prompt-snippet">${item.prompt || "（無提示詞內容）"}</div>
+        <div class="lib-card-prompt-snippet">${escapeHtml(item.prompt || "（無提示詞內容）")}</div>
         ${tagsHtml ? `<div class="lib-card-tags">${tagsHtml}</div>` : ""}
         <div class="lib-card-actions">
           <button type="button" class="btn-lib-action-sm primary btn-lib-load" data-id="${item.id}">載入編輯</button>
@@ -1011,7 +1171,7 @@
 
       card.querySelector(".btn-lib-load").addEventListener("click", () => {
         pushUndo();
-        state = JSON.parse(JSON.stringify(item.state));
+        state = window.PromptEngine.sanitizeState(item.state);
         currentEditingItemId = item.id;
         updateUI();
         switchTab("tab-build");
@@ -1023,12 +1183,18 @@
       });
 
       card.querySelector(".btn-lib-dup").addEventListener("click", () => {
-        window.PromptStore.duplicateItem(item.id);
+        const dup = window.PromptStore.duplicateItem(item.id);
+        if (!dup) {
+          showToast("複製副本失敗，儲存空間可能已滿");
+          return;
+        }
         renderLibraryTab();
         showToast(`已複製副本：${item.name} (副本)`);
       });
 
       card.querySelector(".btn-lib-del").addEventListener("click", () => {
+        const confirmed = window.confirm(`確定要刪除「${item.name}」？`);
+        if (!confirmed) return;
         const deleted = window.PromptStore.deleteItem(item.id);
         renderLibraryTab();
         showToast(`已刪除「${item.name}」`, "復原", () => {
@@ -1076,7 +1242,7 @@
         return;
       }
 
-      el.modalImport.style.display = "none";
+      hideModal(el.modalImport);
       renderLibraryTab();
       showToast(`匯入成功：新增 ${res.addedCount} 個，略過 ${res.skippedCount} 個重複項目`);
     };
@@ -1108,10 +1274,20 @@
 
     el.inputSaveName.value = defaultName;
     el.inputSaveTags.value = state.mode === "video" ? "影片" : "圖片";
-    el.modalSave.style.display = "flex";
+
+    if (currentEditingItemId) {
+      if (el.btnSaveAsNew) el.btnSaveAsNew.style.display = "inline-flex";
+      el.btnConfirmSave.textContent = "更新現有項目";
+    } else {
+      if (el.btnSaveAsNew) el.btnSaveAsNew.style.display = "none";
+      el.btnConfirmSave.textContent = "確認儲存";
+    }
+
+    showModal(el.modalSave);
   }
 
-  function handleConfirmSave() {
+  function handleConfirmSave(options = {}) {
+    const asNew = options.asNew === true;
     const name = el.inputSaveName.value.trim() || "未命名 Prompt";
     const tags = el.inputSaveTags.value
       .split(/[,，\s]+/)
@@ -1122,16 +1298,20 @@
     const explanationText = window.PromptEngine.buildExplanation(state);
     const negativeText = window.PromptEngine.buildNegative(state);
 
-    if (currentEditingItemId) {
-      window.PromptStore.updateItem(currentEditingItemId, {
+    if (currentEditingItemId && !asNew) {
+      const updated = window.PromptStore.updateItem(currentEditingItemId, {
         name,
         tags,
         mode: state.mode,
         prompt: promptText,
         explanation: explanationText,
         negative: negativeText,
-        state: state
+        state: JSON.parse(JSON.stringify(state))
       });
+      if (!updated) {
+        showToast("儲存失敗，空間可能已滿，請試下刪除舊項目或匯出備份");
+        return;
+      }
       showToast(`已更新「${name}」至庫 ✓`);
     } else {
       const newItem = window.PromptStore.addItem({
@@ -1141,16 +1321,44 @@
         prompt: promptText,
         explanation: explanationText,
         negative: negativeText,
-        state: state
+        state: JSON.parse(JSON.stringify(state))
       });
+      if (!newItem) {
+        showToast("儲存失敗，空間可能已滿，請試下刪除舊項目或匯出備份");
+        return;
+      }
       currentEditingItemId = newItem.id;
-      showToast(`已儲存「${name}」至庫 ✓`);
+      showToast(asNew ? `已另存為新項目「${name}」至庫 ✓` : `已儲存「${name}」至庫 ✓`);
     }
 
-    el.modalSave.style.display = "none";
+    hideModal(el.modalSave);
     if (document.getElementById("tab-library").classList.contains("active")) {
       renderLibraryTab();
     }
+  }
+
+  // ================= VISUAL VIEWPORT (IOS KEYBOARD TRACKING) =================
+  function setupVisualViewport() {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+
+    const onViewportChange = () => {
+      const vv = window.visualViewport;
+      const keyboardHeight = window.innerHeight - vv.height - vv.offsetTop;
+      if (keyboardHeight > 100) {
+        document.body.classList.add("keyboard-open");
+        if (el.promptSheet) {
+          el.promptSheet.style.transform = `translateY(${keyboardHeight}px)`;
+        }
+      } else {
+        document.body.classList.remove("keyboard-open");
+        if (el.promptSheet) {
+          el.promptSheet.style.transform = "";
+        }
+      }
+    };
+
+    window.visualViewport.addEventListener("resize", onViewportChange);
+    window.visualViewport.addEventListener("scroll", onViewportChange);
   }
 
   // ================= EVENT BINDINGS =================
@@ -1228,6 +1436,7 @@
     // Subject inputs
     el.inputSubject.addEventListener("input", () => {
       state.subject = el.inputSubject.value;
+      state.subjectEn = el.inputSubject.value;
       el.btnClearSubject.style.display = state.subject ? "flex" : "none";
       syncLivePromptOnly();
       updateSummaries();
@@ -1237,6 +1446,8 @@
     el.btnClearSubject.addEventListener("click", () => {
       pushUndo();
       state.subject = "";
+      state.subjectEn = "";
+      state.subjectZh = "";
       el.inputSubject.value = "";
       el.btnClearSubject.style.display = "none";
       updateUI();
@@ -1280,8 +1491,8 @@
       }
       pushUndo();
       state.shots.push({
-        descZh: "新鏡頭描述",
-        descEn: "new shot movement and subject focus",
+        descZh: "",
+        descEn: "",
         move: "push_in",
         seconds: 3
       });
@@ -1318,11 +1529,17 @@
 
     el.btnSheetSave.addEventListener("click", openSaveModal);
     el.btnSheetSurprise.addEventListener("click", () => el.btnHeaderRandom.click());
+    if (el.btnSheetClear) {
+      el.btnSheetClear.addEventListener("click", () => el.btnHeaderClear.click());
+    }
 
     // Save Modal
-    el.btnCloseSaveModal.addEventListener("click", () => (el.modalSave.style.display = "none"));
-    el.btnCancelSave.addEventListener("click", () => (el.modalSave.style.display = "none"));
-    el.btnConfirmSave.addEventListener("click", handleConfirmSave);
+    el.btnCloseSaveModal.addEventListener("click", () => hideModal(el.modalSave));
+    el.btnCancelSave.addEventListener("click", () => hideModal(el.modalSave));
+    if (el.btnSaveAsNew) {
+      el.btnSaveAsNew.addEventListener("click", () => handleConfirmSave({ asNew: true }));
+    }
+    el.btnConfirmSave.addEventListener("click", () => handleConfirmSave({ asNew: false }));
 
     document.querySelectorAll(".btn-quick-tag").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -1335,19 +1552,19 @@
     });
 
     // Recipe Modal
-    el.btnCloseRecipeModal.addEventListener("click", () => (el.modalRecipe.style.display = "none"));
-    el.btnCancelRecipe.addEventListener("click", () => (el.modalRecipe.style.display = "none"));
+    el.btnCloseRecipeModal.addEventListener("click", () => hideModal(el.modalRecipe));
+    el.btnCancelRecipe.addEventListener("click", () => hideModal(el.modalRecipe));
     el.btnApplyRecipe.addEventListener("click", applySelectedRecipe);
 
     // Import Modal
-    el.btnCloseImportModal.addEventListener("click", () => (el.modalImport.style.display = "none"));
-    el.btnCancelImport.addEventListener("click", () => (el.modalImport.style.display = "none"));
+    el.btnCloseImportModal.addEventListener("click", () => hideModal(el.modalImport));
+    el.btnCancelImport.addEventListener("click", () => hideModal(el.modalImport));
     el.btnConfirmImport.addEventListener("click", handleConfirmImport);
 
     // Close modal on backdrop click
     document.querySelectorAll(".modal-backdrop").forEach((backdrop) => {
       backdrop.addEventListener("click", (e) => {
-        if (e.target === backdrop) backdrop.style.display = "none";
+        if (e.target === backdrop) hideModal(backdrop);
       });
     });
   }
@@ -1375,10 +1592,10 @@
   function initApp() {
     initElements();
 
-    // Load draft or default
+    // Load draft or default, always sanitized
     const savedDraft = window.PromptStore.loadDraft();
-    if (savedDraft && typeof savedDraft === "object" && savedDraft.mode) {
-      state = savedDraft;
+    if (savedDraft && typeof savedDraft === "object") {
+      state = window.PromptEngine.sanitizeState(savedDraft);
     } else {
       state = window.PromptEngine.getDefaultState("image");
     }
@@ -1388,6 +1605,7 @@
     setupRecipesTab();
     setupLibraryTab();
     setupEvents();
+    setupVisualViewport();
     updateUI();
 
     registerServiceWorker();

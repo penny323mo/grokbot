@@ -32,9 +32,11 @@
   function getDefaultState(mode = "image") {
     return {
       mode: mode === "video" ? "video" : "image",
-      subject: "",
-      subjectCategory: null,
-      scene: null,
+      subject: "a stylish young woman in a dark trench coat with a confident gaze",
+      subjectEn: "a stylish young woman in a dark trench coat with a confident gaze",
+      subjectZh: "一位穿著深色風衣、眼神自信堅毅的年輕女性",
+      subjectCategory: "portrait",
+      scene: "city_night",
       sceneCustom: "",
       style: "cinematic",
       styleModifiers: ["highly_detailed", "sharp_focus"],
@@ -60,6 +62,21 @@
   }
 
   /**
+   * Sanitizes any loaded/imported state to ensure default fields and arrays exist
+   */
+  function sanitizeState(rawState) {
+    const base = getDefaultState(rawState && rawState.mode === "video" ? "video" : "image");
+    if (!rawState || typeof rawState !== "object") return base;
+    return {
+      ...base,
+      ...rawState,
+      styleModifiers: Array.isArray(rawState.styleModifiers) ? [...rawState.styleModifiers] : [...base.styleModifiers],
+      negativeChips: Array.isArray(rawState.negativeChips) ? [...rawState.negativeChips] : [...base.negativeChips],
+      shots: Array.isArray(rawState.shots) ? JSON.parse(JSON.stringify(rawState.shots)) : []
+    };
+  }
+
+  /**
    * Assemble the main English prompt string in natural, structured order:
    * Subject -> Scene -> Style -> Lighting -> Camera/Lens -> Composition -> Mood -> Palette ->
    * (Video: Movement -> Pacing -> Duration -> Motion -> Shot List) -> Modifiers -> Suffix
@@ -68,9 +85,13 @@
     if (!state) return "";
     const parts = [];
 
-    // 1. Subject
-    let subjectText = (state.subject || "").trim();
-    if (!subjectText && state.subjectCategory) {
+    // 1. Subject (prefer English subjectEn if present, else subject, else category fallback)
+    let subjectText = "";
+    if (state.subjectEn && state.subjectEn.trim()) {
+      subjectText = state.subjectEn.trim();
+    } else if (state.subject && state.subject.trim()) {
+      subjectText = state.subject.trim();
+    } else if (state.subjectCategory) {
       const cat = findById(DATA.subjectCategories, state.subjectCategory);
       if (cat && cat.sampleEn) {
         subjectText = cat.sampleEn;
@@ -166,7 +187,7 @@
         parts.push(vidParts.join(", "));
       }
 
-      // Shot List Storyboard
+      // Shot List Storyboard (rendered as clean natural sentences)
       if (Array.isArray(state.shots) && state.shots.length > 0) {
         let runningSec = 0;
         const renderedShots = state.shots.map((shot, idx) => {
@@ -177,7 +198,9 @@
 
           const moveObj = findById(DATA.videoOptions.movements, shot.move);
           const moveEn = moveObj ? moveObj.en.split(",")[0].trim() : "";
-          const desc = shot.descEn || shot.descZh || "";
+          let desc = (shot.descEn || shot.descZh || "").trim();
+          // Strip any accidental leading "Shot N (start-end s):" prefix
+          desc = desc.replace(/^Shot\s*\d+\s*\([^)]*\):\s*/i, "");
 
           let shotText = `Shot ${idx + 1} (${startSec}–${endSec}s): `;
           if (moveEn && desc) {
@@ -190,7 +213,7 @@
           return shotText.trim();
         });
 
-        parts.push(`Storyboard [${renderedShots.join(". ")}]`);
+        parts.push(renderedShots.join(". "));
       }
     }
 
@@ -235,15 +258,16 @@
     const isVideo = state.mode === "video";
 
     // 1. Subject
-    if (state.subject && state.subject.trim()) {
-      sentences.push(`【主體】畫面主角係「${state.subject.trim()}」。`);
+    const dispSubject = (state.subjectZh || state.subject || "").trim();
+    if (dispSubject) {
+      sentences.push(`【主體】畫面主角係「${dispSubject}」。`);
     } else if (state.subjectCategory) {
       const cat = findById(DATA.subjectCategories, state.subjectCategory);
       if (cat) {
-        sentences.push(`【主體】以「${cat.zh}」為核心題材（如：${cat.sampleZh}）。`);
+        sentences.push(`【主體】以「${cat.zh}」為核心題材（例如：${cat.sampleZh}）。`);
       }
     } else {
-      sentences.push(`【主體】尚未輸入特定主體，將由模型自由發揮。`);
+      sentences.push(`【主體】未填主體，模型會自由發揮。`);
     }
 
     // 2. Scene
@@ -402,8 +426,15 @@
 
   function sampleSubset(arr, count, rng) {
     if (!arr || arr.length === 0) return [];
-    const shuffled = [...arr].sort(() => rng() - 0.5);
-    return shuffled.slice(0, Math.min(count, arr.length));
+    // Seeded Fisher-Yates shuffle
+    const copy = [...arr];
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      const temp = copy[i];
+      copy[i] = copy[j];
+      copy[j] = temp;
+    }
+    return copy.slice(0, Math.min(count, copy.length));
   }
 
   /**
@@ -414,12 +445,14 @@
     const isVideo = currentState.mode === "video";
     const newState = { ...currentState };
 
-    // Subject: if empty, pick a sample subject from a random category
+    // Subject: if empty, pick a sample subject from a random category in English
     if (!newState.subject || !newState.subject.trim()) {
       const cat = sampleArray(DATA.subjectCategories, rng);
       if (cat) {
         newState.subjectCategory = cat.id;
-        newState.subject = cat.sampleZh;
+        newState.subject = cat.sampleEn;
+        newState.subjectEn = cat.sampleEn;
+        newState.subjectZh = cat.sampleZh;
       }
     }
 
@@ -506,7 +539,9 @@
         const cat = sampleArray(DATA.subjectCategories, rng);
         if (cat) {
           updated.subjectCategory = cat.id;
-          updated.subject = cat.sampleZh;
+          updated.subject = cat.sampleEn;
+          updated.subjectEn = cat.sampleEn;
+          updated.subjectZh = cat.sampleZh;
         }
         break;
       }
@@ -569,6 +604,7 @@
 
   return {
     getDefaultState,
+    sanitizeState,
     buildPrompt,
     buildExplanation,
     buildNegative,

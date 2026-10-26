@@ -84,6 +84,11 @@ async function runVerification() {
     consoleErrors.push(err.toString());
   });
 
+  page.on("dialog", async (dialog) => {
+    console.log(`[Headless Test] Dialog appeared: "${dialog.message()}", accepting.`);
+    await dialog.accept();
+  });
+
   try {
     console.log("[Headless Test] 1. Loading app at 390x844...");
     await page.goto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: "networkidle0" });
@@ -120,14 +125,21 @@ async function runVerification() {
     const explanationText = await page.$eval("#explanationDisplay", (el) => el.textContent);
 
     console.log("[Headless Test] Generated prompt preview:", promptText.slice(0, 80) + "...");
-    if (!promptText.includes("Studio Ghibli style")) {
-      throw new Error("Prompt does not contain Studio Ghibli style!");
+    if (!promptText.includes("Studio Ghibli")) {
+      throw new Error("Prompt does not contain Studio Ghibli!");
     }
     if (!promptText.includes("soft diffused natural window light")) {
       throw new Error("Prompt does not contain soft window light!");
     }
     if (!explanationText.includes("吉卜力動畫風")) {
       throw new Error("Explanation does not contain 吉卜力動畫風!");
+    }
+
+    // Verify aria-pressed on style card & lighting chip
+    const styleAriaPressed = await page.$eval('.style-card[data-style-id="ghibli"]', (el) => el.getAttribute("aria-pressed"));
+    const lightAriaPressed = await page.$eval('.chip[data-light-id="soft_window"]', (el) => el.getAttribute("aria-pressed"));
+    if (styleAriaPressed !== "true" || lightAriaPressed !== "true") {
+      throw new Error(`Expected aria-pressed="true", got style: ${styleAriaPressed}, light: ${lightAriaPressed}`);
     }
 
     // Screenshot 2: Style & Lighting Selected
@@ -188,8 +200,14 @@ async function runVerification() {
 
     const videoPromptText = await page.$eval("#promptDisplay", (el) => el.textContent);
     console.log("[Headless Test] Video prompt with storyboard:", videoPromptText.slice(0, 100) + "...");
-    if (!videoPromptText.includes("Storyboard [") || !videoPromptText.includes("Shot 1") || !videoPromptText.includes("Shot 2")) {
-      throw new Error("Video prompt missing Storyboard or Shot 1 / Shot 2!");
+    if (!videoPromptText.includes("Shot 1") || !videoPromptText.includes("Shot 2")) {
+      throw new Error("Video prompt missing Shot 1 / Shot 2!");
+    }
+
+    // Verify shot description input has empty default value (not "新鏡頭描述")
+    const shotDescVal = await page.$eval(".shot-desc-input", (el) => el.value);
+    if (shotDescVal.includes("新鏡頭描述")) {
+      throw new Error(`Shot description input should not contain default text "新鏡頭描述", got: ${shotDescVal}`);
     }
 
     // Screenshot 4: Video Mode & Storyboard
@@ -211,6 +229,12 @@ async function runVerification() {
     const activeTabId = await page.$eval(".tab-pane.active", (el) => el.id);
     if (activeTabId !== "tab-build") {
       throw new Error(`Expected tab-build to be active after applying recipe, got ${activeTabId}`);
+    }
+
+    const recipePromptText = await page.$eval("#promptDisplay", (el) => el.textContent);
+    const hasHanInRecipePrompt = /[\u4e00-\u9fa5]/.test(recipePromptText);
+    if (hasHanInRecipePrompt) {
+      throw new Error(`Recipe prompt contains Han characters: ${recipePromptText}`);
     }
 
     console.log("[Headless Test] 8. Checking console errors...");

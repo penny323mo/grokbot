@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Prompt 工作室 — 專業 AI 圖像與影片提示詞工作室</title>
   
   <meta name="description" content="專為 iPhone 設計的頂級 AI 圖像與影片提示詞工作室。廣東話介面，一鍵生成好萊塢級高質英文 Prompt。">
@@ -445,6 +445,11 @@
             </div>
           </div>
 
+          <!-- Dynamic tag chips -->
+          <div class="library-tag-filters" id="containerLibTagFilters" style="display:none; padding: 4px 4px 10px 4px; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch;">
+            <div class="chips-container" id="containerLibTagChips"></div>
+          </div>
+
           <!-- Library Items Cards -->
           <div class="library-cards-list" id="containerLibraryList">
             <!-- Dynamically populated from PromptStore.loadLibrary() -->
@@ -499,7 +504,7 @@
         </div>
 
         <!-- Cantonese Explanation Collapsible -->
-        <details class="explanation-details" id="detailsExplanation">
+        <details class="explanation-details" id="detailsExplanation" open>
           <summary class="explanation-summary">
             <span class="exp-icon">🇭🇰</span>
             <span class="exp-title">中文廣東話解析</span>
@@ -534,11 +539,15 @@
         </button>
         <button type="button" class="btn-footer-secondary" id="btnSheetSave">
           <span class="icon">💾</span>
-          <span class="text">儲存至庫</span>
+          <span class="text">儲存</span>
         </button>
         <button type="button" class="btn-footer-secondary" id="btnSheetSurprise">
           <span class="icon">🎲</span>
           <span class="text">隨機</span>
+        </button>
+        <button type="button" class="btn-footer-secondary" id="btnSheetClear">
+          <span class="icon">🧹</span>
+          <span class="text">清空</span>
         </button>
       </div>
     </aside>
@@ -588,8 +597,9 @@
             </div>
           </div>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer" id="modalSaveFooter">
           <button type="button" class="btn-secondary" id="btnCancelSave">取消</button>
+          <button type="button" class="btn-secondary" id="btnSaveAsNew" style="display:none;">另存為新項目</button>
           <button type="button" class="btn-primary" id="btnConfirmSave">確認儲存</button>
         </div>
       </div>

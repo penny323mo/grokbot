@@ -21,6 +21,23 @@
   // In-memory fallback if localStorage is missing or throws (e.g. Node or private browsing)
   const memoryStorage = {};
 
+  const memoryAdapter = {
+    getItem(key) {
+      return Object.prototype.hasOwnProperty.call(memoryStorage, key)
+        ? memoryStorage[key]
+        : null;
+    },
+    setItem(key, value) {
+      memoryStorage[key] = String(value);
+    },
+    removeItem(key) {
+      delete memoryStorage[key];
+    },
+    clear() {
+      for (const k in memoryStorage) delete memoryStorage[k];
+    }
+  };
+
   function getStorage() {
     try {
       if (typeof window !== "undefined" && window.localStorage) {
@@ -33,22 +50,7 @@
     } catch (e) {
       // Fallback to memoryStorage
     }
-    return {
-      getItem(key) {
-        return Object.prototype.hasOwnProperty.call(memoryStorage, key)
-          ? memoryStorage[key]
-          : null;
-      },
-      setItem(key, value) {
-        memoryStorage[key] = String(value);
-      },
-      removeItem(key) {
-        delete memoryStorage[key];
-      },
-      clear() {
-        for (const k in memoryStorage) delete memoryStorage[k];
-      }
-    };
+    return memoryAdapter;
   }
 
   function generateId() {
@@ -108,7 +110,8 @@
     };
 
     library.unshift(newItem);
-    saveLibrary(library);
+    const saved = saveLibrary(library);
+    if (!saved) return null;
     return newItem;
   }
 
@@ -131,7 +134,8 @@
     }
 
     library[index] = updated;
-    saveLibrary(library);
+    const saved = saveLibrary(library);
+    if (!saved) return null;
     return updated;
   }
 
@@ -178,7 +182,8 @@
     };
 
     library.unshift(clone);
-    saveLibrary(library);
+    const saved = saveLibrary(library);
+    if (!saved) return null;
     return clone;
   }
 
@@ -301,7 +306,13 @@
     }
 
     const merged = [...toAdd, ...existing];
-    saveLibrary(merged);
+    const saved = saveLibrary(merged);
+    if (!saved) {
+      return {
+        ok: false,
+        error: "儲存失敗，空間可能已滿，請試下刪走舊項目或匯出備份"
+      };
+    }
 
     return {
       ok: true,
@@ -337,6 +348,7 @@
 
   return {
     generateId,
+    getStorage,
     loadLibrary,
     saveLibrary,
     addItem,
