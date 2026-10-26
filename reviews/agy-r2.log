@@ -1,0 +1,41 @@
+已套用 [reviews/grok-review-r1.md](file:///workspace/grokbot/reviews/grok-review-r1.md) 中的所有審查建議，並修復所有 P0、P1 與 P2 項目：
+
+### 主要修復項目
+1. **P0.1 篩選列在 390px 截字**：改為 `flex-wrap: wrap` 自動換行，移除橫向滾動與無效滾動條限制，在 390px 與 320px 均自然排開且無截字。
+2. **P0.2 淺色模式封面白屏與聽筒假裝置框**：
+   - 移除了所有 `loading="lazy"`；首卡設為 `fetchpriority="high"`，其餘卡片使用 `loading="eager"`。
+   - 移除假聽筒微槽裝飾 (`.card-device::after`)。
+   - 裝置底盤使用 accent 混色底 (`color-mix(in srgb, var(--accent) 24%, var(--stage-bg))`)，並加入圖片載入失敗時隱藏縮圖的優雅回退機制。
+3. **P0.3 類別標籤對比度與禁用紫色**：
+   - 移除以 `--accent` 直接作為文字顏色的寫法，文字統一採用高對比度 `--fg`，accent 僅作為 6px 圓點提示。
+   - [projects/manifest.json](file:///workspace/grokbot/projects/manifest.json) 中 `prompt-studio` 的 accent 由 `#7c5cff` 換成溫潤赤褐色 `#c4552a`，並刪除 `.card-stage::before` 紫色底色浸染。
+4. **P1.1 弱化字色對比度提升**：
+   - 深色 `--fg-subtle` 更新為 `#b1ada4`（約 8:1），淺色更新為 `#5c574e`（6.6:1）。
+   - 移除 `.hero-eyebrow` 的全大寫轉換與過寬字距，字體大小提升至 12px。
+5. **P1.2 移除重複統計儀表板卡片**：
+   - 刪除 `.stats-row` 網格與相關樣式，在標語下改為單行簡潔的 `.hero-meta` 摘要。
+6. **P1.3 移除多層外框與原生 3:4 比例裁剪**：
+   - 卡片封面全幅對齊卡片外緣，比例改為與截圖完全吻合的原生 3:4。
+7. **P1.4 按壓反饋與減少動態支援**：
+   - `@keyframes cardEntrance` 改為僅控制 `opacity`，動畫結束時動態移除 `animate-in` 類別，使手機上的 `:active { transform: scale(0.98); }` 按壓反饋正常觸發。
+   - 懸停樣式以 `@media (hover: hover) and (pointer: fine)` 包裹，避免觸控設備殘留 hover 邊框。
+8. **P1.5 道地粵語文案修正**：
+   - 刪除重複的 `.card-action`（「開啓作品 →」）。
+   - 頁尾文案更新為「© 2026 Grokbot 工作室」與「GitHub 源碼」。
+   - `beat-the-bookie` 標題與副標題翻轉為標題「你估得贏莊家嗎？」、副標題「Beat the Bookie」。
+   - 「NEW」標籤改為「新」。
+   - 空清單與錯誤訊息改為地道粵語表達。
+9. **P1.6 無障礙輔助技術修正**：
+   - 移除卡片 `<a>` 上遮蓋詳細內容的 `aria-label`。
+   - 分類篩選容器改用 `role="radiogroup"`，各 chip 使用 `role="radio"` 與 `aria-checked`。
+10. **P2.1–P2.6 細節打磨**：
+    - 副標題與描述文案層次分離，描述設定 2 行限制（`-webkit-line-clamp: 2`）並保留固定最小高度避免篩選跳動。
+    - 重新潤色各項目描述文案，第一句即點出核心特色。
+    - 移除全局 `<main>` 的 `aria-live`，改為專用的 `.visually-hidden` 篩選狀態播報。
+    - 加入 Hex 格式正則驗證以安全注入 `--accent`。
+    - 修正 active 狀態下 chip 數字計數器的對比底色。
+    - 同步更新 [AGENTS.md](file:///workspace/grokbot/AGENTS.md)。
+
+### 驗證與提交
+- 運行 `node tests/check_manifest.mjs`：通過（`OK 4 projects`）。
+- 已完成提交：`launcher: apply grok r1 review (agy r2)`（未推送至遠端）。
