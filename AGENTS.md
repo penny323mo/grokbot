@@ -7,7 +7,7 @@ Live: https://penny323mo.github.io/grokbot/ (GitHub Pages, branch `main`, root `
 index.html / launcher.js / style.css   # 首頁 launcher（讀 projects/manifest.json）
 projects/manifest.json                 # 項目清單：id, title, subtitle, category, description, path, added, accent, cover
 projects/<id>/                         # 每個項目獨立、純靜態，用相對路徑
-projects/<id>/cover/cover.svg          # 項目封面（cover = projects/<id>/cover/cover.svg, square 240x240 SVG tile, same visual language: neutral bg, one muted accent, single line icon, no screenshots, no text）
+projects/<id>/cover/thumb.webp         # 項目封面（cover = projects/<id>/cover/thumb.webp, 600x600 square crop (3x) from a real 390px iPhone screenshot of the live app; hand-pick a clean characteristic UI region (no header-only, no back button, no empty space)）
 .github/workflows/                     # 所有 workflow 放 root（GitHub 只讀 root .github）
 docs/  scripts/  tests/                # repo 級文件、工具、測試
 progress.md                            # 進度紀錄
@@ -15,8 +15,8 @@ progress.md                            # 進度紀錄
 
 ## 規則（未來 nightly 項目）
 1. 新項目一律放 `projects/<kebab-id>/`，唔好再開新 repo。
-2. 喺 `projects/manifest.json` 加一條，**必須填 `added`（加入日期，YYYY-MM-DD，澳門時間項目開始嗰日）**同 **`cover`（封面圖路徑，如 `projects/<id>/cover/cover.svg`）**；launcher 會顯示並按日期排序。
-3. 新項目必須提供封面圖（規格：cover = projects/<id>/cover/cover.svg, square 240x240 SVG tile, same visual language: neutral bg, one muted accent, single line icon, no screenshots, no text），且 tests 會檢查檔案是否存在與後綴（.svg 或 .webp）。
+2. 喺 `projects/manifest.json` 加一條，**必須填 `added`（加入日期，YYYY-MM-DD，澳門時間項目開始嗰日）**同 **`cover`（封面圖路徑，如 `projects/<id>/cover/thumb.webp`）**；launcher 會顯示並按日期排序。
+3. 新項目必須提供封面圖（規格：cover = projects/<id>/cover/thumb.webp, 600x600 square crop (3x) from a real 390px iPhone screenshot of the live app; hand-pick a clean characteristic UI region (no header-only, no back button, no empty space)），且 tests 會檢查檔案是否存在與後綴（.svg 或 .webp）。
 4. 項目內只用相對路徑（`./x.js`，唔好 `/x.js`），因為網站喺 `/grokbot/projects/<id>/` 下面。
 5. 需要 workflow 嘅，放 `.github/workflows/<id>-*.yml`，用 `defaults.run.working-directory: projects/<id>`。
 6. 提交前行 `node tests/check_manifest.mjs`。
@@ -27,7 +27,7 @@ progress.md                            # 進度紀錄
 - **分類篩選晶片（Filter Chips）**：「全部」及各項目類別單選按鈕，具備無障礙 `role="radiogroup"` / `role="radio"`、`aria-checked` 與方向鍵/Home/End roving tabindex 鍵盤導航，手機端自動折行換行、吸頂常駐（`position: sticky`）、切換篩選即時流暢且無版面跳動（no layout jump）。
 - **緊湊橫向作品卡片（Compact Row Cards）**：
   - 語意化結構：`<ul class="cards-grid">` 內置 `<li>` 列表項目，卡片間隔 12px。
-  - 左側圖標磚：72x72 圓角（18px）圖標磚，顯示項目的 `cover.svg`（`object-fit: cover`），全卡預載解碼配合 `is-ready` 平滑淡入。
+  - 左側圖標磚：88x88 圓角（20px）真實截圖縮圖，顯示項目的 `thumb.webp`，1px 內邊框（`object-fit: cover`），全卡預載解碼配合 `is-ready` 平滑淡入。
   - 右側資訊區：
     - Meta 列：分類圓點＋名稱 · 加入日期（`YYYY年M月D日`），最新作品享有「新」標籤。
     - 標題：17px semibold。

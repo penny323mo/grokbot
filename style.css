@@ -300,13 +300,14 @@ body {
   animation-delay: calc(var(--i, 0) * 50ms);
 }
 
-/* 72x72 圓角 18px 圖標磚 */
+/* 88x88 真實截圖縮圖（圓角 20px，細邊 + 內陰影） */
 .card-cover-frame {
-  width: 72px;
-  height: 72px;
-  min-width: 72px;
-  min-height: 72px;
-  border-radius: 18px;
+  position: relative;
+  width: 88px;
+  height: 88px;
+  min-width: 88px;
+  min-height: 88px;
+  border-radius: 20px;
   overflow: hidden;
   flex-shrink: 0;
   background-color: var(--cover-bg, #1e1e1c);
@@ -317,13 +318,24 @@ body {
 .card-cover {
   width: 100%;
   height: 100%;
-  border-radius: 18px;
+  border-radius: 20px;
   object-fit: cover;
   display: block;
   opacity: 0;
   transition: opacity 0.2s ease;
 }
 
+.card-cover-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08), inset 0 1px 2px rgba(0, 0, 0, 0.06);
+  pointer-events: none;
+}
+@media (prefers-color-scheme: dark) {
+  .card-cover-frame::after { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08); }
+}
 .card-cover-frame.is-ready .card-cover {
   opacity: 1;
 }
@@ -341,7 +353,8 @@ body {
 .card-meta {
   display: flex;
   align-items: center;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 4px 6px;
   font-size: 12px;
   line-height: 1.25;
 }
@@ -377,7 +390,8 @@ body {
 
 /* 新 標籤（僅最新作品擁有） */
 .badge-new {
-  margin-left: auto;
+  margin-left: 6px;
+  vertical-align: 3px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -582,3 +596,5 @@ body {
     transform: none;
   }
 }
+
+.card-meta > * { flex-shrink: 0; }

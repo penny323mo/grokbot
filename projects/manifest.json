@@ -9,7 +9,7 @@
       "path": "projects/prompt-studio/",
       "added": "2026-10-26",
       "accent": "#B0704F",
-      "cover": "projects/prompt-studio/cover/cover.svg"
+      "cover": "projects/prompt-studio/cover/thumb.webp"
     },
     {
       "id": "odds-lab",
@@ -20,7 +20,7 @@
       "path": "projects/odds-lab/",
       "added": "2026-10-25",
       "accent": "#6E8B74",
-      "cover": "projects/odds-lab/cover/cover.svg"
+      "cover": "projects/odds-lab/cover/thumb.webp"
     },
     {
       "id": "penalty-mind-game",
@@ -31,7 +31,7 @@
       "path": "projects/penalty-mind-game/",
       "added": "2026-10-24",
       "accent": "#5E7186",
-      "cover": "projects/penalty-mind-game/cover/cover.svg"
+      "cover": "projects/penalty-mind-game/cover/thumb.webp"
     },
     {
       "id": "beat-the-bookie",
@@ -42,7 +42,7 @@
       "path": "projects/beat-the-bookie/",
       "added": "2026-10-23",
       "accent": "#A88A4A",
-      "cover": "projects/beat-the-bookie/cover/cover.svg"
+      "cover": "projects/beat-the-bookie/cover/thumb.webp"
     }
   ]
 }

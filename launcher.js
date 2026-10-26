@@ -111,9 +111,8 @@
                 <span class="card-cat">${esc(p.category)}</span>
                 <span class="meta-dot" aria-hidden="true">·</span>
                 <time class="card-date" datetime="${esc(p.added)}">加入日期 ${fmtDate(p.added)}</time>
-                ${isLatest ? '<span class="badge-new" aria-label="最新作品">新</span>' : ''}
               </div>
-              <h2 class="card-title">${esc(p.title)}</h2>
+              <h2 class="card-title">${esc(p.title)}${isLatest ? ' <span class="badge-new" aria-label="最新作品">新</span>' : ''}</h2>
               <p class="card-desc">${esc(p.description)}</p>
               <div class="card-action">
                 <span class="card-btn">開始 →</span>
