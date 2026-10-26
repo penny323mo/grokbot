@@ -1,24 +1,721 @@
-:root{--bg:#0b0b0c;--fg:#f2f1ee;--mut:#8d8b86;--line:#232325;--card:#121214}
-@media (prefers-color-scheme:light){:root{--bg:#f6f5f2;--fg:#151515;--mut:#6c6a65;--line:#e2e0db;--card:#fff}}
-*{box-sizing:border-box;margin:0}
-html{-webkit-text-size-adjust:100%}
-body{background:var(--bg);color:var(--fg);font:16px/1.6 -apple-system,BlinkMacSystemFont,"PingFang HK","Noto Sans HK",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-.wrap{max-width:680px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 48px) 20px calc(env(safe-area-inset-bottom) + 32px)}
-.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
-h1{font-size:clamp(34px,9vw,52px);line-height:1.1;font-weight:700;letter-spacing:-.02em;margin:10px 0 14px}
-.lede{color:var(--mut);max-width:30em}
-.meta{margin-top:20px;padding-top:14px;border-top:1px solid var(--line);font-size:13px;color:var(--mut);font-variant-numeric:tabular-nums}
-.list{list-style:none;padding:0;margin-top:8px}
-.item{display:grid;grid-template-columns:32px 1fr 20px;gap:14px;align-items:start;padding:22px 0;border-bottom:1px solid var(--line);color:inherit;text-decoration:none;-webkit-tap-highlight-color:transparent;transition:opacity .15s}
-.item:active{opacity:.6}
-.num{font-size:13px;color:var(--mut);font-variant-numeric:tabular-nums;padding-top:3px}
-.body{display:flex;flex-direction:column;min-width:0}
-.row{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--mut)}
-.cat{color:var(--accent);font-weight:600}
-.title{font-size:22px;font-weight:650;margin-top:6px;letter-spacing:-.01em}
-.sub{font-size:13px;color:var(--mut)}
-.desc{font-size:15px;margin-top:8px;color:var(--fg);opacity:.82}
-.go{color:var(--mut);padding-top:26px;transition:transform .2s,color .2s}
-@media (hover:hover){.item:hover .go{transform:translateX(4px);color:var(--accent)}}
-.foot{margin-top:36px;font-size:13px}.foot a{color:var(--mut)}
-.err{padding:24px 0;color:var(--mut)}
+/**
+ * Grokbot 工作室 Launcher 樣式表
+ * 溫潤中性色調 · iPhone 優先（390px） · 8px 網格 · CJK 排版
+ */
+
+:root {
+  /* 深色主題（預設）— 溫潤黑曜石與象牙白 */
+  --bg: #0c0c0e;
+  --bg-subtle: #131316;
+  --card-bg: #161619;
+  --card-hover: #1b1b20;
+  --card-border: #24242a;
+  --card-border-hover: #373742;
+  --stage-bg: #101013;
+  --stage-border: #1e1e24;
+  --device-bg: #18181c;
+  --device-border: #282830;
+  --fg: #f4f3f0;
+  --fg-muted: #95928a;
+  --fg-subtle: #63615b;
+  --border: #222228;
+  --border-subtle: #19191e;
+  --chip-bg: #151518;
+  --chip-border: #24242a;
+  --chip-fg: #aba79e;
+  --chip-active-bg: #f4f3f0;
+  --chip-active-fg: #0c0c0e;
+  --chip-count-bg: rgba(255, 255, 255, 0.08);
+  --new-bg: #f4f3f0;
+  --new-fg: #0c0c0e;
+  --stats-bg: #121215;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    /* 淺色主題 — 溫潤石灰紙本與石墨炭黑 */
+    --bg: #f7f6f2;
+    --bg-subtle: #eeece5;
+    --card-bg: #ffffff;
+    --card-hover: #fcfbfa;
+    --card-border: #e3e0d6;
+    --card-border-hover: #c9c5ba;
+    --stage-bg: #f1efe8;
+    --stage-border: #e6e3da;
+    --device-bg: #ffffff;
+    --device-border: #dbd7cd;
+    --fg: #191816;
+    --fg-muted: #646158;
+    --fg-subtle: #989489;
+    --border: #e4e1d8;
+    --border-subtle: #eeebe4;
+    --chip-bg: #ffffff;
+    --chip-border: #ddd9cf;
+    --chip-fg: #56534a;
+    --chip-active-bg: #191816;
+    --chip-active-fg: #ffffff;
+    --chip-count-bg: rgba(0, 0, 0, 0.06);
+    --new-bg: #191816;
+    --new-fg: #ffffff;
+    --stats-bg: #ffffff;
+  }
+}
+
+/* 基礎重設 */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang HK", "PingFang TC", "Noto Sans TC", "Noto Sans HK", "Microsoft JhengHei", system-ui, sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* 外層容器：iPhone-first 390px 基準，Safe Area Insets，桌面最大 840px */
+.shell {
+  width: 100%;
+  max-width: 840px;
+  margin: 0 auto;
+  padding-top: calc(env(safe-area-inset-top) + 24px);
+  padding-bottom: calc(env(safe-area-inset-bottom) + 36px);
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+}
+
+/* 鍵盤聚焦外框 */
+:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 3px;
+}
+
+/* ==========================================================================
+   Hero 區域
+   ========================================================================== */
+
+.hero {
+  margin-bottom: 24px;
+}
+
+.hero-brand {
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-eyebrow {
+  font-size: 11.5px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fg-subtle);
+}
+
+.hero-title {
+  font-size: clamp(30px, 8.5vw, 42px);
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  margin: 8px 0 8px;
+  color: var(--fg);
+}
+
+.hero-tagline {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--fg-muted);
+  max-width: 32em;
+}
+
+/* 統計欄位卡片 */
+.hero-stats {
+  margin-top: 20px;
+}
+
+.stats-row {
+  background: var(--stats-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+}
+
+.stat-cell {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.stat-label {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--fg-subtle);
+  letter-spacing: 0.02em;
+}
+
+.stat-value {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.stat-num {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.stat-unit {
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.stat-divider {
+  display: none;
+}
+
+/* 最新加入在手機上橫跨兩欄 */
+.stat-cell-latest {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 10px;
+}
+
+.stat-value-latest {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.stat-latest-title {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--fg);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stat-latest-date {
+  font-size: 12px;
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 平板與桌面寬度統計排版 */
+@media (min-width: 640px) {
+  .stats-row {
+    grid-template-columns: 1fr auto 1fr auto 1.6fr;
+    align-items: center;
+    padding: 14px 20px;
+  }
+  .stat-divider {
+    display: block;
+    width: 1px;
+    height: 32px;
+    background: var(--border-subtle);
+  }
+  .stat-cell-latest {
+    grid-column: auto;
+    border-top: none;
+    padding-top: 0;
+  }
+}
+
+/* ==========================================================================
+   分類篩選 Chip（水平滑動、無佈局跳動、44px 觸控目標）
+   ========================================================================== */
+
+.filter-section {
+  margin: 22px 0 20px;
+  position: relative;
+}
+
+.filter-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 4px 2px;
+  /* 兩側預留邊界，滾動到底不貼邊 */
+  margin: 0 -2px;
+}
+
+.filter-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 999px;
+  border: 1px solid var(--chip-border);
+  background-color: var(--chip-bg);
+  color: var(--chip-fg);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  touch-action: manipulation;
+  transition: background-color 0.16s ease, color 0.16s ease, border-color 0.16s ease, transform 0.1s ease;
+}
+
+.chip:hover {
+  border-color: var(--card-border-hover);
+  color: var(--fg);
+}
+
+.chip:active {
+  transform: scale(0.96);
+}
+
+.chip.is-active {
+  background-color: var(--chip-active-bg);
+  color: var(--chip-active-fg);
+  border-color: var(--chip-active-bg);
+  font-weight: 600;
+}
+
+.chip-label {
+  display: inline-block;
+}
+
+.chip-count {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background-color: var(--chip-count-bg);
+  line-height: 1.2;
+}
+
+/* ==========================================================================
+   作品卡片網格與卡片
+   ========================================================================== */
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+/* 整張卡片為 <a> 連結 */
+.card {
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: inherit;
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 18px;
+  padding: 12px 12px 16px 12px;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s ease, transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+}
+
+.card:hover {
+  border-color: var(--card-border-hover);
+}
+
+.card:active {
+  transform: scale(0.98);
+}
+
+/* 篩選隱藏狀態（純 display: none，無 DOM 銷毀，無版面跳動） */
+.card.is-hidden {
+  display: none !important;
+}
+
+/* 漸進進場動效 */
+@keyframes cardEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card.animate-in {
+  animation: cardEntrance 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 55ms);
+}
+
+/* 封面展示底盤：低不透明度 accent 襯底，設備擬真框 */
+.card-stage {
+  position: relative;
+  background-color: var(--stage-bg);
+  border-radius: 14px;
+  border: 1px solid var(--stage-border);
+  padding: 14px 14px 0 14px;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+/* 低不透明度 Accent 柔和浸染 */
+.card-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: var(--accent);
+  opacity: 0.08;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.card:hover .card-stage::before {
+  opacity: 0.14;
+}
+
+/* 手機裝置外框 */
+.card-device {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: 10px 10px 0 0;
+  overflow: hidden;
+  background-color: var(--device-bg);
+  border: 1px solid var(--device-border);
+  border-bottom: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card:hover .card-device {
+  transform: translateY(-2px);
+}
+
+/* 精緻聽筒微刻槽 */
+.card-device::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 28px;
+  height: 3px;
+  border-radius: 2px;
+  background-color: rgba(130, 130, 130, 0.28);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* 封面縮圖：top-aligned crop，維持頂部介面清晰 */
+.card-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  display: block;
+}
+
+/* 卡片文字內容 */
+.card-body {
+  padding: 12px 4px 0 4px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+/* Meta 列：類別、加入日期、NEW 標籤 */
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.card-cat {
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.meta-dot {
+  color: var(--fg-subtle);
+}
+
+.card-date {
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* NEW 標籤（僅最新作品擁有） */
+.badge-new {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background-color: var(--new-bg);
+  color: var(--new-fg);
+  margin-left: auto;
+}
+
+/* 標題與副標題 */
+.card-headings {
+  margin-top: 6px;
+}
+
+.card-title {
+  font-size: 19px;
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  color: var(--fg);
+}
+
+.card-sub {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--fg-muted);
+  margin-top: 2px;
+}
+
+/* 單行簡介限制（1-line clamp） */
+.card-desc {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--fg-muted);
+  margin-top: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* 操作指示提示 */
+.card-action {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--fg-subtle);
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+  transition: color 0.16s ease;
+}
+
+.card:hover .card-action {
+  color: var(--fg);
+}
+
+.card-arrow {
+  transition: transform 0.16s ease;
+}
+
+.card:hover .card-arrow {
+  transform: translateX(3px);
+}
+
+/* ==========================================================================
+   桌面佈局（>= 760px）：2 欄網格與 Featured 旗艦卡片
+   ========================================================================== */
+
+@media (min-width: 760px) {
+  .cards-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+
+  /* 旗艦/最新卡片橫跨兩欄並以雙欄分割排版 */
+  .card-featured {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 22px;
+    align-items: center;
+    padding: 16px;
+  }
+
+  .card-featured .card-stage {
+    height: 100%;
+    min-height: 250px;
+    padding: 18px 18px 0 18px;
+  }
+
+  .card-featured .card-device {
+    aspect-ratio: 16 / 10;
+  }
+
+  .card-featured .card-body {
+    padding: 6px 8px 6px 4px;
+  }
+
+  .card-featured .card-title {
+    font-size: 26px;
+    letter-spacing: -0.02em;
+  }
+
+  .card-featured .card-sub {
+    font-size: 14px;
+    margin-top: 3px;
+  }
+
+  .card-featured .card-desc {
+    font-size: 14px;
+    margin-top: 10px;
+  }
+
+  .card-featured .card-action {
+    margin-top: 18px;
+  }
+}
+
+/* ==========================================================================
+   空狀態與錯誤提示
+   ========================================================================== */
+
+.empty-state, .error-panel {
+  padding: 40px 20px;
+  text-align: center;
+  background-color: var(--card-bg);
+  border: 1px dashed var(--border);
+  border-radius: 16px;
+  margin: 16px 0;
+}
+
+.empty-title, .error-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.empty-desc, .error-desc {
+  font-size: 13.5px;
+  color: var(--fg-muted);
+  margin-top: 6px;
+}
+
+.btn-retry {
+  min-height: 44px;
+  padding: 0 20px;
+  margin-top: 16px;
+  border-radius: 999px;
+  background-color: var(--fg);
+  color: var(--bg);
+  border: none;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.15s ease;
+}
+
+.btn-retry:active {
+  opacity: 0.8;
+}
+
+/* ==========================================================================
+   頁尾
+   ========================================================================== */
+
+.footer {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.footer-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--fg-subtle);
+}
+
+.footer-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.footer-link {
+  min-height: 44px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--fg-muted);
+  text-decoration: none;
+  border-radius: 8px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.footer-link:hover {
+  color: var(--fg);
+  background-color: var(--stage-bg);
+}
+
+.footer-link:active {
+  opacity: 0.7;
+}
+
+.ext-icon {
+  opacity: 0.75;
+}
+
+/* Noscript 回退 */
+.noscript-panel {
+  padding: 24px;
+  text-align: center;
+  color: var(--fg-muted);
+  font-size: 14px;
+}
+
+/* ==========================================================================
+   減弱動態無障礙設定（prefers-reduced-motion）
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001s !important;
+    scroll-behavior: auto !important;
+  }
+}
