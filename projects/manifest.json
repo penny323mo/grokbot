@@ -1,0 +1,8 @@
+{
+  "projects": [
+    {"id":"prompt-studio","title":"Prompt 工作室","subtitle":"Prompt Studio","category":"創作工具","description":"撳選項砌出專業 AI 圖像同影片 prompt，有分鏡表、食譜同收藏庫，離線都用到。","path":"projects/prompt-studio/","added":"2026-10-26","accent":"#7c5cff"},
+    {"id":"odds-lab","title":"盤口實驗室","subtitle":"Odds Lab","category":"數據分析","description":"Macau Slot 實盤對照全球莊家共識同 Dixon-Coles 模型，逐盤評估值唔值博，每日自動更新。","path":"projects/odds-lab/","added":"2026-10-25","accent":"#12a37f"},
+    {"id":"penalty-mind-game","title":"12碼讀心戰","subtitle":"Penalty Mind Game","category":"3D 遊戲","description":"3D 互射十二碼：滑動射門、撲救反應、AI 會讀你嘅習慣，仲有 16 隊世界盃模式。","path":"projects/penalty-mind-game/","added":"2026-10-24","accent":"#e5484d"},
+    {"id":"beat-the-bookie","title":"Beat the Bookie","subtitle":"你估得贏莊家嗎？","category":"策略遊戲","description":"用真實西甲賽果同賠率，同電腦對手比拼落注眼光，睇吓邊個贏到莊家。","path":"projects/beat-the-bookie/","added":"2026-10-23","accent":"#f5a524"}
+  ]
+}
