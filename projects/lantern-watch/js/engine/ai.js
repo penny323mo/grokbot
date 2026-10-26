@@ -1,208 +1,430 @@
 /**
  * js/engine/ai.js
- * Enemy intent calculation, pathfinding, lantern targeting, and clear telegraphs.
+ * Role-based deterministic enemy AI for 燈影軍略 (v4).
+ * Handles archer kite, healer backline support, cavalry charge & flanking,
+ * commander position holding, shrouded assassin stealth, and boss cluster AoE.
  */
 
-import { Board } from "./board.js";
-import { LANTERN_COORDINATES } from "./constants.js";
+import { Board } from './board.js';
+import { getReachableTiles, getAttackRangeTiles } from './pathfinding.js';
+import { calculateCombat, canTargetUnit } from './combat.js';
 
-export function calculateEnemyIntents(enemies, guardians, lanterns, board, difficultyMod = 0, isRelaxed = false) {
-  const activeLanterns = lanterns.filter((l) => l.hp > 0);
-  const scarecrows = guardians.filter((g) => g.unitId === "scarecrow" && g.hp > 0);
+export function decideEnemyTurn(enemy, battleState, rng) {
+  const { board, allies, enemies } = battleState;
+  // Note: in battleState, allies = player guardians; enemies = enemy squad
+  const playerUnits = allies.filter(u => u.hp > 0);
+  const enemyUnits = enemies.filter(u => u.hp > 0 && u.id !== enemy.id);
+  const allUnits = [...allies, ...enemies];
 
-  for (const enemy of enemies) {
-    if (enemy.hp <= 0) {
-      enemy.intent = null;
-      continue;
-    }
+  if (playerUnits.length === 0) return { type: 'wait', move: { x: enemy.x, y: enemy.y } };
 
-    if (enemy.isFrozen) {
-      enemy.intent = {
-        type: "frozen",
-        icon: "frozen",
-        damage: 0,
-        desc: "凍結中，無法行動",
-        destPos: { x: enemy.x, y: enemy.y },
-        path: [{ x: enemy.x, y: enemy.y }],
-        targetPos: null
-      };
-      continue;
-    }
+  // Calculate reachable movement tiles
+  const reachable = getReachableTiles(board, enemy, allUnits);
+  const reachableList = Array.from(reachable.values());
 
-    // Default intent
-    let targetLantern = null;
-    let targetGuardian = null;
-    let targetPos = null;
-    let destPos = { x: enemy.x, y: enemy.y };
-    let path = [];
-    let intentType = "move";
-    let damage = Math.max(1, enemy.atk + difficultyMod);
-    let icon = "attack";
-    let desc = "";
+  const role = enemy.role || 'fighter';
 
-    // 1. Check Taunt from nearby Scarecrows (within 2 Manhattan distance)
-    let taunter = null;
-    for (const sc of scarecrows) {
-      if (Board.getDistance(enemy, sc) <= 2) {
-        taunter = sc;
-        break;
-      }
-    }
-
-    if (taunter && !enemy.isBoss) {
-      // Must target Scarecrow
-      targetGuardian = taunter;
-      targetPos = { x: taunter.x, y: taunter.y };
-    } else {
-      // Find closest active lantern
-      let minDist = 999;
-      for (const l of activeLanterns) {
-        const d = Board.getDistance(enemy, l);
-        if (d < minDist) {
-          minDist = d;
-          targetLantern = l;
-        }
-      }
-
-      // Check if an adjacent guardian is blocking the path
-      const adjGuardians = board.getAdjacentUnits(enemy.x, enemy.y, (u) => u.isGuardian && u.hp > 0);
-      if (adjGuardians.length > 0) {
-        // Can attack adjacent guardian
-        targetGuardian = adjGuardians[0];
-        targetPos = { x: targetGuardian.x, y: targetGuardian.y };
-      } else if (targetLantern) {
-        targetPos = { x: targetLantern.x, y: targetLantern.y };
-      }
-    }
-
-    // 2. Decide movement towards target
-    const currentDist = targetPos ? Board.getDistance(enemy, targetPos) : 0;
-    const canAttackNow = currentDist <= enemy.range;
-
-    if (canAttackNow) {
-      // Already in range! Stand ground and attack
-      intentType = "attack";
-      icon = "attack";
-      destPos = { x: enemy.x, y: enemy.y };
-      path = [destPos];
-      desc = `攻擊 (${targetPos.x}, ${targetPos.y}) 造成 ${damage} 點傷害`;
-    } else {
-      // Need to move closer
-      const moveSpeed = enemy.isRooted ? 0 : enemy.move;
-      const plannedPath = findBestStep(enemy, targetPos, moveSpeed, board);
-
-      if (plannedPath.length > 1) {
-        destPos = plannedPath[plannedPath.length - 1];
-        path = isRelaxed ? [destPos] : plannedPath;
-      } else {
-        destPos = { x: enemy.x, y: enemy.y };
-        path = [destPos];
-      }
-
-      // Check if after moving, target is in attack range
-      const distAfterMove = targetPos ? Board.getDistance(destPos, targetPos) : 999;
-      if (distAfterMove <= enemy.range) {
-        intentType = "move_and_attack";
-        icon = "attack";
-        desc = `移動至 (${destPos.x}, ${destPos.y}) 並發動攻擊 (${damage} 傷)`;
-      } else {
-        intentType = "move";
-        icon = "move";
-        damage = 0;
-        desc = `向前推進至 (${destPos.x}, ${destPos.y})`;
-      }
-    }
-
-    // 3. Special Boss behaviors
-    if (enemy.isBoss) {
-      if (enemy.typeId === "boss_mother_of_mist") {
-        if (enemy.turnCount && enemy.turnCount % 2 === 1) {
-          intentType = "spawn";
-          icon = "spawn";
-          damage = 0;
-          desc = "召喚幼年迷霧並為全軍施加護盾";
-        }
-      } else if (enemy.typeId === "boss_night_crow_king") {
-        if (enemy.turnCount && enemy.turnCount % 3 === 0) {
-          intentType = "aoe";
-          icon = "aoe";
-          damage = enemy.atk + 2;
-          desc = "黑羽俯衝：橫掃整排友軍！";
-        }
-      } else if (enemy.typeId === "boss_elder_demon") {
-        if (enemy.turnCount && enemy.turnCount % 2 === 0) {
-          intentType = "attack";
-          icon = "attack";
-          damage = 1;
-          desc = "吞噬燈油：奪取燈籠 1 點生命並自我修復";
-        }
-      }
-    }
-
-    enemy.intent = {
-      type: intentType,
-      targetPos,
-      destPos,
-      path,
-      damage,
-      icon,
-      desc,
-      targetGuardianId: targetGuardian ? targetGuardian.id : null,
-      targetLanternId: targetLantern ? targetLantern.id : null
-    };
+  switch (role) {
+    case 'commander':
+      return decideCommanderAction(enemy, reachableList, playerUnits, board, rng);
+    case 'healer':
+      return decideHealerAction(enemy, reachableList, enemyUnits, playerUnits, board, rng);
+    case 'archer':
+      return decideArcherAction(enemy, reachableList, playerUnits, board, rng);
+    case 'cavalry':
+      return decideCavalryAction(enemy, reachableList, playerUnits, board, rng);
+    case 'shrouded':
+      return decideShroudedAction(enemy, reachableList, playerUnits, board, rng);
+    case 'boss':
+      return decideBossAction(enemy, reachableList, playerUnits, board, rng);
+    default:
+      return decideDefaultAction(enemy, reachableList, playerUnits, board, rng);
   }
 }
 
 /**
- * Greedy A*-like step towards target position avoiding obstacles.
+ * Commander: Holds position on guard tile, faces threat, only attacks adjacent enemies
  */
-function findBestStep(unit, targetPos, maxSteps, board) {
-  if (!targetPos || maxSteps <= 0) return [{ x: unit.x, y: unit.y }];
-
-  let current = { x: unit.x, y: unit.y };
-  const path = [current];
-
-  for (let s = 0; s < maxSteps; s++) {
-    const neighbors = board.getOrthogonalNeighbors(current.x, current.y);
-    let best = null;
-    let bestDist = Board.getDistance(current, targetPos);
-
-    for (const n of neighbors) {
-      // Must be empty or target tile itself
-      const isTarget = n.x === targetPos.x && n.y === targetPos.y;
-      if (!isTarget && n.unit !== null) continue;
-
-      const d = Board.getDistance(n, targetPos);
-      if (d < bestDist) {
-        bestDist = d;
-        best = n;
-      }
-    }
-
-    // Special Leap behavior for hop_lantern: can jump over an adjacent blocking unit
-    if ((unit.typeId === "hop_lantern" || unit.behavior === "leap") && !best) {
-      for (const n of neighbors) {
-        if (n.unit !== null) {
-          const leapX = n.x + (n.x - current.x);
-          const leapY = n.y + (n.y - current.y);
-          if (board.isValid(leapX, leapY) && board.isEmpty(leapX, leapY)) {
-            const d = Board.getDistance({ x: leapX, y: leapY }, targetPos);
-            if (d < bestDist) {
-              bestDist = d;
-              best = { x: leapX, y: leapY };
-            }
-          }
-        }
-      }
-    }
-
-    if (best && (best.x !== targetPos.x || best.y !== targetPos.y)) {
-      current = { x: best.x, y: best.y };
-      path.push(current);
-    } else {
-      break;
+function decideCommanderAction(enemy, reachableList, playerUnits, board, rng) {
+  // Find nearest player unit to face
+  let nearestDist = Infinity;
+  let nearestUnit = null;
+  for (const p of playerUnits) {
+    const d = Board.manhattan(enemy.x, enemy.y, p.x, p.y);
+    if (d < nearestDist) {
+      nearestDist = d;
+      nearestUnit = p;
     }
   }
 
-  return path;
+  // Update facing toward nearest threat
+  const newFacing = nearestUnit && nearestUnit.x < enemy.x ? -1 : 1;
+
+  // Check if any player unit is currently adjacent
+  const adjacentTargets = playerUnits.filter(p => Board.manhattan(enemy.x, enemy.y, p.x, p.y) === 1);
+  if (adjacentTargets.length > 0) {
+    // Pick squishiest adjacent target
+    adjacentTargets.sort((a, b) => a.hp - b.hp);
+    const target = adjacentTargets[0];
+    return {
+      type: 'attack',
+      move: { x: enemy.x, y: enemy.y },
+      target,
+      newFacing
+    };
+  }
+
+  // Otherwise hold ground
+  return {
+    type: 'wait',
+    move: { x: enemy.x, y: enemy.y },
+    newFacing
+  };
+}
+
+/**
+ * Healer: Stay >=2 tiles behind frontline, heal lowest-HP% ally in range
+ */
+function decideHealerAction(enemy, reachableList, woundedAllies, playerUnits, board, rng) {
+  const needsHeal = woundedAllies.filter(u => u.hp < u.maxHp);
+
+  // If allies need healing
+  if (needsHeal.length > 0) {
+    // Sort by lowest HP percentage
+    needsHeal.sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp));
+    const target = needsHeal[0];
+
+    // Find reachable tiles that can heal target (range <= 3) while staying as safe as possible from player units
+    const validMoves = [];
+    for (const m of reachableList) {
+      const distToTarget = Board.manhattan(m.x, m.y, target.x, target.y);
+      if (distToTarget >= 1 && distToTarget <= 3) {
+        // Distance to nearest player
+        let minDistToPlayer = Infinity;
+        for (const p of playerUnits) {
+          minDistToPlayer = Math.min(minDistToPlayer, Board.manhattan(m.x, m.y, p.x, p.y));
+        }
+        validMoves.push({ move: m, minDistToPlayer });
+      }
+    }
+
+    if (validMoves.length > 0) {
+      // Pick move with safest distance from players
+      validMoves.sort((a, b) => b.minDistToPlayer - a.minDistToPlayer);
+      const chosen = validMoves[0].move;
+      return {
+        type: 'heal',
+        move: chosen,
+        target,
+        healAmount: 8
+      };
+    }
+  }
+
+  // If no heal needed, move toward friendly cluster while staying >= 2 tiles away from players
+  let bestMove = reachableList[0];
+  let bestScore = -Infinity;
+
+  for (const m of reachableList) {
+    let minDistToPlayer = Infinity;
+    for (const p of playerUnits) {
+      minDistToPlayer = Math.min(minDistToPlayer, Board.manhattan(m.x, m.y, p.x, p.y));
+    }
+
+    // Heavy penalty for getting within 2 tiles of any player
+    const safetyScore = minDistToPlayer < 2 ? -100 : minDistToPlayer * 5;
+
+    // Proximity to allies
+    let allyDistSum = 0;
+    for (const a of woundedAllies) {
+      allyDistSum += Board.manhattan(m.x, m.y, a.x, a.y);
+    }
+    const clusterScore = woundedAllies.length > 0 ? -allyDistSum / woundedAllies.length : 0;
+
+    const score = safetyScore + clusterScore;
+    if (score > bestScore) {
+      bestScore = score;
+      bestMove = m;
+    }
+  }
+
+  return { type: 'wait', move: bestMove };
+}
+
+/**
+ * Archer: Stay at max range (2-3), prefer hill tiles, kite if an enemy is adjacent
+ */
+function decideArcherAction(enemy, reachableList, playerUnits, board, rng) {
+  // Check if player unit is adjacent to current position
+  const isThreatened = playerUnits.some(p => Board.manhattan(enemy.x, enemy.y, p.x, p.y) === 1);
+
+  let bestAction = null;
+  let bestScore = -Infinity;
+
+  for (const m of reachableList) {
+    const terrain = board.getTerrain(m.x, m.y);
+    const isHill = terrain.char === 'h';
+    const rangeTiles = getAttackRangeTiles(board, enemy, m.x, m.y);
+
+    // Check minimum distance to players from this tile
+    let minDistToPlayer = Infinity;
+    for (const p of playerUnits) {
+      minDistToPlayer = Math.min(minDistToPlayer, Board.manhattan(m.x, m.y, p.x, p.y));
+    }
+
+    // If threatened, prioritize escaping adjacent contact (minDistToPlayer > 1)
+    if (isThreatened && minDistToPlayer === 1) {
+      continue; // Skip tiles that remain adjacent if possible
+    }
+
+    // Check targets attackable from this tile
+    for (const p of playerUnits) {
+      if (!canTargetUnit(enemy, p, board)) continue;
+      const inRange = rangeTiles.some(t => t.x === p.x && t.y === p.y);
+      if (inRange) {
+        const combat = calculateCombat(enemy, p, board, { attackerX: m.x, attackerY: m.y });
+        let score = combat.expectedDamage * 2;
+        if (isHill) score += 15; // Prefers hill制高點
+        if (combat.willKill) score += 50;
+        // Prefer max range (distance 3) over close combat
+        const dist = Board.manhattan(m.x, m.y, p.x, p.y);
+        score += dist * 5;
+        // Bonus for safer distance
+        score += minDistToPlayer * 4;
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestAction = {
+            type: 'attack',
+            move: m,
+            target: p,
+            newFacing: p.x < m.x ? -1 : 1
+          };
+        }
+      }
+    }
+  }
+
+  if (bestAction) return bestAction;
+
+  // If cannot attack, move toward best vantage point (hill or safe distance)
+  let bestMove = reachableList[0];
+  let bestMoveScore = -Infinity;
+  for (const m of reachableList) {
+    const terrain = board.getTerrain(m.x, m.y);
+    let s = (terrain.char === 'h') ? 20 : 0;
+    // Prefer distance ~3 from nearest player
+    let minDist = Infinity;
+    for (const p of playerUnits) {
+      minDist = Math.min(minDist, Board.manhattan(m.x, m.y, p.x, p.y));
+    }
+    s -= Math.abs(minDist - 3) * 5;
+    if (s > bestMoveScore) {
+      bestMoveScore = s;
+      bestMove = m;
+    }
+  }
+
+  return { type: 'wait', move: bestMove };
+}
+
+/**
+ * Cavalry: Target most exposed (fewest adjacent allies) or backline unit, charge >=3 tiles
+ */
+function decideCavalryAction(enemy, reachableList, playerUnits, board, rng) {
+  let bestAction = null;
+  let bestScore = -Infinity;
+
+  for (const m of reachableList) {
+    const movedTiles = Math.abs(m.x - enemy.x) + Math.abs(m.y - enemy.y);
+    const getsChargeBonus = movedTiles >= 3;
+
+    for (const p of playerUnits) {
+      if (!canTargetUnit(enemy, p, board)) continue;
+      const dist = Board.manhattan(m.x, m.y, p.x, p.y);
+      if (dist === 1) {
+        // Evaluate target exposure (how many allies are protecting p)
+        let protectingAllies = 0;
+        for (const other of playerUnits) {
+          if (other.id !== p.id && Board.manhattan(p.x, p.y, other.x, other.y) === 1) {
+            protectingAllies++;
+          }
+        }
+
+        const combat = calculateCombat(enemy, p, board, {
+          attackerX: m.x,
+          attackerY: m.y,
+          movedTiles
+        });
+
+        let score = combat.expectedDamage;
+        if (combat.willKill) score += 60;
+        if (getsChargeBonus) score += 20; // 衝鋒 bonus
+        if (protectingAllies === 0) score += 25; // 針對落單目標
+        if (p.role === 'healer' || p.role === 'archer') score += 20; // 針對後排
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestAction = {
+            type: 'attack',
+            move: m,
+            target: p,
+            movedTiles,
+            newFacing: p.x < m.x ? -1 : 1
+          };
+        }
+      }
+    }
+  }
+
+  if (bestAction) return bestAction;
+
+  // Move toward most isolated or squishy player
+  let bestMove = reachableList[0];
+  let minTargetDist = Infinity;
+  for (const m of reachableList) {
+    for (const p of playerUnits) {
+      const d = Board.manhattan(m.x, m.y, p.x, p.y);
+      if (d < minTargetDist) {
+        minTargetDist = d;
+        bestMove = m;
+      }
+    }
+  }
+
+  return { type: 'wait', move: bestMove };
+}
+
+/**
+ * Shrouded: Stealthily prioritize lowest-DEF unit, approach through cover
+ */
+function decideShroudedAction(enemy, reachableList, playerUnits, board, rng) {
+  let bestAction = null;
+  let bestScore = -Infinity;
+
+  for (const m of reachableList) {
+    const inCover = board.getTerrain(m.x, m.y).char === 'f' || board.getTerrain(m.x, m.y).char === 'm';
+
+    for (const p of playerUnits) {
+      if (!canTargetUnit(enemy, p, board)) continue;
+      const dist = Board.manhattan(m.x, m.y, p.x, p.y);
+      if (dist === 1) {
+        const combat = calculateCombat(enemy, p, board, { attackerX: m.x, attackerY: m.y });
+        let score = combat.expectedDamage * 2;
+        if (combat.isBackAttack) score += 20; // 背擊
+        if (combat.willKill) score += 50;
+        score += (30 - (p.def || 0)) * 5; // Heavily prioritize lowest-DEF unit
+        if (inCover) score += 10;
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestAction = {
+            type: 'attack',
+            move: m,
+            target: p,
+            newFacing: p.x < m.x ? -1 : 1
+          };
+        }
+      }
+    }
+  }
+
+  if (bestAction) return bestAction;
+
+  // Move towards squishiest target while preferring forest/market tiles
+  let bestMove = reachableList[0];
+  let bestScoreMove = -Infinity;
+  const lowestDefPlayer = [...playerUnits].sort((a, b) => (a.def || 0) - (b.def || 0))[0];
+
+  for (const m of reachableList) {
+    const dist = Board.manhattan(m.x, m.y, lowestDefPlayer.x, lowestDefPlayer.y);
+    const inCover = board.getTerrain(m.x, m.y).char === 'f' || board.getTerrain(m.x, m.y).char === 'm';
+    let s = -dist * 5 + (inCover ? 12 : 0);
+    if (s > bestScoreMove) {
+      bestScoreMove = s;
+      bestMove = m;
+    }
+  }
+
+  return { type: 'wait', move: bestMove };
+}
+
+/**
+ * Boss: AoE mist on clusters of >=2 player units, else standard attack
+ */
+function decideBossAction(enemy, reachableList, playerUnits, board, rng) {
+  // Check for clusters of >= 2 units within range 2
+  let bestClusterMove = null;
+  let maxClusterCount = 0;
+  let bestClusterTargets = [];
+
+  for (const m of reachableList) {
+    const inRange = playerUnits.filter(p => Board.manhattan(m.x, m.y, p.x, p.y) <= 2);
+    if (inRange.length >= 2 && inRange.length > maxClusterCount) {
+      maxClusterCount = inRange.length;
+      bestClusterMove = m;
+      bestClusterTargets = inRange;
+    }
+  }
+
+  if (bestClusterMove && maxClusterCount >= 2) {
+    return {
+      type: 'aoe_skill',
+      skillId: 'abyssal_mist',
+      name: '迷霧降臨',
+      move: bestClusterMove,
+      targets: bestClusterTargets,
+      damage: 10,
+      newFacing: bestClusterTargets[0].x < bestClusterMove.x ? -1 : 1
+    };
+  }
+
+  // Otherwise pick strongest single target attack
+  return decideDefaultAction(enemy, reachableList, playerUnits, board, rng);
+}
+
+/**
+ * Default fallback action: move towards closest target and attack
+ */
+function decideDefaultAction(enemy, reachableList, playerUnits, board, rng) {
+  let bestAction = null;
+  let bestScore = -Infinity;
+
+  for (const m of reachableList) {
+    for (const p of playerUnits) {
+      if (!canTargetUnit(enemy, p, board)) continue;
+      const dist = Board.manhattan(m.x, m.y, p.x, p.y);
+      if (dist === 1) {
+        const combat = calculateCombat(enemy, p, board, { attackerX: m.x, attackerY: m.y });
+        let score = combat.expectedDamage;
+        if (combat.willKill) score += 50;
+        if (score > bestScore) {
+          bestScore = score;
+          bestAction = {
+            type: 'attack',
+            move: m,
+            target: p,
+            newFacing: p.x < m.x ? -1 : 1
+          };
+        }
+      }
+    }
+  }
+
+  if (bestAction) return bestAction;
+
+  // Move towards nearest player unit
+  let bestMove = reachableList[0];
+  let minD = Infinity;
+  for (const m of reachableList) {
+    for (const p of playerUnits) {
+      const d = Board.manhattan(m.x, m.y, p.x, p.y);
+      if (d < minD) {
+        minD = d;
+        bestMove = m;
+      }
+    }
+  }
+
+  return { type: 'wait', move: bestMove };
 }

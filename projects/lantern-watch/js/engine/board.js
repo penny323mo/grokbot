@@ -1,235 +1,95 @@
 /**
  * js/engine/board.js
- * 5x6 Grid tactics math, terrain layout generation, adjacency, push/collision physics.
+ * Board representation (10x13), terrain queries, distance, and lantern lighting.
  */
 
-import { GRID_COLS, GRID_ROWS, LANTERN_COORDINATES, TERRAINS } from "./constants.js";
+import { TERRAIN_INFO } from '../data/maps.js';
+
+export const COLS = 10;
+export const ROWS = 13;
 
 export class Board {
-  constructor(cols = GRID_COLS, rows = GRID_ROWS) {
-    this.cols = cols;
-    this.rows = rows;
-    this.tiles = [];
-    this.initTiles();
+  constructor(terrainStrings = []) {
+    this.cols = COLS;
+    this.rows = ROWS;
+    this.terrain = terrainStrings;
+    this.lanterns = []; // [{ x, y, radius, turnsLeft }]
   }
 
-  initTiles(terrainPreset = "default", rng = null) {
-    this.tiles = [];
-    for (let y = 0; y < this.rows; y++) {
-      const row = [];
-      for (let x = 0; x < this.cols; x++) {
-        row.push({
-          x,
-          y,
-          terrain: TERRAINS.GRASS,
-          unit: null,        // Pointer to guardian or enemy
-          lanternId: null,   // Set if this is a lantern post
-          trap: null,        // e.g. bamboo trap
-          bun: null          // e.g. bear baker bun
-        });
-      }
-      this.tiles.push(row);
-    }
-
-    // Assign lantern coordinates
-    for (const l of LANTERN_COORDINATES) {
-      if (this.isValid(l.x, l.y)) {
-        this.tiles[l.y][l.x].lanternId = l.id;
-        this.tiles[l.y][l.x].terrain = TERRAINS.LANTERN_POST;
-      }
-    }
-
-    // Place thematic terrain features if RNG provided
-    if (rng) {
-      this.populateTerrains(rng);
-    }
+  loadMap(terrainStrings, lanterns = []) {
+    this.terrain = [...terrainStrings];
+    this.lanterns = lanterns.map(l => ({ ...l, turnsLeft: l.turnsLeft ?? 999 }));
   }
 
-  populateTerrains(rng) {
-    // Row 1 to 4: scatter 1-2 water tiles and 1-2 bamboo groves
-    const candidateTiles = [];
-    for (let y = 1; y < this.rows - 1; y++) {
-      for (let x = 0; x < this.cols; x++) {
-        candidateTiles.push({ x, y });
-      }
-    }
-    const shuffled = rng.shuffle(candidateTiles);
-
-    // Place 1-2 water pools
-    const waterCount = rng.nextInt(1, 2);
-    for (let i = 0; i < waterCount; i++) {
-      const t = shuffled[i];
-      this.tiles[t.y][t.x].terrain = TERRAINS.WATER;
-    }
-
-    // Place 1-2 bamboo groves
-    const bambooCount = rng.nextInt(1, 2);
-    for (let i = waterCount; i < waterCount + bambooCount; i++) {
-      const t = shuffled[i];
-      this.tiles[t.y][t.x].terrain = TERRAINS.BAMBOO;
-    }
-
-    // 1 Stone lantern post in mid-field (Row 2 or 3)
-    if (shuffled.length > waterCount + bambooCount) {
-      const postTile = shuffled[waterCount + bambooCount];
-      this.tiles[postTile.y][postTile.x].terrain = TERRAINS.LANTERN_POST;
-    }
-  }
-
-  isValid(x, y) {
+  inBounds(x, y) {
     return x >= 0 && x < this.cols && y >= 0 && y < this.rows;
   }
 
-  getTile(x, y) {
-    if (!this.isValid(x, y)) return null;
-    return this.tiles[y][x];
+  getTerrainChar(x, y) {
+    if (!this.inBounds(x, y)) return '#';
+    return this.terrain[y]?.[x] || '.';
   }
 
-  getUnitAt(x, y) {
-    const tile = this.getTile(x, y);
-    return tile ? tile.unit : null;
+  getTerrain(x, y) {
+    const ch = this.getTerrainChar(x, y);
+    return TERRAIN_INFO[ch] || TERRAIN_INFO['.'];
   }
 
-  isEmpty(x, y) {
-    const tile = this.getTile(x, y);
-    return tile !== null && tile.unit === null && !tile.lanternId;
+  isImpassable(x, y, isFlyer = false) {
+    if (!this.inBounds(x, y)) return true;
+    if (isFlyer) return false;
+    const t = this.getTerrain(x, y);
+    return !!t.impassable;
   }
 
-  isFriendlyZone(y) {
-    // Rows 3, 4, 5 are friendly town side
-    return y >= 3;
+  getMoveCost(x, y, isFlyer = false) {
+    if (!this.inBounds(x, y)) return 99;
+    if (isFlyer) return 1;
+    const t = this.getTerrain(x, y);
+    return t.moveCost;
   }
 
-  isLanternTile(x, y) {
-    const tile = this.getTile(x, y);
-    return tile !== null && tile.lanternId !== null;
-  }
-
-  static getDistance(a, b) {
-    // Manhattan distance
-    return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
-  }
-
-  getOrthogonalNeighbors(x, y) {
+  getNeighbors(x, y) {
     const dirs = [
-      { x: 0, y: -1 },
-      { x: 0, y: 1 },
-      { x: -1, y: 0 },
-      { x: 1, y: 0 }
+      { x: x, y: y - 1 },
+      { x: x + 1, y: y },
+      { x: x, y: y + 1 },
+      { x: x - 1, y: y }
     ];
-    const neighbors = [];
-    for (const d of dirs) {
-      const nx = x + d.x;
-      const ny = y + d.y;
-      if (this.isValid(nx, ny)) {
-        neighbors.push(this.tiles[ny][nx]);
-      }
-    }
-    return neighbors;
+    return dirs.filter(d => this.inBounds(d.x, d.y));
   }
 
-  getAdjacentUnits(x, y, filterFn = null) {
-    const neighbors = this.getOrthogonalNeighbors(x, y);
-    const units = [];
-    for (const n of neighbors) {
-      if (n.unit) {
-        if (!filterFn || filterFn(n.unit)) {
-          units.push(n.unit);
-        }
-      }
-    }
-    return units;
+  static manhattan(x1, y1, x2, y2) {
+    return Math.abs(x1 - x2) + Math.abs(y1 - y2);
+  }
+
+  static chebyshev(x1, y1, x2, y2) {
+    return Math.max(Math.abs(x1 - x2), Math.abs(y1 - y2));
   }
 
   /**
-   * Pushes a unit in direction (dx, dy) up to `distance` tiles.
-   * Handles collision with other units, walls, lanterns, and water tiles.
-   * Returns a log of effects: { moved: boolean, steps: number, collisionTarget: unit|wall, damageEvents: [] }
+   * Adds a placed lantern (e.g. from lantern_crafter skill)
    */
-  pushUnit(unit, dx, dy, distance = 1, options = {}) {
-    if (!unit) return { moved: false, steps: 0 };
-    // Normalize step
-    const stepX = Math.sign(dx);
-    const stepY = Math.sign(dy);
-    if (stepX === 0 && stepY === 0) return { moved: false, steps: 0 };
+  addPlacedLantern(x, y, radius = 2, turnsLeft = 3) {
+    this.lanterns.push({ x, y, radius, turnsLeft, placed: true });
+  }
 
-    let currentX = unit.x;
-    let currentY = unit.y;
-    let stepsMoved = 0;
-    let collision = null;
-    const damageEvents = [];
-    const bonusCollisionDmg = options.bonusCollisionDmg || 0;
-    const spiritBellBonus = options.spiritBellBonus || 0;
-
-    for (let i = 0; i < distance; i++) {
-      const nextX = currentX + stepX;
-      const nextY = currentY + stepY;
-
-      // Check boundary collision
-      if (!this.isValid(nextX, nextY)) {
-        collision = { type: "boundary", x: nextX, y: nextY };
-        const dmg = 2 + bonusCollisionDmg;
-        damageEvents.push({ unit, damage: dmg, reason: "wall_collision" });
-        break;
-      }
-
-      const nextTile = this.getTile(nextX, nextY);
-
-      // Check unit collision
-      if (nextTile.unit) {
-        collision = { type: "unit", target: nextTile.unit, x: nextX, y: nextY };
-        const dmg = 2 + bonusCollisionDmg;
-        damageEvents.push({ unit, damage: dmg, reason: "unit_collision" });
-        damageEvents.push({ unit: nextTile.unit, damage: dmg, reason: "bumped" });
-        break;
-      }
-
-      // Move into next tile
-      this.tiles[currentY][currentX].unit = null;
-      currentX = nextX;
-      currentY = nextY;
-      this.tiles[currentY][currentX].unit = unit;
-      unit.x = currentX;
-      unit.y = currentY;
-      stepsMoved++;
-
-      // Check water shock
-      if (nextTile.terrain === TERRAINS.WATER) {
-        const waterDmg = 2 + bonusCollisionDmg + spiritBellBonus;
-        damageEvents.push({ unit, damage: waterDmg, reason: "water_shock" });
-      }
-
-      // Check trap
-      if (nextTile.trap) {
-        damageEvents.push({ unit, damage: nextTile.trap.damage || 5, reason: "trap_triggered" });
-        unit.isRooted = true;
-        nextTile.trap = null;
-        break; // Stop at trap
-      }
-    }
-
-    return {
-      moved: stepsMoved > 0,
-      steps: stepsMoved,
-      collision,
-      damageEvents,
-      finalPos: { x: currentX, y: currentY }
-    };
+  tickLanterns() {
+    this.lanterns.forEach(l => {
+      if (l.turnsLeft < 999) l.turnsLeft--;
+    });
+    this.lanterns = this.lanterns.filter(l => l.turnsLeft > 0);
   }
 
   /**
-   * Line targeting helper (e.g. dragon breath, lantern flare)
+   * Checks whether a tile is within light of any active lantern
    */
-  getLineTiles(startX, startY, dirX, dirY, maxRange = 5) {
-    const tiles = [];
-    let curX = startX;
-    let curY = startY;
-    for (let i = 0; i < maxRange; i++) {
-      curX += dirX;
-      curY += dirY;
-      if (!this.isValid(curX, curY)) break;
-      tiles.push(this.tiles[curY][curX]);
+  isTileLit(x, y) {
+    for (const l of this.lanterns) {
+      if (Board.chebyshev(x, y, l.x, l.y) <= l.radius) {
+        return true;
+      }
     }
-    return tiles;
+    return false;
   }
 }

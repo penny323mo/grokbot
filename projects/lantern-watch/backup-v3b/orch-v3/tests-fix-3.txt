@@ -1,0 +1,157 @@
+
+> lantern-watch@1.0.0 test
+> node tests/rules.test.mjs && node tests/intents.test.mjs && node tests/save_load.test.mjs && node tests/bot_run.test.mjs
+
+TAP version 13
+# Subtest: Rules: Damage calculation and armor absorption
+ok 1 - Rules: Damage calculation and armor absorption
+  ---
+  duration_ms: 3.384573
+  ...
+# Subtest: Rules: Push physics, boundary collision, and water shock damage
+ok 2 - Rules: Push physics, boundary collision, and water shock damage
+  ---
+  duration_ms: 0.425566
+  ...
+# Subtest: Rules: Tag Resonance activation
+ok 3 - Rules: Tag Resonance activation
+  ---
+  duration_ms: 0.489703
+  ...
+# Subtest: Rules: Card upgrades verification
+ok 4 - Rules: Card upgrades verification
+  ---
+  duration_ms: 1.155754
+  ...
+# Subtest: Rules: Starting deck cards assert board deltas
+ok 5 - Rules: Starting deck cards assert board deltas
+  ---
+  duration_ms: 2.595474
+  ...
+# Subtest: Rules: Boss specials and unit skills execution
+ok 6 - Rules: Boss specials and unit skills execution
+  ---
+  duration_ms: 1.165679
+  ...
+# Subtest: Rules: Round 2 - Cat advance double swipe and bun drop on relocation
+ok 7 - Rules: Round 2 - Cat advance double swipe and bun drop on relocation
+  ---
+  duration_ms: 0.600372
+  ...
+# Subtest: Rules: Round 2 - Bamboo trap detonates and roots walking enemy
+ok 8 - Rules: Round 2 - Bamboo trap detonates and roots walking enemy
+  ---
+  duration_ms: 1.735477
+  ...
+# Subtest: Rules: Round 2 - Guardian halo aura buffs adjacent allies
+ok 9 - Rules: Round 2 - Guardian halo aura buffs adjacent allies
+  ---
+  duration_ms: 0.860409
+  ...
+# Subtest: Rules: Round 2 - Tactical swap swaps nearest ally and upgraded draws 1 card
+ok 10 - Rules: Round 2 - Tactical swap swaps nearest ally and upgraded draws 1 card
+  ---
+  duration_ms: 0.541212
+  ...
+# Subtest: Rules: Round 3 - Board.isEmpty excludes lantern posts and advance diagonal step
+ok 11 - Rules: Round 3 - Board.isEmpty excludes lantern posts and advance diagonal step
+  ---
+  duration_ms: 0.452681
+  ...
+# Subtest: Rules: Round 3 - Windchime curse reduces attack and Fox Maiden cleanses
+ok 12 - Rules: Round 3 - Windchime curse reduces attack and Fox Maiden cleanses
+  ---
+  duration_ms: 0.334359
+  ...
+# Subtest: Rules: v2 - Lantern tiles cannot be targeted by summon or attack spells
+ok 13 - Rules: v2 - Lantern tiles cannot be targeted by summon or attack spells
+  ---
+  duration_ms: 0.335286
+  ...
+# Subtest: Rules: v2 - Cat Patrol card description matches mobile double damage logic
+ok 14 - Rules: v2 - Cat Patrol card description matches mobile double damage logic
+  ---
+  duration_ms: 0.516046
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 34.247934
+TAP version 13
+# Subtest: Intents: Enemy calculates path and damage telegraph towards nearest lantern
+ok 1 - Intents: Enemy calculates path and damage telegraph towards nearest lantern
+  ---
+  duration_ms: 2.748498
+  ...
+# Subtest: Intents: Scarecrow taunt forces nearby enemies to prioritize Scarecrow
+ok 2 - Intents: Scarecrow taunt forces nearby enemies to prioritize Scarecrow
+  ---
+  duration_ms: 0.51554
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 13.126908
+TAP version 13
+# Subtest: Save/Load: Town manager persists star lanterns and building construction
+ok 1 - Save/Load: Town manager persists star lanterns and building construction
+  ---
+  duration_ms: 1.494567
+  ...
+# Subtest: Save/Load: Active run state can be saved and resumed mid-run
+ok 2 - Save/Load: Active run state can be saved and resumed mid-run
+  ---
+  duration_ms: 0.255724
+  ...
+# Subtest: Save/Load: Battle state snapshot & 1-step undo restore
+ok 3 - Save/Load: Battle state snapshot & 1-step undo restore
+  ---
+  duration_ms: 1.945198
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 13.87226
+[Balance Report] 悠閒 (Relaxed) Win Rate: 100.0% (20/20), Avg Nights: 8.0/8
+[Balance Report] 標準 (Standard) Win Rate: 90.0% (18/20), Avg Nights: 7.9/8
+[Balance Report] 挑戰 (Challenging A1) Win Rate: 85.0% (17/20), Avg Nights: 7.8/8
+TAP version 13
+# Subtest: Bot: Automated simulation on 悠閒 (Relaxed) difficulty
+ok 1 - Bot: Automated simulation on 悠閒 (Relaxed) difficulty
+  ---
+  duration_ms: 229.75373
+  ...
+# Subtest: Bot: Automated simulation on 標準 (Standard) difficulty
+ok 2 - Bot: Automated simulation on 標準 (Standard) difficulty
+  ---
+  duration_ms: 227.129708
+  ...
+# Subtest: Bot: Automated simulation on 挑戰 (Challenging) + Ascension 1
+ok 3 - Bot: Automated simulation on 挑戰 (Challenging) + Ascension 1
+  ---
+  duration_ms: 236.567643
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 702.393972

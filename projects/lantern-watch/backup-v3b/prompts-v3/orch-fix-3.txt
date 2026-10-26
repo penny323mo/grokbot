@@ -1,0 +1,18 @@
+You are the coder. cd /workspace/nightly/2026-10-26-tactics-card-game. This is a targeted VISUAL fix round (round 3). The owner reviewed the 390px screenshots in screenshots/v2/ and they FAIL her bar: she rejects anything childish, flat, sparse or clip-art-like ("小學生 level"). She wants a mature, refined, cohesive, editorial-looking Asian night-town art direction. Keep all game logic and tests passing; this round is about visuals. Read SPEC.md and DESIGN.md for context. Do not edit reviews/ or prompts/.
+
+Specific failures to fix (judge each at 390px wide, iPhone):
+1. BATTLE BOARD is just flat dark rounded squares. It must read as an ILLUSTRATED board: a painted night-street/bamboo-lane ground texture (layered SVG/CSS painting: stone paving, grass edges, path, roof silhouettes), drifting animated FOG over enemy-side rows (semi-transparent layered gradients/noise that thins near lanterns), and warm radial LANTERN GLOW pooling on tiles around each lantern and allied unit. Tile grid should be subtle lines on the painting, not separate boxes. Move-intent arrows should be refined, not big red emoji-like arrows.
+2. UNIT ART: the cat and other units look like cute cartoon stickers. Redraw all ally and enemy units (and card portraits) as one cohesive mature style: e.g. ink-wash / woodblock-print inspired silhouettes with limited palette (indigo, ink black, warm amber, muted vermilion), consistent line weight, drop shadows on the board. Enemies (fog spirits) should feel eerie and atmospheric, not blobs with dots.
+3. CARDS in hand are too small and the art window is a tiny icon. Make hand cards larger (fan or scroll horizontally if needed; cards ~110-130px tall art area at 390px), with full-bleed card art occupying most of the card face, cost gem, type, and the full card name with NO truncation or ellipsis. Selected card should lift and enlarge with a clear detail panel showing full rules text, never cut off. Same treatment for reward-screen cards: big art, readable names, full description.
+4. TITLE screen is sparse: a single flat lantern on empty navy. Make a full illustrated key-art scene (layered night town, rooftops, hanging lantern strings with glow, mist, moon) with a refined typographic logo; keep the three buttons.
+5. MAP screen is a plain grid of identical icon buttons. Make it an illustrated route map (path drawn across a painted terrain with fog, nodes as refined medallions connected by lines, current position lit by lantern glow, locked nodes in fog).
+6. TOWN screen building icons are flat clip-art houses; redraw them in the same cohesive mature illustration style as #2, and give the screen a painted backdrop rather than a plain list.
+7. The BATTLE screen header lacks the "back to grokbot homepage" button that other screens show; every screen must keep a clear back-to-grokbot link.
+8. Check text everywhere for truncation/overflow at 390px and fix it.
+
+Prefer hand-crafted, high-detail inline SVG/CSS/canvas art (gradients, masks, filters, noise) over emoji or generic icons; if you can generate raster art, it must be cohesive and optimised (<300KB each, webp/png). Keep relative paths, static site, performance reasonable on iPhone.
+
+When done: run the tests (npm test), then run scripts/capture_screenshots.mjs to regenerate screenshots/v2/ (title, map, battle, card-selected, reward, town, tutorial) and LOOK at each screenshot yourself; iterate until each one would impress a picky art director. Append '## Round 3 visual overhaul' to CHANGELOG.md. Do not git commit.
+
+WHEN COMPLETELY FINISHED, as your very last action, create the file /workspace/nightly/2026-10-26-tactics-card-game/.orch/fix-3.done containing the word DONE.
+ORCH_SENTINEL=/workspace/nightly/2026-10-26-tactics-card-game/.orch/fix-3.done

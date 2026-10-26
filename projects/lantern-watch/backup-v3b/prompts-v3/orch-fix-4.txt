@@ -1,0 +1,19 @@
+cd /workspace/nightly/2026-10-26-tactics-card-game — FINAL TARGETED VISUAL FIX (round 4). The client rejects anything childish or sparse ("小學生 level").
+
+IMPORTANT: The round-3 CHANGELOG claims a panoramic title key art with pagodas/mountains, an illustrated route map, and an illustrated board — but the actual screenshots in screenshots/v2/ (taken 19:38) do NOT show these. Before changing anything, open screenshots/v2/*.png and compare against what the code is supposed to render; find out why (art not wired up, CSS hidden/zero-size, wrong selectors, cache, served from a different file) and fix the root cause. Judge only by real screenshots, never by what the code "should" do.
+
+Concrete failures seen in the 390px screenshots:
+1. TITLE: top half is a single flat clip-art lantern + crescent on empty navy; bottom ~20% empty. Needs a full-bleed illustrated night-town key art scene filling the screen (layered rooftops/pagoda silhouettes, lantern strings with glow, mist layers, moon), logo + 3 buttons overlaid.
+2. MAP: just a 3-column grid of identical dark circles with tiny icons on a plain gradient, with a straight dashed line. Needs a painted terrain backdrop (ink-wash hills, bamboo, fog drifts), a winding path with branching connections between nodes, varied node medallions, locked/future nodes veiled in fog, current node lit by lantern glow.
+3. BATTLE BOARD: still separate flat dark rounded boxes; fog is only a thin strip above the board. The board must be ONE painted surface (stone paving / lane texture, grass edges) with subtle grid lines; visible drifting fog over the enemy-side rows; warm radial lantern glow pooling across tiles near lanterns/allies.
+4. CARD ART: hand and reward card art are flat simple glyphs (a single arrow, two swooshes, a drop of fire) on dark rectangles. Every card needs rich, full-bleed illustrated art (scene/portrait in the same mature ink-wash/woodblock style as units), filling most of the card face. Card names fully visible, no truncation.
+5. REWARD SCREEN: top ~40% is empty; the description box wraps 【火樹銀花】 badly into two lines in a separate left column. Fill the screen with a victory illustration/backdrop, and lay the description as normal flowing text with the name inline.
+6. TOWN: a plain stacked list of cards with small flat icons. Give it a painted town backdrop / panoramic street header showing built vs unbuilt buildings, and richer building illustrations in the unit art style.
+Keep the back-to-grokbot button on every screen and the existing gameplay/tests.
+
+Prefer hand-crafted, high-detail inline SVG/CSS/canvas art (gradients, masks, filters, noise, layered silhouettes). If you generate raster art it must be cohesive and optimised (<300KB each, webp). Relative paths, static site, iPhone performance OK.
+
+When done: npm test, then run scripts/capture_screenshots.mjs to regenerate screenshots/v2/ and LOOK at each PNG yourself; iterate until each would impress a picky art director and actually shows the items above. Append '## Round 4 visual fix' to CHANGELOG.md listing only what is visibly verified in screenshots. Do not git commit.
+
+WHEN COMPLETELY FINISHED, as your very last action, create the file /workspace/nightly/2026-10-26-tactics-card-game/.orch/fix-4.done containing the word DONE.
+ORCH_SENTINEL=/workspace/nightly/2026-10-26-tactics-card-game/.orch/fix-4.done

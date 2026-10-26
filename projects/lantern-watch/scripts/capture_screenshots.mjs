@@ -1,13 +1,19 @@
 /**
  * scripts/capture_screenshots.mjs
- * Puppeteer-core screenshot generation at 390x844 (iPhone Safari viewport).
- * Verifies 0 console errors and saves screenshots into screenshots/v3b/:
- * - title.png
- * - map.png
- * - battle.png
- * - card-selected.png
- * - reward.png
- * - town.png
+ * Captures 10 deterministic screenshots at 390x844 (deviceScaleFactor: 2) into screenshots/v4/
+ * Uses Puppeteer-core + Google Chrome.
+ *
+ * Screenshots list:
+ * - 00-title.png
+ * - 01-tutorial.png
+ * - 02-select-move-range.png
+ * - 03-action-menu.png
+ * - 04-attack-preview.png
+ * - 05-enemy-turn.png
+ * - 06-world-map.png
+ * - 07-prebattle.png
+ * - 08-detail-sheet.png
+ * - 09-dialogue.png
  */
 
 import http from "node:http";
@@ -22,8 +28,8 @@ const puppeteer = require("/workspace/nightly/shotkit/node_modules/puppeteer-cor
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, "..");
-const SCREENSHOT_DIR = path.resolve(ROOT_DIR, "screenshots/v3b");
-const PORT = 8891;
+const SCREENSHOT_DIR = path.resolve(ROOT_DIR, "screenshots/v4");
+const PORT = 8892;
 
 fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
 
@@ -39,7 +45,7 @@ function startServer() {
       return;
     }
 
-    // Handle grokbot _shared/back.js
+    // Handle shared back.js
     if (reqPath.startsWith("/_shared/")) {
       const sharedPath = path.join("/workspace/grokbot/projects", reqPath);
       if (fs.existsSync(sharedPath)) {
@@ -52,6 +58,7 @@ function startServer() {
     const filePath = path.join(ROOT_DIR, reqPath);
 
     if (!fs.existsSync(filePath)) {
+      console.warn(`[404]: ${reqPath} (looked at ${filePath})`);
       res.writeHead(404, { "Content-Type": "text/plain" });
       res.end("404 Not Found");
       return;
@@ -78,9 +85,18 @@ function startServer() {
   return new Promise((resolve) => server.listen(PORT, "127.0.0.1", () => resolve(server)));
 }
 
-async function run() {
+async function closeAllModals(page) {
+  await page.evaluate(() => {
+    ['modalDialogue', 'modalTutorial', 'modalDetailSheet', 'modalLevelUp', 'modalBattleResult', 'tutorialBoardOverlay', 'deployTrayBar'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+  });
+}
+
+async function capture() {
   const server = await startServer();
-  console.log(`[Screenshot Script] Server running at http://127.0.0.1:${PORT}`);
+  console.log(`[Screenshot Server] Running at http://127.0.0.1:${PORT}`);
 
   const browser = await puppeteer.launch({
     executablePath: "/usr/bin/google-chrome",
@@ -89,114 +105,155 @@ async function run() {
 
   const page = await browser.newPage();
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2 });
-  await page.evaluateOnNewDocument(() => {
-    localStorage.setItem("lantern_watch_tutorial_seen", "1");
-  });
 
   const consoleErrors = [];
   page.on("console", (msg) => {
-    console.log(`[BROWSER ${msg.type()}]:`, msg.text());
     if (msg.type() === "error") {
       consoleErrors.push(msg.text());
     }
   });
-  page.on("pageerror", (err) => {
-    console.log("[BROWSER PAGE ERROR]:", err.toString());
-    consoleErrors.push(err.toString());
+
+  await page.evaluateOnNewDocument(() => {
+    localStorage.setItem('lt_tutorial_seen', '1');
   });
 
-  try {
-    // 1. Title Screen
-    console.log("1. Capturing title.png...");
-    await page.goto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: "networkidle0" });
-    await new Promise((r) => setTimeout(r, 800));
-    await page.screenshot({ path: path.join(SCREENSHOT_DIR, "title.png") });
+  await page.goto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: "networkidle0" });
+  await page.waitForFunction(() => !!window.__lt);
 
-    // 2. Start Battle & Capture Battle
-    console.log("2. Capturing battle.png...");
-    await page.click("#btnStartAdventure");
-    await new Promise((r) => setTimeout(r, 200));
-    await page.click('[data-diff="standard"]');
-    await new Promise((r) => setTimeout(r, 500));
-    await page.screenshot({ path: path.join(SCREENSHOT_DIR, "battle.png") });
+  console.log("Ready to capture screenshots in screenshots/v4/...");
 
-    // 3. Card Selected with Valid Target Highlights (Cat patrol glowing friendly deployment rows 3-4)
-    console.log("3. Capturing card-selected.png...");
-    await page.evaluate(() => {
-      if (window.app && window.app.activeBattle) {
-        const battle = window.app.activeBattle;
-        let catIdx = battle.hand.findIndex((c) => {
-          const id = typeof c === "string" ? c : c.id;
-          return id === "card_summon_cat";
-        });
-        if (catIdx === -1) {
-          battle.hand[0] = "card_summon_cat";
-          catIdx = 0;
-        }
-        window.app.selectCardForPlay(catIdx, "card_summon_cat");
-      }
-    });
-    await new Promise((r) => setTimeout(r, 500));
-    await page.screenshot({ path: path.join(SCREENSHOT_DIR, "card-selected.png") });
+  // 1. 00-title.png
+  await closeAllModals(page);
+  await page.evaluate(() => {
+    window.__lt.showScreen('screenTitle');
+  });
+  await new Promise(r => setTimeout(r, 400));
+  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "00-title.png") });
+  console.log("Captured 00-title.png");
 
-    // 4. Reward Screen
-    console.log("4. Capturing reward.png...");
-    await page.evaluate(() => {
-      if (window.app) {
-        window.app.handleBattleVictory();
-      }
-    });
-    await new Promise((r) => setTimeout(r, 400));
-    await page.screenshot({ path: path.join(SCREENSHOT_DIR, "reward.png") });
+  // 2. 01-tutorial.png
+  await page.evaluate(() => {
+    window.__lt.showTutorial(0);
+  });
+  await new Promise(r => setTimeout(r, 400));
+  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "01-tutorial.png") });
+  console.log("Captured 01-tutorial.png");
+  await closeAllModals(page);
 
-    // 5. Map Screen
-    console.log("5. Capturing map.png...");
-    await page.evaluate(() => {
-      if (window.app && window.app.activeRun) {
-        window.app.renderMapScreen();
-      }
-    });
-    await new Promise((r) => setTimeout(r, 400));
-    await page.screenshot({ path: path.join(SCREENSHOT_DIR, "map.png") });
+  // 3. 06-world-map.png
+  await page.evaluate(() => {
+    window.__lt.openWorldMap();
+  });
+  await new Promise(r => setTimeout(r, 400));
+  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "06-world-map.png") });
+  console.log("Captured 06-world-map.png");
 
-    // 6. Town Meta Progression Screen (Showing built vs unbuilt buildings)
-    console.log("6. Capturing town.png...");
-    await page.evaluate(() => {
-      if (window.app) {
-        window.app.town.buildings = ["bldg_watchtower", "bldg_courier", "bldg_tea_bush"];
-        window.app.town.starLanterns = 18;
-        window.app.ui.showScreen("screenTown");
-        window.app.ui.renderTown(window.app.town, () => {});
-      }
-    });
-    await new Promise((r) => setTimeout(r, 1500));
-    await page.screenshot({ path: path.join(SCREENSHOT_DIR, "town.png") });
+  // 4. 07-prebattle.png
+  await page.evaluate(() => {
+    window.__lt.openPreBattle(1);
+  });
+  await new Promise(r => setTimeout(r, 400));
+  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "07-prebattle.png") });
+  console.log("Captured 07-prebattle.png");
 
-    // 7. Tutorial Sheet (Clear of Grokbot chip)
-    console.log("7. Capturing tutorial.png...");
-    await page.evaluate(() => {
-      if (window.app) {
-        window.app.ui.showScreen("screenBattle");
-        const tutorial = document.getElementById("modalTutorial");
-        if (tutorial) tutorial.classList.add("active");
-      }
-    });
-    await new Promise((r) => setTimeout(r, 400));
-    await page.screenshot({ path: path.join(SCREENSHOT_DIR, "tutorial.png") });
+  // 4b. 10-deploy.png
+  await page.evaluate(() => {
+    window.__lt.openDeployPhase(1);
+  });
+  await new Promise(r => setTimeout(r, 400));
+  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "10-deploy.png") });
+  console.log("Captured 10-deploy.png");
 
-    console.log("\nAll 7 screenshots captured successfully into screenshots/v3b/!");
-    console.log(`Console Errors count: ${consoleErrors.length}`);
-    if (consoleErrors.length > 0) {
-      console.error("Console Errors encountered:", consoleErrors);
-      process.exit(1);
+  // 5. 09-dialogue.png
+  await page.evaluate(() => {
+    window.__lt.showDialogue(1);
+  });
+  await new Promise(r => setTimeout(r, 400));
+  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "09-dialogue.png") });
+  console.log("Captured 09-dialogue.png");
+  await closeAllModals(page);
+
+  // 6. 08-detail-sheet.png
+  await page.evaluate(() => {
+    window.__lt.showDetailSheet('cat_patrol');
+  });
+  await new Promise(r => setTimeout(r, 400));
+  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "08-detail-sheet.png") });
+  console.log("Captured 08-detail-sheet.png");
+  await closeAllModals(page);
+
+  // 7. 02-select-move-range.png
+  await page.evaluate(() => {
+    window.__lt.launchBattle(1);
+    window.__lt.selectUnit('cat_patrol');
+  });
+  await new Promise(r => setTimeout(r, 500));
+  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "02-select-move-range.png") });
+  console.log("Captured 02-select-move-range.png");
+
+  // 8. 03-action-menu.png
+  await page.evaluate(() => {
+    const app = window.__lt.app;
+    const cat = app.battle.allies.find(a => a.id === 'cat_patrol');
+    if (cat) {
+      app.selectedUnit = cat;
+      app.battle.moveUnit(cat, 0, 9);
+      app.stagedMoveTile = { x: 0, y: 9 };
+      app.openActionMenuForUnit(cat);
+      app.refreshBattleUI();
+      app.ui.centerCameraOn(cat.x, cat.y);
     }
-  } finally {
-    await browser.close();
-    server.close();
+  });
+  await new Promise(r => setTimeout(r, 500));
+  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "03-action-menu.png") });
+  console.log("Captured 03-action-menu.png");
+
+  // 9. 04-attack-preview.png
+  await page.evaluate(() => {
+    const app = window.__lt.app;
+    app.ui.hideActionMenu();
+    const battle = window.__lt.getBattle();
+    const cat = battle.allies.find(a => a.id === 'cat_patrol');
+    const enemy = battle.enemies[0];
+    if (cat && enemy) {
+      cat.x = enemy.x;
+      cat.y = enemy.y - 1;
+      cat.turnStartX = cat.x;
+      cat.turnStartY = cat.y;
+      enemy.facing = 1;
+      app.selectedUnit = cat;
+      app.activeActionType = 'attack';
+      app.evaluateTargetPreview(enemy);
+      app.ui.centerCameraOn(cat.x, cat.y);
+    }
+  });
+  await new Promise(r => setTimeout(r, 500));
+  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "04-attack-preview.png") });
+  console.log("Captured 04-attack-preview.png");
+
+  // 10. 05-enemy-turn.png
+  await page.evaluate(() => {
+    const app = window.__lt.app;
+    app.ui.hideTargetPreview();
+    window.__lt.showEnemyTurnBanner();
+  });
+  await new Promise(r => setTimeout(r, 350));
+  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "05-enemy-turn.png") });
+  console.log("Captured 05-enemy-turn.png");
+
+  await browser.close();
+  server.close();
+
+  if (consoleErrors.length > 0) {
+    console.error(`[Screenshot Script] Errors detected during run (${consoleErrors.length}):`, consoleErrors);
+    process.exit(1);
+  } else {
+    console.log("[Screenshot Script] All 10 screenshots captured successfully with 0 console errors!");
+    process.exit(0);
   }
 }
 
-run().catch((err) => {
+capture().catch((err) => {
   console.error("Screenshot capture failed:", err);
   process.exit(1);
 });

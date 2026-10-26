@@ -2,10 +2,10 @@
   "projects": [
     {
       "id": "lantern-watch",
-      "title": "燈籠小鎮守夜人",
-      "subtitle": "Lantern Watch",
+      "title": "燈影軍略",
+      "subtitle": "Lantern Tactics",
       "category": "策略遊戲",
-      "description": "戰棋加卡牌嘅溫馨守夜冒險：排兵佈陣、砌牌組，守住小鎮燈籠。",
+      "description": "曹操傳式戰棋：大地圖、地形、計策同羈絆，用燈火同謀略守住夜色。",
       "accent": "#D9822B",
       "path": "projects/lantern-watch/",
       "added": "2026-10-26",

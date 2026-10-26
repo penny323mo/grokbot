@@ -1,129 +1,97 @@
-# 燈籠小鎮守夜人 — orchestrator report
+# 燈影軍略 (Lantern Tactics) — v4 Major Rewrite Report
 
-- Generated: 2026-10-26 20:25 (Macau, UTC+8)
-- Live: https://penny323mo.github.io/grokbot/projects/lantern-watch/ (HTTP 200)
-- Rounds: 4  ·  Started: 2026-10-26T17:18:47+08:00
+## 1. 概要 (Overview)
+- **遊戲名稱**: 燈影軍略 / Lantern Tactics
+- **副標語**: 以燈為兵 · 以計破霧
+- **架構版本**: v4.0.0 (由 v3 卡牌戰棋全面重構為經典曹操傳式戰棋 RPG)
+- **單一信任來源**: `js/config.js` (`GAME = { name: '燈影軍略', nameEn: 'Lantern Tactics', tagline: '以燈為兵 · 以計破霧', storageKey: 'lantern_tactics_v4' }`)
+- **測試狀態**: `npm test` 全部通過 (rules, ai, objectives, name, encounters.sim)，運行耗時 < 1 秒 (< 60 秒限制)。
 
-## Phases
-- build finished 2026-10-26T17:58:22+08:00
-- review-1 finished 2026-10-26T18:01:44+08:00
-- fix-1 finished 2026-10-26T18:27:00+08:00
-- review-2 finished 2026-10-26T18:29:32+08:00
-- fix-2 finished 2026-10-26T18:43:11+08:00
-- publish finished 2026-10-26T18:43:20+08:00
-- report finished 2026-10-26T18:43:20+08:00
-- fix-3 finished 2026-10-26T19:40:33+08:00
-- publish finished 2026-10-26T19:40:43+08:00
-- report finished 2026-10-26T19:40:43+08:00
-- fix-4 finished 2026-10-26T20:25:03+08:00
-- publish finished 2026-10-26T20:25:12+08:00
+---
 
-## Reviews
-- orch-r1-grok.md: VERDICT: NOT READY
-- orch-r2-grok.md: VERDICT: NOT READY
-- orch-r3-grok.md: VERDICT: SHIP
+## 2. 核心戰棋系統架構 (Tactics RPG Architecture)
 
-## Tests
-### tests-build
-```
-# tests 3
-# suites 0
-# pass 3
-# fail 0
-# cancelled 0
-# skipped 0
-# todo 0
-# duration_ms 697.962686
-```
-### tests-fix-1
-```
-# tests 3
-# suites 0
-# pass 3
-# fail 0
-# cancelled 0
-# skipped 0
-# todo 0
-# duration_ms 807.608192
-```
-### tests-fix-2
-```
-# tests 3
-# suites 0
-# pass 3
-# fail 0
-# cancelled 0
-# skipped 0
-# todo 0
-# duration_ms 690.861855
-```
-### tests-fix-3
-```
-# tests 3
-# suites 0
-# pass 3
-# fail 0
-# cancelled 0
-# skipped 0
-# todo 0
-# duration_ms 702.393972
-```
-### tests-fix-4
-```
-# tests 3
-# suites 0
-# pass 3
-# fail 0
-# cancelled 0
-# skipped 0
-# todo 0
-# duration_ms 698.845338
-```
+### 2.1 棋盤與地形系統 (`js/engine/board.js`, `js/data/maps.js`)
+- **10×13 經典網格**: 嚴格對齊 `assets/art/v4/map_*.webp` 手繪國風地圖：
+  - `.` (平地, 消耗 1): 標準開闊地。
+  - `f` (森林, 消耗 2, 防禦 +1, 迴避 +15%): 步兵掩護點。
+  - `h` (山丘, 消耗 2, 防禦 +1, 迴避 +10%): 制高點，對低處單位傷害 +20%，遠程射程 +1。
+  - `r` (道路, 消耗 1): 行軍通道。
+  - `b` (橋樑, 消耗 1): 跨水咽喉通道，被擊退落水將直接溺亡 KO。
+  - `w` (深水, 消耗 99, 飛行專屬): 湍急河流，非飛行單位不可涉足。
+  - `#` (城牆/山壁, 消耗 99, 不可通行): 阻隔行軍與降落。
+  - `g` (城門, 消耗 1, 防禦 +2): 守門章節的核心據點。
+  - `m` (市集, 消耗 1, 迴避 +10%): 木棚貨架，火攻戰略目標。
+  - `s` (淺灘, 消耗 3, 防禦 -1): 泥濘碎石灘，減速易受傷。
+- **靈燈照夜遮罩**: 燈籠提供半徑 2 格光暈，破除夜霧，顯現隱匿的匿鼠 (`shadow_rat`)。
 
-## Screenshots
-- screenshots/orch/live-390-full.png
-- screenshots/orch/live-390.png
-- screenshots/orch/live-battle.png
-- screenshots/orch/live-card-selected.png
-- screenshots/orch/live-title.png
+### 2.2 移動路徑與 ZOC 阻截 (`js/engine/pathfinding.js`)
+- **Dijkstra 廣度優先尋路**: 支援友軍穿越（不能停在同一格）、敵軍卡位阻隔、飛行單位跨越地形。
+- **騎兵阻截領域 (ZOC)**: 熊岳 (`bear_guard`) 的「槍林」特性對相鄰格形成 ZOC，敵方騎兵進入相鄰格強制終止移動並受到截擊傷害。
 
-## Changelog (tail)
-- Replaced flat vector line glyphs with handcrafted woodblock scene illustrations for all non-summon cards:
-  - `card_command_advance` (突進指令): Martial scout in travel cloak and bamboo kasa hat slashing forward through a night bamboo grove with glowing sparks and drifting leaves.
-  - `card_command_strike_again` (連環迅擊): Dual enchanted wakizashi blades slashing in an 'X' with cinnabar arcs, central spark burst, and combat rune.
-  - `card_spell_bamboo_trap` (地刺竹陷): Sharpened bamboo stakes bursting from courtyard stones bound with tripwire and crimson alarm talismans.
-  - `card_lantern_refuel` (添燈加油): Cast-bronze dragon pitcher pouring molten golden oil into a blazing stone temple font.
-  - `card_lantern_ignite` (火樹銀花): Multi-branching festival fireworks showering willow sparks of gold and cinnabar over pagoda roofs.
-  - Full illustrations for `card_command_reposition`, `card_command_rally`, `card_command_tactical_swap`, `card_spell_gust`, `card_spell_fireball`, `card_spell_barrier`, `card_spell_whirlwind`, `card_spell_freeze_mist`, `card_spell_spirit_rain`, `card_spell_thunder_strike`, `card_lantern_flare`, `card_lantern_guardian_halo`, `card_lantern_oil_flask`.
-- Verified full card titles and clear cost gems with zero truncation.
+### 2.3 朝向與戰鬥公式 (`js/engine/combat.js`)
+- **方向判定**: 計算攻擊者相對於防守者朝向的位置（背擊、側擊、正面）。
+  - 背擊 (Back Attack): 傷害 ×1.5（墨影 `cat_patrol` 疾影特性倍增至 ×2.0），且防守方**不可反擊**。
+  - 側擊 (Side Attack): 傷害 ×1.2。
+  - 正面攻擊 (Frontal Attack): 玄鐵巨將 (`iron_general`) 前方護盾減免 70% 傷害 (×0.3)。
+- **反擊機制 (Counter-Attack)**: 近戰防守方受近戰攻擊若存活，立即發動反擊。
+- **五行剋制與特性**:
+  - 水相靈怪 傘魂 (`paper_ghost`): 火焰免疫 (傷害 ×0)，雷擊傷害雙倍 (×2.0)。
+  - 鶴羽 (`crane_rider`): 俯衝特性對弓手造成 +30% 額外傷害。
+  - 匿霧破除: 匿鼠 (`shadow_rat`) 僅在處於燈光範圍內或有單位相鄰時方可被選為攻擊目標。
+  - 擊退溺斃: 熊岳「巨盾推擊」擊退目標 1 格，若推落水中且非飛行單位直接判定溺亡 KO。
 
-### 4. Reward Screen Dawn Sunrise & Flowing Description (Visually Verified in screenshots/v2/reward.png)
-- Filled the previously empty top 40% with an illustrated morning dawn sunrise backdrop: radiant sunbeams piercing over misty mountain peaks, flying white cranes, pagoda silhouettes in dawn mist, and celebratory morning glow.
-- Refactored `.reward-desc-box` from flex column wrapping into normal inline text: `【地刺竹陷】` renders seamlessly inline with the rules description across comfortable, flowing lines without breaking into two columns.
+### 2.4 確定性角色 AI (`js/engine/ai.js`)
+- **弓手 (Archer)**: 優先佔據山丘制高點，保持 2-3 格最遠射程，若被近身則後撤風箏。
+- **醫師 (Healer)**: 保持在前線後方 ≥2 格，為 3 格內生命百分比最低的友軍施加治療。
+- **騎兵 (Cavalry)**: 鎖定落單或缺乏友軍相鄰保護的後排單位發動衝鋒（移動 ≥3 格傷害 +40%）。
+- **重將 (Commander)**: 堅守要道關卡不主動出擊，面向威脅，僅攻擊相鄰近身敵軍。
+- **匿霧刺客 (Shrouded)**: 穿行陰暗小道，專門刺殺防禦最低的布衣後排。
+- **首領 (Boss)**: 鎖定 ≥2 人聚集處施放群體迷霧爆發。
 
-### 5. Illustrated Route Map with Branching Paths & Terrain (Visually Verified in screenshots/v2/map.png)
-- Added an ink-wash mountain terrain backdrop with framing bamboo grove silhouettes and drifting mist bands.
-- Replaced the static center vertical line with dynamic SVG curved bezier path connections linking each node to its valid branch options from Night 1 through Boss.
-- Applied distinct medallion designs per node type (Boss, Elite, Shop, Rest, Event, Battle) with radiant golden halos on available nodes and mist shrouding locked nodes.
+---
 
-### 6. Town Screen Panoramic Street Header (Visually Verified in screenshots/v2/town.png)
-- Added `#townStreetPanoramaWrap` displaying a 390×105 panoramic Asian streetscape header illustrating built buildings (e.g. 守夜小亭 with lit paper window, 飛信驛站 with fluttering red flag, 老茶樹 with golden tea fruit) in vibrant colors alongside unbuilt buildings in misty twilight silhouette.
-- Retained rich woodblock building architectural vignettes with checkmarks for built structures.
+## 3. 戰役與關卡設計驗證表 (`tests/encounters.sim.test.mjs`)
 
-### 7. Verification & Tests
-- All 22 automated rules, intents, save/load, and balance simulation tests pass with 0 errors (`npm test`).
-- All 7 screenshots captured at 390×844 into `screenshots/v2/` with 0 console errors.
+| 關卡 | 地圖 | 目標條件 | 敵軍編制 | 解法 A (Comp A) | 解法 B (Comp B) | 測試結果 | 回合數 |
+|---|---|---|---|---|---|---|---|
+| **第一回** | 河橋 | 護送【引路燈車】穿過石橋抵達北岸燈標 (12回合內) | 4 霧騎 + 2 影弓 | 熊岳 + 茶翁 + 燈娘 + 墨影 (鼓舞) | 墨影 + 鶴羽 + 熊岳 + 茶翁 (佯攻) | **WIN / WIN** | 8 回合 / 10 回合 |
+| **第二回** | 城門 | 守護城門核心防禦線 (8回合) | 3 傘魂(水) + 2 霧騎 + 1 霧巫 | 雷狸 + 熊岳 + 茶翁 + 墨影 + 燈娘 (鼓舞) | 墨影 + 鶴羽 + 熊岳 + 茶翁 + 雷狸 (夜襲) | **WIN / WIN** | 4 回合 / 4 回合 |
+| **第三回** | 市集 | 保護中央鎮心神燈 (10回合內或全殲) | 4 匿鼠(隱身) + 2 影弓 | 燈娘 + 狐火 + 熊岳 + 茶翁 + 墨影 (鼓舞) | 熊岳 + 茶翁 + 墨影 + 燈娘 + 鶴羽 (火攻) | **WIN / WIN** | 10 回合 / 3 回合 |
+| **第四回** | 山道 | 擊破鐵將 或 突破山道抵達神龕 | 鐵將(盾) + 2 霧巫 + 2 影弓 + 霧母(首領援軍) | 熊岳 + 墨影 + 鶴羽 + 茶翁 + 雷狸 + 燈娘 (鼓舞) | 鶴羽 + 墨影 + 熊岳 + 茶翁 + 狐火 + 雷狸 (水淹) | **WIN / WIN** | 4 回合 / 4 回合 |
 
-## v3 (2026-10-26) painted ink-wash overhaul
-- 44 AI-generated painted illustrations in assets/art/*.webp (2.1MB total): title/board/map/town/reward scenes, 21 unit portraits, 18 card arts (plus/summon aliases reuse).
-- Wired by overriding SVG_ART entries at end of js/render/art.js with <img> tags; icons replaced by serif CJK glyph marks (戰/祠/泉/首/燈...).
-- CSS: 1px gold hairline borders, inset double-rule card frames, translucent board tiles over painted board.
-- Screenshots: screenshots/v3/*.png. Tests pass.
-- Weaknesses: building thumbnails all reuse same town crop; header icons (home/music/bell) still old line SVGs; some portraits (rat, fog) darker; paper ghost/tactical swap contain pseudo-glyphs; reposition card more photoreal.
+> **驗證結論**: 
+> 1. 四大關卡均驗證了至少 2 組截然不同的部隊編制與軍略計策，全部達成勝利。
+> 2. 盲目衝鋒的 Naive Bot 在相同關卡中驗證失敗（第一回車毀、第二回城破），證實戰術走位與陣型防守具有絕對決定性。
 
-## v3b (2026-10-26)
-- Battle board: painted street (board.webp) shows through; tiles are hairline gold grid, soft glow targets, red wash intents, amber lantern pools.
-- Painted glowing lantern tokens (CSS-dimmed for damaged/extinguished); round portrait unit tokens with gold (guardian) / red (enemy) ring.
-- 10 distinct building illustrations; header icons are gold serif glyphs (宅 錢 星 樂 鐘).
-- Regenerated shadow rat, fog blob, paper ghost, reposition and tactical swap art.
-- Known weakness: courier building art contains pseudo-text signboard.
+---
+
+## 4. 行動端操控與 UI 體驗 (390px Mobile Viewport)
+
+1. **滾動平移地圖視口 (Scrollable Pan Viewport)**:
+   - 地圖畫布 640×832 像素，瓷磚尺寸 64×64 像素。
+   - 支援滑鼠拖拽與觸摸平移（Drag-to-pan），並設有微位移防抖閥值（<5px 視為點擊，≥5px 視為平移）。
+   - 點擊角色或切換目標時相機自動平滑置中聚焦。
+2. **2.5D 戰棋立繪圖層**:
+   - 角色立繪帶有立體投射陰影 (`.unit-ground-shadow`)、我方金芒/敵方紅芒光環 (`.unit-team-ring`) 與懸浮血條。
+   - 閒置呼吸起伏微動畫錯開相位，突刺攻擊帶有方向位移回饋。
+3. **行動菜單彈窗 (Action Menu Popover)**:
+   - 移動到指定格後彈出 56px 大觸控按鈕：⚔ 攻擊、⚡ 技能、🍵 待命、合擊、取消移動。
+   - 確認前支援隨時點擊頂部「悔棋」撤銷重來。
+4. **目標傷害預覽卡 (Target Preview Card)**:
+   - 攻防雙方立繪與名稱並排對比。
+   - 明確標注朝向加成（側擊 +20% / 背擊 +50% / +100%）、預期傷害、命中率、暴擊率、敵方反擊傷害與溺水擊墜預警。
+5. **軍略整備與將士詳情 (Pre-battle & Detail Sheet)**:
+   - 出征前可偵察敵軍軍情與職能、選擇上陣名冊、指派計策。
+   - 點擊頭像即時呼出大版將士詳情：展示大立繪、等級、移動力、五維屬性、專屬特性、技能與合擊羈絆。
+
+---
+
+## 5. 易錯點與設計反思 (Weak Spots & Learnings)
+
+1. **同類型敵軍的實例唯一性**:
+   - 初期在尋路碰撞檢測中若誤用原型 `u.id === unit.id`，會導致同種部隊（例如 4 隊霧騎）彼此視為同一單位而重疊踩在同一格。修復為物件引用比較 `u === unit` 與 `instanceId` 判定後完全消除重疊。
+2. **護送任務的陣線牽引節奏**:
+   - 輜重車自身無攻擊力，在面對敵方高移動力騎兵衝鋒時，必須保持在肉盾熊岳後方（或安全道路入口）。當前線騎兵全滅後，前進引導須引導護衛隊向目標點前進，避免部隊回撤封堵狹窄橋樑通道。
+3. **無卡牌化純戰棋的手感建立**:
+   - 徹底移除舊版抽牌、費用、牌堆概念，代之以經典戰棋的「選擇角色 → 檢視移動/射程格 → 點擊確認移動 → 選擇戰術指令 → 檢視預覽 → 執行結算」，節奏清晰且符合傳統戰棋策略預期。

@@ -1,0 +1,4 @@
+You are a strict senior code reviewer. cd /workspace/nightly/2026-10-26-tactics-card-game. Read /workspace/nightly/2026-10-26-tactics-card-game/SPEC.md and review the code (round 1). Do NOT modify project files. Run node tests if present; do not launch browsers. Write a numbered review ordered CRITICAL/MAJOR/MINOR with file:line and concrete fix, with a first line 'VERDICT: SHIP' or 'VERDICT: NOT READY', to /workspace/nightly/2026-10-26-tactics-card-game/reviews/orch-r1-grok.md. Keep to ~15 minutes.
+
+WHEN COMPLETELY FINISHED, as your very last action, create the file /workspace/nightly/2026-10-26-tactics-card-game/.orch/review-1.done containing the word DONE.
+ORCH_SENTINEL=/workspace/nightly/2026-10-26-tactics-card-game/.orch/review-1.done

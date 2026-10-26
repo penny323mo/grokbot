@@ -1,415 +1,385 @@
 /**
  * tests/rules.test.mjs
- * Unit tests for tactics rules: damage, armor, push collisions, water shock, and tag resonances.
+ * Unit tests for tactics rules: movement costs, impassable tiles, flyer advantages,
+ * ZOC interception, back-attack damage modifiers, counter-attacks, elemental affinities,
+ * shrouded stealth targeting, and knockback into water instant KO.
  */
 
-import assert from "node:assert";
-import test from "node:test";
-import { Board } from "../js/engine/board.js";
-import { Battle } from "../js/engine/battle.js";
-import { RNG } from "../js/engine/rng.js";
-import { getCardById } from "../js/engine/cards.js";
-import { TAGS, TERRAINS, DIFFICULTIES } from "../js/engine/constants.js";
+import assert from 'node:assert';
+import test from 'node:test';
+import { Board } from '../js/engine/board.js';
+import { getReachableTiles, getAttackRangeTiles } from '../js/engine/pathfinding.js';
+import { calculateCombat, executeCombat, canTargetUnit } from '../js/engine/combat.js';
+import { GUARDIAN_PROTOS, ENEMY_PROTOS } from '../js/data/units.js';
+import { RNG } from '../js/engine/rng.js';
+import { Battle } from '../js/engine/battle.js';
 
-test("Rules: Damage calculation and armor absorption", () => {
-  const battle = new Battle({ rng: new RNG(101) });
-  const guardian = battle.spawnGuardian("cat_patrol", 2, 4, 0, 0, 3); // HP: 8, Armor: 3
+test('Rules: Movement costs, impassable tiles, and flyer traversal', () => {
+  // Test map: row 0 has plain (.), forest (f), hill (h), shallows (s), water (w), wall (#)
+  const terrain = [
+    ".fhsw#....",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    ".........."
+  ];
+  const board = new Board(terrain);
 
-  assert.strictEqual(guardian.armor, 3);
-  assert.strictEqual(guardian.hp, 8);
+  assert.strictEqual(board.getMoveCost(0, 0, false), 1); // plain
+  assert.strictEqual(board.getMoveCost(1, 0, false), 2); // forest
+  assert.strictEqual(board.getMoveCost(2, 0, false), 2); // hill
+  assert.strictEqual(board.getMoveCost(3, 0, false), 3); // shallows
+  assert.strictEqual(board.isImpassable(4, 0, false), true); // water impassable to non-flyer
+  assert.strictEqual(board.isImpassable(5, 0, false), true); // wall impassable to non-flyer
 
-  // Attack with 2 damage -> armor absorbs completely
-  battle.damageUnit(guardian, 2);
-  assert.strictEqual(guardian.armor, 1);
-  assert.strictEqual(guardian.hp, 8);
+  // Flyer movement: costs 1 and ignores impassable water
+  assert.strictEqual(board.getMoveCost(4, 0, true), 1);
+  assert.strictEqual(board.isImpassable(4, 0, true), false);
 
-  // Attack with 4 damage -> armor broken, remaining 3 damage to HP
-  battle.damageUnit(guardian, 4);
-  assert.strictEqual(guardian.armor, 0);
-  assert.strictEqual(guardian.hp, 5);
+  // Test reachable tiles for non-flyer vs flyer
+  const footman = { id: 'footman', team: 'ally', x: 0, y: 0, mov: 3, flyer: false };
+  const footmanReachable = getReachableTiles(board, footman, [footman]);
+
+  // Footman can reach (0,0) cost 0, (1,0) forest cost 2, cannot reach (3,0) shallows directly (cost 1+2+3 > 3)
+  assert.ok(footmanReachable.has('1,0')); // forest
+  assert.ok(!footmanReachable.has('4,0')); // water is impassable
+
+  const flyer = { id: 'crane_rider', team: 'ally', x: 0, y: 0, mov: 4, flyer: true };
+  const flyerReachable = getReachableTiles(board, flyer, [flyer]);
+  assert.ok(flyerReachable.has('4,0'), 'Flyer can fly to water tile');
 });
 
-test("Rules: Push physics, boundary collision, and water shock damage", () => {
-  const board = new Board();
-  board.initTiles();
+test('Rules: Cavalry ZOC interception by bear_guard (spear_wall)', () => {
+  const terrain = Array(13).fill("..........");
+  const board = new Board(terrain);
 
-  // Set tile (2, 2) to water
-  board.tiles[2][2].terrain = TERRAINS.WATER;
+  // bear_guard stands at (3, 2)
+  const bear = {
+    id: 'bear_guard',
+    team: 'ally',
+    x: 3,
+    y: 2,
+    hp: 36,
+    trait: { id: 'spear_wall' }
+  };
 
-  const dummyUnit = { id: "test_dummy", x: 2, y: 3, hp: 10, armor: 0 };
-  board.tiles[3][2].unit = dummyUnit;
+  // Cavalry moves from (0, 2) East towards bear
+  const cavalry = {
+    id: 'fog_rider',
+    role: 'cavalry',
+    team: 'enemy',
+    x: 0,
+    y: 2,
+    mov: 6,
+    flyer: false
+  };
 
-  // Push north into water tile (2, 2)
-  const pushRes = board.pushUnit(dummyUnit, 0, -1, 1);
-  assert.strictEqual(pushRes.moved, true);
-  assert.strictEqual(dummyUnit.y, 2);
+  const reachable = getReachableTiles(board, cavalry, [bear, cavalry]);
 
-  // Should have triggered water_shock damage event (2 damage)
-  const waterShock = pushRes.damageEvents.find((e) => e.reason === "water_shock");
-  assert.ok(waterShock, "Water shock damage should be triggered");
-  assert.strictEqual(waterShock.damage, 2);
-
-  // Push unit further north towards boundary (y = 0)
-  board.pushUnit(dummyUnit, 0, -1, 2); // now at y = 0
-  assert.strictEqual(dummyUnit.y, 0);
-
-  // Push past top boundary -> collision with wall
-  const wallPush = board.pushUnit(dummyUnit, 0, -1, 1);
-  assert.ok(wallPush.collision, "Should collide with boundary");
-  assert.strictEqual(wallPush.collision.type, "boundary");
+  // Entering tile (2, 2) is adjacent to bear (3, 2) -> ZOC intercepts!
+  // Unit can reach (2, 2), but cannot expand beyond it!
+  const tile22 = reachable.get('2,2');
+  assert.ok(tile22, 'Cavalry can reach adjacent tile (2,2)');
+  assert.strictEqual(tile22.zocStopped, true, 'Tile (2,2) must be flagged as ZOC stopped');
 });
 
-test("Rules: Tag Resonance activation", () => {
-  const battle = new Battle({ rng: new RNG(202) });
-  // Spawn two Guard (守) units
-  battle.spawnGuardian("cat_patrol", 1, 4); // [毛, 守]
-  battle.spawnGuardian("scarecrow", 3, 4);  // [守, 毛]
+test('Rules: Facing and Back-attack damage modifiers', () => {
+  const terrain = Array(13).fill("..........");
+  const board = new Board(terrain);
 
-  const tags = battle.getActiveTags();
-  assert.ok(tags.includes(TAGS.GUARD), "Should activate Guard tag resonance");
-  assert.ok(tags.includes(TAGS.FURRY), "Should activate Furry tag resonance");
+  // Defender facing East (facing = 1) at (3, 3)
+  const defender = {
+    id: 'target',
+    team: 'enemy',
+    x: 3,
+    y: 3,
+    hp: 30,
+    def: 4,
+    spd: 10,
+    facing: 1
+  };
+
+  // 1. Normal attacker from East (4, 3) -> Front attack
+  const frontAttacker = {
+    id: 'attacker',
+    team: 'ally',
+    x: 4,
+    y: 3,
+    atk: 14,
+    spd: 10,
+    facing: -1
+  };
+  const frontCombat = calculateCombat(frontAttacker, defender, board);
+  assert.strictEqual(frontCombat.direction, 'front');
+  assert.strictEqual(frontCombat.isFrontAttack, true);
+  // Damage: 14 - 4 = 10 * 1.0 = 10
+  assert.strictEqual(frontCombat.expectedDamage, 10);
+
+  // 2. Normal attacker from West (2, 3) -> Back attack (+50%)
+  const backAttacker = {
+    id: 'attacker',
+    team: 'ally',
+    x: 2,
+    y: 3,
+    atk: 14,
+    spd: 10,
+    facing: 1
+  };
+  const backCombat = calculateCombat(backAttacker, defender, board);
+  assert.strictEqual(backCombat.direction, 'back');
+  assert.strictEqual(backCombat.isBackAttack, true);
+  // Damage: 10 * 1.5 = 15
+  assert.strictEqual(backCombat.expectedDamage, 15);
+  // Back attack prevents counter-attack
+  assert.strictEqual(backCombat.canCounter, false);
+
+  // 3. cat_patrol with swift_shadow trait -> Back attack (+100%)
+  const catAttacker = {
+    id: 'cat_patrol',
+    team: 'ally',
+    x: 2,
+    y: 3,
+    atk: 14,
+    spd: 14,
+    facing: 1,
+    trait: { id: 'swift_shadow' }
+  };
+  const catCombat = calculateCombat(catAttacker, defender, board);
+  assert.strictEqual(catCombat.isBackAttack, true);
+  // Damage: 10 * 2.0 = 20
+  assert.strictEqual(catCombat.expectedDamage, 20);
 });
 
-test("Rules: Card upgrades verification", () => {
-  const baseCard = getCardById("card_command_advance");
-  assert.ok(baseCard, "Base card should exist");
-  assert.ok(baseCard.upgrade, "Base card should have upgrade definition");
+test('Rules: Counter-attack by melee defender', () => {
+  const terrain = Array(13).fill("..........");
+  const board = new Board(terrain);
 
-  const upgradedCard = getCardById(baseCard.upgrade.id);
-  assert.ok(upgradedCard, "Upgraded card should be retrievable");
-  assert.strictEqual(upgradedCard.isUpgraded, true);
-  assert.strictEqual(upgradedCard.bonusAtk, 2);
+  // Defender facing East (facing = 1) at (3, 3) with range 1 and ATK 12
+  const defender = {
+    id: 'counter_dummy',
+    team: 'enemy',
+    x: 3,
+    y: 3,
+    hp: 40,
+    atk: 12,
+    def: 4,
+    spd: 10,
+    range: 1,
+    facing: 1
+  };
+
+  // Attacker at (4, 3) attacks from front (facing East means (4,3) is in front)
+  const attacker = {
+    id: 'swordsman',
+    team: 'ally',
+    x: 4,
+    y: 3,
+    hp: 25,
+    atk: 10,
+    def: 2,
+    spd: 10,
+    range: 1,
+    facing: -1
+  };
+
+  const combat = calculateCombat(attacker, defender, board);
+  assert.strictEqual(combat.canCounter, true, 'Frontal attack allows counter-attack');
+  // Defender ATK 12 - attacker DEF 2 = 10 counter damage
+  assert.strictEqual(combat.counterDamage, 10);
+
+  // Ranged attacker at (5, 3) (distance 2) -> Melee defender cannot counter!
+  const rangedAttacker = {
+    id: 'archer',
+    team: 'ally',
+    x: 5,
+    y: 3,
+    hp: 20,
+    atk: 10,
+    def: 2,
+    spd: 10,
+    range: [2, 3],
+    facing: -1
+  };
+  const rangedCombat = calculateCombat(rangedAttacker, defender, board);
+  assert.strictEqual(rangedCombat.canCounter, false, 'Melee defender cannot counter ranged attack');
 });
 
-test("Rules: Starting deck cards assert board deltas", () => {
-  const battle = new Battle({ rng: new RNG(303) });
-  // Clean board
-  battle.enemies = [];
-  battle.guardians = [];
-  for (let r = 0; r < battle.board.rows; r++) {
-    for (let c = 0; c < battle.board.cols; c++) {
-      battle.board.tiles[r][c].unit = null;
-      battle.board.tiles[r][c].trap = null;
-    }
-  }
+test('Rules: Water immunity and thunder weakness for paper_ghost', () => {
+  const terrain = Array(13).fill("..........");
+  const board = new Board(terrain);
 
-  // 1. Play summon card: card_summon_cat onto (2, 4)
-  battle.hand = ["card_summon_cat"];
-  battle.energy = 3;
-  const resSummon = battle.playCard(0, 2, 4);
-  assert.strictEqual(resSummon.success, true, "Summon cat should succeed");
-  const cat = battle.board.getUnitAt(2, 4);
-  assert.ok(cat, "Cat patrol should be deployed on tile (2, 4)");
-  assert.strictEqual(cat.unitId, "cat_patrol");
-  assert.strictEqual(battle.energy, 2);
+  const waterSpirit = {
+    id: 'paper_ghost',
+    team: 'enemy',
+    element: 'water',
+    trait: { id: 'water_spirit' },
+    hp: 25,
+    def: 2,
+    res: 4,
+    facing: 1,
+    x: 3,
+    y: 3
+  };
 
-  // Spawn an enemy at (2, 1) with enough HP to survive advance strike
-  const enemy = battle.spawnEnemy("fog_blob", 2, 1);
-  enemy.hp = 12;
-  enemy.maxHp = 12;
-  assert.ok(enemy, "Enemy should spawn at (2, 1)");
-  const enemyStartHp = enemy.hp;
+  const mage = {
+    id: 'fox_maiden',
+    team: 'ally',
+    mag: 14,
+    res: 6,
+    facing: 1,
+    x: 2,
+    y: 3
+  };
 
-  // 2. Play advance card: card_command_advance on cat at (2, 4)
-  // Cat advances up to 2 tiles forward into empty space (from y=4 to y=2) and strikes enemy at (2, 1)
-  battle.hand = ["card_command_advance"];
-  battle.energy = 3;
-  const resAdvance = battle.playCard(0, 2, 4);
-  assert.strictEqual(resAdvance.success, true, "Advance command should succeed");
-  assert.strictEqual(cat.y, 2, "Cat should advance 2 tiles forward to y=2");
-  assert.ok(enemy.hp < enemyStartHp, "Enemy should take damage from advance attack");
+  // 1. Fire attack against water spirit -> 0 damage
+  const fireCombat = calculateCombat(mage, waterSpirit, board, {
+    actionType: 'skill',
+    skill: { element: 'fire', power: 14, type: 'magic' }
+  });
+  assert.strictEqual(fireCombat.expectedDamage, 0, 'Fire against water-spirit must deal 0 damage');
 
-  // 3. Play rally card: card_command_rally on cat at (2, 2)
-  // Cat rallies towards row 5 (steps back to y=3)
-  battle.hand = ["card_command_rally"];
-  battle.energy = 3;
-  const resRally = battle.playCard(0, 2, 2);
-  assert.strictEqual(resRally.success, true, "Rally command should succeed");
-  assert.strictEqual(cat.y, 3, "Cat should step back towards row 5 to y=3");
-
-  // 4. Play reposition card: card_command_reposition on cat at (2, 3)
-  battle.hand = ["card_command_reposition"];
-  battle.energy = 3;
-  const resReposition = battle.playCard(0, 2, 3);
-  assert.strictEqual(resReposition.success, true, "Reposition should succeed");
-
-  // 5. Play freeze mist card: card_spell_freeze_mist on enemy at (2, 1)
-  battle.hand = ["card_spell_freeze_mist"];
-  battle.energy = 3;
-  const resFreeze = battle.playCard(0, 2, 1);
-  assert.strictEqual(resFreeze.success, true, "Freeze mist should succeed");
-  assert.strictEqual(enemy.isFrozen, true, "Enemy should be frozen");
-  assert.strictEqual(enemy.intent.type, "frozen");
-
-  // 6. Play bamboo trap card: card_spell_bamboo_trap on empty tile (2, 3)
-  battle.hand = ["card_spell_bamboo_trap"];
-  battle.energy = 3;
-  const resTrap = battle.playCard(0, 2, 3);
-  assert.strictEqual(resTrap.success, true, "Bamboo trap should succeed");
-  assert.ok(battle.board.tiles[3][2].trap, "Tile (2, 3) should have a trap placed");
-
-  // 7. Play lantern ignite card: card_lantern_ignite
-  // Enemy at (2, 1) is in fog rows (y <= 1)
-  battle.hand = ["card_lantern_ignite"];
-  battle.energy = 3;
-  const hpBeforeIgnite = enemy.hp;
-  const resIgnite = battle.playCard(0);
-  assert.strictEqual(resIgnite.success, true, "Lantern ignite should succeed");
-  assert.ok(enemy.hp < hpBeforeIgnite, "Enemy in fog row should take ignite damage");
+  // 2. Thunder attack against water spirit -> double damage (x2.0)
+  const thunderCombat = calculateCombat(mage, waterSpirit, board, {
+    actionType: 'skill',
+    skill: { element: 'thunder', power: 14, type: 'magic' }
+  });
+  assert.ok(thunderCombat.expectedDamage >= 20, 'Thunder against water-spirit deals heavy multiplied damage');
 });
 
-test("Rules: Boss specials and unit skills execution", () => {
-  const battle = new Battle({ rng: new RNG(404) });
-  battle.enemies = [];
-  battle.guardians = [];
-  for (let r = 0; r < battle.board.rows; r++) {
-    for (let c = 0; c < battle.board.cols; c++) {
-      battle.board.tiles[r][c].unit = null;
-    }
-  }
+test('Rules: Shrouded targeting rules for shadow_rat', () => {
+  const terrain = Array(13).fill("..........");
+  const board = new Board(terrain);
 
-  // 1. Tanuki mage push back skill
-  const tanuki = battle.spawnGuardian("tanuki_mage", 2, 4);
-  const blob = battle.spawnEnemy("fog_blob", 2, 3);
-  battle.endPlayerTurn();
-  // Tanuki attacked blob and pushed it back to y = 2
-  assert.strictEqual(blob.y, 2, "Tanuki should push attacked enemy back 1 tile");
+  const rat = {
+    id: 'shadow_rat',
+    team: 'enemy',
+    isShrouded: true,
+    trait: { id: 'mist_shroud' },
+    hp: 16,
+    x: 5,
+    y: 5
+  };
 
-  // 2. Scarecrow taunt & reflect
-  const scarecrow = battle.spawnGuardian("scarecrow", 1, 4);
-  const meleeEnemy = battle.spawnEnemy("fog_blob", 1, 3);
-  const meleeStartHp = meleeEnemy.hp;
-  // Melee enemy attacks scarecrow
-  battle.damageUnit(scarecrow, 2, meleeEnemy);
-  assert.ok(meleeEnemy.hp < meleeStartHp, "Scarecrow should reflect damage to melee attacker");
+  // Unit at distance 3 without lantern -> cannot target
+  const farArcher = { id: 'archer', team: 'ally', x: 2, y: 5 };
+  assert.strictEqual(canTargetUnit(farArcher, rat, board), false, 'Cannot target unlit distant shrouded unit');
+
+  // Unit adjacent to rat (distance 1) -> CAN target!
+  const adjacentAlly = { id: 'sword', team: 'ally', x: 4, y: 5 };
+  assert.strictEqual(canTargetUnit(adjacentAlly, rat, board), true, 'Adjacent unit reveals shrouded rat');
+
+  // If a lantern illuminates rat's tile -> distant unit CAN target!
+  board.addPlacedLantern(5, 4, 2, 3); // Lantern at (5,4) radius 2 covers (5,5)
+  assert.strictEqual(canTargetUnit(farArcher, rat, board), true, 'Lantern light reveals shrouded rat');
 });
 
-test("Rules: Round 2 - Cat advance double swipe and bun drop on relocation", () => {
-  const battle = new Battle({ rng: new RNG(505) });
-  battle.enemies = [];
-  battle.guardians = [];
-  for (let r = 0; r < battle.board.rows; r++) {
-    for (let c = 0; c < battle.board.cols; c++) {
-      battle.board.tiles[r][c].unit = null;
-      battle.board.tiles[r][c].bun = null;
-      battle.board.tiles[r][c].trap = null;
-    }
-  }
+test('Rules: Knockback into water instant KO', () => {
+  // Tile (4, 4) is bridge 'b', tile (5, 4) is water 'w'
+  const terrain = [
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "....bw....",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    "..........",
+    ".........."
+  ];
+  const board = new Board(terrain);
+  const rng = new RNG(42);
 
-  // Deploy bear baker at (1, 4) and cat patrol at (2, 4)
-  const bear = battle.spawnGuardian("bear_baker", 1, 4);
-  const cat = battle.spawnGuardian("cat_patrol", 2, 4);
-  const target = battle.spawnEnemy("armored_snail", 2, 2);
-  target.armor = 0;
-  target.hp = 20;
+  // Attacker at (3, 4) pushes defender at (4, 4) East into (5, 4) water!
+  const pusher = {
+    id: 'bear_guard',
+    team: 'ally',
+    x: 3,
+    y: 4,
+    atk: 10,
+    skill: { knockback: 1 }
+  };
 
-  // Reposition bear: should drop bun on (1, 4)
-  battle.hand = ["card_command_reposition"];
-  battle.energy = 3;
-  const resRepo = battle.playCard(0, 1, 4);
-  assert.strictEqual(resRepo.success, true);
-  assert.strictEqual(bear.hasMoved, true);
-  assert.ok(battle.board.tiles[4][1].bun, "Bear baker should leave a bun on vacated tile upon reposition");
+  const heavyEnemy = {
+    id: 'iron_general',
+    team: 'enemy',
+    x: 4,
+    y: 4,
+    hp: 50,
+    def: 12,
+    flyer: false,
+    facing: -1
+  };
 
-  // Advance cat: cat moves from (2, 4) to (2, 3), stepsMoved = 1, strikes target at (2, 2)
-  // Double swipe: cat.atk (3) * 2 = 6 damage
-  const hpBeforeAdvance = target.hp;
-  battle.hand = ["card_command_advance"];
-  battle.energy = 3;
-  const resAdv = battle.playCard(0, 2, 4);
-  assert.strictEqual(resAdv.success, true);
-  assert.strictEqual(cat.y, 3);
-  assert.strictEqual(cat.hasMoved, true);
-  assert.strictEqual(target.hp, hpBeforeAdvance - 6, "Cat double swipe on advance should deal 2x atk (6 damage)");
+  const combatRes = executeCombat(pusher, heavyEnemy, board, rng, {
+    actionType: 'skill',
+    skill: pusher.skill
+  });
+
+  assert.strictEqual(heavyEnemy.hp, 0, 'Non-flyer pushed into water is instantly drowned KO');
+  const drownEvent = combatRes.events.find(e => e.type === 'drown');
+  assert.ok(drownEvent, 'Drown event must be fired');
 });
 
-test("Rules: Round 2 - Bamboo trap detonates and roots walking enemy", () => {
-  const battle = new Battle({ rng: new RNG(606) });
-  battle.enemies = [];
-  battle.guardians = [];
-  for (let r = 0; r < battle.board.rows; r++) {
-    for (let c = 0; c < battle.board.cols; c++) {
-      battle.board.tiles[r][c].unit = null;
-      battle.board.tiles[r][c].trap = null;
-    }
-  }
+test('Rules: Fox fire (狐火) AoE cross hits multi-targets and deals x0 vs water type', () => {
+  const dummyChapter = {
+    id: 99,
+    terrain: Array(13).fill(".........."),
+    deployTiles: [{ x: 4, y: 3 }],
+    enemySpawns: []
+  };
 
-  // Place bamboo trap at (2, 2)
-  battle.board.tiles[2][2].trap = { damage: 5 };
+  const fox = { ...GUARDIAN_PROTOS.fox_maiden, id: 'fox_maiden', x: 4, y: 3, hp: 21, maxHp: 21, mp: 8, maxMp: 8 };
+  const battle = new Battle(dummyChapter, [fox], null, null, new RNG(42));
 
-  // Place enemy at (2, 1) heading to lantern at (2, 5)
-  const enemy = battle.spawnEnemy("fog_blob", 2, 1);
-  enemy.hp = 10;
-  enemy.maxHp = 10;
+  // Center of cross at (4, 4)
+  // Cross covers: (4,4), (5,4), (3,4), (4,5), (4,3)
+  const rider = { ...ENEMY_PROTOS.fog_rider, id: 'fog_rider', x: 4, y: 4, hp: 22, maxHp: 22 };
+  const ghostWater = { ...ENEMY_PROTOS.paper_ghost, id: 'paper_ghost', x: 5, y: 4, hp: 20, maxHp: 20, element: 'water' };
+  const rat = { ...ENEMY_PROTOS.shadow_rat, id: 'shadow_rat', x: 4, y: 5, hp: 16, maxHp: 16 };
+  const farEnemy = { ...ENEMY_PROTOS.shadow_archer, id: 'shadow_archer', x: 8, y: 8, hp: 18, maxHp: 18 };
 
-  // Recalculate intents so intent.destPos is (2, 2)
-  battle.updateEnemyIntents();
-  assert.deepStrictEqual(enemy.intent.destPos, { x: 2, y: 2 });
+  battle.enemies = [rider, ghostWater, rat, farEnemy];
 
-  // End turn: enemy walks onto (2, 2) and steps on trap
-  battle.endPlayerTurn();
+  // Execute flame_cross at (4, 4)
+  battle.confirmAction(fox, 'skill', rider, { tileX: 4, tileY: 4 });
 
-  assert.strictEqual(enemy.y, 2, "Enemy should have walked into (2, 2)");
-  assert.strictEqual(battle.board.tiles[2][2].trap, null, "Trap should have detonated and disappeared");
-  assert.strictEqual(enemy.hp, 5, "Enemy should have taken 5 damage from trap");
-  assert.strictEqual(enemy.isRooted, true, "Enemy should be rooted after walking into trap");
+  // rider at (4,4) was hit
+  assert.ok(rider.hp < 22, 'Cavalry in cross must take fire damage');
+  // ghostWater at (5,4) is water-type, immune to fire
+  assert.strictEqual(ghostWater.hp, 20, 'Water ghost in cross takes 0 fire damage');
+  // rat at (4,5) was hit
+  assert.ok(rat.hp < 16, 'Rat in cross must take fire damage');
+  // farEnemy at (8,8) is out of cross
+  assert.strictEqual(farEnemy.hp, 18, 'Enemy outside cross takes 0 damage');
 });
 
-test("Rules: Round 2 - Guardian halo aura buffs adjacent allies", () => {
-  const battle = new Battle({ rng: new RNG(707) });
-  battle.enemies = [];
-  battle.guardians = [];
-  for (let r = 0; r < battle.board.rows; r++) {
-    for (let c = 0; c < battle.board.cols; c++) {
-      battle.board.tiles[r][c].unit = null;
-    }
-  }
+test('Rules: MP resource cost deduction on skill/magic', () => {
+  const dummyChapter = {
+    id: 99,
+    terrain: Array(13).fill(".........."),
+    deployTiles: [{ x: 2, y: 2 }],
+    enemySpawns: []
+  };
 
-  // Deploy halo bearer at (2, 4) and ally at (2, 3)
-  const haloBearer = battle.spawnGuardian("scarecrow", 2, 4);
-  const ally = battle.spawnGuardian("tanuki_mage", 2, 3);
-  const enemy = battle.spawnEnemy("fog_blob", 2, 2);
-  enemy.hp = 15;
+  const fox = { ...GUARDIAN_PROTOS.fox_maiden, id: 'fox_maiden', x: 2, y: 2, hp: 21, maxHp: 21, mp: 6, maxMp: 6 };
+  const battle = new Battle(dummyChapter, [fox], null, null, new RNG(777));
+  const dummyEnemy = { ...ENEMY_PROTOS.fog_rider, id: 'dummy_target', x: 2, y: 3, hp: 22, maxHp: 22 };
+  battle.enemies = [dummyEnemy];
 
-  assert.strictEqual(battle.getGuardianAtk(ally), ally.atk, "Before halo, ally has normal atk");
-
-  // Play halo card on scarecrow
-  battle.hand = ["card_lantern_guardian_halo"];
-  battle.energy = 3;
-  const resHalo = battle.playCard(0, 2, 4);
-  assert.strictEqual(resHalo.success, true);
-  assert.strictEqual(haloBearer.hasHalo, true);
-
-  // Ally is adjacent to haloBearer: should gain +1 attack
-  assert.strictEqual(battle.getGuardianAtk(ally), ally.atk + 1, "Adjacent ally should gain +1 attack from halo");
-
-  // Play halo+ on scarecrow: should grant +2 attack
-  battle.hand = ["card_lantern_guardian_halo_plus"];
-  battle.energy = 3;
-  battle.playCard(0, 2, 4);
-  assert.strictEqual(battle.getGuardianAtk(ally), ally.atk + 2, "Adjacent ally should gain +2 attack from halo+");
-});
-
-test("Rules: Round 2 - Tactical swap swaps nearest ally and upgraded draws 1 card", () => {
-  const battle = new Battle({ rng: new RNG(808) });
-  battle.enemies = [];
-  battle.guardians = [];
-  for (let r = 0; r < battle.board.rows; r++) {
-    for (let c = 0; c < battle.board.cols; c++) {
-      battle.board.tiles[r][c].unit = null;
-    }
-  }
-
-  const g1 = battle.spawnGuardian("cat_patrol", 1, 4);
-  const g2 = battle.spawnGuardian("bear_baker", 2, 4);
-  const g3 = battle.spawnGuardian("tanuki_mage", 4, 4);
-
-  // Swap targeting g1 at (1, 4). Nearest ally is g2 at (2, 4).
-  battle.deck = ["card_spell_gust"];
-  battle.hand = ["card_command_tactical_swap_plus"];
-  battle.energy = 3;
-  const resSwap = battle.playCard(0, 1, 4);
-  assert.strictEqual(resSwap.success, true);
-
-  assert.strictEqual(g1.x, 2, "g1 swapped to (2, 4)");
-  assert.strictEqual(g2.x, 1, "g2 swapped to (1, 4)");
-  assert.strictEqual(g3.x, 4, "g3 stayed at (4, 4)");
-  assert.strictEqual(g1.armor >= 3, true, "Swapped unit received armor");
-  assert.strictEqual(g2.armor >= 3, true, "Swapped unit received armor");
-  assert.strictEqual(battle.hand.length, 1, "Plus version of tactical swap should draw 1 card");
-});
-
-test("Rules: Round 3 - Board.isEmpty excludes lantern posts and advance diagonal step", () => {
-  const battle = new Battle({ rng: new RNG(909) });
-
-  // 1. Lantern posts are never empty
-  assert.strictEqual(battle.board.isEmpty(0, 5), false, "Lantern at (0, 5) should not be considered empty");
-  assert.strictEqual(battle.board.isEmpty(2, 5), false, "Lantern at (2, 5) should not be considered empty");
-  assert.strictEqual(battle.board.isEmpty(4, 5), false, "Lantern at (4, 5) should not be considered empty");
-
-  // 2. Advance diagonal forward when straight north is blocked
-  battle.enemies = [];
-  battle.guardians = [];
-  for (let r = 0; r < battle.board.rows; r++) {
-    for (let c = 0; c < battle.board.cols; c++) {
-      battle.board.tiles[r][c].unit = null;
-    }
-  }
-
-  const cat = battle.spawnGuardian("cat_patrol", 2, 4);
-  // Place an obstacle/unit directly north at (2, 3)
-  battle.spawnGuardian("scarecrow", 2, 3);
-
-  // Cat plays advance: (2, 3) is blocked, so cat advances diagonally to (1, 3) or (3, 3)
-  battle.hand = ["card_command_advance"];
-  battle.energy = 3;
-  const resAdv = battle.playCard(0, 2, 4);
-  assert.strictEqual(resAdv.success, true);
-  assert.strictEqual(cat.y, 2, "Cat should advance 2 steps forward to row 2");
-  assert.ok(cat.x === 1 || cat.x === 3, "Cat should step diagonally forward when straight north is blocked");
-});
-
-test("Rules: Round 3 - Windchime curse reduces attack and Fox Maiden cleanses", () => {
-  const battle = new Battle({ rng: new RNG(1010) });
-  battle.enemies = [];
-  battle.guardians = [];
-  for (let r = 0; r < battle.board.rows; r++) {
-    for (let c = 0; c < battle.board.cols; c++) {
-      battle.board.tiles[r][c].unit = null;
-    }
-  }
-
-  const cat = battle.spawnGuardian("cat_patrol", 2, 4);
-  const baseAtk = battle.getGuardianAtk(cat);
-
-  // Curse the cat
-  cat.curseAtk = 1;
-  assert.strictEqual(battle.getGuardianAtk(cat), baseAtk - 1, "Curse should reduce attack power by 1");
-
-  // Spawn Fox Maiden: cleanses curse from all friendly units
-  battle.spawnGuardian("fox_maiden", 3, 4);
-  assert.strictEqual(cat.curseAtk, 0, "Fox Maiden on-spawn should cleanse curses");
-  assert.strictEqual(battle.getGuardianAtk(cat), baseAtk, "Cat attack power should be restored");
-});
-
-test("Rules: v2 - Lantern tiles cannot be targeted by summon or attack spells", () => {
-  const battle = new Battle({ rng: new RNG(1111) });
-  // Lanterns are at (0, 5), (2, 5), (4, 5)
-
-  // 1. Summon card cannot target lantern tile
-  battle.hand = ["card_summon_cat"];
-  battle.energy = 3;
-  const resSummon = battle.playCard(0, 2, 5);
-  assert.strictEqual(resSummon.success, false, "Cannot summon on top of a lantern tile");
-
-  // 2. Attack spell (fireball) cannot target lantern tile
-  battle.hand = ["card_spell_fireball"];
-  battle.energy = 3;
-  const resFireball = battle.playCard(0, 2, 5);
-  assert.strictEqual(resFireball.success, false, "Offensive spell cannot target a lantern tile");
-
-  // 3. Move guardian cannot move into a lantern tile
-  const cat = battle.spawnGuardian("cat_patrol", 2, 4);
-  const resMove = battle.moveGuardian(cat, 2, 5);
-  assert.strictEqual(resMove.success, false, "Guardian cannot step onto a lantern tile");
-});
-
-test("Rules: v2 - Cat Patrol card description matches mobile double damage logic", () => {
-  const battle = new Battle({ rng: new RNG(1212) });
-  const cat = battle.spawnGuardian("cat_patrol", 2, 4);
-  assert.strictEqual(cat.hasMoved, false);
-
-  // Moving 1 step sets hasMoved = true
-  const resMove = battle.moveGuardian(cat, 2, 3);
-  assert.strictEqual(resMove.success, true);
-  assert.strictEqual(cat.hasMoved, true);
-
-  // Spawn enemy in front at (2, 2)
-  const enemy = battle.spawnEnemy("fog_blob", 2, 2);
-  enemy.hp = 10;
-  enemy.maxHp = 10;
-
-  // Cat attacks: 3 * 2 = 6 damage
-  battle.endPlayerTurn();
-  assert.strictEqual(enemy.hp, 4, "Cat patrol should deal double damage (6 dmg) after moving 1 or more steps");
+  assert.strictEqual(fox.mp, 6, 'Fox starts with 6 MP');
+  // skill flame_cross costs 3 MP
+  battle.confirmAction(fox, 'skill', dummyEnemy, { tileX: 2, tileY: 3 });
+  assert.strictEqual(fox.mp, 3, 'Fox must have 3 MP remaining after consuming 3 MP');
 });

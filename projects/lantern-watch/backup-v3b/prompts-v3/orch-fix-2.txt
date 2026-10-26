@@ -1,0 +1,4 @@
+You are the coder. cd /workspace/nightly/2026-10-26-tactics-card-game. Read /workspace/nightly/2026-10-26-tactics-card-game/reviews/orch-r2-grok.md and fix every CRITICAL and MAJOR issue (MINOR where sensible). Keep matching /workspace/nightly/2026-10-26-tactics-card-game/SPEC.md. Do not edit reviews/ or prompts/. Run the tests. Append '## Round 2 fixes' to CHANGELOG.md. Do not git commit.
+
+WHEN COMPLETELY FINISHED, as your very last action, create the file /workspace/nightly/2026-10-26-tactics-card-game/.orch/fix-2.done containing the word DONE.
+ORCH_SENTINEL=/workspace/nightly/2026-10-26-tactics-card-game/.orch/fix-2.done

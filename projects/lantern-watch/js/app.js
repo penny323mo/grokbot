@@ -1,1023 +1,896 @@
 /**
  * js/app.js
- * Main controller connecting engine, sound, rendering, state persistence, and grokbot integration.
+ * Main game coordinator for 燈影軍略 · Lantern Tactics (v4).
+ * Connects pure engine, UI rendering, sound, campaign progression, and debug hooks.
  */
 
-import { RNG } from "./engine/rng.js";
-import { Battle } from "./engine/battle.js";
-import { RunMap } from "./engine/map.js";
-import { TownManager } from "./engine/town.js";
-import { SoundEngine } from "./audio.js";
-import { UIRenderer } from "./render/ui.js";
-import { SVG_ART } from "./render/art.js";
-import { STARTING_DECK_STANDARD, STARTING_DECK_BLAZING, getCardById, CARD_CATALOGUE, CARD_TYPES, getCardTypeLabel } from "./engine/cards.js";
-import { DIFFICULTIES, ASCENSION_LEVELS } from "./engine/constants.js";
-import { RELICS_CATALOGUE } from "./engine/relics.js";
+import { GAME } from './config.js';
+import { CHAPTERS } from './data/maps.js';
+import { GUARDIAN_PROTOS, RELICS } from './data/units.js';
+import { CampaignManager } from './engine/campaign.js';
+import { Battle } from './engine/battle.js';
+import { Board } from './engine/board.js';
+import { RNG } from './engine/rng.js';
+import { SoundEngine } from './audio.js';
+import { UIRenderer } from './render/ui.js';
+import { getReachableTiles, getAttackRangeTiles, getAttackableTilesFromReachable } from './engine/pathfinding.js';
+import { calculateCombat, canTargetUnit } from './engine/combat.js';
 
-class LanternWatchApp {
+class LanternTacticsApp {
   constructor() {
+    this.gameConfig = GAME;
     this.sound = new SoundEngine();
-    this.town = new TownManager();
+    this.campaign = new CampaignManager();
     this.ui = new UIRenderer(this.sound);
     this.rng = new RNG(Date.now());
 
-    // Active Run State
-    this.activeRun = null;
-    this.activeBattle = null;
-    this.selectedDifficulty = DIFFICULTIES.STANDARD;
-    this.selectedAscension = 0;
+    // State
+    this.activeChapter = CHAPTERS[0];
+    this.selectedSquadIds = ['cat_patrol', 'lantern_crafter', 'bear_guard', 'tea_master'];
+    this.activeStratagemId = null;
+    this.battle = null;
+
+    // Deploy Phase State
+    this.isDeploying = false;
+    this.deployPlacements = [];
+    this.deploySlots = new Set();
+    this.selectedDeployUnit = null;
+
+    // Interactive Battle Selection
+    this.selectedUnit = null;
+    this.reachableTiles = new Map();
+    this.attackableTiles = new Set();
+    this.aoeTiles = new Set();
+    this.targetingMode = null; // 'target_unit' | 'light_placement' | 'heal' | 'aoe_cross'
+    this.activeActionType = null;
+    this.stagedMoveTile = null;
 
     this.init();
   }
 
   init() {
-    this.ui.renderTitleHero();
-    this.updateTopBar();
+    // Set branding
+    document.title = `${GAME.name} · ${GAME.nameEn}`;
+    const logoEl = document.getElementById('titleMainLogo');
+    if (logoEl) logoEl.textContent = GAME.name;
+    const taglineEl = document.getElementById('titleTagline');
+    if (taglineEl) taglineEl.textContent = GAME.tagline;
+
+    const tutHeader = document.getElementById('boardTutorialTitle');
+    if (tutHeader) tutHeader.textContent = `${GAME.name} · 基礎兵法`;
+    const tutHeader2 = document.getElementById('tutorialHeaderTitle');
+    if (tutHeader2) tutHeader2.textContent = `${GAME.name} · 基礎兵法`;
+
     this.setupEventListeners();
-    this.checkContinueRun();
-
-    // Minor #9: Update mute button opacities on startup based on persisted sound settings
-    const btnMusic = document.getElementById("btnToggleMusic");
-    if (btnMusic) btnMusic.style.opacity = this.sound.musicMuted ? "0.4" : "1";
-    const btnSfx = document.getElementById("btnToggleSfx");
-    if (btnSfx) btnSfx.style.opacity = this.sound.sfxMuted ? "0.4" : "1";
-
-    // Minor #10: Check first-time tutorial (do NOT set seen flag until user dismisses)
-    if (!localStorage.getItem("lantern_watch_tutorial_seen")) {
-      document.getElementById("modalTutorial").classList.add("active");
-    }
-
-    // Play calm town music on title
-    this.sound.playMusic("town");
-  }
-
-  updateTopBar() {
-    const coins = this.activeRun ? this.activeRun.coins : 50;
-    this.ui.renderTopResources(coins, this.town.starLanterns);
-  }
-
-  checkContinueRun() {
-    const saved = this.town.loadActiveRun();
-    const btnContinue = document.getElementById("btnContinueRun");
-    if (saved && btnContinue) {
-      btnContinue.style.display = "inline-flex";
-    } else if (btnContinue) {
-      btnContinue.style.display = "none";
-    }
+    this.setupDebugHooks();
   }
 
   setupEventListeners() {
-    // Navigation / Sound
-    document.getElementById("btnNavHome").onclick = () => {
-      this.sound.playSfx("tap");
-      if (this.activeBattle && this.activeBattle.status === "ongoing") {
-        this.ui.showConfirmModal("返回主選單", "目前戰鬥正在進行中，進度已為您自動保存。確定返回嗎？", () => {
-          if (this.activeRun) {
-            this.activeRun.battleState = this.activeBattle.serializeState();
-            this.town.saveActiveRun(this.activeRun);
-          }
-          this.ui.showScreen("screenTitle");
-          this.sound.playMusic("town");
-          this.checkContinueRun();
-        });
-      } else {
-        this.ui.showScreen("screenTitle");
-        this.sound.playMusic("town");
-        this.checkContinueRun();
-      }
+    // Navigation
+    document.getElementById('btnNavHome').onclick = () => {
+      this.sound?.playSfx('tap');
+      this.ui.showScreen('screenTitle');
     };
 
-    document.getElementById("btnToggleMusic").onclick = () => {
-      const active = this.sound.toggleMusic();
-      document.getElementById("btnToggleMusic").style.opacity = active ? "1" : "0.4";
+    document.getElementById('btnNavWorldMap').onclick = () => {
+      this.sound?.playSfx('tap');
+      this.openWorldMap();
     };
 
-    document.getElementById("btnToggleSfx").onclick = () => {
-      const active = this.sound.toggleSfx();
-      document.getElementById("btnToggleSfx").style.opacity = active ? "1" : "0.4";
+    document.getElementById('btnHelp').onclick = () => {
+      this.sound?.playSfx('tap');
+      this.startTutorialFlow(0);
     };
 
-    document.getElementById("btnUndo").onclick = () => {
-      if (this.activeBattle) {
-        const success = this.activeBattle.undo();
-        if (success) {
-          this.sound.playSfx("tap");
-          this.ui.selectedHandIndex = null;
-          this.ui.validTargetCoords = [];
-          if (this.activeRun) {
-            this.activeRun.battleState = this.activeBattle.serializeState();
-            this.town.saveActiveRun(this.activeRun);
-          }
-          this.renderCurrentBattle();
-        }
-      }
-    };
-
-    // Title Screen Buttons
-    document.getElementById("btnStartAdventure").onclick = () => {
-      this.sound.playSfx("tap");
-      this.ui.showScreen("screenDifficulty");
-      // Show starting deck selector if Pavilion is unlocked
-      if (this.town.unlockedDecks.includes("deck_blazing")) {
-        const deckChoiceWrap = document.getElementById("deckChoiceWrap");
-        if (deckChoiceWrap) deckChoiceWrap.style.display = "block";
-      }
-      // Show ascension selector if won before
-      if (this.town.highestAscension > 0) {
-        document.getElementById("ascensionWrap").style.display = "block";
-      }
-    };
-
-    document.getElementById("btnContinueRun").onclick = () => {
-      this.sound.playSfx("tap");
-      this.resumeSavedRun();
-    };
-
-    document.getElementById("btnOpenTown").onclick = () => {
-      this.sound.playSfx("tap");
-      this.ui.showScreen("screenTown");
-      this.ui.renderTown(this.town, (bldgId) => this.handleBuild(bldgId));
-    };
-
-    document.getElementById("btnOpenCompendium").onclick = () => {
-      this.sound.playSfx("tap");
-      this.ui.showScreen("screenCompendium");
-      this.ui.renderCompendium("guardians");
-    };
-
-    // Difficulty Selection
-    document.querySelectorAll("#screenDifficulty [data-diff]").forEach((btn) => {
-      btn.onclick = () => {
-        const diffKey = btn.dataset.diff.toUpperCase();
-        this.selectedDifficulty = DIFFICULTIES[diffKey] || DIFFICULTIES.STANDARD;
-        const ascSelect = document.getElementById("selectAscension");
-        this.selectedAscension = ascSelect ? parseInt(ascSelect.value, 10) || 0 : 0;
-        this.startNewRun();
+    const btnMusic = document.getElementById('btnToggleMusic');
+    if (btnMusic) {
+      btnMusic.onclick = () => {
+        const muted = this.sound?.toggleMusic();
+        btnMusic.style.opacity = muted ? '0.4' : '1';
       };
+    }
+
+    const btnSfx = document.getElementById('btnToggleSfx');
+    if (btnSfx) {
+      btnSfx.onclick = () => {
+        const muted = this.sound?.toggleSfx();
+        btnSfx.style.opacity = muted ? '0.4' : '1';
+      };
+    }
+
+    // Title screen
+    document.getElementById('btnStartCampaign').onclick = () => {
+      this.sound?.playSfx('tap');
+      this.openWorldMap();
+    };
+
+    document.getElementById('btnOpenRoster').onclick = () => {
+      this.sound?.playSfx('tap');
+      const inst = this.campaign.getUnitInstance('cat_patrol');
+      this.ui.showDetailSheet(inst, this.campaign);
+    };
+
+    document.getElementById('btnOpenTutorial').onclick = () => {
+      this.sound?.playSfx('tap');
+      this.startTutorialFlow(0);
+    };
+
+    // Battle Top HUD
+    document.getElementById('btnEndTurn').onclick = () => {
+      if (!this.battle || this.battle.phase !== 'ally') return;
+      this.sound?.playSfx('tap');
+      this.clearSelection();
+      this.triggerEnemyTurn();
+    };
+
+    document.getElementById('btnUndoMove').onclick = () => {
+      if (this.selectedUnit && this.stagedMoveTile) {
+        this.battle.undoMove(this.selectedUnit);
+        this.clearSelection();
+        this.refreshBattleUI();
+      }
+    };
+  }
+
+  openWorldMap() {
+    this.ui.showScreen('screenWorldMap');
+    this.ui.renderWorldMap(this.campaign, (chapterId) => {
+      const ch = CHAPTERS.find(c => c.id === chapterId);
+      if (ch) this.openPreBattle(ch);
+    });
+  }
+
+  openPreBattle(chapter) {
+    this.activeChapter = chapter;
+    const allGuardianIds = Object.keys(GUARDIAN_PROTOS);
+    this.selectedSquadIds = allGuardianIds.slice(0, chapter.squadLimit);
+    this.activeStratagemId = null;
+
+    this.ui.showScreen('screenPreBattle');
+    this.ui.renderPreBattle(
+      chapter,
+      this.campaign,
+      this.selectedSquadIds,
+      this.activeStratagemId,
+      this.getPreBattleHandlers()
+    );
+  }
+
+  getPreBattleHandlers() {
+    return {
+      onToggleSquad: (gid) => {
+        if (this.selectedSquadIds.includes(gid)) {
+          if (this.selectedSquadIds.length > 1) {
+            this.selectedSquadIds = this.selectedSquadIds.filter(id => id !== gid);
+          }
+        } else if (this.selectedSquadIds.length < this.activeChapter.squadLimit) {
+          this.selectedSquadIds.push(gid);
+        }
+        this.ui.renderPreBattle(this.activeChapter, this.campaign, this.selectedSquadIds, this.activeStratagemId, this.getPreBattleHandlers());
+      },
+      onSelectStratagem: (stratId) => {
+        this.activeStratagemId = stratId;
+        this.ui.renderPreBattle(this.activeChapter, this.campaign, this.selectedSquadIds, this.activeStratagemId, this.getPreBattleHandlers());
+      },
+      onStartBattle: () => {
+        this.startBattleWithDialogue(this.activeChapter);
+      }
+    };
+  }
+
+  startBattleWithDialogue(chapter) {
+    if (chapter.storyBefore && chapter.storyBefore.length > 0) {
+      this.ui.showStoryDialogue(chapter.storyBefore, () => {
+        this.startDeployPhase(chapter);
+      });
+    } else {
+      this.startDeployPhase(chapter);
+    }
+  }
+
+  startDeployPhase(chapter) {
+    this.activeChapter = chapter;
+    this.isDeploying = true;
+    this.ui.showScreen('screenBattle');
+
+    const squadInstances = this.selectedSquadIds.map(id => this.campaign.getUnitInstance(id));
+    const deployTiles = chapter.deployTiles || [];
+
+    // Pre-place squad in default deploy slots
+    this.deployPlacements = squadInstances.map((u, i) => {
+      const tile = deployTiles[i] || { x: i, y: 11 };
+      return { id: u.id, x: tile.x, y: tile.y, isAmbushed: false };
     });
 
-    document.getElementById("btnBackFromDiff").onclick = () => {
-      this.sound.playSfx("tap");
-      this.ui.showScreen("screenTitle");
-    };
+    // Valid deploy slots
+    this.deploySlots = new Set();
+    deployTiles.forEach(t => this.deploySlots.add(`${t.x},${t.y}`));
 
-    document.getElementById("btnBackFromTown").onclick = () => {
-      this.sound.playSfx("tap");
-      this.ui.showScreen("screenTitle");
-    };
-
-    document.getElementById("btnBackFromComp").onclick = () => {
-      this.sound.playSfx("tap");
-      this.ui.showScreen("screenTitle");
-    };
-
-    document.getElementById("tabCompGuardians").onclick = () => {
-      this.sound.playSfx("tap");
-      this.ui.renderCompendium("guardians");
-    };
-    document.getElementById("tabCompEnemies").onclick = () => {
-      this.sound.playSfx("tap");
-      this.ui.renderCompendium("enemies");
-    };
-
-    // Battle End Turn
-    document.getElementById("btnEndTurn").onclick = () => {
-      if (this.activeBattle && this.activeBattle.status === "ongoing") {
-        this.sound.playSfx("tap");
-        this.ui.selectedHandIndex = null;
-        this.ui.validTargetCoords = [];
-        this.activeBattle.endPlayerTurn();
-        this.handleBattleEvents();
-        this.renderCurrentBattle();
-
-        if (this.activeBattle.status === "victory") {
-          this.handleBattleVictory();
-        } else if (this.activeBattle.status === "defeat") {
-          this.handleBattleDefeat();
-        }
-      }
-    };
-
-    // Modal Close Buttons
-    document.getElementById("btnCloseSheet").onclick = () => this.ui.closeUnitInfo();
-    document.getElementById("btnSkipTutorial").onclick = () => {
-      localStorage.setItem("lantern_watch_tutorial_seen", "1");
-      document.getElementById("modalTutorial").classList.remove("active");
-    };
-    document.getElementById("btnCloseTutorial").onclick = () => {
-      localStorage.setItem("lantern_watch_tutorial_seen", "1");
-      document.getElementById("modalTutorial").classList.remove("active");
-    };
-    document.getElementById("btnCloseUpgradeModal").onclick = () => {
-      document.getElementById("modalUpgradeCard").classList.remove("active");
-    };
-  }
-
-  // ================= RUN LIFECYCLE =================
-  startNewRun() {
-    this.sound.playSfx("summon");
-    const runMap = new RunMap(this.rng.fork());
-    const perks = this.town.getTownPerks();
-
-    let startingDeck = [...STARTING_DECK_STANDARD];
-    const deckSelect = document.getElementById("selectStartingDeck");
-    if (this.town.unlockedDecks.includes("deck_blazing") && deckSelect && deckSelect.value === "blazing") {
-      startingDeck = [...STARTING_DECK_BLAZING];
-    }
-
-    // Town Forge Perk: 1 free upgrade on start
-    if (perks.startUpgradeCard > 0) {
-      const card = getCardById(startingDeck[0]);
-      if (card && card.upgrade) {
-        startingDeck[0] = card.upgrade.id;
-      }
-    }
-
-    const baseLanternHp = this.selectedDifficulty.lanternHp + (perks.lanternHpBonus || 0);
-
-    this.activeRun = {
-      difficulty: this.selectedDifficulty,
-      ascension: this.selectedAscension,
-      deck: startingDeck,
-      relics: [],
-      coins: 50,
-      currentNight: 1,
-      currentNodeId: "n1_l0",
-      mapNodes: runMap.nodes,
-      visitedNodes: [],
-      lanternHp: [baseLanternHp, baseLanternHp, baseLanternHp],
-      maxLanternHp: baseLanternHp,
-      battleState: null
-    };
-
-    this.town.saveActiveRun(this.activeRun);
-    this.updateTopBar();
-    this.enterNode("n1_l0");
-  }
-
-  resumeSavedRun() {
-    const saved = this.town.loadActiveRun();
-    if (!saved) return;
-    this.activeRun = saved;
-    this.selectedDifficulty = saved.difficulty || DIFFICULTIES.STANDARD;
-    this.selectedAscension = saved.ascension || 0;
-    this.updateTopBar();
-
-    // Check if there is an ongoing battle to restore directly mid-fight
-    if (saved.battleState) {
-      try {
-        const battleData = typeof saved.battleState === "string" ? JSON.parse(saved.battleState) : saved.battleState;
-        if (battleData && battleData.status === "ongoing") {
-          this.activeBattle = Battle.deserialize(battleData, this.rng.fork());
-          this.sound.playMusic("battle");
-          const nightNum = battleData.battleNode ? battleData.battleNode.night : saved.currentNight;
-          const nodeName = battleData.battleNode ? battleData.battleNode.name : "霧夜戰局";
-          document.getElementById("battleNightBadge").textContent = `第 ${nightNum} 夜 · ${nodeName}`;
-          this.ui.showScreen("screenBattle");
-          this.ui.selectedHandIndex = null;
-          this.ui.validTargetCoords = [];
-          this.renderCurrentBattle();
-          return;
-        }
-      } catch (e) {
-        console.warn("[App] Could not resume mid-battle snapshot:", e);
-      }
-    }
-
-    this.enterNode(saved.currentNodeId);
-  }
-
-  renderMapScreen() {
-    this.ui.showScreen("screenMap");
-    this.sound.playMusic("town");
-    document.getElementById("txtCurrentNight").textContent = `第 ${this.activeRun.currentNight} 夜`;
-
-    const bgEl = document.getElementById("mapTerrainBackdrop");
-    if (bgEl && SVG_ART.mapTerrainBackdrop) {
-      bgEl.innerHTML = SVG_ART.mapTerrainBackdrop;
-    }
-
-    const container = document.getElementById("containerMapNodes");
-    if (!container) return;
-    container.innerHTML = "";
-
-    const currentNode = this.activeRun.mapNodes.find((n) => n.id === this.activeRun.currentNodeId);
-    const availableNextIds = currentNode ? currentNode.nextNodes : [];
-
-    // Group nodes by night
-    for (let night = 1; night <= 8; night++) {
-      const rowNodes = this.activeRun.mapNodes.filter((n) => n.night === night);
-      const rowEl = document.createElement("div");
-      rowEl.className = "map-row";
-
-      rowNodes.forEach((node) => {
-        const itemWrap = document.createElement("div");
-        itemWrap.className = "map-node-wrapper";
-
-        const btn = document.createElement("button");
-        btn.type = "button";
-        const isCurrent = node.id === this.activeRun.currentNodeId;
-        const isVisited = this.activeRun.visitedNodes.includes(node.id);
-        const isAvailable = availableNextIds.includes(node.id) || (night === 1 && !isVisited);
-        const isLocked = !isAvailable && !isVisited;
-
-        btn.className = `map-node-btn node-type-${node.type} ${isAvailable ? "available" : ""} ${isVisited ? "visited" : ""} ${isLocked ? "locked" : ""}`;
-        btn.dataset.nodeId = node.id;
-
-        let iconSvg = SVG_ART.icons.sword;
-        if (node.type === "elite") iconSvg = SVG_ART.icons.boss;
-        if (node.type === "shop") iconSvg = SVG_ART.icons.tea;
-        if (node.type === "rest") iconSvg = SVG_ART.icons.hotspring;
-        if (node.type === "event") iconSvg = SVG_ART.icons.shrine;
-        if (node.type === "boss") iconSvg = SVG_ART.icons.boss;
-
-        btn.innerHTML = `<span class="map-node-icon" style="display:inline-flex;width:24px;height:24px;">${iconSvg}</span>`;
-
-        if (isAvailable) {
-          btn.onclick = () => {
-            this.sound.playSfx("tap");
-            this.enterNode(node.id);
-          };
-        }
-
-        const label = document.createElement("div");
-        label.className = "map-node-label";
-        label.textContent = node.name;
-
-        itemWrap.appendChild(btn);
-        itemWrap.appendChild(label);
-        rowEl.appendChild(itemWrap);
-      });
-
-      container.appendChild(rowEl);
-    }
-
-    this.drawMapConnections(container, availableNextIds);
-  }
-
-  drawMapConnections(container, availableNextIds) {
-    const renderPaths = () => {
-      const containerRect = container.getBoundingClientRect();
-      if (!containerRect.width || !containerRect.height) return;
-
-      const oldSvg = container.querySelector(".map-connections-svg");
-      if (oldSvg) oldSvg.remove();
-
-      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      svg.setAttribute("class", "map-connections-svg");
-      svg.setAttribute("viewBox", `0 0 ${containerRect.width} ${containerRect.height}`);
-
-      let pathsHtml = "";
-
-      for (let night = 1; night < 8; night++) {
-        const rowNodes = this.activeRun.mapNodes.filter((n) => n.night === night);
-        for (const node of rowNodes) {
-          const fromBtn = container.querySelector(`[data-node-id="${node.id}"]`);
-          if (!fromBtn) continue;
-          const fromRect = fromBtn.getBoundingClientRect();
-          const x1 = fromRect.left - containerRect.left + fromRect.width / 2;
-          const y1 = fromRect.top - containerRect.top + fromRect.height / 2;
-
-          for (const nextId of node.nextNodes) {
-            const toBtn = container.querySelector(`[data-node-id="${nextId}"]`);
-            if (!toBtn) continue;
-            const toRect = toBtn.getBoundingClientRect();
-            const x2 = toRect.left - containerRect.left + toRect.width / 2;
-            const y2 = toRect.top - containerRect.top + toRect.height / 2;
-
-            const isNextAvailable = availableNextIds.includes(nextId) && (node.id === this.activeRun.currentNodeId || (night === 1 && !this.activeRun.visitedNodes.includes(node.id)));
-            const isTraveled = this.activeRun.visitedNodes.includes(node.id) && this.activeRun.visitedNodes.includes(nextId);
-            const isHighlighted = isNextAvailable || isTraveled;
-
-            const cpY = y1 + (y2 - y1) * 0.5;
-            const d = `M ${x1.toFixed(1)} ${y1.toFixed(1)} C ${x1.toFixed(1)} ${cpY.toFixed(1)}, ${x2.toFixed(1)} ${cpY.toFixed(1)}, ${x2.toFixed(1)} ${y2.toFixed(1)}`;
-
-            if (isHighlighted) {
-              pathsHtml += `<path d="${d}" fill="none" stroke="#FFAE42" stroke-width="2.6" stroke-dasharray="6,3" stroke-linecap="round" opacity="0.95"/>`;
-            } else {
-              pathsHtml += `<path d="${d}" fill="none" stroke="rgba(143, 163, 199, 0.3)" stroke-width="1.8" stroke-dasharray="4,3" opacity="0.6"/>`;
-            }
+    // If ambush stratagem, any forest 'f' tile is also a deploy slot
+    if (this.activeStratagemId === 'ambush') {
+      for (let r = 0; r < 13; r++) {
+        for (let c = 0; c < 10; c++) {
+          if (chapter.terrain[r][c] === 'f') {
+            this.deploySlots.add(`${c},${r}`);
           }
         }
       }
-
-      svg.innerHTML = pathsHtml;
-      container.prepend(svg);
-    };
-
-    renderPaths();
-    setTimeout(renderPaths, 60);
-  }
-
-  enterNode(nodeId) {
-    const node = this.activeRun.mapNodes.find((n) => n.id === nodeId);
-    if (!node) return;
-
-    this.activeRun.currentNodeId = node.id;
-    this.activeRun.currentNight = node.night;
-    if (!this.activeRun.visitedNodes.includes(node.id)) {
-      this.activeRun.visitedNodes.push(node.id);
     }
-    this.town.saveActiveRun(this.activeRun);
 
-    if (node.type === "battle" || node.type === "elite" || node.type === "boss") {
-      this.startBattle(node);
-    } else if (node.type === "shop") {
-      this.openShopScreen();
-    } else if (node.type === "rest") {
-      this.openRestScreen();
-    } else if (node.type === "event") {
-      this.openEventScreen();
-    }
-  }
+    this.selectedDeployUnit = squadInstances[0];
 
-  // ================= BATTLE FLOW =================
-  startBattle(battleNode) {
-    this.sound.playMusic("battle");
-    this.activeBattle = new Battle({
-      rng: this.rng.fork(),
-      difficulty: this.activeRun.difficulty,
-      ascension: this.activeRun.ascension,
-      deck: this.activeRun.deck,
-      relics: this.activeRun.relics,
-      townPerks: this.town.getTownPerks(),
-      initialLanternHp: this.activeRun.lanternHp,
-      maxLanternHp: this.activeRun.maxLanternHp,
-      battleNode
+    // Dummy battle object for map rendering during deploy
+    this.battle = new Battle(chapter, squadInstances, this.activeStratagemId, this.campaign, this.rng, {
+      deployPlacements: this.deployPlacements
     });
 
-    this.activeRun.battleState = this.activeBattle.serializeState();
-    this.town.saveActiveRun(this.activeRun);
-
-    document.getElementById("battleNightBadge").textContent = `第 ${battleNode.night} 夜 · ${battleNode.name}`;
-    this.ui.showScreen("screenBattle");
-    this.ui.selectedHandIndex = null;
-    this.ui.validTargetCoords = [];
-    this.renderCurrentBattle();
-  }
-
-  renderCurrentBattle() {
-    if (!this.activeBattle) return;
-    this.ui.selectedGuardian = this.selectedGuardian;
-    this.ui.renderBattle(
-      this.activeBattle,
-      (x, y) => this.handleTileTap(x, y),
-      (index, card) => this.handleCardTap(index, card),
-      (unit) => this.ui.openUnitInfo(unit, (u) => this.startGuardianMove(u))
-    );
-
-    const hintEl = document.getElementById("battleHintOrDetail");
-    if (hintEl) {
-      if (this.ui.selectedHandIndex !== null) {
-        const cardId = this.activeBattle.hand[this.ui.selectedHandIndex];
-        const cardObj = getCardById(cardId);
-        if (cardObj) {
-          const cleanName = cardObj.name.replace(/^召喚：/, "").replace(/！$/, "");
-          hintEl.innerHTML = `<span style="color:var(--lantern-gold);font-weight:800;">【${cleanName}】</span> <span>${cardObj.desc}</span> <span style="color:var(--lantern-gold);font-weight:700;">(點金色格子施放)</span>`;
-        }
-      } else if (this.selectedGuardian) {
-        hintEl.innerHTML = `<span style="color:var(--lantern-gold);font-weight:800;">【${this.selectedGuardian.name}】</span> <span>選擇金色格子進行戰術移動</span>`;
-      } else {
-        hintEl.textContent = "點擊卡牌出牌 · 點友軍戰術移動";
-      }
+    this.refreshDeployUI();
+    if (deployTiles.length > 0) {
+      this.ui.centerCameraOn(deployTiles[0].x, deployTiles[0].y);
     }
   }
 
-  selectCardForPlay(handIndex, card) {
-    const cardObj = typeof card === "object" && card !== null ? card : getCardById(card || this.activeBattle.hand[handIndex]);
-    if (!cardObj) return;
+  refreshDeployUI() {
+    if (!this.battle || !this.isDeploying) return;
+    const placedMap = new Map();
+    this.deployPlacements.forEach(p => placedMap.set(p.id, p));
 
-    this.selectedGuardian = null;
-    this.sound.playSfx("card_select");
-    this.ui.selectedHandIndex = handIndex;
-    this.calculateValidTargetTiles(cardObj);
-    this.renderCurrentBattle();
-  }
-
-  handleCardTap(handIndex, card) {
-    this.selectedGuardian = null;
-    const cardObj = typeof card === "object" && card !== null ? card : getCardById(card || this.activeBattle.hand[handIndex]);
-    if (!cardObj) return;
-
-    const actualCost = this.activeBattle.getCardCost ? this.activeBattle.getCardCost(cardObj) : cardObj.cost;
-
-    // First tap always opens full unabridged inspection modal
-    this.sound.playSfx("tap");
-    this.ui.openCardInspect(
-      cardObj,
-      actualCost,
-      () => {
-        // Tapped "出牌 / 選擇目標 ❯": activates targeting mode and glows tiles
-        this.selectCardForPlay(handIndex, cardObj);
+    const squadInstances = this.selectedSquadIds.map(id => this.campaign.getUnitInstance(id));
+    this.ui.renderDeployPhase(
+      this.activeChapter,
+      squadInstances,
+      this.activeChapter.deployTiles || [],
+      placedMap,
+      (unit) => {
+        this.selectedDeployUnit = unit;
+        this.refreshDeployUI();
       },
       () => {
-        // Tapped "取消": deselects targeting mode
-        if (this.ui.selectedHandIndex === handIndex) {
-          this.ui.selectedHandIndex = null;
-          this.ui.validTargetCoords = [];
-          this.renderCurrentBattle();
-        }
+        this.finalizeDeployAndStartBattle(this.activeChapter);
       }
     );
+
+    this.ui.renderBattle(this.battle, {
+      selectedUnit: this.selectedDeployUnit ? this.battle.allies.find(a => a.id === this.selectedDeployUnit.id) : null,
+      reachableTiles: new Map(),
+      attackableTiles: new Set(),
+      aoeTiles: new Set(),
+      deploySlots: this.deploySlots,
+      onUnitTap: (u) => {
+        if (u.team === 'ally' && u.role !== 'npc' && u.role !== 'objective') {
+          this.selectedDeployUnit = u;
+          this.refreshDeployUI();
+        }
+      },
+      onTileTap: (x, y) => this.handleTileTap(x, y)
+    });
   }
 
-  startGuardianMove(unit) {
-    this.selectedGuardian = unit;
-    this.ui.selectedHandIndex = null;
-    this.ui.validTargetCoords = [];
-    this.sound.playSfx("tap");
-    const maxMove = unit.move + (unit.moveBonus || 0);
-    for (let r = 0; r < this.activeBattle.board.rows; r++) {
-      for (let c = 0; c < this.activeBattle.board.cols; c++) {
-        if (this.activeBattle.board.isEmpty(c, r)) {
-          const dist = Math.abs(c - unit.x) + Math.abs(r - unit.y);
-          if (dist <= maxMove && dist > 0) {
-            this.ui.validTargetCoords.push({ x: c, y: r });
-          }
-        }
-      }
+  finalizeDeployAndStartBattle(chapter) {
+    this.isDeploying = false;
+    this.ui.hideDeployPhase();
+    this.deploySlots = new Set();
+    this.launchBattleInstance(chapter, this.deployPlacements);
+
+    const tutKey = `${GAME.storageKey}_tutorial`;
+    if (chapter.id === 1 && !localStorage.getItem(tutKey)) {
+      this.startTutorialFlow(0);
     }
-    this.renderCurrentBattle();
   }
 
-  calculateValidTargetTiles(card) {
-    this.ui.validTargetCoords = [];
-    if (!this.activeBattle) return;
-    const cardObj = typeof card === "object" && card !== null ? card : getCardById(card);
-    if (!cardObj) return;
+  launchBattleInstance(chapter, placements = null) {
+    this.isDeploying = false;
+    this.ui.hideDeployPhase();
+    this.deploySlots = new Set();
 
-    for (let y = 0; y < this.activeBattle.board.rows; y++) {
-      for (let x = 0; x < this.activeBattle.board.cols; x++) {
-        if (this.activeBattle.validateCardTarget(cardObj, x, y)) {
-          this.ui.validTargetCoords.push({ x, y });
-        }
+    const squadInstances = this.selectedSquadIds.map(id => this.campaign.getUnitInstance(id));
+    this.battle = new Battle(chapter, squadInstances, this.activeStratagemId, this.campaign, this.rng, {
+      deployPlacements: placements || this.deployPlacements
+    });
+
+    this.clearSelection();
+    this.ui.showScreen('screenBattle');
+    this.refreshBattleUI();
+
+    // Center camera on first ally
+    if (this.battle.allies.length > 0) {
+      this.ui.centerCameraOn(this.battle.allies[0].x, this.battle.allies[0].y);
+    }
+  }
+
+  refreshBattleUI() {
+    if (!this.battle) return;
+
+    this.ui.renderBattle(this.battle, {
+      selectedUnit: this.selectedUnit,
+      reachableTiles: this.reachableTiles,
+      attackableTiles: this.attackableTiles,
+      aoeTiles: this.aoeTiles,
+      deploySlots: this.deploySlots,
+      onUnitTap: (unit) => this.handleUnitTap(unit),
+      onTileTap: (x, y) => this.handleTileTap(x, y)
+    });
+
+    const btnUndo = document.getElementById('btnUndoMove');
+    if (btnUndo) {
+      btnUndo.style.display = (this.selectedUnit && this.stagedMoveTile) ? 'inline-flex' : 'none';
+    }
+  }
+
+  clearSelection() {
+    this.selectedUnit = null;
+    this.reachableTiles = new Map();
+    this.attackableTiles = new Set();
+    this.aoeTiles = new Set();
+    this.targetingMode = null;
+    this.activeActionType = null;
+    this.stagedMoveTile = null;
+    this.ui.hideActionMenu();
+    this.ui.hideTargetPreview();
+  }
+
+  handleUnitTap(unit) {
+    if (this.isDeploying) {
+      if (unit.team === 'ally' && unit.role !== 'npc' && unit.role !== 'objective') {
+        this.selectedDeployUnit = unit;
+        this.refreshDeployUI();
       }
+      return;
+    }
+
+    if (!this.battle || this.battle.phase !== 'ally') return;
+
+    // If unit is enemy and we are in target mode
+    if (unit.team === 'enemy' && this.selectedUnit && this.activeActionType) {
+      if (this.targetingMode === 'aoe_cross') {
+        this.previewAoeCross(unit.x, unit.y, unit);
+      } else {
+        this.evaluateTargetPreview(unit);
+      }
+      return;
+    }
+
+    // If unit is ally and we are in heal mode
+    if (unit.team === 'ally' && this.targetingMode === 'heal') {
+      this.evaluateTargetPreview(unit);
+      return;
+    }
+
+    // If unit is ally and has not acted yet: select it!
+    if (unit.team === 'ally' && !unit.acted && unit.role !== 'npc' && unit.role !== 'objective') {
+      this.sound?.playSfx('tap');
+      this.selectedUnit = unit;
+      this.stagedMoveTile = null;
+      this.activeActionType = null;
+      this.targetingMode = null;
+      this.aoeTiles = new Set();
+      this.ui.hideActionMenu();
+      this.ui.hideTargetPreview();
+
+      // Calculate reachable tiles & attackable outline
+      this.reachableTiles = this.battle.getReachableFor(unit);
+      this.attackableTiles = getAttackableTilesFromReachable(this.battle.board, unit, this.reachableTiles, this.battle.getAllLivingUnits());
+
+      this.refreshBattleUI();
+      this.ui.centerCameraOn(unit.x, unit.y);
+      return;
+    }
+
+    // Inspect unit details
+    if (unit.team === 'ally') {
+      const inst = this.campaign.getUnitInstance(unit.id);
+      if (inst) this.ui.showDetailSheet(inst, this.campaign);
     }
   }
 
   handleTileTap(x, y) {
-    if (!this.activeBattle) return;
-
-    // 1. If a hand card is selected, play it
-    if (this.ui.selectedHandIndex !== null) {
-      const handIndex = this.ui.selectedHandIndex;
-      const cardId = this.activeBattle.hand[handIndex];
-      const card = getCardById(cardId);
-
-      const result = this.activeBattle.playCard(handIndex, x, y);
-      if (result.success) {
-        this.sound.playSfx(card.type === CARD_TYPES.SUMMON ? "summon" : "card_play");
-        this.ui.selectedHandIndex = null;
-        this.ui.validTargetCoords = [];
-        this.handleBattleEvents();
-        if (this.activeBattle.status === "ongoing") {
-          this.activeRun.battleState = this.activeBattle.serializeState();
-          this.town.saveActiveRun(this.activeRun);
+    if (this.isDeploying) {
+      if (this.selectedDeployUnit && this.deploySlots.has(`${x},${y}`)) {
+        const existing = this.deployPlacements.find(p => p.x === x && p.y === y);
+        const myPlacement = this.deployPlacements.find(p => p.id === this.selectedDeployUnit.id);
+        const isForest = this.activeChapter.terrain[y][x] === 'f';
+        if (myPlacement) {
+          if (existing && existing.id !== myPlacement.id) {
+            existing.x = myPlacement.x;
+            existing.y = myPlacement.y;
+            existing.isAmbushed = this.activeChapter.terrain[existing.y][existing.x] === 'f' && this.activeStratagemId === 'ambush';
+          }
+          myPlacement.x = x;
+          myPlacement.y = y;
+          myPlacement.isAmbushed = isForest && this.activeStratagemId === 'ambush';
         }
-        this.renderCurrentBattle();
-
-        if (this.activeBattle.status === "victory") {
-          this.handleBattleVictory();
-        } else if (this.activeBattle.status === "defeat") {
-          this.handleBattleDefeat();
-        }
-      } else {
-        this.sound.playSfx("tap");
+        this.battle.initUnits(this.selectedSquadIds.map(id => this.campaign.getUnitInstance(id)), { deployPlacements: this.deployPlacements });
+        this.refreshDeployUI();
       }
       return;
     }
 
-    // 2. If a friendly guardian was already selected, check if player tapped a valid destination
-    if (this.selectedGuardian) {
-      const isTargetValid = this.ui.validTargetCoords.some((c) => c.x === x && c.y === y);
-      if (isTargetValid) {
-        const moveRes = this.activeBattle.moveGuardian(this.selectedGuardian, x, y);
-        if (moveRes.success) {
-          this.sound.playSfx("tap");
-          this.selectedGuardian = null;
-          this.ui.validTargetCoords = [];
-          this.handleBattleEvents();
-          if (this.activeBattle.status === "ongoing") {
-            this.activeRun.battleState = this.activeBattle.serializeState();
-            this.town.saveActiveRun(this.activeRun);
+    if (!this.battle || this.battle.phase !== 'ally') return;
+
+    // Update bottom terrain strip
+    this.ui.updateBottomStrip(x, y, this.battle.board, this.battle.getUnitAt(x, y));
+
+    // Fire attack stratagem mode
+    if (this.targetingMode === 'fire_stratagem') {
+      const ter = this.battle.board.getTerrain(x, y);
+      if (ter.char === 'f' || ter.char === 'm') {
+        this.previewAoe3x3(x, y);
+        this.battle.triggerFireAttack(x, y);
+        this.targetingMode = null;
+        setTimeout(() => {
+          this.aoeTiles = new Set();
+          this.refreshBattleUI();
+        }, 900);
+        return;
+      }
+    }
+
+    // Light placement mode (掛燈)
+    if (this.targetingMode === 'light_placement') {
+      if (this.attackableTiles.has(`${x},${y}`)) {
+        this.confirmActionExecution('skill', null, { tileX: x, tileY: y });
+        this.targetingMode = null;
+        return;
+      }
+    }
+
+    // AoE cross mode (狐火 緋)
+    if (this.targetingMode === 'aoe_cross') {
+      if (this.attackableTiles.has(`${x},${y}`)) {
+        this.previewAoeCross(x, y);
+        return;
+      }
+    }
+
+    // Normal move: if unit selected and tap blue tile -> move there!
+    if (this.selectedUnit && !this.stagedMoveTile) {
+      const key = `${x},${y}`;
+      if (this.reachableTiles.has(key)) {
+        this.sound?.playSfx('tap');
+        this.battle.moveUnit(this.selectedUnit, x, y);
+        this.stagedMoveTile = { x, y };
+        this.reachableTiles = new Map();
+
+        // Switch to current tile range only
+        const curRange = getAttackRangeTiles(this.battle.board, this.selectedUnit, x, y);
+        this.attackableTiles = new Set(curRange.filter(t => !this.battle.board.isImpassable(t.x, t.y, false)).map(t => `${t.x},${t.y}`));
+
+        // Pop action menu
+        this.openActionMenuForUnit(this.selectedUnit);
+        this.refreshBattleUI();
+        return;
+      }
+    }
+
+    // If tapping an empty tile, deselect
+    if (!this.stagedMoveTile) {
+      this.clearSelection();
+      this.refreshBattleUI();
+    }
+  }
+
+  openActionMenuForUnit(unit) {
+    this.reachableTiles = new Map();
+    const rangeTiles = getAttackRangeTiles(this.battle.board, unit, unit.x, unit.y);
+    this.attackableTiles = new Set(rangeTiles.filter(t => !this.battle.board.isImpassable(t.x, t.y, false)).map(t => `${t.x},${t.y}`));
+
+    const enemiesInRange = this.battle.enemies.filter(e =>
+      e.hp > 0 && rangeTiles.some(t => t.x === e.x && t.y === e.y) && canTargetUnit(unit, e, this.battle.board)
+    );
+
+    const hasSkill = !!unit.skill;
+    const skillCost = unit.skill?.cost || 0;
+    const hasMpForSkill = (unit.mp ?? 6) >= skillCost;
+
+    let hasSkillTarget = false;
+    if (unit.skill?.isLightPlacement) {
+      hasSkillTarget = true;
+    } else if (unit.skill?.isHeal) {
+      const sRange = getAttackRangeTiles(this.battle.board, unit, unit.x, unit.y);
+      hasSkillTarget = this.battle.allies.some(a => a.hp > 0 && sRange.some(t => t.x === a.x && t.y === a.y));
+    } else if (unit.skill) {
+      const sRange = getAttackRangeTiles(this.battle.board, unit, unit.x, unit.y);
+      hasSkillTarget = this.battle.enemies.some(e => e.hp > 0 && sRange.some(t => t.x === e.x && t.y === e.y));
+    }
+
+    const hasMagic = !!unit.magic;
+    const magicCost = unit.magic?.cost || 0;
+    const hasMpForMagic = (unit.mp ?? 6) >= magicCost;
+
+    let hasMagicTarget = false;
+    if (unit.magic?.selfBuff) {
+      hasMagicTarget = true;
+    } else if (unit.magic?.isHeal) {
+      const mRange = getAttackRangeTiles(this.battle.board, unit, unit.x, unit.y);
+      hasMagicTarget = this.battle.allies.some(a => a.hp > 0 && mRange.some(t => t.x === a.x && t.y === a.y));
+    } else if (unit.magic) {
+      const mRange = getAttackRangeTiles(this.battle.board, unit, unit.x, unit.y);
+      hasMagicTarget = this.battle.enemies.some(e => e.hp > 0 && mRange.some(t => t.x === e.x && t.y === e.y));
+    }
+
+    const bondAvailable = this.battle.checkBondAvailable(unit);
+
+    this.ui.showActionMenu(
+      unit.x,
+      unit.y,
+      {
+        attack: enemiesInRange.length > 0,
+        attackReason: enemiesInRange.length === 0 ? '無目標' : null,
+        skill: hasSkill && hasMpForSkill && hasSkillTarget,
+        skillCost,
+        skillReason: !hasMpForSkill ? 'MP不足' : (!hasSkillTarget ? '無目標' : null),
+        magic: hasMagic && hasMpForMagic && hasMagicTarget,
+        magicCost,
+        magicReason: !hasMpForMagic ? 'MP不足' : (!hasMagicTarget ? '無目標' : null),
+        bond: !!bondAvailable
+      },
+      (actionType) => {
+        this.handleActionMenuChoice(actionType);
+      },
+      () => {
+        this.battle.undoMove(unit);
+        this.clearSelection();
+        this.refreshBattleUI();
+      }
+    );
+  }
+
+  handleActionMenuChoice(actionType) {
+    this.activeActionType = actionType;
+    this.ui.hideActionMenu();
+
+    if (actionType === 'wait') {
+      this.confirmActionExecution('wait');
+      return;
+    }
+
+    const unit = this.selectedUnit;
+    if (!unit) return;
+
+    // Self-buff magic
+    if (actionType === 'magic' && unit.magic?.selfBuff) {
+      this.confirmActionExecution('magic', unit);
+      return;
+    }
+
+    // Lantern placement skill (range 3)
+    if (actionType === 'skill' && unit.skill?.isLightPlacement) {
+      this.targetingMode = 'light_placement';
+      this.reachableTiles = new Map();
+      this.attackableTiles = new Set();
+      for (let r = 0; r < 13; r++) {
+        for (let c = 0; c < 10; c++) {
+          if (Board.manhattan(unit.x, unit.y, c, r) <= 3 && !this.battle.board.isImpassable(c, r, false)) {
+            this.attackableTiles.add(`${c},${r}`);
           }
-          this.renderCurrentBattle();
-          return;
         }
       }
+      this.refreshBattleUI();
+      return;
+    }
 
-      // If clicked the same unit again, open its info modal
-      if (this.selectedGuardian.x === x && this.selectedGuardian.y === y) {
-        const g = this.selectedGuardian;
-        this.selectedGuardian = null;
-        this.ui.validTargetCoords = [];
-        this.renderCurrentBattle();
-        this.ui.openUnitInfo(g, (u) => this.startGuardianMove(u));
+    // Heal skill or magic (range 2) - tap ally to choose target
+    if ((actionType === 'skill' && unit.skill?.isHeal) || (actionType === 'magic' && unit.magic?.isHeal)) {
+      this.targetingMode = 'heal';
+      this.reachableTiles = new Map();
+      const rTiles = getAttackRangeTiles(this.battle.board, unit, unit.x, unit.y);
+      this.attackableTiles = new Set(rTiles.map(t => `${t.x},${t.y}`));
+      this.refreshBattleUI();
+      return;
+    }
+
+    // AoE Cross skill or magic (狐火 緋)
+    const isAoeCross = (actionType === 'skill' && unit.skill?.aoe === 'cross') ||
+                       (actionType === 'magic' && unit.magic?.aoe === 'cross');
+    if (isAoeCross) {
+      this.targetingMode = 'aoe_cross';
+      this.reachableTiles = new Map();
+      const rTiles = getAttackRangeTiles(this.battle.board, unit, unit.x, unit.y);
+      this.attackableTiles = new Set(rTiles.map(t => `${t.x},${t.y}`));
+
+      const firstEnemy = this.battle.enemies.find(e => e.hp > 0 && rTiles.some(t => t.x === e.x && t.y === e.y));
+      if (firstEnemy) {
+        this.previewAoeCross(firstEnemy.x, firstEnemy.y, firstEnemy);
+      }
+      this.refreshBattleUI();
+      return;
+    }
+
+    // Regular single-target attack
+    this.targetingMode = 'target_unit';
+    this.reachableTiles = new Map();
+    const rTiles = getAttackRangeTiles(this.battle.board, unit, unit.x, unit.y);
+    this.attackableTiles = new Set(rTiles.filter(t => !this.battle.board.isImpassable(t.x, t.y, false)).map(t => `${t.x},${t.y}`));
+
+    const validTargets = this.battle.enemies.filter(e =>
+      e.hp > 0 && rTiles.some(t => t.x === e.x && t.y === e.y) && canTargetUnit(unit, e, this.battle.board)
+    );
+    if (validTargets.length > 0) {
+      this.evaluateTargetPreview(validTargets[0]);
+    }
+    this.refreshBattleUI();
+  }
+
+  previewAoeCross(cx, cy, focusDefender = null) {
+    this.aoeTiles = new Set([
+      `${cx},${cy}`,
+      `${cx+1},${cy}`,
+      `${cx-1},${cy}`,
+      `${cx},${cy+1}`,
+      `${cx},${cy-1}`
+    ]);
+    const target = focusDefender || this.battle.getUnitAt(cx, cy) || this.battle.enemies.find(e => e.hp > 0 && this.aoeTiles.has(`${e.x},${e.y}`));
+    if (target) {
+      this.evaluateTargetPreview(target, { tileX: cx, tileY: cy });
+    }
+    this.refreshBattleUI();
+  }
+
+  previewAoe3x3(cx, cy) {
+    this.aoeTiles = new Set();
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        if (this.battle.board.inBounds(cx + dx, cy + dy)) {
+          this.aoeTiles.add(`${cx + dx},${cy + dy}`);
+        }
+      }
+    }
+    this.refreshBattleUI();
+  }
+
+  evaluateTargetPreview(defender, options = {}) {
+    const unit = this.selectedUnit;
+    if (!unit || !defender) return;
+
+    const skill = this.activeActionType === 'skill' ? unit.skill : (this.activeActionType === 'magic' ? unit.magic : null);
+    const preview = calculateCombat(unit, defender, this.battle.board, {
+      actionType: this.activeActionType,
+      skill,
+      attackerX: unit.x,
+      attackerY: unit.y
+    });
+
+    this.ui.showTargetPreview(
+      preview,
+      () => {
+        this.confirmActionExecution(this.activeActionType, defender, options);
+      },
+      () => {
+        this.aoeTiles = new Set();
+        this.openActionMenuForUnit(unit);
+      }
+    );
+  }
+
+  confirmActionExecution(actionType, target = null, options = {}) {
+    if (!this.battle || !this.selectedUnit) return;
+
+    const res = this.battle.confirmAction(this.selectedUnit, actionType, target, options);
+    this.sound?.playSfx('hit');
+
+    // Check level up
+    if (res.levelUp?.leveledUp) {
+      const uId = this.selectedUnit.id;
+      const uInst = this.campaign.getUnitInstance(uId);
+      setTimeout(() => {
+        this.ui.showLevelUpModal(uInst, (perkType) => {
+          this.campaign.applyPerkChoice(uId, perkType);
+        });
+      }, 500);
+    }
+
+    this.clearSelection();
+    this.refreshBattleUI();
+
+    // Check battle victory / defeat
+    if (this.battle.status.finished) {
+      setTimeout(() => {
+        this.ui.showBattleResult(this.battle.status, this.activeChapter, () => {
+          this.openWorldMap();
+        });
+      }, 600);
+      return;
+    }
+
+    // Check if ally phase ended
+    if (this.battle.isAllyPhaseComplete()) {
+      setTimeout(() => {
+        this.triggerEnemyTurn();
+      }, 400);
+    }
+  }
+
+  triggerEnemyTurn() {
+    if (!this.battle || this.battle.phase === 'finished') return;
+    this.battle.phase = 'enemy';
+
+    const phasePill = document.getElementById('hudPhasePill');
+    if (phasePill) {
+      phasePill.textContent = '敵方回合';
+      phasePill.className = 'battle-phase-pill enemy';
+    }
+
+    this.ui.showTurnBanner('敵方回合', '夜霧湧動 · 敵軍進犯', () => {
+      this.battle.endTurn();
+      this.refreshBattleUI();
+
+      if (this.battle.status.finished) {
+        this.ui.showBattleResult(this.battle.status, this.activeChapter, () => {
+          this.openWorldMap();
+        });
         return;
       }
 
-      // Deselect
-      this.selectedGuardian = null;
-      this.ui.validTargetCoords = [];
-    }
-
-    // 3. First tap on any unit on board shows its info
-    const unit = this.activeBattle.board.getUnitAt(x, y);
-    if (unit) {
-      this.ui.openUnitInfo(unit, (u) => this.startGuardianMove(u));
-      return;
-    }
-
-    this.renderCurrentBattle();
-  }
-
-  handleBattleEvents() {
-    if (!this.activeBattle) return;
-    while (this.activeBattle.events.length > 0) {
-      const ev = this.activeBattle.events.shift();
-      if (ev.type === "damage") {
-        this.ui.showDamageNumber(ev.unit.x, ev.unit.y, ev.damage);
-        this.sound.playSfx("hit");
-      } else if (ev.type === "lantern_hit") {
-        this.ui.shakeScreen();
-        this.sound.playSfx("lantern_damage");
-      } else if (ev.type === "lantern_healed" || ev.type === "heal") {
-        this.sound.playSfx("heal");
-      } else if (ev.type === "unit_pushed") {
-        this.sound.playSfx("push");
-      }
-    }
-  }
-
-  getAvailableCards() {
-    return CARD_CATALOGUE.filter((c) => {
-      if (c.unitId && !this.town.unlockedUnits.includes(c.unitId)) {
-        return false;
-      }
-      return true;
-    });
-  }
-
-  handleBattleVictory() {
-    this.sound.playSfx("victory");
-    const perks = this.town.getTownPerks();
-    let earnedCoins = 20;
-    if (perks.coinBonus) earnedCoins = Math.floor(earnedCoins * (1 + perks.coinBonus));
-
-    let earnedStars = 3;
-    if (this.activeBattle.hasRelic("relic_star_lantern_pouch")) earnedStars += 3;
-
-    this.activeRun.coins += earnedCoins;
-    this.town.addStarLanterns(earnedStars);
-
-    // Persist run-level lantern HP across battles
-    this.activeRun.lanternHp = this.activeBattle.lanterns.map((l) => l.hp);
-    this.activeRun.battleState = null;
-    this.town.saveActiveRun(this.activeRun);
-
-    this.updateTopBar();
-
-    // Show Reward Screen
-    this.ui.showScreen("screenReward");
-    const rewardBg = document.getElementById("rewardBackdrop");
-    if (rewardBg && SVG_ART.victoryBackdrop) {
-      rewardBg.innerHTML = SVG_ART.victoryBackdrop;
-    }
-    document.getElementById("rewardCoins").textContent = earnedCoins;
-    document.getElementById("rewardStars").textContent = earnedStars;
-
-    // Pick 3 random card reward options gated by unlocked units
-    const rewardContainer = document.getElementById("rewardCardsRow");
-    rewardContainer.innerHTML = "";
-    const pool = this.getAvailableCards();
-    const shuffled = this.rng.shuffle(pool);
-    const rewardOptions = shuffled.slice(0, 3);
-    let selectedRewardCardId = rewardOptions[0].id;
-
-    const updateRewardDesc = (card) => {
-      const box = document.getElementById("rewardCardDescBox");
-      if (box) {
-        const cleanName = card.name.replace(/^召喚：/, "").replace(/！$/, "");
-        box.innerHTML = `<span style="color:var(--lantern-gold);font-weight:800;margin-right:6px;">【${cleanName}】</span><span style="color:var(--text-parchment);">${card.desc}</span>`;
-      }
-    };
-
-    updateRewardDesc(rewardOptions[0]);
-
-    rewardOptions.forEach((c, idx) => {
-      const cardEl = document.createElement("div");
-      cardEl.className = `card-item card-type-${c.type} ${idx === 0 ? "selected" : ""}`;
-      cardEl.style.width = "96px";
-      cardEl.style.height = "150px";
-      const cardArtSvg = SVG_ART.cardArt[c.id] || SVG_ART.cardArt.card_summon_cat || "";
-      const displayName = c.name.replace(/^召喚：/, "").replace(/！$/, "");
-      cardEl.innerHTML = `
-        <div class="card-header-bar">
-          <div class="card-cost-gem">${c.cost}</div>
-          <div class="card-type-tag">${getCardTypeLabel(c.type)}</div>
-        </div>
-        <div class="card-art-frame" style="height: 78px;">${cardArtSvg}</div>
-        <div class="card-title-serif" style="font-size: 11.5px;">${displayName}</div>
-      `;
-      cardEl.onclick = () => {
-        this.sound.playSfx("tap");
-        rewardContainer.querySelectorAll(".card-item").forEach((ci) => ci.classList.remove("selected"));
-        cardEl.classList.add("selected");
-        selectedRewardCardId = c.id;
-        updateRewardDesc(c);
-      };
-      rewardContainer.appendChild(cardEl);
-    });
-
-    document.getElementById("btnClaimReward").onclick = () => {
-      this.sound.playSfx("tap");
-      this.activeRun.deck.push(selectedRewardCardId);
-      this.town.saveActiveRun(this.activeRun);
-
-      if (this.activeRun.currentNight >= 8) {
-        // Run completely won!
-        this.handleFullRunVictory();
-      } else {
-        this.renderMapScreen();
-      }
-    };
-  }
-
-  handleBattleDefeat() {
-    this.sound.playSfx("defeat");
-    this.town.recordRunResult(false, this.activeRun.currentNight, 0, this.activeRun.ascension);
-    this.town.clearActiveRun();
-    this.ui.showAlertModal("守夜失守", "燈籠全數熄滅，小鎮被濃霧籠罩……但你的守夜努力為小鎮帶來了星燈！", () => {
-      this.ui.showScreen("screenTitle");
-      this.sound.playMusic("town");
-      this.checkContinueRun();
-    });
-  }
-
-  handleFullRunVictory() {
-    this.town.recordRunResult(true, 8, 10, this.activeRun.ascension);
-    this.town.clearActiveRun();
-    this.ui.showAlertModal("守夜大捷", "黎明破曉！你成功守護了燈籠小鎮的八個夜晚，擊退了夜霧魔王！解鎖了更高進階難度！", () => {
-      this.ui.showScreen("screenTitle");
-      this.sound.playMusic("town");
-      this.checkContinueRun();
-    });
-  }
-
-  // ================= SHOP (茶館) =================
-  openShopScreen() {
-    this.ui.showScreen("screenShop");
-    document.getElementById("shopCoins").textContent = this.activeRun.coins;
-
-    const cardsContainer = document.getElementById("shopCardsList");
-    cardsContainer.innerHTML = "";
-    const perks = this.town.getTownPerks();
-
-    // 3 Cards for sale gated by unlocked units
-    const pool = this.getAvailableCards();
-    const shopCards = this.rng.shuffle(pool).slice(0, 3);
-    shopCards.forEach((c) => {
-      const price = 30;
-      const cardEl = document.createElement("div");
-      cardEl.className = `card-item card-type-${c.type}`;
-      cardEl.style.width = "88px";
-      cardEl.style.height = "136px";
-      const cardArtSvg = SVG_ART.cardArt[c.id] || SVG_ART.cardArt.card_summon_cat || "";
-      const displayName = c.name.replace(/^召喚：/, "").replace(/！$/, "");
-      cardEl.innerHTML = `
-        <div class="card-header-bar">
-          <div class="card-cost-gem">${c.cost}</div>
-          <div class="card-type-tag">${getCardTypeLabel(c.type)}</div>
-        </div>
-        <div class="card-art-frame" style="height: 60px;">${cardArtSvg}</div>
-        <div class="card-title-serif" style="font-size: 11px;">${displayName}</div>
-        <div style="font-size:11.5px;font-weight:800;color:var(--lantern-gold);text-align:center;margin-top:4px;">
-          <span style="display:inline-flex;width:12px;height:12px;vertical-align:middle;">${SVG_ART.icons.coin}</span> ${price}
-        </div>
-      `;
-      cardEl.onclick = () => {
-        this.sound.playSfx("tap");
-        this.ui.openCardInspect(
-          c,
-          c.cost,
-          () => {
-            if (this.activeRun.coins >= price) {
-              this.sound.playSfx("card_play");
-              this.activeRun.coins -= price;
-              this.activeRun.deck.push(c.id);
-              this.town.saveActiveRun(this.activeRun);
-              cardEl.style.opacity = "0.3";
-              cardEl.onclick = null;
-              document.getElementById("shopCoins").textContent = this.activeRun.coins;
-              this.updateTopBar();
-            } else {
-              this.ui.showAlertModal("提示", "銅錢不足！");
-            }
-          },
-          () => {},
-          `購買 (${price} 銅錢) ❯`
-        );
-      };
-      cardsContainer.appendChild(cardEl);
-    });
-
-    // 2 Relics for sale
-    const relicsContainer = document.getElementById("shopRelicsList");
-    relicsContainer.innerHTML = "";
-    const shopRelics = this.rng.shuffle(RELICS_CATALOGUE).filter((r) => !this.activeRun.relics.includes(r.id)).slice(0, 2);
-
-    shopRelics.forEach((r) => {
-      const relicRow = document.createElement("div");
-      relicRow.className = "building-card";
-      relicRow.innerHTML = `
-        <div class="bldg-info">
-          <div class="bldg-name"><span style="display:inline-flex;width:14px;height:14px;vertical-align:middle;">${SVG_ART.icons.star}</span> ${r.name}</div>
-          <div class="bldg-desc">${r.desc}</div>
-        </div>
-        <button type="button" class="btn-build"><span style="display:inline-flex;width:12px;height:12px;vertical-align:middle;">${SVG_ART.icons.coin}</span> ${r.price}</button>
-      `;
-      relicRow.querySelector(".btn-build").onclick = () => {
-        if (this.activeRun.coins >= r.price) {
-          this.sound.playSfx("heal");
-          this.activeRun.coins -= r.price;
-          this.activeRun.relics.push(r.id);
-          this.town.saveActiveRun(this.activeRun);
-          relicRow.style.opacity = "0.4";
-          relicRow.querySelector(".btn-build").disabled = true;
-          document.getElementById("shopCoins").textContent = this.activeRun.coins;
-          this.updateTopBar();
-        } else {
-          this.ui.showAlertModal("提示", "銅錢不足！");
+      this.ui.showTurnBanner('我方回合', '凝燈為陣 · 破霧出擊', () => {
+        if (phasePill) {
+          phasePill.textContent = '我方回合';
+          phasePill.className = 'battle-phase-pill ally';
         }
-      };
-      relicsContainer.appendChild(relicRow);
-    });
-
-    // Card Removal Service
-    const removeCost = perks.freeCardRemoval > 0 ? 0 : 50;
-    document.getElementById("txtRemoveCardDesc").textContent = removeCost === 0 ? "免費（老茶樹特許）" : `費用：${removeCost} 銅錢`;
-    document.getElementById("btnShopRemoveCard").onclick = () => {
-      if (this.activeRun.coins >= removeCost && this.activeRun.deck.length > 5) {
-        this.openCardUpgradeModal((cardId, idx) => {
-          this.activeRun.deck.splice(idx, 1);
-          this.activeRun.coins -= removeCost;
-          this.town.saveActiveRun(this.activeRun);
-          this.sound.playSfx("tap");
-          document.getElementById("modalUpgradeCard").classList.remove("active");
-          document.getElementById("shopCoins").textContent = this.activeRun.coins;
-          this.updateTopBar();
-        });
-      } else if (this.activeRun.deck.length <= 5) {
-        this.ui.showAlertModal("提示", "牌組至少需保留 5 張牌！");
-      } else {
-        this.ui.showAlertModal("提示", "銅錢不足！");
-      }
-    };
-
-    document.getElementById("btnLeaveShop").onclick = () => {
-      this.sound.playSfx("tap");
-      this.town.saveActiveRun(this.activeRun);
-      this.renderMapScreen();
-    };
-  }
-
-  // ================= REST (溫泉) =================
-  openRestScreen() {
-    this.ui.showScreen("screenRest");
-
-    document.getElementById("btnRestRepairLantern").onclick = () => {
-      this.sound.playSfx("heal");
-      if (this.activeRun && this.activeRun.lanternHp) {
-        for (let i = 0; i < this.activeRun.lanternHp.length; i++) {
-          if (this.activeRun.lanternHp[i] > 0) {
-            this.activeRun.lanternHp[i] = Math.min(this.activeRun.maxLanternHp, this.activeRun.lanternHp[i] + 2);
-          }
-        }
-        this.town.saveActiveRun(this.activeRun);
-      }
-      this.ui.showAlertModal("修復燈籠", "全體燈籠耐久獲得修復（+2 耐久）！", () => {
-        this.renderMapScreen();
+        this.refreshBattleUI();
       });
-    };
-
-    document.getElementById("btnRestUpgradeCard").onclick = () => {
-      this.openCardUpgradeModal((cardId, idx) => {
-        const c = getCardById(cardId);
-        if (c && c.upgrade) {
-          this.activeRun.deck[idx] = c.upgrade.id;
-          this.town.saveActiveRun(this.activeRun);
-          this.sound.playSfx("heal");
-          document.getElementById("modalUpgradeCard").classList.remove("active");
-          this.ui.showAlertModal("磨礪心境", `已將【${c.name}】強化為【${c.upgrade.name}】！`, () => {
-            this.renderMapScreen();
-          });
-        }
-      });
-    };
-  }
-
-  openCardUpgradeModal(onSelectCard) {
-    const modal = document.getElementById("modalUpgradeCard");
-    const container = document.getElementById("upgradeCardsGrid");
-    container.innerHTML = "";
-
-    this.activeRun.deck.forEach((cardId, idx) => {
-      const c = getCardById(cardId);
-      if (!c) return;
-
-      const cardEl = document.createElement("div");
-      cardEl.className = `card-item card-type-${c.type}`;
-      cardEl.style.width = "84px";
-      cardEl.style.height = "124px";
-      const cardArtSvg = SVG_ART.cardArt[c.id] || SVG_ART.cardArt.card_summon_cat || "";
-      const displayName = c.name.replace(/^召喚：/, "").replace(/！$/, "");
-      cardEl.innerHTML = `
-        <div class="card-header-bar">
-          <div class="card-cost-gem">${c.cost}</div>
-          <div class="card-type-tag">${c.isUpgraded ? "強化" : getCardTypeLabel(c.type)}</div>
-        </div>
-        <div class="card-art-frame" style="height: 56px;">${cardArtSvg}</div>
-        <div class="card-title-serif" style="font-size: 10.5px;">${displayName}</div>
-      `;
-      cardEl.onclick = () => {
-        this.sound.playSfx("tap");
-        this.ui.openCardInspect(
-          c,
-          c.cost,
-          () => {
-            onSelectCard(cardId, idx);
-          },
-          () => {},
-          "確認強化 ❯"
-        );
-      };
-      container.appendChild(cardEl);
     });
-
-    modal.classList.add("active");
   }
 
-  // ================= EVENT (神龕事件) =================
-  openEventScreen() {
-    this.ui.showScreen("screenEvent");
-    const choices = document.getElementById("containerEventChoices");
-    choices.innerHTML = "";
+  // ================= LIVE BOARD SPOTLIGHT TUTORIAL =================
+  startTutorialFlow(startStep = 0) {
+    const isFromTitle = document.getElementById('screenTitle')?.classList.contains('active');
+    const isFromMap = document.getElementById('screenWorldMap')?.classList.contains('active');
+    const previousScreen = isFromTitle ? 'screenTitle' : (isFromMap ? 'screenWorldMap' : 'screenBattle');
 
-    const btn1 = document.createElement("button");
-    btn1.type = "button";
-    btn1.className = "btn-main";
-    btn1.innerHTML = "<span>奉納 20 銅錢，祈求神火加持</span>";
-    btn1.onclick = () => {
-      if (this.activeRun.coins >= 20) {
-        this.activeRun.coins -= 20;
-        if (!this.activeRun.relics.includes("relic_ancestral_flint")) {
-          this.activeRun.relics.push("relic_ancestral_flint");
+    // Snapshot player battle state before running tutorial demo
+    const savedBattle = this.battle;
+    const savedChapter = this.activeChapter || CHAPTERS[0];
+    const savedPlacements = this.deployPlacements;
+    const savedStratagem = this.activeStratagemId;
+
+    // Use a clean, isolated demo battle for tutorial steps so live battle is untouched
+    const squad = ['cat_patrol', 'lantern_crafter', 'tea_master', 'bear_guard'].map(id => this.campaign.getUnitInstance(id));
+    this.battle = new Battle(CHAPTERS[0], squad, 'inspire', this.campaign, this.rng);
+    this.ui.showScreen('screenBattle');
+
+    const updateStepView = (step) => {
+      document.querySelectorAll('.spotlight-active').forEach(el => el.classList.remove('spotlight-active'));
+
+      if (step === 0) {
+        // Step 0: Unit selected, blue tiles glow + spotlight on unit/reachable
+        this.clearSelection();
+        this.ui.hideActionMenu();
+        this.ui.hideTargetPreview();
+        const cat = this.battle.allies.find(a => a.id === 'cat_patrol');
+        if (cat) {
+          cat.x = 1;
+          cat.y = 8;
+          cat.turnStartX = 1;
+          cat.turnStartY = 8;
+          this.handleUnitTap(cat);
+          this.ui.centerCameraOn(cat.x, cat.y);
+          const tileEl = document.querySelector(`.grid-tile[data-x="${cat.x}"][data-y="${cat.y}"]`);
+          if (tileEl) tileEl.classList.add('spotlight-active');
         }
-        this.town.saveActiveRun(this.activeRun);
-        this.sound.playSfx("heal");
-        this.ui.showAlertModal("神火加持", "石龕迸發暖光，你獲得了珍奇信物【祖傳打火石】！", () => {
-          this.renderMapScreen();
-        });
+      } else if (step === 1) {
+        // Step 1: Unit moves, action menu opens + spotlight on menu
+        this.clearSelection();
+        this.ui.hideTargetPreview();
+        const cat = this.battle.allies.find(a => a.id === 'cat_patrol');
+        if (cat) {
+          this.selectedUnit = cat;
+          this.battle.moveUnit(cat, 0, 9);
+          this.stagedMoveTile = { x: 0, y: 9 };
+          this.openActionMenuForUnit(cat);
+          this.refreshBattleUI();
+          this.ui.centerCameraOn(cat.x, Math.max(0, cat.y - 2));
+          const pop = document.getElementById('actionMenuPopover');
+          if (pop) pop.classList.add('spotlight-active');
+        }
+      } else if (step === 2) {
+        // Step 2: Red attack range + target preview card with spotlight
+        this.ui.hideActionMenu();
+        const cat = this.battle.allies.find(a => a.id === 'cat_patrol');
+        const enemy = this.battle.enemies[0];
+        if (cat && enemy) {
+          cat.x = enemy.x;
+          cat.y = enemy.y - 1;
+          cat.turnStartX = cat.x;
+          cat.turnStartY = cat.y;
+          enemy.facing = 1;
+          this.selectedUnit = cat;
+          this.activeActionType = 'attack';
+          this.evaluateTargetPreview(enemy);
+          this.ui.centerCameraOn(cat.x, cat.y);
+          const card = document.getElementById('targetPreviewCard');
+          if (card) card.classList.add('spotlight-active');
+        }
+      }
+    };
+
+    this.ui.showBoardTutorial(startStep, updateStepView, () => {
+      const tutKey = `${GAME.storageKey}_tutorial`;
+      localStorage.setItem(tutKey, '1');
+      localStorage.setItem('lt_tutorial_seen', '1');
+      document.querySelectorAll('.spotlight-active').forEach(el => el.classList.remove('spotlight-active'));
+      this.clearSelection();
+      this.ui.hideActionMenu();
+      this.ui.hideTargetPreview();
+
+      if (isFromTitle || isFromMap) {
+        // Restore prior screen and battle state
+        this.battle = savedBattle;
+        this.ui.showScreen(previousScreen);
       } else {
-        this.ui.showAlertModal("提示", "銅錢不足！");
+        // Restore player's live battle cleanly from saved deploy placements
+        this.activeStratagemId = savedStratagem;
+        this.launchBattleInstance(savedChapter, savedPlacements);
       }
-    };
-
-    const btn2 = document.createElement("button");
-    btn2.type = "button";
-    btn2.className = "btn-secondary";
-    btn2.innerHTML = "<span>靜坐沉思，調勻氣息（燈籠生命全滿）</span>";
-    btn2.onclick = () => {
-      if (this.activeRun && this.activeRun.lanternHp) {
-        for (let i = 0; i < this.activeRun.lanternHp.length; i++) {
-          this.activeRun.lanternHp[i] = this.activeRun.maxLanternHp;
-        }
-        this.town.saveActiveRun(this.activeRun);
-      }
-      this.sound.playSfx("heal");
-      this.ui.showAlertModal("靜坐沉思", "身心沉靜，夜霧悄然散開，全體燈籠耐久完全回復！", () => {
-        this.renderMapScreen();
-      });
-    };
-
-    choices.appendChild(btn1);
-    choices.appendChild(btn2);
+    });
   }
 
-  // ================= TOWN BUILDING =================
-  handleBuild(bldgId) {
-    const success = this.town.build(bldgId);
-    if (success) {
-      this.sound.playSfx("summon");
-      this.ui.renderTown(this.town, (id) => this.handleBuild(id));
-      this.updateTopBar();
-    } else {
-      this.ui.showAlertModal("提示", "星燈不足或已經建造！");
-    }
+  // ================= DEBUG & TEST HOOKS =================
+  setupDebugHooks() {
+    window.__lt = {
+      app: this,
+      getBattle: () => this.battle,
+      getCampaign: () => this.campaign,
+      showScreen: (s) => this.ui.showScreen(s),
+      openWorldMap: () => this.openWorldMap(),
+      openPreBattle: (chId = 1) => {
+        const ch = CHAPTERS.find(c => c.id === chId) || CHAPTERS[0];
+        this.openPreBattle(ch);
+      },
+      openDeployPhase: (chId = 1) => {
+        const ch = CHAPTERS.find(c => c.id === chId) || CHAPTERS[0];
+        const allGuardianIds = Object.keys(GUARDIAN_PROTOS);
+        this.selectedSquadIds = allGuardianIds.slice(0, ch.squadLimit);
+        this.startDeployPhase(ch);
+      },
+      launchBattle: (chId = 1) => {
+        const ch = CHAPTERS.find(c => c.id === chId) || CHAPTERS[0];
+        this.launchBattleInstance(ch);
+      },
+      selectUnit: (unitId) => {
+        const u = this.battle?.allies.find(a => a.id === unitId);
+        if (u) this.handleUnitTap(u);
+      },
+      openActionMenuForSelected: () => {
+        if (this.selectedUnit) {
+          this.openActionMenuForUnit(this.selectedUnit);
+        }
+      },
+      openTargetPreviewForSelected: (enemyId) => {
+        const e = this.battle?.enemies.find(en => en.id === enemyId) || this.battle?.enemies[0];
+        if (e && this.selectedUnit) {
+          this.activeActionType = 'attack';
+          this.evaluateTargetPreview(e);
+        }
+      },
+      showTutorial: (step = 0) => this.startTutorialFlow(step),
+      showDialogue: (chId = 1) => {
+        const ch = CHAPTERS.find(c => c.id === chId) || CHAPTERS[0];
+        this.ui.showStoryDialogue(ch.storyBefore);
+      },
+      showDetailSheet: (unitId = 'cat_patrol') => {
+        const inst = this.campaign.getUnitInstance(unitId);
+        this.ui.showDetailSheet(inst, this.campaign);
+      },
+      showEnemyTurnBanner: () => {
+        this.clearSelection();
+        this.ui.hideActionMenu();
+        this.ui.hideTargetPreview();
+        if (this.battle) {
+          this.battle.phase = 'enemy';
+        }
+        this.refreshBattleUI();
+        const phasePill = document.getElementById('hudPhasePill');
+        if (phasePill) {
+          phasePill.textContent = '敵方回合';
+          phasePill.className = 'battle-phase-pill enemy';
+        }
+        this.ui.showTurnBanner('敵方回合', '夜霧湧動 · 敵軍進犯');
+      }
+    };
   }
 }
 
-// Start application once DOM ready
-window.addEventListener("DOMContentLoaded", () => {
-  window.app = new LanternWatchApp();
+// Instantiate on DOM load
+window.addEventListener('DOMContentLoaded', () => {
+  window.app = new LanternTacticsApp();
 });
