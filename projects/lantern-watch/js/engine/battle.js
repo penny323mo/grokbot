@@ -590,50 +590,66 @@ export class Battle {
     if (card.id.startsWith("card_command_advance")) {
       const unit = this.board.getUnitAt(x, y);
       if (unit && unit.isGuardian) {
-        // Step forward up to 2 tiles towards nearest enemy or row 0 (or diagonal if blocked)
+        // Step forward or diagonally forward up to 2 tiles towards nearest enemy
         let stepCount = card.value || 2;
         let curX = unit.x;
         let curY = unit.y;
         const fromX = curX;
         const fromY = curY;
         let stepsMoved = 0;
+
         for (let i = 0; i < stepCount; i++) {
           const nextY = curY - 1;
-          if (nextY >= 0 && this.board.isEmpty(curX, nextY)) {
-            this.board.tiles[curY][curX].unit = null;
-            curY = nextY;
-            unit.x = curX;
-            unit.y = curY;
-            this.board.tiles[curY][curX].unit = unit;
-            stepsMoved++;
-          } else if (nextY >= 0) {
-            // If straight north is an enemy, stop here to attack it!
-            const northTile = this.board.getTile(curX, nextY);
-            if (northTile && northTile.unit && !northTile.unit.isGuardian) {
-              break;
+          if (nextY < 0) break;
+
+          // If north tile has an enemy directly adjacent, stop here and strike!
+          const northTile = this.board.getTile(curX, nextY);
+          if (northTile && northTile.unit && !northTile.unit.isGuardian) {
+            break;
+          }
+
+          // Evaluate candidate steps: North, NW, NE
+          const candidates = [];
+          if (this.board.isEmpty(curX, nextY)) candidates.push({ x: curX, y: nextY, dir: "north" });
+          if (curX > 0 && this.board.isEmpty(curX - 1, nextY)) candidates.push({ x: curX - 1, y: nextY, dir: "nw" });
+          if (curX < this.board.cols - 1 && this.board.isEmpty(curX + 1, nextY)) candidates.push({ x: curX + 1, y: nextY, dir: "ne" });
+
+          if (candidates.length === 0) break;
+
+          // Score candidates based on proximity to nearest enemy
+          let chosen = candidates[0];
+          let bestDist = 999;
+          const enemies = this.enemies.filter((e) => e.hp > 0);
+
+          if (enemies.length > 0) {
+            for (const cand of candidates) {
+              let minEnemyDist = 999;
+              for (const e of enemies) {
+                const d = Math.abs(e.x - cand.x) + Math.abs(e.y - cand.y);
+                if (d < minEnemyDist) minEnemyDist = d;
+              }
+              if (minEnemyDist < bestDist || (minEnemyDist === bestDist && cand.dir === "north")) {
+                bestDist = minEnemyDist;
+                chosen = cand;
+              }
             }
-            // Check diagonal forward if straight north is blocked by ally or obstacle
-            let chosenDiagX = null;
-            if (curX > 0 && this.board.isEmpty(curX - 1, nextY)) {
-              chosenDiagX = curX - 1;
-            } else if (curX < this.board.cols - 1 && this.board.isEmpty(curX + 1, nextY)) {
-              chosenDiagX = curX + 1;
-            }
-            if (chosenDiagX !== null) {
-              this.board.tiles[curY][curX].unit = null;
-              curX = chosenDiagX;
-              curY = nextY;
-              unit.x = curX;
-              unit.y = curY;
-              this.board.tiles[curY][curX].unit = unit;
-              stepsMoved++;
-            } else {
-              break;
-            }
-          } else {
+          }
+
+          this.board.tiles[curY][curX].unit = null;
+          curX = chosen.x;
+          curY = chosen.y;
+          unit.x = curX;
+          unit.y = curY;
+          this.board.tiles[curY][curX].unit = unit;
+          stepsMoved++;
+
+          // If already in attack range of an enemy, stop advancing to strike!
+          const enemiesAdjacent = this.getEnemiesInRange(unit);
+          if (enemiesAdjacent.length > 0) {
             break;
           }
         }
+
         if (stepsMoved > 0) {
           unit.hasMoved = true;
           if (unit.unitId === "bear_baker") {
@@ -1127,15 +1143,18 @@ export class Battle {
             this.events.push({ type: "lantern_hit", lanternId: l.id, damage: intent.damage, remaining: l.hp });
           }
         } else if (targetTile && targetTile.unit && targetTile.unit.isGuardian) {
-          this.damageUnit(targetTile.unit, intent.damage, enemy);
+          const defender = targetTile.unit;
+          this.damageUnit(defender, intent.damage, enemy);
 
-          // Enemy attack special skills
-          if (enemy.typeId === "windchime_spectre") {
-            // Windchime curses target (-1 attack on next attack)
-            targetTile.unit.curseAtk = (targetTile.unit.curseAtk || 0) + 1;
-          } else if (enemy.typeId === "mud_golem") {
-            // Mud golem pushes target backward
-            this.pushUnitOnBoard(targetTile.unit, 0, 1, 1);
+          // Enemy attack special skills (only if defender survived)
+          if (defender.hp > 0) {
+            if (enemy.typeId === "windchime_spectre") {
+              // Windchime curses target (-1 attack on next attack)
+              defender.curseAtk = (defender.curseAtk || 0) + 1;
+            } else if (enemy.typeId === "mud_golem") {
+              // Mud golem pushes target backward
+              this.pushUnitOnBoard(defender, 0, 1, 1);
+            }
           }
         }
       }

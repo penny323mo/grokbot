@@ -1,12 +1,13 @@
 /**
  * js/render/ui.js
  * DOM rendering engine, tap-only event handling, battle animations, and modal managers.
+ * v2 Visual Overhaul: Deep Indigo Night, Warm Lantern Glow, Card Frames with SVG vignettes.
  */
 
 import { SVG_ART } from "./art.js";
 import { getCardById, CARD_TYPES, getCardTypeLabel } from "../engine/cards.js";
 import { GUARDIANS, ENEMIES } from "../engine/units.js";
-import { TAG_RESONANCE, TOWN_BUILDINGS, TERRAINS } from "../engine/constants.js";
+import { TAG_RESONANCE, TOWN_BUILDINGS, TERRAINS, LANTERN_COORDINATES } from "../engine/constants.js";
 import { getRelicById } from "../engine/relics.js";
 
 export class UIRenderer {
@@ -33,6 +34,10 @@ export class UIRenderer {
   renderTitleHero() {
     const el = document.getElementById("titleHeroArt");
     if (el) el.innerHTML = SVG_ART.lantern_full;
+    const titleBackdrop = document.getElementById("titleBackdropSkyline");
+    if (titleBackdrop && !titleBackdrop.innerHTML.trim()) {
+      titleBackdrop.innerHTML = SVG_ART.titleBackdrop;
+    }
   }
 
   renderTopResources(coins, stars) {
@@ -97,6 +102,11 @@ export class UIRenderer {
     if (!gridEl) return;
     gridEl.innerHTML = "";
 
+    const skylineEl = document.getElementById("boardSkylineBackdrop");
+    if (skylineEl && !skylineEl.innerHTML.trim()) {
+      skylineEl.innerHTML = SVG_ART.skyline;
+    }
+
     // Map enemy intents for overlay lookup
     const intentTargets = {};
     const intentArrows = {};
@@ -131,11 +141,38 @@ export class UIRenderer {
       }
     }
 
+    // Identify active lanterns and calculate orthogonal neighbour lighting wash
+    const activeLanterns = (battle.lanterns || []).filter((l) => l.hp > 0);
+    const lanternPostKeys = new Set();
+    const neighbourKeys = new Set();
+
+    for (const l of activeLanterns) {
+      const coord = LANTERN_COORDINATES.find((c) => c.id === l.id);
+      if (coord) {
+        lanternPostKeys.add(`${coord.x},${coord.y}`);
+        const deltas = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+        for (const [dx, dy] of deltas) {
+          const nx = coord.x + dx;
+          const ny = coord.y + dy;
+          if (nx >= 0 && nx < battle.board.cols && ny >= 0 && ny < battle.board.rows) {
+            neighbourKeys.add(`${nx},${ny}`);
+          }
+        }
+      }
+    }
+
     for (let y = 0; y < battle.board.rows; y++) {
       for (let x = 0; x < battle.board.cols; x++) {
         const tile = battle.board.getTile(x, y);
         const tileEl = document.createElement("div");
         tileEl.className = `grid-tile ${tile.terrain || ""}`;
+
+        const coordKey = `${x},${y}`;
+        if (lanternPostKeys.has(coordKey)) {
+          tileEl.classList.add("lantern-post-tile");
+        } else if (neighbourKeys.has(coordKey)) {
+          tileEl.classList.add("lantern-glow-neighbour");
+        }
 
         // Fog row detection
         if (battle.isFogRow && battle.isFogRow(y)) {
@@ -146,18 +183,18 @@ export class UIRenderer {
           tileEl.classList.add("town-zone");
         }
 
-        // Check if this tile is a valid target for the selected card
+        // Check if this tile is a valid target for the selected card or guardian move
         const isValid = this.validTargetCoords.some((c) => c.x === x && c.y === y);
         if (isValid) {
           tileEl.classList.add("valid-target");
         }
 
         // Render Path Arrows
-        const key = `${x},${y}`;
+        const key = coordKey;
         if (intentArrows[key] !== undefined) {
           const arrowEl = document.createElement("div");
           arrowEl.className = "intent-path-arrow";
-          arrowEl.innerHTML = `<svg viewBox="0 0 24 24" style="transform: rotate(${intentArrows[key]}deg); width: 22px; height: 22px;"><path d="M12 4 L12 20 M6 14 L12 20 L18 14" fill="none" stroke="#E86363" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+          arrowEl.innerHTML = `<svg viewBox="0 0 24 24" style="transform: rotate(${intentArrows[key]}deg); width: 22px; height: 22px;"><path d="M12 4 L12 20 M6 14 L12 20 L18 14" fill="none" stroke="#F06A6A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
           tileEl.appendChild(arrowEl);
         }
 
@@ -174,7 +211,8 @@ export class UIRenderer {
           const unit = tile.unit;
           const unitWrap = document.createElement("div");
           const isSelectedGuardian = this.selectedGuardian && this.selectedGuardian === unit;
-          unitWrap.className = `unit-wrapper ${isSelectedGuardian ? "selected-unit" : ""}`;
+          const roleClass = unit.isGuardian ? "guardian-unit" : "enemy-unit";
+          unitWrap.className = `unit-wrapper ${roleClass} ${isSelectedGuardian ? "selected-unit" : ""}`;
 
           const svgKey = unit.typeId || unit.unitId;
           const svgCode = SVG_ART[svgKey] || SVG_ART.cat_patrol;
@@ -193,11 +231,10 @@ export class UIRenderer {
             unitWrap.appendChild(badge);
           }
 
+          // Bug 2: First tap on guardian unit shows its info (not ignored)
           unitWrap.onclick = (e) => {
             e.stopPropagation();
             if (isValid) {
-              onTileTap(x, y);
-            } else if (unit.isGuardian && !unit.hasMoved) {
               onTileTap(x, y);
             } else {
               onUnitInfo(unit);
@@ -242,17 +279,19 @@ export class UIRenderer {
       const actualCost = battle.getCardCost ? battle.getCardCost(card) : card.cost;
       const canAfford = battle.energy >= actualCost;
 
-      cardEl.className = `card-item ${isSelected ? "selected" : ""} ${!canAfford ? "disabled" : ""}`;
+      cardEl.className = `card-item card-type-${card.type} ${isSelected ? "selected" : ""} ${!canAfford ? "disabled" : ""}`;
+      cardEl.dataset.index = index;
 
       const displayName = card.name.replace(/^召喚：/, "").replace(/！$/, "");
+      const cardArtSvg = SVG_ART.cardArt[card.id] || SVG_ART.cardArt.card_summon_cat || "";
 
       cardEl.innerHTML = `
-        <div class="card-header-mini">
-          <div class="card-cost-badge">${actualCost}</div>
+        <div class="card-header-bar">
+          <div class="card-cost-gem">${actualCost}</div>
           <div class="card-type-tag">${getCardTypeLabel(card.type)}</div>
         </div>
-        <div class="card-title-mini">${displayName}</div>
-        <div class="card-desc-mini">${card.desc}</div>
+        <div class="card-art-frame">${cardArtSvg}</div>
+        <div class="card-title-serif" title="${card.name}">${displayName}</div>
       `;
 
       cardEl.onclick = () => onCardTap(index, card);
@@ -260,8 +299,64 @@ export class UIRenderer {
     });
   }
 
+  // ================= CARD INSPECTION MODAL =================
+  openCardInspect(card, actualCost, onPlay, onCancel, playButtonLabel = "出牌 / 選擇目標 ❯") {
+    const modal = document.getElementById("modalCardInspect");
+    const frameWrap = document.getElementById("cardInspectFrameWrap");
+    if (!modal || !frameWrap) return;
+
+    const displayName = card.name.replace(/^召喚：/, "").replace(/！$/, "");
+    const cardArtSvg = SVG_ART.cardArt[card.id] || SVG_ART.cardArt.card_summon_cat || "";
+
+    frameWrap.innerHTML = `
+      <div class="card-item card-type-${card.type} selected" style="width: 200px; min-height: 280px; padding: 10px; cursor: default;">
+        <div class="card-header-bar" style="margin-bottom: 6px;">
+          <div class="card-cost-gem" style="width: 28px; height: 28px; font-size: 15px;">${actualCost}</div>
+          <div class="card-type-tag" style="font-size: 12px; font-weight: 800;">${getCardTypeLabel(card.type)}</div>
+        </div>
+        <div class="card-art-frame" style="height: 100px; margin-bottom: 8px;">${cardArtSvg}</div>
+        <div class="card-title-serif" style="font-size: 16px; margin-bottom: 8px;">${displayName}</div>
+        <div style="font-size: 12px; line-height: 1.5; color: var(--text-parchment); background: rgba(0,0,0,0.3); padding: 8px; border-radius: 8px; text-align: left;">
+          ${card.desc}
+        </div>
+      </div>
+    `;
+
+    const btnPlay = document.getElementById("btnCardInspectPlay");
+    if (btnPlay) {
+      btnPlay.innerHTML = `<span>${playButtonLabel}</span>`;
+      btnPlay.onclick = () => {
+        this.closeCardInspect();
+        if (onPlay) onPlay();
+      };
+    }
+
+    const btnCancel = document.getElementById("btnCardInspectCancel");
+    if (btnCancel) {
+      btnCancel.onclick = () => {
+        this.closeCardInspect();
+        if (onCancel) onCancel();
+      };
+    }
+
+    const btnClose = document.getElementById("btnCloseCardInspect");
+    if (btnClose) {
+      btnClose.onclick = () => {
+        this.closeCardInspect();
+        if (onCancel) onCancel();
+      };
+    }
+
+    modal.classList.add("active");
+  }
+
+  closeCardInspect() {
+    const modal = document.getElementById("modalCardInspect");
+    if (modal) modal.classList.remove("active");
+  }
+
   // ================= UNIT INFO SHEET MODAL =================
-  openUnitInfo(unit) {
+  openUnitInfo(unit, onStartMove = null) {
     const modal = document.getElementById("modalUnitInfo");
     if (!modal) return;
 
@@ -276,14 +371,35 @@ export class UIRenderer {
     const svgKey = unit.typeId || unit.unitId;
     document.getElementById("sheetSvg").innerHTML = SVG_ART[svgKey] || SVG_ART.cat_patrol;
 
-    if (unit.isGuardian && proto) {
-      document.getElementById("sheetSkillName").textContent = proto.skillName || "守護技能";
-      document.getElementById("sheetSkillDesc").textContent = proto.skillDesc || "";
-      document.getElementById("sheetFlavor").textContent = proto.flavor || "";
-    } else if (proto) {
-      document.getElementById("sheetSkillName").textContent = "迷霧習性";
-      document.getElementById("sheetSkillDesc").textContent = proto.desc || "";
-      document.getElementById("sheetFlavor").textContent = unit.intent ? `下回合意圖：${unit.intent.desc}` : "";
+    const actionsEl = document.getElementById("sheetActions");
+    const btnMove = document.getElementById("btnSheetMoveUnit");
+
+    if (unit.isGuardian) {
+      if (proto) {
+        document.getElementById("sheetSkillName").textContent = proto.skillName || "守護技能";
+        document.getElementById("sheetSkillDesc").textContent = proto.skillDesc || "";
+        document.getElementById("sheetFlavor").textContent = proto.flavor || "";
+      }
+      if (actionsEl && btnMove) {
+        if (!unit.hasMoved) {
+          actionsEl.style.display = "block";
+          btnMove.style.display = "flex";
+          btnMove.innerHTML = `<span>戰術移動 (移動 ${unit.move} 格) ❯</span>`;
+          btnMove.onclick = () => {
+            this.closeUnitInfo();
+            if (onStartMove) onStartMove(unit);
+          };
+        } else {
+          actionsEl.style.display = "none";
+        }
+      }
+    } else {
+      if (proto) {
+        document.getElementById("sheetSkillName").textContent = "迷霧習性";
+        document.getElementById("sheetSkillDesc").textContent = proto.desc || "";
+        document.getElementById("sheetFlavor").textContent = unit.intent ? `下回合意圖：${unit.intent.desc}` : "";
+      }
+      if (actionsEl) actionsEl.style.display = "none";
     }
 
     modal.classList.add("active");
@@ -306,8 +422,8 @@ export class UIRenderer {
     const floater = document.createElement("div");
     floater.className = "damage-floater";
     floater.textContent = `-${amount}`;
-    floater.style.left = `${rect.left + rect.width / 2 - 10}px`;
-    floater.style.top = `${rect.top + 5}px`;
+    floater.style.left = `${rect.left + rect.width / 2 - 12}px`;
+    floater.style.top = `${rect.top + 4}px`;
 
     document.body.appendChild(floater);
     setTimeout(() => floater.remove(), 600);
@@ -331,19 +447,23 @@ export class UIRenderer {
     TOWN_BUILDINGS.forEach((bldg) => {
       const isBuilt = townManager.hasBuilding(bldg.id);
       const canAfford = townManager.canBuild(bldg.id);
+      const buildingSvg = (SVG_ART.buildings && SVG_ART.buildings[bldg.id]) || SVG_ART.icons.town || "";
 
       const card = document.createElement("div");
       card.className = `building-card ${isBuilt ? "built" : ""}`;
 
       card.innerHTML = `
+        <div class="bldg-thumb">
+          ${buildingSvg}
+        </div>
         <div class="bldg-info">
-          <div class="bldg-name">${isBuilt ? `<span style="display:inline-flex;width:14px;height:14px;vertical-align:middle;">${SVG_ART.icons.check}</span> ` : ""}${bldg.name} <span style="font-size:12px;font-weight:normal;color:var(--ink-muted);">(${bldg.subtitle})</span></div>
+          <div class="bldg-name">${isBuilt ? `<span style="display:inline-flex;width:14px;height:14px;vertical-align:middle;color:var(--bamboo-jade);">${SVG_ART.icons.check}</span> ` : ""}${bldg.name} <span class="bldg-subtitle">(${bldg.subtitle})</span></div>
           <div class="bldg-desc">${bldg.desc}</div>
         </div>
         <div>
           ${
             isBuilt
-              ? `<span style="font-size:13px;font-weight:800;color:var(--sage-dark);">已建造</span>`
+              ? `<span style="font-size:13px;font-weight:800;color:var(--bamboo-jade);">已建造</span>`
               : `<button type="button" class="btn-build" ${!canAfford ? "disabled" : ""}><span style="display:inline-flex;width:14px;height:14px;vertical-align:middle;">${SVG_ART.icons.star}</span> ${bldg.cost} 建造</button>`
           }
         </div>
@@ -407,12 +527,12 @@ export class UIRenderer {
         item.className = "building-card";
         const svg = SVG_ART[g.id] || SVG_ART.cat_patrol;
         item.innerHTML = `
-          <div style="width:48px;height:48px;flex-shrink:0;">${svg}</div>
+          <div class="bldg-thumb">${svg}</div>
           <div class="bldg-info">
-            <div class="bldg-name">${g.name} <span style="font-size:12px;color:var(--amber-primary);">[${g.tags.join("/")}]</span></div>
+            <div class="bldg-name">${g.name} <span style="font-size:12px;color:var(--lantern-gold);">[${g.tags.join("/")}]</span></div>
             <div class="bldg-desc" style="margin-bottom:2px;">生命: ${g.hp} | 攻擊: ${g.atk} | 射程: ${g.range} | 移動: ${g.move}</div>
-            <div class="bldg-desc" style="color:var(--ink-primary);font-weight:700;">${g.skillName}: ${g.skillDesc}</div>
-            <div style="font-size:11px;font-style:italic;color:var(--ink-muted);margin-top:2px;">${g.flavor}</div>
+            <div class="bldg-desc" style="color:var(--text-parchment-bright);font-weight:700;">${g.skillName}: ${g.skillDesc}</div>
+            <div style="font-size:11px;font-style:italic;color:var(--fog-cool);margin-top:2px;">${g.flavor}</div>
           </div>
         `;
         container.appendChild(item);
@@ -423,9 +543,9 @@ export class UIRenderer {
         item.className = "building-card";
         const svg = SVG_ART[e.id] || SVG_ART.fog_blob;
         item.innerHTML = `
-          <div style="width:48px;height:48px;flex-shrink:0;">${svg}</div>
+          <div class="bldg-thumb">${svg}</div>
           <div class="bldg-info">
-            <div class="bldg-name">${e.name} ${e.isBoss ? `<span style="color:var(--crimson-hazard);font-weight:900;">[BOSS]</span>` : ""}</div>
+            <div class="bldg-name">${e.name} ${e.isBoss ? `<span style="color:var(--crimson-hazard);font-weight:900;">[首領]</span>` : ""}</div>
             <div class="bldg-desc" style="margin-bottom:2px;">生命: ${e.hp} | 攻擊: ${e.atk} | 護甲: ${e.armor || 0}</div>
             <div class="bldg-desc">${e.desc}</div>
           </div>

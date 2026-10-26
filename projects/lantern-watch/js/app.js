@@ -391,35 +391,76 @@ class LanternWatchApp {
       this.activeBattle,
       (x, y) => this.handleTileTap(x, y),
       (index, card) => this.handleCardTap(index, card),
-      (unit) => this.ui.openUnitInfo(unit)
+      (unit) => this.ui.openUnitInfo(unit, (u) => this.startGuardianMove(u))
     );
+  }
+
+  selectCardForPlay(handIndex, card) {
+    const cardObj = typeof card === "object" && card !== null ? card : getCardById(card || this.activeBattle.hand[handIndex]);
+    if (!cardObj) return;
+
+    this.selectedGuardian = null;
+    this.sound.playSfx("card_select");
+    this.ui.selectedHandIndex = handIndex;
+    this.calculateValidTargetTiles(cardObj);
+    this.renderCurrentBattle();
   }
 
   handleCardTap(handIndex, card) {
     this.selectedGuardian = null;
-    if (this.ui.selectedHandIndex === handIndex) {
-      // Tap again to cancel
-      this.sound.playSfx("tap");
-      this.ui.selectedHandIndex = null;
-      this.ui.validTargetCoords = [];
-      this.renderCurrentBattle();
-      return;
-    }
+    const cardObj = typeof card === "object" && card !== null ? card : getCardById(card || this.activeBattle.hand[handIndex]);
+    if (!cardObj) return;
 
-    // Select card
-    this.sound.playSfx("card_select");
-    this.ui.selectedHandIndex = handIndex;
-    this.calculateValidTargetTiles(card);
+    const actualCost = this.activeBattle.getCardCost ? this.activeBattle.getCardCost(cardObj) : cardObj.cost;
+
+    // First tap always opens full unabridged inspection modal
+    this.sound.playSfx("tap");
+    this.ui.openCardInspect(
+      cardObj,
+      actualCost,
+      () => {
+        // Tapped "出牌 / 選擇目標 ❯": activates targeting mode and glows tiles
+        this.selectCardForPlay(handIndex, cardObj);
+      },
+      () => {
+        // Tapped "取消": deselects targeting mode
+        if (this.ui.selectedHandIndex === handIndex) {
+          this.ui.selectedHandIndex = null;
+          this.ui.validTargetCoords = [];
+          this.renderCurrentBattle();
+        }
+      }
+    );
+  }
+
+  startGuardianMove(unit) {
+    this.selectedGuardian = unit;
+    this.ui.selectedHandIndex = null;
+    this.ui.validTargetCoords = [];
+    this.sound.playSfx("tap");
+    const maxMove = unit.move + (unit.moveBonus || 0);
+    for (let r = 0; r < this.activeBattle.board.rows; r++) {
+      for (let c = 0; c < this.activeBattle.board.cols; c++) {
+        if (this.activeBattle.board.isEmpty(c, r)) {
+          const dist = Math.abs(c - unit.x) + Math.abs(r - unit.y);
+          if (dist <= maxMove && dist > 0) {
+            this.ui.validTargetCoords.push({ x: c, y: r });
+          }
+        }
+      }
+    }
     this.renderCurrentBattle();
   }
 
   calculateValidTargetTiles(card) {
     this.ui.validTargetCoords = [];
     if (!this.activeBattle) return;
+    const cardObj = typeof card === "object" && card !== null ? card : getCardById(card);
+    if (!cardObj) return;
 
     for (let y = 0; y < this.activeBattle.board.rows; y++) {
       for (let x = 0; x < this.activeBattle.board.cols; x++) {
-        if (this.activeBattle.validateCardTarget(card, x, y)) {
+        if (this.activeBattle.validateCardTarget(cardObj, x, y)) {
           this.ui.validTargetCoords.push({ x, y });
         }
       }
@@ -483,7 +524,7 @@ class LanternWatchApp {
         this.selectedGuardian = null;
         this.ui.validTargetCoords = [];
         this.renderCurrentBattle();
-        this.ui.openUnitInfo(g);
+        this.ui.openUnitInfo(g, (u) => this.startGuardianMove(u));
         return;
       }
 
@@ -492,24 +533,10 @@ class LanternWatchApp {
       this.ui.validTargetCoords = [];
     }
 
-    // 3. Select an unmoved friendly guardian on the board to move
+    // 3. First tap on any unit on board shows its info
     const unit = this.activeBattle.board.getUnitAt(x, y);
-    if (unit && unit.isGuardian && !unit.hasMoved) {
-      this.selectedGuardian = unit;
-      this.sound.playSfx("tap");
-      this.ui.validTargetCoords = [];
-      const maxMove = unit.move + (unit.moveBonus || 0);
-      for (let r = 0; r < this.activeBattle.board.rows; r++) {
-        for (let c = 0; c < this.activeBattle.board.cols; c++) {
-          if (this.activeBattle.board.isEmpty(c, r)) {
-            const dist = Math.abs(c - unit.x) + Math.abs(r - unit.y);
-            if (dist <= maxMove && dist > 0) {
-              this.ui.validTargetCoords.push({ x: c, y: r });
-            }
-          }
-        }
-      }
-      this.renderCurrentBattle();
+    if (unit) {
+      this.ui.openUnitInfo(unit, (u) => this.startGuardianMove(u));
       return;
     }
 
@@ -575,24 +602,37 @@ class LanternWatchApp {
     const rewardOptions = shuffled.slice(0, 3);
     let selectedRewardCardId = rewardOptions[0].id;
 
+    const updateRewardDesc = (card) => {
+      const box = document.getElementById("rewardCardDescBox");
+      if (box) {
+        const cleanName = card.name.replace(/^召喚：/, "").replace(/！$/, "");
+        box.innerHTML = `<span style="color:var(--lantern-gold);font-weight:800;">【${cleanName}】</span> <span style="color:var(--text-parchment);">${card.desc}</span>`;
+      }
+    };
+
+    updateRewardDesc(rewardOptions[0]);
+
     rewardOptions.forEach((c, idx) => {
       const cardEl = document.createElement("div");
-      cardEl.className = `card-item ${idx === 0 ? "selected" : ""}`;
-      cardEl.style.width = "85px";
-      cardEl.style.height = "120px";
+      cardEl.className = `card-item card-type-${c.type} ${idx === 0 ? "selected" : ""}`;
+      cardEl.style.width = "92px";
+      cardEl.style.height = "136px";
+      const cardArtSvg = SVG_ART.cardArt[c.id] || SVG_ART.cardArt.card_summon_cat || "";
+      const displayName = c.name.replace(/^召喚：/, "").replace(/！$/, "");
       cardEl.innerHTML = `
-        <div class="card-header-mini">
-          <div class="card-cost-badge">${c.cost}</div>
+        <div class="card-header-bar">
+          <div class="card-cost-gem">${c.cost}</div>
           <div class="card-type-tag">${getCardTypeLabel(c.type)}</div>
         </div>
-        <div class="card-title-mini" style="font-size:12px;">${c.name}</div>
-        <div class="card-desc-mini" style="font-size:10px;">${c.desc}</div>
+        <div class="card-art-frame" style="height: 64px;">${cardArtSvg}</div>
+        <div class="card-title-serif" style="font-size: 11px;">${displayName}</div>
       `;
       cardEl.onclick = () => {
         this.sound.playSfx("tap");
         rewardContainer.querySelectorAll(".card-item").forEach((ci) => ci.classList.remove("selected"));
         cardEl.classList.add("selected");
         selectedRewardCardId = c.id;
+        updateRewardDesc(c);
       };
       rewardContainer.appendChild(cardEl);
     });
@@ -647,33 +687,44 @@ class LanternWatchApp {
     shopCards.forEach((c) => {
       const price = 30;
       const cardEl = document.createElement("div");
-      cardEl.className = "card-item";
-      cardEl.style.width = "80px";
-      cardEl.style.height = "115px";
+      cardEl.className = `card-item card-type-${c.type}`;
+      cardEl.style.width = "88px";
+      cardEl.style.height = "136px";
+      const cardArtSvg = SVG_ART.cardArt[c.id] || SVG_ART.cardArt.card_summon_cat || "";
+      const displayName = c.name.replace(/^召喚：/, "").replace(/！$/, "");
       cardEl.innerHTML = `
-        <div class="card-header-mini">
-          <div class="card-cost-badge">${c.cost}</div>
+        <div class="card-header-bar">
+          <div class="card-cost-gem">${c.cost}</div>
           <div class="card-type-tag">${getCardTypeLabel(c.type)}</div>
         </div>
-        <div class="card-title-mini">${c.name}</div>
-        <div class="card-desc-mini">${c.desc}</div>
-        <div style="font-size:10px;font-weight:700;color:var(--color-ink-accent);text-align:right;margin-top:2px;">
-          <span style="display:inline-flex;width:11px;height:11px;vertical-align:middle;">${SVG_ART.icons.coin}</span> ${price}
+        <div class="card-art-frame" style="height: 60px;">${cardArtSvg}</div>
+        <div class="card-title-serif" style="font-size: 11px;">${displayName}</div>
+        <div style="font-size:11.5px;font-weight:800;color:var(--lantern-gold);text-align:center;margin-top:4px;">
+          <span style="display:inline-flex;width:12px;height:12px;vertical-align:middle;">${SVG_ART.icons.coin}</span> ${price}
         </div>
       `;
       cardEl.onclick = () => {
-        if (this.activeRun.coins >= price) {
-          this.sound.playSfx("card_play");
-          this.activeRun.coins -= price;
-          this.activeRun.deck.push(c.id);
-          this.town.saveActiveRun(this.activeRun);
-          cardEl.style.opacity = "0.3";
-          cardEl.onclick = null;
-          document.getElementById("shopCoins").textContent = this.activeRun.coins;
-          this.updateTopBar();
-        } else {
-          this.ui.showAlertModal("提示", "銅錢不足！");
-        }
+        this.sound.playSfx("tap");
+        this.ui.openCardInspect(
+          c,
+          c.cost,
+          () => {
+            if (this.activeRun.coins >= price) {
+              this.sound.playSfx("card_play");
+              this.activeRun.coins -= price;
+              this.activeRun.deck.push(c.id);
+              this.town.saveActiveRun(this.activeRun);
+              cardEl.style.opacity = "0.3";
+              cardEl.onclick = null;
+              document.getElementById("shopCoins").textContent = this.activeRun.coins;
+              this.updateTopBar();
+            } else {
+              this.ui.showAlertModal("提示", "銅錢不足！");
+            }
+          },
+          () => {},
+          `購買 (${price} 銅錢) ❯`
+        );
       };
       cardsContainer.appendChild(cardEl);
     });
@@ -783,17 +834,31 @@ class LanternWatchApp {
       if (!c) return;
 
       const cardEl = document.createElement("div");
-      cardEl.className = "card-item";
-      cardEl.style.width = "75px";
-      cardEl.style.height = "105px";
+      cardEl.className = `card-item card-type-${c.type}`;
+      cardEl.style.width = "84px";
+      cardEl.style.height = "124px";
+      const cardArtSvg = SVG_ART.cardArt[c.id] || SVG_ART.cardArt.card_summon_cat || "";
+      const displayName = c.name.replace(/^召喚：/, "").replace(/！$/, "");
       cardEl.innerHTML = `
-        <div class="card-header-mini">
-          <div class="card-cost-badge">${c.cost}</div>
+        <div class="card-header-bar">
+          <div class="card-cost-gem">${c.cost}</div>
           <div class="card-type-tag">${c.isUpgraded ? "強化" : getCardTypeLabel(c.type)}</div>
         </div>
-        <div class="card-title-mini">${c.name}</div>
+        <div class="card-art-frame" style="height: 56px;">${cardArtSvg}</div>
+        <div class="card-title-serif" style="font-size: 10.5px;">${displayName}</div>
       `;
-      cardEl.onclick = () => onSelectCard(cardId, idx);
+      cardEl.onclick = () => {
+        this.sound.playSfx("tap");
+        this.ui.openCardInspect(
+          c,
+          c.cost,
+          () => {
+            onSelectCard(cardId, idx);
+          },
+          () => {},
+          "確認強化 ❯"
+        );
+      };
       container.appendChild(cardEl);
     });
 

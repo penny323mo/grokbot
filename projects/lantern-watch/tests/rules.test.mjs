@@ -371,3 +371,45 @@ test("Rules: Round 3 - Windchime curse reduces attack and Fox Maiden cleanses", 
   assert.strictEqual(cat.curseAtk, 0, "Fox Maiden on-spawn should cleanse curses");
   assert.strictEqual(battle.getGuardianAtk(cat), baseAtk, "Cat attack power should be restored");
 });
+
+test("Rules: v2 - Lantern tiles cannot be targeted by summon or attack spells", () => {
+  const battle = new Battle({ rng: new RNG(1111) });
+  // Lanterns are at (0, 5), (2, 5), (4, 5)
+
+  // 1. Summon card cannot target lantern tile
+  battle.hand = ["card_summon_cat"];
+  battle.energy = 3;
+  const resSummon = battle.playCard(0, 2, 5);
+  assert.strictEqual(resSummon.success, false, "Cannot summon on top of a lantern tile");
+
+  // 2. Attack spell (fireball) cannot target lantern tile
+  battle.hand = ["card_spell_fireball"];
+  battle.energy = 3;
+  const resFireball = battle.playCard(0, 2, 5);
+  assert.strictEqual(resFireball.success, false, "Offensive spell cannot target a lantern tile");
+
+  // 3. Move guardian cannot move into a lantern tile
+  const cat = battle.spawnGuardian("cat_patrol", 2, 4);
+  const resMove = battle.moveGuardian(cat, 2, 5);
+  assert.strictEqual(resMove.success, false, "Guardian cannot step onto a lantern tile");
+});
+
+test("Rules: v2 - Cat Patrol card description matches mobile double damage logic", () => {
+  const battle = new Battle({ rng: new RNG(1212) });
+  const cat = battle.spawnGuardian("cat_patrol", 2, 4);
+  assert.strictEqual(cat.hasMoved, false);
+
+  // Moving 1 step sets hasMoved = true
+  const resMove = battle.moveGuardian(cat, 2, 3);
+  assert.strictEqual(resMove.success, true);
+  assert.strictEqual(cat.hasMoved, true);
+
+  // Spawn enemy in front at (2, 2)
+  const enemy = battle.spawnEnemy("fog_blob", 2, 2);
+  enemy.hp = 10;
+  enemy.maxHp = 10;
+
+  // Cat attacks: 3 * 2 = 6 damage
+  battle.endPlayerTurn();
+  assert.strictEqual(enemy.hp, 4, "Cat patrol should deal double damage (6 dmg) after moving 1 or more steps");
+});

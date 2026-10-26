@@ -117,3 +117,106 @@
   - Implemented persistent `curseAtk` on guardians inflicted by Windchime Spectre (`windchime_spectre`), correctly reducing attack by 1 on the unit's next strike.
   - Implemented Fox Maiden (`fox_maiden`) on-spawn cleanse, purging all curses and debuffs from living friendly guardians.
   - Implemented Lantern Crafter (`lantern_crafter`) 破霧明燈 stripping fog armor on target and adjacent fog enemies.
+
+
+## v2 visual overhaul
+
+### Visual & Atmospheric Overhaul
+- **Deep Indigo & Warm Lantern Palette**:
+  - Replaced v1 beige paper aesthetic with a mature, atmospheric deep indigo night theme (`#070914`, `#0E1230`, `#141938`, `#1A2146`).
+  - Implemented warm radial lantern lighting (`#F2B45A`, `#FFAE42`, `#D9822B`) casting amber glow across defender lines.
+  - Added cool mist overlays (`#8FA3C7` at low alpha) with gentle animated ambient drifting fog.
+  - Styled all typography with Google Fonts `Noto Serif TC` (headings, titles, card frames) and `Noto Sans TC` (rules text, UI stats).
+
+### Illustrated Board & Depth
+- **Slate Courtyard Tactics Grid**:
+  - Restyled 5x6 battle grid with beveled dark slate pavers, subtle inner shadows, and terrain-specific aesthetics (mystic water pool, jade bamboo grove, carved stone post, swirling fog shroud).
+  - Valid target highlights transformed into ethereal pulsing golden runes with ambient amber glow.
+  - Unit sprites given directional rim lighting, drop shadows, and refined stat badges.
+
+### Card Frames & Hand Experience
+- **Fantasy CCG Card Architecture**:
+  - Designed distinct card frame borders color-coded by archetype: Emerald Jade for 召喚 (Summon), Azure Slate for 指令 (Command), Mystic Amethyst for 秘術 (Spell), Radiant Amber for 燈籠 (Lantern).
+  - Added faceted glowing cost gems at the top-left, serif title ribbons, and inset SVG illustration windows.
+  - Created 30 unique hand-drawn card vignette illustrations in `SVG_ART.cardArt`.
+  - Hand cards fit iPhone 390px viewport smoothly with snap points; tapping cards provides instant selection and inspection via `#modalCardInspect` for complete, unabridged rules examination.
+
+### Bug Fixes & Mechanical Integrity
+- **Bug 1 (突進指令 Diagonal Navigation)**: Allows routing diagonally forward into empty tiles `(curX ± 1, curY - 1)` when forward progress is obstructed.
+- **Bug 2 (Guardian First-Tap Info)**: Tapping any guardian on the grid immediately opens its detailed info sheet; unmoved guardians feature a prominent `「戰術移動 (移動 N 格) ❯」` button to initiate movement.
+- **Bug 3 (Lantern Target Exclusion)**: Lantern tiles are excluded from summon, movement, and spell targeting where inappropriate.
+- **Bug 4 (Cat Patrol Description Alignment)**: Synchronized card description with mobile double-swipe logic (`「若本回合移動 1 格或以上後攻擊，連續揮爪攻擊 2 次（造成雙倍傷害）。」`).
+- All 22 automated rules, intent, save/load, and bot simulation tests passing.
+
+### Grokbot Integration & Safe Areas
+- Added 56px left safe-area inset to `.top-nav` and 52px top padding to modal sheets to ensure the fixed Grokbot back button never overlaps UI text, controls, or icons.
+
+## Round 1 fixes
+
+### Critical & Visual Depth Polish
+- **CRITICAL #1 (Board Depth, Layered Skyline & Lantern Glow Wash)**:
+  - Transformed `.board-container` into a rich, layered night scene featuring a distant town pagoda skyline backdrop (`SVG_ART.skyline` with stars, crescent moon, and warm window lights), animated cool drifting mist, and beveled dark slate courtyard pavers.
+  - Implemented dynamic orthogonal lantern glow wash (`.lantern-glow-neighbour`): active lanterns at `(0,5)`, `(2,5)`, `(4,5)` now cast warm radial amber light onto neighbouring tiles `(0,4)`, `(1,5)`, `(2,4)`, `(3,5)`, `(4,4)`.
+  - Added unit rim lights (`.guardian-unit` warm gold rim light and `.enemy-unit` crimson rim light) with deep drop shadows.
+
+### Major Gameplay & UI Fixes
+- **MAJOR #2 (Unabridged Card Rules & First-Tap Inspection)**:
+  - Removed truncated rules text clamp from mini in-hand cards. Mini cards now render clean cost gems, archetype tags, rich vector art frames, and serif titles.
+  - First tap on any hand card opens the full inspection sheet (`#modalCardInspect`) showing unabridged rules text and large vector illustration without any ellipsis.
+  - Player confirms play mode via `「出牌 / 選擇目標 ❯」`, which activates golden rune pulse highlights on valid board tiles.
+- **MAJOR #3 (Full Unit Illustration Embeddings on Cards & 64px Architectural Town Thumbnails)**:
+  - Directly linked all summon card art (`cardArt[id]`) to authentic unit sprite illustrations (`cat_patrol`, `tea_master`, `mole_smith`, `scarecrow`, `tanuki_mage`, `lantern_dragon`, `crane_courier`, `frog_bard`, `fox_maiden`, `bear_baker`).
+  - Rewrote town buildings with 64px illustrated architectural SVGs (`bldg-thumb`) and applied `white-space: nowrap; flex-shrink: 0;` to building subtitles so 「(解鎖新守護者：鶴郵差)」 never wraps mid-word.
+- **MAJOR #4 (Tutorial Copy Overhaul & Grokbot Safe Clearance)**:
+  - Rewrote tutorial step 3 in `index.html`: `「3. 戰術走位：點友軍開詳情，再按『戰術移動』即可選擇金色格子前進。」`.
+  - Removed obsolete `--ink-*` and `--paper-*` variables across `index.html`.
+  - Padded `#modalTutorial` 50px below top viewport so Grokbot back button at top-left has complete clearance.
+  - Added `screenshots/v2/tutorial.png` to automated screenshot captures.
+
+### Minor Polish & Compliance
+- **MINOR #5 (Inline Chrome SVGs)**:
+  - Replaced legacy v1 thick-outline SVGs in `index.html` navigation and action buttons with modern v2 vector icons matching `art.js:icons`.
+- **MINOR #6 (Target Highlighting Precision in Screenshot)**:
+  - Updated screenshot script to select 貓巡邏員 (`card_summon_cat`), highlighting only defender rows 3–4 (excluding lantern posts) instead of the entire board.
+- **MINOR #7 (Cantonese Localization for Bosses)**:
+  - Localized Boss map node to `決戰黎明 (首領)` in `js/engine/map.js` and 图鉴 to `[首領]` in `js/render/ui.js`.
+- **MINOR #8 (Local Noto Serif Font Bundling)**:
+  - Bundled local `assets/fonts/notoseriftc.woff2` and declared local `@font-face` in `css/style.css` for offline and headless rendering.
+
+### Automated Tests & Verification
+- Independently ran `npm test`: all 22 rules, intents, save/load, and simulation tests pass.
+- Automated 20-seed bot runs: Relaxed 100% (20/20), Standard 90% (18/20), Challenging A1 85% (17/20).
+- Puppeteer captured all 7 screenshots into `screenshots/v2/` (`title.png`, `battle.png`, `card-selected.png`, `reward.png`, `map.png`, `town.png`, `tutorial.png`) with 0 console errors.
+
+## Round 2 fixes
+
+### Major Fixes
+- **MAJOR 1 (Wrong Sprite Keys for 燈籠匠 and 小龍)**:
+  - Fixed sprite aliasing in `js/render/art.js` where `card_summon_lantern_crafter` and `card_summon_dragon` incorrectly targeted non-existent keys `mole_smith` and `lantern_dragon`.
+  - Mapped them to the handcrafted guardian unit illustrations `SVG_ART.lantern_crafter` and `SVG_ART.little_dragon`.
+  - Verified 燈籠匠 and 小龍 render with their unique guardian portraits on both cards and on-board units.
+
+- **MAJOR 2 (Unabridged Card Rules in Rewards, Shop, and Upgrade Modal)**:
+  - Eliminated `.card-desc-compact` and two-line ellipsis clamping from reward, shop, and upgrade card tiles.
+  - Added dedicated full-text preview box (`#rewardCardDescBox`) beneath reward cards displaying complete, unabridged rules text and archetype highlight on selection.
+  - Updated shop and town blacksmith upgrade flows to open the inspection sheet (`ui.openCardInspect`) on card tap with context-specific action buttons (`購買 (30 銅錢) ❯` and `確認強化 ❯`), presenting complete card mechanics prior to transaction.
+
+- **MAJOR 3 (Illustrated Non-Summon Card Vignettes & Atmospheric Polish)**:
+  - Replaced generic geometric stickers across all command, spell, and lantern cards with detailed handcrafted fantasy vignettes (`gust`, `fireball`, `barrier`, `whirlwind`, `freeze_mist`, `bamboo_trap`, `spirit_rain`, `thunder_strike`, `refuel`, `flare`, `guardian_halo`, `ignite`, `oil_flask`, `advance`, `reposition`, `rally`, `strike_again`, `tactical_swap`).
+  - Added `SVG_ART.titleBackdrop` in `js/render/art.js` and rendered night skyline with silhouette pagodas, bridge lantern posts, and river mist behind the title buttons.
+  - Implemented 12s drifting fog keyframe animation (`@keyframes driftFog`) across battle, map, and title backgrounds with `@media (prefers-reduced-motion: reduce)` accessibility override.
+
+### Minor Fixes & Polish
+- **MINOR 4 (Local Noto Sans TC font bundling)**:
+  - Bundled local `assets/fonts/notosanstc.ttf` alongside `notoseriftc.woff2` and configured local `@font-face` in `css/style.css` for complete offline and headless typography rendering.
+- **MINOR 5 (Card Title 2-Line Wrap)**:
+  - Allowed `.card-title-serif` to wrap cleanly across up to 2 lines (`-webkit-line-clamp: 2`, `word-break: break-all`) so longer card names never clip.
+- **MINOR 6 (Town Screen Scroll & Padding)**:
+  - Expanded `.town-screen-content` bottom padding to 64px and adjusted building card padding so the final building (鍛造工房) and its description are fully visible without viewport cut-off.
+- **MINOR 7 (Stone Paver Granularity)**:
+  - Added multi-point stone grain pattern (`.grid-tile::before`) to courtyard tiles for authentic stone slab texture.
+
+### Verification & Automated Testing
+- Verified `npm test`: all 22 rules, intents, save/load, and simulation tests pass with 0 failures.
+- Bot simulations (20 seeds each): 悠閒 100% (20/20), 標準 90% (18/20), 挑戰 A1 85% (17/20).
+- Re-captured all 7 screenshots into `screenshots/v2/` (`title.png`, `battle.png`, `card-selected.png`, `reward.png`, `map.png`, `town.png`, `tutorial.png`) with 0 console errors.

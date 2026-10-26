@@ -1,0 +1,107 @@
+
+> lantern-watch@1.0.0 test
+> node tests/rules.test.mjs && node tests/intents.test.mjs && node tests/save_load.test.mjs && node tests/bot_run.test.mjs
+
+TAP version 13
+# Subtest: Rules: Damage calculation and armor absorption
+ok 1 - Rules: Damage calculation and armor absorption
+  ---
+  duration_ms: 3.418596
+  ...
+# Subtest: Rules: Push physics, boundary collision, and water shock damage
+ok 2 - Rules: Push physics, boundary collision, and water shock damage
+  ---
+  duration_ms: 0.39064
+  ...
+# Subtest: Rules: Tag Resonance activation
+ok 3 - Rules: Tag Resonance activation
+  ---
+  duration_ms: 0.384235
+  ...
+# Subtest: Rules: Card upgrades verification
+ok 4 - Rules: Card upgrades verification
+  ---
+  duration_ms: 0.224072
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 15.720857
+TAP version 13
+# Subtest: Intents: Enemy calculates path and damage telegraph towards nearest lantern
+ok 1 - Intents: Enemy calculates path and damage telegraph towards nearest lantern
+  ---
+  duration_ms: 2.870467
+  ...
+# Subtest: Intents: Scarecrow taunt forces nearby enemies to prioritize Scarecrow
+ok 2 - Intents: Scarecrow taunt forces nearby enemies to prioritize Scarecrow
+  ---
+  duration_ms: 0.550063
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 12.669132
+TAP version 13
+# Subtest: Save/Load: Town manager persists star lanterns and building construction
+ok 1 - Save/Load: Town manager persists star lanterns and building construction
+  ---
+  duration_ms: 1.428711
+  ...
+# Subtest: Save/Load: Active run state can be saved and resumed mid-run
+ok 2 - Save/Load: Active run state can be saved and resumed mid-run
+  ---
+  duration_ms: 0.210715
+  ...
+# Subtest: Save/Load: Battle state snapshot & 1-step undo restore
+ok 3 - Save/Load: Battle state snapshot & 1-step undo restore
+  ---
+  duration_ms: 1.553222
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 12.746512
+[Balance Report] 悠閒 (Relaxed) Win Rate: 100% (5/5), Avg Nights: 8.0/8
+[Balance Report] 標準 (Standard) Win Rate: 60% (3/5), Avg Nights: 7.2/8
+[Balance Report] 挑戰 (Challenging A1) Win Rate: 100% (5/5), Avg Nights: 8.0/8
+TAP version 13
+# Subtest: Bot: Automated simulation on 悠閒 (Relaxed) difficulty
+ok 1 - Bot: Automated simulation on 悠閒 (Relaxed) difficulty
+  ---
+  duration_ms: 74.898845
+  ...
+# Subtest: Bot: Automated simulation on 標準 (Standard) difficulty
+ok 2 - Bot: Automated simulation on 標準 (Standard) difficulty
+  ---
+  duration_ms: 40.283611
+  ...
+# Subtest: Bot: Automated simulation on 挑戰 (Challenging) + Ascension 1
+ok 3 - Bot: Automated simulation on 挑戰 (Challenging) + Ascension 1
+  ---
+  duration_ms: 45.376396
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 171.952241

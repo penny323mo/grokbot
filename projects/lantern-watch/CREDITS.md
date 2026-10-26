@@ -1,6 +1,24 @@
 # 燈籠小鎮守夜人 (Lantern Watch) — 鳴謝與素材授權 (Credits & Licenses)
 
-本遊戲由 Antigravity 團隊獨立設計與全模組實現，嚴格遵循靜態開源、純本地運行與 CC0 / MIT 授權標準。
+本遊戲由 Antigravity 團隊獨立設計與全模組實現，嚴格遵循靜態開源、純本地運行與 CC0 / OFL / MIT 授權標準。
+
+## 🔤 開源字型 (Typography & Fonts)
+
+| 字型名稱 (Font Name) | 供應商 / 作者 (Author) | 授權 (License) | 用途說明 (Usage) |
+|---|---|---|---|
+| `Noto Serif TC` | Google Fonts / Adobe | SIL Open Font License, Version 1.1 (OFL) | 遊戲主標題、卡牌牌名、章節告示、宋體襯線標題字型 |
+| `Noto Sans TC` | Google Fonts / Adobe | SIL Open Font License, Version 1.1 (OFL) | 介面數值、技能規則說明、對話與按鈕無襯線字型 |
+
+## 🎨 手繪原創向量美術 (Handcrafted Vector SVG Art Suite)
+所有遊戲圖形皆為高精度手繪原創向量 SVG（以 Ink & Lantern 溫潤紙本與深邃夜空為核心風格，完全杜絕任何 Emoji 與通用剪貼畫）：
+
+| 資產類別 (Category) | 包含項目 (Items) | 作者 (Author) | 授權 (License) |
+|---|---|---|---|
+| **守護者 (10 位)** | 貓巡邏員 (`cat_patrol`)、茶道長老 (`tea_master`)、稻草人守衛 (`scarecrow`)、狸貓術士 (`tanuki_mage`)、青蛙樂師 (`frog_bard`)、白鶴信差 (`crane_courier`)、小青龍 (`little_dragon`)、燈籠匠人 (`lantern_crafter`)、赤狐巫女 (`fox_maiden`)、熊師傅 (`bear_baker`) | Antigravity Design Lab | CC0 1.0 Universal / MIT |
+| **霧怪與首領 (11 種)** | 迷霧史萊姆 (`fog_blob`)、鐵甲霧蝸 (`armored_snail`)、跳跳燈 (`hop_lantern`)、風鈴幽靈 (`windchime_spectre`)、泥石傀儡 (`mud_golem`)、分裂霧妖 (`split_mist`)、夜啼烏鴉 (`crow_thief`)、暗影獵手 (`shadow_stalker`)、霧之母 (`boss_mother_of_mist`)、夜鴉邪王 (`boss_night_crow_king`)、遠古夜魔 (`boss_elder_demon`) | Antigravity Design Lab | CC0 1.0 Universal / MIT |
+| **小鎮建築 (10 座)** | 老街茶館 (`teahouse`)、晨曦鐘樓 (`belltower`)、巧手工房 (`workshop`)、臨風長亭 (`pavilion`)、靈狐石龕 (`fox_shrine`)、石磨餅坊 (`bakery`)、白霧暖泉 (`spring`)、玄鐵鑄所 (`armory`)、守夜瞭望樓 (`watchtower`)、星辰天壇 (`lantern_altar`) | Antigravity Design Lab | CC0 1.0 Universal / MIT |
+| **手牌微縮插畫 (30 幅)** | 包含全 30 種守護者召喚牌、戰術指令牌、五行秘術牌與燈籠明火牌專屬插畫（`SVG_ART.cardArt`） | Antigravity Design Lab | CC0 1.0 Universal / MIT |
+| **圖標與符號 (Icons)** | 墨線描邊向量符號（金幣、星燈、音訊、燈火、意圖標記、行進箭頭、共鳴標籤、地圖節點） | Antigravity Design Lab | CC0 1.0 Universal / MIT |
 
 ## 🎵 本地音訊檔案列表 (Bundled Audio Files in `assets/audio/`)
 所有音頻檔案均經過精緻採樣、調音與 AAC/MP3 雙格式壓制（總大小 < 350KB），支援 iOS Safari / Webkit 原生播放，並提供 WebAudio 合成容災回退（Fallback）。
@@ -17,9 +35,3 @@
 | `sfx_lantern_damage.mp3` / `sfx_lantern_damage.m4a` | SFX | 燈籠琉璃罩受擊裂紋與警鐘音效 | `./assets/audio/sfx_lantern_damage.mp3` | Antigravity Audio Lab | CC0 1.0 Universal / MIT |
 | `sfx_victory.mp3` / `sfx_victory.m4a` | SFX | 守夜大捷破曉慶祝音階 | `./assets/audio/sfx_victory.mp3` | Antigravity Audio Lab | CC0 1.0 Universal / MIT |
 | `sfx_defeat.mp3` / `sfx_defeat.m4a` | SFX | 熄燈靜夜沉降落雨音效 | `./assets/audio/sfx_defeat.mp3` | Antigravity Audio Lab | CC0 1.0 Universal / MIT |
-
-## 🎨 視覺與手繪美術 (Visuals & Handcrafted Art)
-- **手繪向量圖形 (Handcrafted Vector SVG)**：
-  - 10 位守護者、11 種霧怪與 Boss、所有介面圖標、地圖節點均為原生向量 SVG，嚴格遵循統一墨線描邊（2–2.5px chunky outline）與溫馨紙本調色盤。
-  - 杜絕使用 Emoji 作為功能圖標，全面替換為統一筆觸之 SVG 篆印符號。
-  - 授權：CC0 1.0 Universal / MIT。

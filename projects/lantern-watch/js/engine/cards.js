@@ -27,7 +27,7 @@ export const CARD_CATALOGUE = [
     cost: 1,
     unitId: "cat_patrol",
     targetType: "empty_friendly_tile",
-    desc: "在己方半場空格召喚一隻【貓巡邏員】（生命 8，攻擊 3，移動 2）。",
+    desc: "在己方空格召喚一隻【貓巡邏員】（生命 8，攻擊 3，移動 1 格或以上後攻擊造成雙倍傷害）。",
     upgrade: {
       id: "card_summon_cat_plus",
       name: "召喚：貓巡邏員+",

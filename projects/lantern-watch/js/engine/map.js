@@ -53,7 +53,7 @@ export class RunMap {
           name = lane === 0 ? "巨獸狂襲" : "霧怪集結";
         } else if (night === 8) {
           type = NODE_TYPES.BOSS;
-          name = "決戰黎明 (Boss)";
+          name = "決戰黎明 (首領)";
         } else {
           // Night 2
           type = lane === 2 ? NODE_TYPES.EVENT : NODE_TYPES.BATTLE;

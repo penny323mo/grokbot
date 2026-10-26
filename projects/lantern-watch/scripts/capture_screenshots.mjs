@@ -1,13 +1,12 @@
 /**
  * scripts/capture_screenshots.mjs
  * Puppeteer-core screenshot generation at 390x844 (iPhone Safari viewport).
- * Verifies 0 console errors and saves screenshots into screenshots/r1/:
+ * Verifies 0 console errors and saves screenshots into screenshots/v2/:
  * - title.png
- * - tutorial.png
- * - battle_intents.png
- * - card_selected.png
- * - reward.png
  * - map.png
+ * - battle.png
+ * - card-selected.png
+ * - reward.png
  * - town.png
  */
 
@@ -23,7 +22,7 @@ const puppeteer = require("/workspace/nightly/shotkit/node_modules/puppeteer-cor
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, "..");
-const SCREENSHOT_DIR = path.resolve(ROOT_DIR, "screenshots/r1");
+const SCREENSHOT_DIR = path.resolve(ROOT_DIR, "screenshots/v2");
 const PORT = 8891;
 
 fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
@@ -89,14 +88,19 @@ async function run() {
 
   const page = await browser.newPage();
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2 });
+  await page.evaluateOnNewDocument(() => {
+    localStorage.setItem("lantern_watch_tutorial_seen", "1");
+  });
 
   const consoleErrors = [];
   page.on("console", (msg) => {
+    console.log(`[BROWSER ${msg.type()}]:`, msg.text());
     if (msg.type() === "error") {
       consoleErrors.push(msg.text());
     }
   });
   page.on("pageerror", (err) => {
+    console.log("[BROWSER PAGE ERROR]:", err.toString());
     consoleErrors.push(err.toString());
   });
 
@@ -104,78 +108,80 @@ async function run() {
     // 1. Title Screen
     console.log("1. Capturing title.png...");
     await page.goto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: "networkidle0" });
-    // Close tutorial modal if open to capture clean title first
-    await page.evaluate(() => {
-      const modal = document.getElementById("modalTutorial");
-      if (modal) modal.classList.remove("active");
-    });
+    await new Promise((r) => setTimeout(r, 800));
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, "title.png") });
 
-    // 2. Tutorial Modal
-    console.log("2. Capturing tutorial.png...");
-    await page.evaluate(() => {
-      const modal = document.getElementById("modalTutorial");
-      if (modal) modal.classList.add("active");
-    });
-    await page.screenshot({ path: path.join(SCREENSHOT_DIR, "tutorial.png") });
-    await page.evaluate(() => {
-      document.getElementById("modalTutorial").classList.remove("active");
-    });
-
-    // 3. Start Battle & Capture Battle with Intents Shown
-    console.log("3. Capturing battle_intents.png...");
+    // 2. Start Battle & Capture Battle
+    console.log("2. Capturing battle.png...");
     await page.click("#btnStartAdventure");
     await new Promise((r) => setTimeout(r, 200));
-    // Click Standard Difficulty
     await page.click('[data-diff="standard"]');
-    await new Promise((r) => setTimeout(r, 300));
-    await page.screenshot({ path: path.join(SCREENSHOT_DIR, "battle_intents.png") });
+    await new Promise((r) => setTimeout(r, 500));
+    await page.screenshot({ path: path.join(SCREENSHOT_DIR, "battle.png") });
 
-    // 4. Card Selected with Valid Target Highlights (Summon card glowing friendly deployment tiles)
-    console.log("4. Capturing card_selected.png...");
+    // 3. Card Selected with Valid Target Highlights (Cat patrol glowing friendly deployment rows 3-4)
+    console.log("3. Capturing card-selected.png...");
     await page.evaluate(() => {
       if (window.app && window.app.activeBattle) {
         const battle = window.app.activeBattle;
-        const summonIdx = battle.hand.findIndex((c) => c.type === "summon");
-        const idx = summonIdx >= 0 ? summonIdx : 0;
-        window.app.handleCardTap(idx, battle.hand[idx]);
+        let catIdx = battle.hand.findIndex((c) => {
+          const id = typeof c === "string" ? c : c.id;
+          return id === "card_summon_cat";
+        });
+        if (catIdx === -1) {
+          battle.hand[0] = "card_summon_cat";
+          catIdx = 0;
+        }
+        window.app.selectCardForPlay(catIdx, "card_summon_cat");
       }
     });
-    await new Promise((r) => setTimeout(r, 300));
-    await page.screenshot({ path: path.join(SCREENSHOT_DIR, "card_selected.png") });
+    await new Promise((r) => setTimeout(r, 500));
+    await page.screenshot({ path: path.join(SCREENSHOT_DIR, "card-selected.png") });
 
-    // 5. Reward Screen
-    console.log("5. Capturing reward.png...");
+    // 4. Reward Screen
+    console.log("4. Capturing reward.png...");
     await page.evaluate(() => {
       if (window.app) {
         window.app.handleBattleVictory();
       }
     });
-    await new Promise((r) => setTimeout(r, 200));
+    await new Promise((r) => setTimeout(r, 400));
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, "reward.png") });
 
-    // 6. Map Screen
-    console.log("6. Capturing map.png...");
+    // 5. Map Screen
+    console.log("5. Capturing map.png...");
     await page.evaluate(() => {
       if (window.app && window.app.activeRun) {
         window.app.renderMapScreen();
       }
     });
-    await new Promise((r) => setTimeout(r, 200));
+    await new Promise((r) => setTimeout(r, 400));
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, "map.png") });
 
-    // 7. Town Meta Progression Screen
-    console.log("7. Capturing town.png...");
+    // 6. Town Meta Progression Screen
+    console.log("6. Capturing town.png...");
     await page.evaluate(() => {
       if (window.app) {
         window.app.ui.showScreen("screenTown");
         window.app.ui.renderTown(window.app.town, () => {});
       }
     });
-    await new Promise((r) => setTimeout(r, 200));
+    await new Promise((r) => setTimeout(r, 400));
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, "town.png") });
 
-    console.log("\nAll 7 screenshots captured successfully!");
+    // 7. Tutorial Sheet (Clear of Grokbot chip)
+    console.log("7. Capturing tutorial.png...");
+    await page.evaluate(() => {
+      if (window.app) {
+        window.app.ui.showScreen("screenBattle");
+        const tutorial = document.getElementById("modalTutorial");
+        if (tutorial) tutorial.classList.add("active");
+      }
+    });
+    await new Promise((r) => setTimeout(r, 400));
+    await page.screenshot({ path: path.join(SCREENSHOT_DIR, "tutorial.png") });
+
+    console.log("\nAll 7 screenshots captured successfully into screenshots/v2/!");
     console.log(`Console Errors count: ${consoleErrors.length}`);
     if (consoleErrors.length > 0) {
       console.error("Console Errors encountered:", consoleErrors);
