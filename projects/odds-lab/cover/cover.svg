@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900">
+  <rect width="1600" height="900" fill="#EEECE7"/>
+  <!-- Thin geometric accent shape / analytics grid -->
+  <line x1="260" y1="360" x2="720" y2="360" stroke="#6E8B74" stroke-width="2" stroke-opacity="0.2" stroke-dasharray="6 6"/>
+  <line x1="260" y1="460" x2="720" y2="460" stroke="#6E8B74" stroke-width="2" stroke-opacity="0.2" stroke-dasharray="6 6"/>
+  <line x1="260" y1="560" x2="720" y2="560" stroke="#6E8B74" stroke-width="2.5" stroke-opacity="0.35"/>
+  <circle cx="630" cy="360" r="32" fill="#6E8B74" fill-opacity="0.06" stroke="#6E8B74" stroke-width="2" stroke-opacity="0.25"/>
+
+  <!-- Subtle area tint under chart curve -->
+  <path d="M 290 560 L 370 490 L 460 520 L 550 420 L 630 360 L 690 390 L 690 560 Z"
+        fill="#6E8B74" fill-opacity="0.08"/>
+
+  <!-- Line chart stroke -->
+  <path d="M 290 560 L 370 490 L 460 520 L 550 420 L 630 360 L 690 390"
+        fill="none" stroke="#6E8B74" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Chart vertex dots -->
+  <circle cx="290" cy="560" r="9" fill="#EEECE7" stroke="#6E8B74" stroke-width="7"/>
+  <circle cx="370" cy="490" r="9" fill="#EEECE7" stroke="#6E8B74" stroke-width="7"/>
+  <circle cx="460" cy="520" r="9" fill="#EEECE7" stroke="#6E8B74" stroke-width="7"/>
+  <circle cx="550" cy="420" r="9" fill="#EEECE7" stroke="#6E8B74" stroke-width="7"/>
+  <circle cx="630" cy="360" r="11" fill="#6E8B74" stroke="#6E8B74" stroke-width="7"/>
+  <circle cx="690" cy="390" r="9" fill="#EEECE7" stroke="#6E8B74" stroke-width="7"/>
+</svg>

@@ -8,8 +8,8 @@
       "description": "撳選項砌出圖像同影片 prompt，有分鏡、prompt 食譜、收藏，離線都用到。",
       "path": "projects/prompt-studio/",
       "added": "2026-10-26",
-      "accent": "#c4552a",
-      "cover": "projects/prompt-studio/cover/cover.webp"
+      "accent": "#B0704F",
+      "cover": "projects/prompt-studio/cover/cover.svg"
     },
     {
       "id": "odds-lab",
@@ -19,8 +19,8 @@
       "description": "澳門實盤對住全球莊家共識同模型，逐盤睇值唔值博。",
       "path": "projects/odds-lab/",
       "added": "2026-10-25",
-      "accent": "#12a37f",
-      "cover": "projects/odds-lab/cover/cover.webp"
+      "accent": "#6E8B74",
+      "cover": "projects/odds-lab/cover/cover.svg"
     },
     {
       "id": "penalty-mind-game",
@@ -30,8 +30,8 @@
       "description": "滑動射門、撲救、AI 讀你習慣，仲有 16 隊世界盃。",
       "path": "projects/penalty-mind-game/",
       "added": "2026-10-24",
-      "accent": "#e5484d",
-      "cover": "projects/penalty-mind-game/cover/cover.webp"
+      "accent": "#5E7186",
+      "cover": "projects/penalty-mind-game/cover/cover.svg"
     },
     {
       "id": "beat-the-bookie",
@@ -41,8 +41,8 @@
       "description": "用真實賽果同賠率，同電腦鬥邊個睇得準。",
       "path": "projects/beat-the-bookie/",
       "added": "2026-10-23",
-      "accent": "#f5a524",
-      "cover": "projects/beat-the-bookie/cover/cover.webp"
+      "accent": "#A88A4A",
+      "cover": "projects/beat-the-bookie/cover/cover.svg"
     }
   ]
 }

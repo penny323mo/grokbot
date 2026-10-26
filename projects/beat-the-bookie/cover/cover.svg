@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900">
+  <rect width="1600" height="900" fill="#EEECE7"/>
+  <!-- Thin geometric accent shape -->
+  <circle cx="480" cy="450" r="220" fill="#A88A4A" fill-opacity="0.05" stroke="#A88A4A" stroke-width="2" stroke-opacity="0.25"/>
+  <line x1="260" y1="580" x2="720" y2="580" stroke="#A88A4A" stroke-width="2" stroke-opacity="0.25" stroke-dasharray="8 8"/>
+
+  <!-- Card 1 (back card, tilted left) -->
+  <g transform="rotate(-12 430 440)">
+    <rect x="350" y="325" width="160" height="230" rx="14" fill="#EEECE7" stroke="#A88A4A" stroke-width="8"/>
+    <!-- Subtle accent inner border -->
+    <rect x="365" y="340" width="130" height="200" rx="8" fill="none" stroke="#A88A4A" stroke-width="2" stroke-opacity="0.25"/>
+  </g>
+
+  <!-- Card 2 (front card, tilted right) -->
+  <g transform="rotate(8 520 445)">
+    <rect x="440" y="330" width="160" height="230" rx="14" fill="#EEECE7" stroke="#A88A4A" stroke-width="8"/>
+    <rect x="455" y="345" width="130" height="200" rx="8" fill="#A88A4A" fill-opacity="0.05" stroke="#A88A4A" stroke-width="2" stroke-opacity="0.25"/>
+    <!-- Minimalist diamond pip -->
+    <polygon points="520,415 536,445 520,475 504,445" fill="#A88A4A" fill-opacity="0.16" stroke="#A88A4A" stroke-width="6" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Coin 1 (overlapping in foreground) -->
+  <circle cx="585" cy="515" r="42" fill="#EEECE7" stroke="#A88A4A" stroke-width="8"/>
+  <circle cx="585" cy="515" r="30" fill="#A88A4A" fill-opacity="0.12" stroke="#A88A4A" stroke-width="2.5" stroke-dasharray="6 4" stroke-opacity="0.5"/>
+
+  <!-- Coin 2 (partially tucked) -->
+  <circle cx="525" cy="545" r="34" fill="#EEECE7" stroke="#A88A4A" stroke-width="7"/>
+  <circle cx="525" cy="545" r="24" fill="#A88A4A" fill-opacity="0.08" stroke="#A88A4A" stroke-width="2" stroke-opacity="0.4"/>
+</svg>

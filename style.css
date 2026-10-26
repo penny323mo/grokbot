@@ -5,29 +5,27 @@
 
 :root {
   /* 深色主題（預設）— 溫潤黑曜石與象牙白 */
-  --bg: #0c0c0e;
-  --bg-subtle: #131316;
-  --card-bg: #161619;
-  --card-hover: #1b1b20;
-  --card-border: #24242a;
-  --card-border-hover: #373742;
-  --stage-bg: #101013;
-  --stage-border: #1e1e24;
-  --device-bg: #18181c;
-  --device-border: #282830;
-  --fg: #f4f3f0;
-  --fg-muted: #95928a;
-  --fg-subtle: #b1ada4;
-  --border: #222228;
-  --border-subtle: #19191e;
-  --chip-bg: #151518;
-  --chip-border: #24242a;
-  --chip-fg: #aba79e;
-  --chip-active-bg: #f4f3f0;
-  --chip-active-fg: #0c0c0e;
-  --chip-count-bg: rgba(255, 255, 255, 0.08);
-  --new-bg: #f4f3f0;
-  --new-fg: #0c0c0e;
+  --bg: #0e0e10;
+  --bg-subtle: #141417;
+  --card-bg: #151518;
+  --card-border: #232328;
+  --card-border-hover: #373740;
+  --cover-border: #26262c;
+  --fg: #f3f2ee;
+  --fg-muted: #8e8b84;
+  --fg-subtle: #63615b;
+  --chip-bg: transparent;
+  --chip-border: #26262c;
+  --chip-fg: #8e8b84;
+  --chip-hover-border: #3b3b44;
+  --chip-active-bg: #f3f2ee;
+  --chip-active-fg: #0e0e10;
+  --btn-bg: #f3f2ee;
+  --btn-fg: #0e0e10;
+  --btn-hover: #e0ded6;
+  --new-bg: #f3f2ee;
+  --new-fg: #0e0e10;
+  --border: #202025;
 }
 
 @media (prefers-color-scheme: light) {
@@ -36,26 +34,24 @@
     --bg: #f7f6f2;
     --bg-subtle: #eeece5;
     --card-bg: #ffffff;
-    --card-hover: #fcfbfa;
-    --card-border: #e3e0d6;
-    --card-border-hover: #c9c5ba;
-    --stage-bg: #f1efe8;
-    --stage-border: #e6e3da;
-    --device-bg: #ffffff;
-    --device-border: #dbd7cd;
+    --card-border: #e4e1d7;
+    --card-border-hover: #ccc7ba;
+    --cover-border: #dfdbd2;
     --fg: #191816;
-    --fg-muted: #646158;
-    --fg-subtle: #5c574e;
-    --border: #e4e1d8;
-    --border-subtle: #eeebe4;
-    --chip-bg: #ffffff;
-    --chip-border: #ddd9cf;
-    --chip-fg: #56534a;
+    --fg-muted: #66635a;
+    --fg-subtle: #8a867c;
+    --chip-bg: transparent;
+    --chip-border: #ded9cd;
+    --chip-fg: #66635a;
+    --chip-hover-border: #bfb9aa;
     --chip-active-bg: #191816;
     --chip-active-fg: #ffffff;
-    --chip-count-bg: rgba(0, 0, 0, 0.06);
+    --btn-bg: #191816;
+    --btn-fg: #ffffff;
+    --btn-hover: #2e2c28;
     --new-bg: #191816;
     --new-fg: #ffffff;
+    --border: #e5e2d8;
   }
 }
 
@@ -93,7 +89,7 @@ body {
   white-space: nowrap;
 }
 
-/* 外層容器：iPhone-first 390px 基準，Safe Area Insets，桌面最大 840px */
+/* 外層容器：iPhone 優先 390px 基準，Safe Area Insets，桌面最大 840px */
 .shell {
   width: 100%;
   max-width: 840px;
@@ -111,11 +107,11 @@ body {
 }
 
 /* ==========================================================================
-   Hero 區域
+   Hero 區域（安靜沉穩、無 stat box）
    ========================================================================== */
 
 .hero {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .hero-brand {
@@ -124,18 +120,18 @@ body {
 }
 
 .hero-eyebrow {
-  font-size: 12px;
-  font-weight: 650;
-  letter-spacing: 0.04em;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   color: var(--fg-subtle);
 }
 
 .hero-title {
-  font-size: clamp(30px, 8.5vw, 42px);
-  line-height: 1.15;
+  font-size: clamp(28px, 7vw, 38px);
+  line-height: 1.2;
   font-weight: 700;
-  letter-spacing: -0.025em;
-  margin: 8px 0 8px;
+  letter-spacing: -0.02em;
+  margin: 6px 0 8px;
   color: var(--fg);
 }
 
@@ -143,66 +139,77 @@ body {
   font-size: 15px;
   line-height: 1.55;
   color: var(--fg-muted);
-  max-width: 32em;
 }
 
 .hero-meta {
-  margin-top: 16px;
+  margin-top: 14px;
   font-size: 13px;
   color: var(--fg-muted);
   font-variant-numeric: tabular-nums;
 }
 
 /* ==========================================================================
-   分類篩選 Chip（自動折行換行、無佈局跳動、44px 觸控目標）
+   分類篩選 Chip（單行橫向捲動、無捲軸、32px 高度 / 44px 觸控、低對比）
    ========================================================================== */
 
 .filter-section {
   position: sticky;
   top: env(safe-area-inset-top);
-  z-index: 2;
-  margin: 24px 0 16px;
-  padding: 8px 0 10px;
+  z-index: 10;
   background-color: var(--bg);
+  margin: 20px 0 16px;
+  padding: 6px 0;
 }
 
 .filter-scroll {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
-  overflow: visible;
-  margin: 0;
-  padding: 2px 0 4px;
-  scrollbar-width: auto;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-padding: 0 16px;
+  padding: 6px 0;
+}
+
+.filter-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 .chip {
-  min-height: 44px;
-  min-width: 44px;
-  padding: 0 16px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
+  position: relative;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 14px;
   border-radius: 999px;
   border: 1px solid var(--chip-border);
   background-color: var(--chip-bg);
   color: var(--chip-fg);
   font-size: 13px;
   font-weight: 500;
-  line-height: 1;
+  line-height: 30px;
   white-space: nowrap;
   flex-shrink: 0;
   cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
   user-select: none;
+  -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
-  transition: background-color 0.16s ease, color 0.16s ease, border-color 0.16s ease, transform 0.1s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+/* 44px 觸控點擊區域擴展 */
+.chip::after {
+  content: '';
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  left: 0;
+  right: 0;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .chip:hover {
-    border-color: var(--card-border-hover);
+    border-color: var(--chip-hover-border);
     color: var(--fg);
   }
 }
@@ -218,23 +225,6 @@ body {
   font-weight: 600;
 }
 
-.chip-label {
-  display: inline-block;
-}
-
-.chip-count {
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  padding: 2px 6px;
-  border-radius: 999px;
-  background-color: var(--chip-count-bg);
-  line-height: 1.2;
-}
-
-.chip.is-active .chip-count {
-  background: color-mix(in srgb, var(--chip-active-fg) 16%, transparent);
-}
-
 /* ==========================================================================
    作品卡片網格與卡片
    ========================================================================== */
@@ -242,7 +232,7 @@ body {
 .cards-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 16px;
+  gap: 20px;
   list-style: none;
 }
 
@@ -263,15 +253,15 @@ body {
   background-color: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 18px;
-  padding: 0 0 16px;
-  -webkit-tap-highlight-color: transparent;
+  padding: 14px;
   position: relative;
   overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
   transition: border-color 0.2s ease, transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
 }
 
 .card:focus-visible {
-  outline-offset: -3px;
+  outline-offset: -2px;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -281,71 +271,59 @@ body {
 }
 
 .card:active {
-  transform: scale(0.98);
+  transform: scale(0.985);
 }
 
-/* 篩選隱藏狀態（純 display: none，無 DOM 銷毀，無版面跳動） */
+/* 篩選隱藏狀態 */
 .card.is-hidden {
   display: none !important;
 }
 
-/* 漸進進場動效：僅控制 opacity，不影響 :active transform */
-@keyframes cardEntrance {
+/* 漸進淡入動效 */
+@keyframes fadeIn {
   from {
     opacity: 0;
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
 .card.animate-in {
-  animation: cardEntrance 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
-  animation-delay: calc(var(--i, 0) * 55ms);
+  animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 50ms);
 }
 
-/* 封面展示底盤：全幅無內襯 */
-.card-stage {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  border-radius: 18px 18px 0 0;
-}
-
-/* 設備底座：41:20 頂部視窗比例，accent 混色底色防止未加載時白屏 */
-.card-device {
+/* 封面展示外框（16:9，14px 圓角，中性底色外框） */
+.card-cover-frame {
   width: 100%;
-  aspect-ratio: 41 / 20;
-  border: 0;
-  border-radius: 18px 18px 0 0;
-  box-shadow: none;
-  background-color: var(--stage-bg);
-  background-color: color-mix(in srgb, var(--accent) 10%, var(--stage-bg));
+  aspect-ratio: 16 / 9;
+  border-radius: 14px;
   overflow: hidden;
+  background-color: #EEECE7;
+  border: 1px solid var(--cover-border);
 }
 
-/* 封面縮圖：top-aligned crop，維持頂部介面清晰 */
-.card-thumb {
+.card-cover {
   width: 100%;
   height: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 14px;
   object-fit: cover;
-  object-position: top center;
   display: block;
   opacity: 0;
   transition: opacity 0.2s ease;
 }
 
-.card-device.is-ready .card-thumb {
+.card-cover-frame.is-ready .card-cover {
   opacity: 1;
 }
 
-.card-thumb.is-broken {
-  display: none;
-}
-
-/* 卡片文字內容 */
+/* 卡片主體文字 */
 .card-body {
-  padding: 16px 16px 0;
+  padding: 14px 2px 2px;
   display: flex;
   flex-direction: column;
   flex-grow: 1;
@@ -371,15 +349,10 @@ body {
   width: 6px;
   height: 6px;
   margin-right: 6px;
-  border-radius: 99px;
-  background: var(--accent);
+  border-radius: 999px;
+  background-color: var(--accent);
+  vertical-align: middle;
   transform: translateY(-1px);
-}
-
-@media (prefers-color-scheme: light) {
-  .card-cat::before {
-    background: color-mix(in srgb, var(--accent) 70%, #191816);
-  }
 }
 
 .meta-dot {
@@ -393,103 +366,85 @@ body {
 
 /* 新 標籤（僅最新作品擁有） */
 .badge-new {
+  margin-left: auto;
   display: inline-flex;
   align-items: center;
-  font-size: 12px;
+  justify-content: center;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0;
   line-height: 1;
-  padding: 4px 6px;
+  padding: 3px 6px;
   border-radius: 4px;
   background-color: var(--new-bg);
   color: var(--new-fg);
-  margin-left: auto;
 }
 
-/* 標題與副標題 */
-.card-headings {
-  margin-top: 8px;
-}
-
+/* 標題（19-20px semibold） */
 .card-title {
-  font-size: 19px;
-  font-weight: 650;
-  line-height: 1.25;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
   letter-spacing: -0.015em;
   color: var(--fg);
-}
-
-.card-sub {
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--fg-subtle);
-  margin-top: 2px;
-}
-
-/* 兩行簡介限制（2-line clamp） */
-.card-desc {
-  font-size: 14.5px;
-  line-height: 1.45;
-  color: var(--fg);
   margin-top: 8px;
+}
+
+/* 簡介（最多 2 行，muted） */
+.card-desc {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--fg-muted);
+  margin-top: 6px;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
-  white-space: normal;
   overflow: hidden;
 }
 
+/* 明確主按鈕「開始 →」（44px 高，右對齊藥丸狀） */
+.card-action {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 2px;
+}
+
+.card-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 22px;
+  border-radius: 999px;
+  background-color: var(--btn-bg);
+  color: var(--btn-fg);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  user-select: none;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card:hover .card-btn {
+    background-color: var(--btn-hover);
+  }
+}
+
+.card:active .card-btn {
+  opacity: 0.85;
+}
+
 /* ==========================================================================
-   桌面佈局（>= 760px）：2 欄網格與 Featured 旗艦卡片
+   桌面佈局（>= 760px）：2 欄網格
    ========================================================================== */
 
 @media (min-width: 760px) {
   .cards-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px;
-  }
-
-  /* 旗艦/最新卡片橫跨兩欄並以雙欄分割排版 */
-  .card-featured {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: 1.15fr 1fr;
-    gap: 20px;
-    align-items: center;
-    padding: 0;
-  }
-
-  .card-featured .card-stage {
-    height: auto;
-    min-height: 0;
-    border-radius: 18px 0 0 18px;
-  }
-
-  .card-featured .card-device {
-    height: auto;
-    aspect-ratio: 41 / 20;
-    border-radius: 18px 0 0 18px;
-  }
-
-  .card-featured .card-body {
-    padding: 24px 24px 24px 4px;
-    justify-content: center;
-  }
-
-  .card-featured .card-title {
-    font-size: 24px;
-    letter-spacing: -0.02em;
-  }
-
-  .card-featured .card-sub {
-    font-size: 13px;
-    margin-top: 3px;
-  }
-
-  .card-featured .card-desc {
-    font-size: 14.5px;
-    margin-top: 10px;
+    gap: 24px;
   }
 }
 
@@ -523,8 +478,8 @@ body {
   padding: 0 20px;
   margin-top: 16px;
   border-radius: 999px;
-  background-color: var(--fg);
-  color: var(--bg);
+  background-color: var(--btn-bg);
+  color: var(--btn-fg);
   border: none;
   font-size: 13.5px;
   font-weight: 600;
@@ -578,7 +533,7 @@ body {
 @media (hover: hover) and (pointer: fine) {
   .footer-link:hover {
     color: var(--fg);
-    background-color: var(--stage-bg);
+    background-color: var(--bg-subtle);
   }
 }
 
@@ -613,5 +568,6 @@ body {
   .card.animate-in {
     animation: none;
     opacity: 1;
+    transform: none;
   }
 }

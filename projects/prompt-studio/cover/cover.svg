@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900">
+  <rect width="1600" height="900" fill="#EEECE7"/>
+  <!-- Thin geometric accent shape -->
+  <circle cx="480" cy="450" r="220" fill="#B0704F" fill-opacity="0.06" stroke="#B0704F" stroke-width="2" stroke-opacity="0.25"/>
+  <line x1="260" y1="560" x2="700" y2="560" stroke="#B0704F" stroke-width="2" stroke-opacity="0.25" stroke-dasharray="8 8"/>
+
+  <!-- Pen nib icon -->
+  <path d="M 480 330 L 420 440 C 414 452 422 478 432 485 L 416 560 L 544 560 L 528 485 C 538 478 546 452 540 440 Z"
+        fill="#B0704F" fill-opacity="0.08" stroke="#B0704F" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="480" y1="330" x2="480" y2="445" stroke="#B0704F" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="480" cy="455" r="10" fill="#EEECE7" stroke="#B0704F" stroke-width="7"/>
+
+  <!-- Sparkle lines (prompt creation) -->
+  <g stroke="#B0704F" stroke-linecap="round">
+    <!-- Star sparkle primary -->
+    <line x1="590" y1="280" x2="590" y2="340" stroke-width="7"/>
+    <line x1="560" y1="310" x2="620" y2="310" stroke-width="7"/>
+    <line x1="572" y1="292" x2="608" y2="328" stroke-width="3" stroke-opacity="0.5"/>
+    <line x1="608" y1="292" x2="572" y2="328" stroke-width="3" stroke-opacity="0.5"/>
+
+    <!-- Small sparkle secondary -->
+    <line x1="390" y1="315" x2="390" y2="345" stroke-width="6"/>
+    <line x1="375" y1="330" x2="405" y2="330" stroke-width="6"/>
+
+    <!-- Tiny sparkle accent -->
+    <circle cx="640" cy="380" r="4" fill="#B0704F" stroke="none"/>
+  </g>
+</svg>

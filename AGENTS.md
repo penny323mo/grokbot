@@ -7,7 +7,7 @@ Live: https://penny323mo.github.io/grokbot/ (GitHub Pages, branch `main`, root `
 index.html / launcher.js / style.css   # 首頁 launcher（讀 projects/manifest.json）
 projects/manifest.json                 # 項目清單：id, title, subtitle, category, description, path, added, accent, cover
 projects/<id>/                         # 每個項目獨立、純靜態，用相對路徑
-projects/<id>/cover/cover.webp         # 項目封面截圖（780x1040 webp，390px 手機 2x 頂部截圖）
+projects/<id>/cover/cover.svg          # 項目封面（cover = projects/<id>/cover/cover.svg, 1600x900 (16:9), same visual language: neutral bg, one muted accent, single line icon, no screenshots, no text）
 .github/workflows/                     # 所有 workflow 放 root（GitHub 只讀 root .github）
 docs/  scripts/  tests/                # repo 級文件、工具、測試
 progress.md                            # 進度紀錄
@@ -15,8 +15,8 @@ progress.md                            # 進度紀錄
 
 ## 規則（未來 nightly 項目）
 1. 新項目一律放 `projects/<kebab-id>/`，唔好再開新 repo。
-2. 喺 `projects/manifest.json` 加一條，**必須填 `added`（加入日期，YYYY-MM-DD，澳門時間項目開始嗰日）**同 **`cover`（封面圖路徑，如 `projects/<id>/cover/cover.webp`）**；launcher 會顯示並按日期排序。
-3. 新項目必須提供封面圖 `projects/<id>/cover/cover.webp`（規格：780x1040 webp，即 390px 寬手機在 2x Retina 下之頂部截圖），且 tests 會檢查檔案是否存在。
+2. 喺 `projects/manifest.json` 加一條，**必須填 `added`（加入日期，YYYY-MM-DD，澳門時間項目開始嗰日）**同 **`cover`（封面圖路徑，如 `projects/<id>/cover/cover.svg`）**；launcher 會顯示並按日期排序。
+3. 新項目必須提供封面圖（規格：cover = projects/<id>/cover/cover.svg, 1600x900 (16:9), same visual language: neutral bg, one muted accent, single line icon, no screenshots, no text），且 tests 會檢查檔案是否存在與後綴（.svg 或 .webp）。
 4. 項目內只用相對路徑（`./x.js`，唔好 `/x.js`），因為網站喺 `/grokbot/projects/<id>/` 下面。
 5. 需要 workflow 嘅，放 `.github/workflows/<id>-*.yml`，用 `defaults.run.working-directory: projects/<id>`。
 6. 提交前行 `node tests/check_manifest.mjs`。

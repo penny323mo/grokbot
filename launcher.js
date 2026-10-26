@@ -46,24 +46,23 @@
     projects.sort((a, b) => (b.added || '').localeCompare(a.added || ''));
 
     const latest = projects[0];
-    const categoryMap = new Map();
+    const categorySet = new Set();
     for (const p of projects) {
-      const cat = p.category || '未分類';
-      categoryMap.set(cat, (categoryMap.get(cat) || 0) + 1);
+      if (p.category) categorySet.add(p.category);
     }
-    const categories = Array.from(categoryMap.keys());
+    const categories = Array.from(categorySet);
 
-    // 1. 動態計算並渲染 Hero 統計摘要（單行極簡、無邊框）
+    // 1. 動態渲染 Hero 統計摘要（單行極簡、無邊框、無 stat box）
     if (heroStats) {
       heroStats.innerHTML = `
         <p class="hero-meta">${projects.length} 個作品 · 最新係 ${esc(latest.title)} · <time datetime="${esc(latest.added)}">${fmtDate(latest.added)}</time></p>
       `;
     }
 
-    // 2. 渲染分類篩選 Chip（radiogroup 語意，支援鍵盤導航）
+    // 2. 渲染分類篩選 Chip（單行橫向捲動、無數字 count、radiogroup 語意）
     const filterItems = [
-      { id: 'all', label: '全部', count: projects.length },
-      ...categories.map(c => ({ id: c, label: c, count: categoryMap.get(c) }))
+      { id: 'all', label: '全部' },
+      ...categories.map(c => ({ id: c, label: c }))
     ];
 
     filterScroll.innerHTML = filterItems.map((item, idx) => `
@@ -74,43 +73,38 @@
         data-filter="${esc(item.id)}"
         aria-checked="${idx === 0 ? 'true' : 'false'}"
         tabindex="${idx === 0 ? '0' : '-1'}"
-      >
-        <span class="chip-label">${esc(item.label)}</span>
-        <span class="chip-count">${item.count}</span>
-      </button>
+      >${esc(item.label)}</button>
     `).join('');
 
-    // 預先解碼所有封面，避免首屏加載白屏
+    // 預先解碼封面，避免切換時白屏
     await Promise.all(projects.map((p) => {
       const img = new Image();
       img.src = p.cover;
       return img.decode().catch(() => {});
     }));
 
-    // 3. 渲染作品卡片（以 <li> 包裹，整張卡片為 <a> 連結，全幅封面無白屏/假聽筒）
+    // 3. 渲染作品卡片（統一架構：cover -> meta row -> title -> desc -> 開始 →）
     cardsGrid.innerHTML = projects.map((p, index) => {
       const isLatest = index === 0;
-      const accent = /^#[0-9a-fA-F]{6}$/.test(p.accent) ? p.accent : '#8d7b68';
+      const accent = /^#[0-9a-fA-F]{6}$/.test(p.accent) ? p.accent : '#5E7186';
       return `
         <li>
           <a
-            class="card ${isLatest ? 'card-featured' : ''} animate-in"
+            class="card animate-in"
             href="${esc(p.path)}"
             style="--accent: ${accent}; --i: ${index};"
             data-category="${esc(p.category || '')}"
           >
-            <div class="card-stage">
-              <div class="card-device">
-                <img
-                  class="card-thumb"
-                  src="${esc(p.cover)}"
-                  alt=""
-                  fetchpriority="high"
-                  decoding="async"
-                  width="780"
-                  height="1040"
-                />
-              </div>
+            <div class="card-cover-frame">
+              <img
+                class="card-cover"
+                src="${esc(p.cover)}"
+                alt=""
+                width="1600"
+                height="900"
+                loading="${index < 2 ? 'eager' : 'lazy'}"
+                decoding="async"
+              />
             </div>
             <div class="card-body">
               <div class="card-meta">
@@ -119,28 +113,28 @@
                 <time class="card-date" datetime="${esc(p.added)}">加入日期 ${fmtDate(p.added)}</time>
                 ${isLatest ? '<span class="badge-new" aria-label="最新作品">新</span>' : ''}
               </div>
-              <div class="card-headings">
-                <h2 class="card-title">${esc(p.title)}</h2>
-                <p class="card-sub">${esc(p.subtitle)}</p>
-              </div>
+              <h2 class="card-title">${esc(p.title)}</h2>
               <p class="card-desc">${esc(p.description)}</p>
+              <div class="card-action">
+                <span class="card-btn">開始 →</span>
+              </div>
             </div>
           </a>
         </li>
       `;
     }).join('');
 
-    // 圖片載入完成標記 is-ready，觸發平滑淡入
-    cardsGrid.querySelectorAll('.card-thumb').forEach((img) => {
-      const ready = () => img.closest('.card-device')?.classList.add('is-ready');
-      if (img.complete && img.naturalWidth) ready();
+    // 圖片載入完成標記 is-ready
+    cardsGrid.querySelectorAll('.card-cover').forEach((img) => {
+      const ready = () => img.closest('.card-cover-frame')?.classList.add('is-ready');
+      if (img.complete) ready();
       else {
         img.addEventListener('load', ready, { once: true });
-        img.addEventListener('error', () => img.classList.add('is-broken'), { once: true });
+        img.addEventListener('error', ready, { once: true });
       }
     });
 
-    // 動畫結束時清除 animate-in class，確保 :active scale 縮放反饋正常
+    // 動畫結束時清除 animate-in class，確保 :active scale 正常
     cardsGrid.addEventListener('animationend', (e) => {
       if (e.target.classList.contains('card')) e.target.classList.remove('animate-in');
     });
@@ -166,7 +160,7 @@
         }
         if (isMatch) visibleCount++;
       });
-      const name = chip.querySelector('.chip-label')?.textContent ?? '';
+      const name = chip.textContent.trim();
       if (filterStatus) filterStatus.textContent = `${name}，顯示 ${visibleCount} 個作品`;
       if (emptyState) emptyState.hidden = visibleCount > 0;
     }
@@ -185,6 +179,7 @@
         e.preventDefault();
         selectChip(next);
         next.focus();
+        next.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
       });
     });
 
