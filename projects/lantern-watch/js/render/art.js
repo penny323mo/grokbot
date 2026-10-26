@@ -1655,3 +1655,33 @@ SVG_ART.cardArt.card_lantern_flare_plus = SVG_ART.cardArt.card_lantern_flare;
 SVG_ART.cardArt.card_lantern_guardian_halo_plus = SVG_ART.cardArt.card_lantern_guardian_halo;
 SVG_ART.cardArt.card_lantern_ignite_plus = SVG_ART.cardArt.card_lantern_ignite;
 SVG_ART.cardArt.card_lantern_oil_flask_plus = SVG_ART.cardArt.card_lantern_oil_flask;
+
+// ===== v3: painted ink-wash raster art overrides (AI-generated, see CREDITS.md) =====
+const ART_DIR = "assets/art/";
+const img = (name, cls = "art-img", pos = "") =>
+  `<img src="${ART_DIR}${name}.webp" class="${cls}" alt="" loading="lazy" decoding="async"${pos ? ` style="object-position:${pos}"` : ""}>`;
+const UNIT_IDS = ["cat_patrol","tea_master","scarecrow","tanuki_mage","frog_bard","crane_courier","little_dragon","lantern_crafter","fox_maiden","bear_baker","fog_blob","shadow_rat","paper_ghost","hop_lantern","armored_snail","split_mist","windchime_spectre","mud_golem","boss_mother_of_mist","boss_night_crow_king","boss_elder_demon"];
+for (const id of UNIT_IDS) SVG_ART[id] = img(id, "art-img art-portrait");
+for (const key of Object.keys(SVG_ART.cardArt)) {
+  const base = key.replace(/_plus$/, "");
+  if (base.startsWith("card_summon")) continue;
+  SVG_ART.cardArt[key] = img(base, "art-img art-card");
+}
+const SUMMON = { cat: "cat_patrol", tea: "tea_master", lantern_crafter: "lantern_crafter", scarecrow: "scarecrow", tanuki: "tanuki_mage", dragon: "little_dragon", crane: "crane_courier", frog: "frog_bard", fox: "fox_maiden", bear: "bear_baker" };
+for (const [k, u] of Object.entries(SUMMON)) {
+  SVG_ART.cardArt[`card_summon_${k}`] = SVG_ART[u];
+  SVG_ART.cardArt[`card_summon_${k}_plus`] = SVG_ART[u];
+}
+SVG_ART.titleKeyArt = img("title", "art-img art-scene");
+SVG_ART.mapTerrainBackdrop = img("map", "art-img art-scene");
+SVG_ART.victoryBackdrop = img("reward", "art-img art-scene");
+SVG_ART.skyline = img("board", "art-img art-scene");
+SVG_ART.townStreetPanorama = () => img("town", "art-img art-scene");
+const BPOS = ["5% 60%","18% 50%","30% 55%","42% 45%","55% 60%","66% 50%","78% 55%","90% 45%","50% 80%","70% 20%"];
+Object.keys(SVG_ART.buildings).forEach((k, i) => { SVG_ART.buildings[k] = img("town", "art-img art-bldg", BPOS[i % BPOS.length]); });
+// Lantern states: typographic seal marks instead of cartoon drawings
+SVG_ART.lantern_full = `<span class="glyph glyph-lantern lit">燈</span>`;
+SVG_ART.lantern_damaged = `<span class="glyph glyph-lantern dim">燈</span>`;
+SVG_ART.lantern_extinguished = `<span class="glyph glyph-lantern out">燼</span>`;
+const GLYPHS = { home: "宅", coin: "錢", star: "✦", undo: "↺", music: "樂", sfx: "音", lantern: "燈", moon: "月", town: "鎮", book: "書", tea: "茶", sword: "戰", boss: "首", hotspring: "泉", shrine: "祠", attack: "攻", move: "移", spawn: "召", aoe: "範", frozen: "凍", check: "✓" };
+for (const k of Object.keys(SVG_ART.icons)) SVG_ART.icons[k] = `<span class="glyph">${GLYPHS[k] || "·"}</span>`;

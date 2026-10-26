@@ -1,8 +1,8 @@
 # 燈籠小鎮守夜人 — orchestrator report
 
-- Generated: 2026-10-26 19:40 (Macau, UTC+8)
+- Generated: 2026-10-26 20:25 (Macau, UTC+8)
 - Live: https://penny323mo.github.io/grokbot/projects/lantern-watch/ (HTTP 200)
-- Rounds: 3  ·  Started: 2026-10-26T17:18:47+08:00
+- Rounds: 4  ·  Started: 2026-10-26T17:18:47+08:00
 
 ## Phases
 - build finished 2026-10-26T17:58:22+08:00
@@ -14,6 +14,9 @@
 - report finished 2026-10-26T18:43:20+08:00
 - fix-3 finished 2026-10-26T19:40:33+08:00
 - publish finished 2026-10-26T19:40:43+08:00
+- report finished 2026-10-26T19:40:43+08:00
+- fix-4 finished 2026-10-26T20:25:03+08:00
+- publish finished 2026-10-26T20:25:12+08:00
 
 ## Reviews
 - orch-r1-grok.md: VERDICT: NOT READY
@@ -65,6 +68,17 @@
 # todo 0
 # duration_ms 702.393972
 ```
+### tests-fix-4
+```
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 698.845338
+```
 
 ## Screenshots
 - screenshots/orch/live-390-full.png
@@ -74,28 +88,35 @@
 - screenshots/orch/live-title.png
 
 ## Changelog (tail)
-### 3. Enlarged Hand Cards & Active Full Rules Detail Bar (Failure 3)
-- Enlarged hand cards to 86px wide × 136px tall with horizontal smooth scrolling container and snapping.
-- Art frames expanded to 72px tall (>50% of card face) with full-bleed illustration.
-- Added 22px radial gold cost seal with drop shadow and clear archetype badge.
-- Added persistent `#battleHintOrDetail` rules bar above the hand: selecting any card instantly displays its full unabridged mechanics and targeting instructions without any clipping.
-- Widened reward cards to 96px × 150px with dedicated `#rewardCardDescBox` full-description preview.
+- Replaced flat vector line glyphs with handcrafted woodblock scene illustrations for all non-summon cards:
+  - `card_command_advance` (突進指令): Martial scout in travel cloak and bamboo kasa hat slashing forward through a night bamboo grove with glowing sparks and drifting leaves.
+  - `card_command_strike_again` (連環迅擊): Dual enchanted wakizashi blades slashing in an 'X' with cinnabar arcs, central spark burst, and combat rune.
+  - `card_spell_bamboo_trap` (地刺竹陷): Sharpened bamboo stakes bursting from courtyard stones bound with tripwire and crimson alarm talismans.
+  - `card_lantern_refuel` (添燈加油): Cast-bronze dragon pitcher pouring molten golden oil into a blazing stone temple font.
+  - `card_lantern_ignite` (火樹銀花): Multi-branching festival fireworks showering willow sparks of gold and cinnabar over pagoda roofs.
+  - Full illustrations for `card_command_reposition`, `card_command_rally`, `card_command_tactical_swap`, `card_spell_gust`, `card_spell_fireball`, `card_spell_barrier`, `card_spell_whirlwind`, `card_spell_freeze_mist`, `card_spell_spirit_rain`, `card_spell_thunder_strike`, `card_lantern_flare`, `card_lantern_guardian_halo`, `card_lantern_oil_flask`.
+- Verified full card titles and clear cost gems with zero truncation.
 
-### 4. Title Screen Key Art Panorama (Failure 4)
-- Designed a full 390×844 panoramic woodblock key art scene featuring a luminous crescent moon, distant mountain ridges, multi-tiered pagoda silhouettes, glowing window lights, festive lantern garlands, and a foreground sacred town stone lantern.
-- Replaced flat single icon with an editorial typographic title "燈籠小鎮守夜人" with warm ambient glow.
+### 4. Reward Screen Dawn Sunrise & Flowing Description (Visually Verified in screenshots/v2/reward.png)
+- Filled the previously empty top 40% with an illustrated morning dawn sunrise backdrop: radiant sunbeams piercing over misty mountain peaks, flying white cranes, pagoda silhouettes in dawn mist, and celebratory morning glow.
+- Refactored `.reward-desc-box` from flex column wrapping into normal inline text: `【地刺竹陷】` renders seamlessly inline with the rules description across comfortable, flowing lines without breaking into two columns.
 
-### 5. Illustrated Route Map with Medallions (Failure 5)
-- Transformed the map into an atmospheric scroll route across dark misty terrain.
-- Replaced overlapping text buttons with clean 52px circular medallions containing vector icons, radiant amber halos on available nodes, and clear serif node titles rendered beneath each medallion.
+### 5. Illustrated Route Map with Branching Paths & Terrain (Visually Verified in screenshots/v2/map.png)
+- Added an ink-wash mountain terrain backdrop with framing bamboo grove silhouettes and drifting mist bands.
+- Replaced the static center vertical line with dynamic SVG curved bezier path connections linking each node to its valid branch options from Night 1 through Boss.
+- Applied distinct medallion designs per node type (Boss, Elite, Shop, Rest, Event, Battle) with radiant golden halos on available nodes and mist shrouding locked nodes.
 
-### 6. Town Architectural Woodblock Vignettes (Failure 6)
-- Redrew all 10 building illustrations in `SVG_ART.buildings` (`bldg_watchtower`, `bldg_courier`, `bldg_music_hall`, `bldg_fox_shrine`, `bldg_bakery`, `bldg_tea_bush`, `bldg_forge`, `bldg_lucky_stone`, `bldg_herbal_garden`, `bldg_star_pavilion`) with detailed multi-tiered curved tile eaves, wooden brackets, paper screens, hanging lanterns, and hearths.
-- Enhanced town backdrop with deep indigo gradient and subtle star texture.
+### 6. Town Screen Panoramic Street Header (Visually Verified in screenshots/v2/town.png)
+- Added `#townStreetPanoramaWrap` displaying a 390×105 panoramic Asian streetscape header illustrating built buildings (e.g. 守夜小亭 with lit paper window, 飛信驛站 with fluttering red flag, 老茶樹 with golden tea fruit) in vibrant colors alongside unbuilt buildings in misty twilight silhouette.
+- Retained rich woodblock building architectural vignettes with checkmarks for built structures.
 
-### 7. Persistent Grokbot Back Button in Battle (Failure 7)
-- Removed `dataset.gbPlaying = "1"` from battle initialization in `js/render/ui.js`, ensuring the `< grokbot` top-left navigation button remains visible and accessible on every screen, including active battle.
+### 7. Verification & Tests
+- All 22 automated rules, intents, save/load, and balance simulation tests pass with 0 errors (`npm test`).
+- All 7 screenshots captured at 390×844 into `screenshots/v2/` with 0 console errors.
 
-### 8. Text Truncation & Layout Polish (Failure 8)
-- Verified all card titles, descriptions, modal sheets, and tooltips at 390px iPhone viewport.
-- All 22 automated rules, intents, persistence, and bot simulation tests pass (100% Relaxed, 90% Standard, 85% Challenging A1).
+## v3 (2026-10-26) painted ink-wash overhaul
+- 44 AI-generated painted illustrations in assets/art/*.webp (2.1MB total): title/board/map/town/reward scenes, 21 unit portraits, 18 card arts (plus/summon aliases reuse).
+- Wired by overriding SVG_ART entries at end of js/render/art.js with <img> tags; icons replaced by serif CJK glyph marks (戰/祠/泉/首/燈...).
+- CSS: 1px gold hairline borders, inset double-rule card frames, translucent board tiles over painted board.
+- Screenshots: screenshots/v3/*.png. Tests pass.
+- Weaknesses: building thumbnails all reuse same town crop; header icons (home/music/bell) still old line SVGs; some portraits (rat, fog) darker; paper ghost/tactical swap contain pseudo-glyphs; reposition card more photoreal.

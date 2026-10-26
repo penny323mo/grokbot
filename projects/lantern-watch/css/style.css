@@ -1553,3 +1553,29 @@ html, body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ===== v3 painted art + refined frames ===== */
+.art-img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(.92) contrast(1.03);}
+.art-portrait{object-position:50% 30%;border-radius:inherit;}
+.art-scene{position:absolute;inset:0;width:100%;height:100%;}
+.glyph{font-family:var(--font-serif),"Noto Serif TC",serif;font-weight:600;font-size:.85em;line-height:1;color:#e8c27a;display:inline-flex;align-items:center;justify-content:center;width:100%;height:100%;letter-spacing:0;}
+.glyph-lantern{font-size:15px;border:1px solid rgba(232,194,122,.6);border-radius:50%;width:22px;height:22px;background:rgba(20,24,44,.75);}
+.glyph-lantern.lit{color:#ffd78a;box-shadow:0 0 10px rgba(255,190,90,.65);}
+.glyph-lantern.dim{color:#b98a4a;opacity:.85;}
+.glyph-lantern.out{color:#6a6f86;border-color:rgba(120,125,150,.5);}
+.board-skyline-backdrop{opacity:.55 !important;}
+.board-skyline-backdrop img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+h1,h2,h3,.title,.screen-title{font-family:var(--font-serif),"Noto Serif TC",serif;letter-spacing:.08em;font-weight:600;}
+.card,.hand-card,.reward-card,.shop-card{border:1px solid rgba(232,194,122,.55) !important;box-shadow:inset 0 0 0 3px rgba(12,14,28,.9),inset 0 0 0 4px rgba(232,194,122,.25),0 6px 16px rgba(0,0,0,.45) !important;border-radius:6px !important;background:linear-gradient(180deg,#1b1f36,#11131f) !important;}
+button{border-width:1px !important;}
+.board-skyline-backdrop{opacity:1 !important;z-index:0;}
+.grid-tile{background:rgba(14,18,36,.28) !important;border:1px solid rgba(232,194,122,.16) !important;box-shadow:none !important;backdrop-filter:none !important;border-radius:3px !important;}
+.grid-tile.fog-tile{background:rgba(160,170,200,.18) !important;}
+.grid-tile.town-zone{background:rgba(232,160,70,.10) !important;border-color:rgba(232,194,122,.3) !important;}
+.grid-tile.valid-target{background:rgba(120,200,160,.22) !important;border-color:rgba(160,230,190,.7) !important;}
+.card-item{border:1px solid rgba(232,194,122,.55) !important;box-shadow:inset 0 0 0 3px rgba(12,14,28,.9),inset 0 0 0 4px rgba(232,194,122,.22),0 6px 16px rgba(0,0,0,.45) !important;border-radius:6px !important;background:linear-gradient(180deg,#1b1f36,#11131f) !important;}
+.card-item.selected{border-color:#f0cf8a !important;box-shadow:0 0 0 1px #f0cf8a,0 0 18px rgba(240,190,110,.5) !important;}
+.town-street-panorama-wrap{position:relative;height:150px;border:1px solid rgba(232,194,122,.35);border-radius:6px;}
+.building-card{border:1px solid rgba(232,194,122,.25) !important;border-radius:6px !important;}
+.building-card .art-bldg{border-radius:4px;border:1px solid rgba(232,194,122,.3);}
+.bldg-thumb{position:relative;overflow:hidden;}

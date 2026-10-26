@@ -1,7 +1,7 @@
 /**
  * scripts/capture_screenshots.mjs
  * Puppeteer-core screenshot generation at 390x844 (iPhone Safari viewport).
- * Verifies 0 console errors and saves screenshots into screenshots/v2/:
+ * Verifies 0 console errors and saves screenshots into screenshots/v3/:
  * - title.png
  * - map.png
  * - battle.png
@@ -22,7 +22,7 @@ const puppeteer = require("/workspace/nightly/shotkit/node_modules/puppeteer-cor
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, "..");
-const SCREENSHOT_DIR = path.resolve(ROOT_DIR, "screenshots/v2");
+const SCREENSHOT_DIR = path.resolve(ROOT_DIR, "screenshots/v3");
 const PORT = 8891;
 
 fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
@@ -66,6 +66,7 @@ function startServer() {
       ".json": "application/json",
       ".svg": "image/svg+xml",
       ".png": "image/png",
+      ".webp": "image/webp",
       ".mp3": "audio/mpeg",
       ".m4a": "audio/mp4"
     };
@@ -168,7 +169,7 @@ async function run() {
         window.app.ui.renderTown(window.app.town, () => {});
       }
     });
-    await new Promise((r) => setTimeout(r, 400));
+    await new Promise((r) => setTimeout(r, 1500));
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, "town.png") });
 
     // 7. Tutorial Sheet (Clear of Grokbot chip)
@@ -183,7 +184,7 @@ async function run() {
     await new Promise((r) => setTimeout(r, 400));
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, "tutorial.png") });
 
-    console.log("\nAll 7 screenshots captured successfully into screenshots/v2/!");
+    console.log("\nAll 7 screenshots captured successfully into screenshots/v3/!");
     console.log(`Console Errors count: ${consoleErrors.length}`);
     if (consoleErrors.length > 0) {
       console.error("Console Errors encountered:", consoleErrors);
