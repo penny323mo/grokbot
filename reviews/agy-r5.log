@@ -1,0 +1,25 @@
+The launcher covers and card presentation have been refined based on the coordinator's critique.
+
+### Summary of Refinements
+
+1. **Dark Mode Adaptation & CSS Classes**:
+   - Added internal `<style>` with `@media (prefers-color-scheme: dark)` to all four cover SVGs.
+   - Employed semantic classes `.bg`, `.ink`, `.tint`, and `.horizon`:
+     - `.bg`: Renders warm neutral `#EEECE7` in light mode, switching to dark neutral `#1E1E1C` in dark mode.
+     - `.tint`: Circular plate and area fills render at 12% opacity in light mode, adapting to 18% opacity with adjusted tone in dark mode.
+     - `.ink`: Stroke width 8 with round caps and joins, rendering the project accent in light mode and adapting contrast in dark mode.
+     - `.horizon`: Subtle center horizon guide at 15% opacity across `y=450`.
+   - Updated `.card-cover-frame` in [`style.css`](file:///workspace/grokbot/style.css#L302-L308) to use `var(--cover-bg, #1e1e1c)` so dark mode does not flash light `#EEECE7` slabs before or during image decoding.
+
+2. **Unified Centered Construction across all 4 Covers**:
+   - **Identical Backing Plate**: Centered circle at `cx="800" cy="450"` with `r="150"` in accent at 12% opacity.
+   - **Horizon Guide**: Matching horizontal line across the center at `y="450"` (`stroke-opacity="0.15"`).
+   - **Centered ~180px Glyphs (`stroke-width="8"`, round caps/joins, project accent)**:
+     - [Prompt 工作室 cover.svg](file:///workspace/grokbot/projects/prompt-studio/cover/cover.svg): Upright centered pen nib with central slit, breather hole, and AI spark glyphs (`#B0704F`).
+     - [盤口實驗室 cover.svg](file:///workspace/grokbot/projects/odds-lab/cover/cover.svg): Added missing circular tint plate with centered analytics trend line, baseline, and 5 data vertex nodes (`#6E8B74`).
+     - [12碼讀心戰 cover.svg](file:///workspace/grokbot/projects/penalty-mind-game/cover/cover.svg): Replaced faint/grey off-center lines with bold centered goal frame and classic pentagon soccer ball (`#5E7186`, dark-adapted to `#768DA6`).
+     - [你估得贏莊家嗎？ cover.svg](file:///workspace/grokbot/projects/beat-the-bookie/cover/cover.svg): Centered fanned cards with diamond pip and foreground betting coin (`#A88A4A`).
+
+3. **Verification & Commit**:
+   - Passed [`tests/check_manifest.mjs`](file:///workspace/grokbot/tests/check_manifest.mjs) (`OK 4 projects`).
+   - Committed changes locally: `covers: unified centered glyphs + dark variant (agy r5)` (not pushed).
