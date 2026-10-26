@@ -88,3 +88,28 @@ All notable changes to the Prompt Studio project will be documented in this file
 5. **Orchestrator #5**：全數靈感配方載入時注入純英文 `subject`/`subjectEn`，避免中文主體進入英文 Prompt。
 6. **Orchestrator #6**：所有模式切換、頂部按鈕、分鏡調整、清除鍵觸控面積全面符合 $\ge 44\times 44\text{px}$ 規範。
 7. **Orchestrator #7**：精簡預設初始狀態，始終由主體引導組裝，產出語句結構最優雅自然的提示詞。
+
+## V2 Round 1 redesign
+
+### 🎨 Apple/Linear 視覺風格全面重構 (Visual Redesign)
+- **預設淺色模式 (Light Mode Default)**：
+  - 徹底摒棄過時的暗黑毛玻璃漸層與紫色霓虹視覺，全面重構為蘋果風格 iOS Grouped UI。
+  - 採用 iOS 系統群組背景（#F2F2F7）、純白群組卡片（#FFFFFF）與細緻髮絲紋分隔線（hairline separators）。
+  - 單一克制色彩系統：以 Apple System Blue（#007AFF）作為核心強調色，配合細膩的淺藍半透明背景（#007AFF1A）。
+- **原生深色模式 (Proper Dark Mode via `prefers-color-scheme: dark`)**：
+  - 支援真正的深邃近黑與純黑（#000000 背景、#1C1C1E 卡片、#2C2C2E 內嵌槽），告別低對比度與混濁毛玻璃。
+  - 暗色強調色自動適配 Apple Dark System Blue（#0A84FF），對比清晰高雅。
+- **排版與字體階級 (Typography & Scale)**：
+  - 採用原生系統字體棧（-apple-system, SF Pro, PingFang TC），字體渲染清晰。
+  - 建立嚴謹層級：大標題（17px/700）、分區標題（12-13px/600 帶間距大寫）、內文與提示詞（14-16px）、說明標籤（10-12px）。
+  - 嚴格保證所有輸入框、下拉選單、文字區域字體 $\ge 16\text{px}$，避免 iOS Safari 點擊聚焦時自動放大畫面。
+- **iOS 質感控制項 (iOS Controls & Micro-interactions)**：
+  - **分段控制項 (Segmented Control)**：比照原生 `UISegmentedControl`，淺灰色膠囊槽底配以具細微陰影的白色滑動膠囊，具備 44px 觸控點擊區。
+  - **微填充膠囊晶片 (Chips as Subtle Filled Pills)**：未選取時為柔和微填底色，選取時轉為沉穩明亮的 Apple Blue 實心填色與白色文字，點擊狀態鮮明。
+  - **毛玻璃頂部導航 (Sticky Frosted Header)**：半透明磨砂玻璃頂欄，隨滾動保持輕盈背景模糊（backdrop-filter: blur(20px)）。
+  - **底部分頁導航欄 (iOS Bottom Tab Bar)**：原生風格半透明磨砂底欄，安全區邊距（safe-area-inset-bottom）精準適配，藍色活躍狀態。
+  - **提示詞輸出卡片 (Prompt Output Card)**：清晰等寬字型（ui-monospace, SF Mono）與柔和卡片背景，搭配高對比度的顯眼主要「複製 Prompt」藍色大按鈕。
+  - **流暢微動效**：180-250ms 蘋果物理緩動曲線，並嚴格遵循 `@media (prefers-reduced-motion: reduce)`。
+  - **無障礙與尺寸**：全站所有按鈕與觸控標的皆嚴格 $\ge 44\times 44\text{px}$，在 390px 視口下 0 水平溢出（0 horizontal overflow）。
+- **截圖驗證**：
+  - 於 `screenshots/v2/` 產出淺色與深色模式之 Builder、Video Mode、Recipes、Library 390px 寬度截圖。
