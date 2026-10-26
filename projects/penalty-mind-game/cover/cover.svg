@@ -1,29 +1,57 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900">
-  <rect width="1600" height="900" fill="#EEECE7"/>
-  <!-- Thin geometric pitch markings -->
-  <line x1="260" y1="570" x2="720" y2="570" stroke="#5E7186" stroke-width="2.5" stroke-opacity="0.35"/>
-  <path d="M 380 570 A 110 110 0 0 1 600 570" fill="none" stroke="#5E7186" stroke-width="2" stroke-opacity="0.25" stroke-dasharray="6 6"/>
+  <style>
+    :root {
+      --bg: #EEECE7;
+      --accent: #5E7186;
+      --tint-opacity: 0.12;
+      --horizon-opacity: 0.15;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1E1E1C;
+        --accent: #768DA6;
+        --tint-opacity: 0.18;
+        --horizon-opacity: 0.20;
+      }
+    }
+    .bg { fill: #EEECE7; fill: var(--bg); }
+    .tint { fill: #5E7186; fill: var(--accent); fill-opacity: 0.12; fill-opacity: var(--tint-opacity); }
+    .horizon { stroke: #5E7186; stroke: var(--accent); stroke-width: 2; stroke-opacity: 0.15; stroke-opacity: var(--horizon-opacity); }
+    .ink { stroke: #5E7186; stroke: var(--accent); stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #1E1E1C; }
+      .tint { fill: #768DA6; fill-opacity: 0.18; }
+      .horizon { stroke: #768DA6; stroke-opacity: 0.20; }
+      .ink { stroke: #768DA6; }
+    }
+  </style>
 
-  <!-- Subtle net fill tint -->
-  <polygon points="330,360 375,320 605,320 650,360 650,570 330,570" fill="#5E7186" fill-opacity="0.05"/>
+  <!-- Background canvas -->
+  <rect class="bg" width="1600" height="900" fill="#EEECE7"/>
 
-  <!-- Net depth lines -->
-  <path d="M 330 360 L 375 320 L 605 320 L 650 360" fill="none" stroke="#5E7186" stroke-width="4" stroke-opacity="0.35" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="375" y1="320" x2="375" y2="530" stroke="#5E7186" stroke-width="3" stroke-opacity="0.3" stroke-linecap="round"/>
-  <line x1="605" y1="320" x2="605" y2="530" stroke="#5E7186" stroke-width="3" stroke-opacity="0.3" stroke-linecap="round"/>
+  <!-- Thin horizon line across center -->
+  <line class="horizon" x1="0" y1="450" x2="1600" y2="450" stroke="#5E7186" stroke-width="2" stroke-opacity="0.15"/>
+
+  <!-- Centered tint plate (r=150 at cx=800 cy=450) -->
+  <circle class="tint" cx="800" cy="450" r="150" fill="#5E7186" fill-opacity="0.12"/>
+
+  <!-- Goal net tint -->
+  <polygon class="tint" points="715,365 745,335 855,335 885,365 885,535 715,535" fill="#5E7186" fill-opacity="0.12"/>
+
+  <!-- Goal net depth lines -->
+  <path class="ink" d="M 715 365 L 745 335 L 855 335 L 885 365" fill="none" stroke="#5E7186" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <line class="ink" x1="745" y1="335" x2="745" y2="515" stroke="#5E7186" stroke-width="8" stroke-linecap="round"/>
+  <line class="ink" x1="855" y1="335" x2="855" y2="515" stroke="#5E7186" stroke-width="8" stroke-linecap="round"/>
 
   <!-- Front goal frame -->
-  <path d="M 330 570 L 330 360 L 650 360 L 650 570" fill="none" stroke="#5E7186" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path class="ink" d="M 715 535 L 715 365 L 885 365 L 885 535" fill="none" stroke="#5E7186" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
 
-  <!-- Subtle shot trajectory arc -->
-  <path d="M 440 520 C 475 490 515 460 550 435" fill="none" stroke="#5E7186" stroke-width="3" stroke-linecap="round" stroke-dasharray="6 8" stroke-opacity="0.4"/>
-
-  <!-- Ball in flight toward top corner -->
-  <circle cx="560" cy="425" r="34" fill="#EEECE7" stroke="#5E7186" stroke-width="8"/>
-  <polygon points="560,405 577,417 570,438 550,438 543,417" fill="#5E7186" fill-opacity="0.18" stroke="#5E7186" stroke-width="5" stroke-linejoin="round"/>
-  <line x1="560" y1="405" x2="560" y2="391" stroke="#5E7186" stroke-width="5" stroke-linecap="round"/>
-  <line x1="577" y1="417" x2="590" y2="412" stroke="#5E7186" stroke-width="5" stroke-linecap="round"/>
-  <line x1="570" y1="438" x2="580" y2="451" stroke="#5E7186" stroke-width="5" stroke-linecap="round"/>
-  <line x1="550" y1="438" x2="540" y2="451" stroke="#5E7186" stroke-width="5" stroke-linecap="round"/>
-  <line x1="543" y1="417" x2="530" y2="412" stroke="#5E7186" stroke-width="5" stroke-linecap="round"/>
+  <!-- Centered soccer ball (diameter 104, cx=800 cy=450) -->
+  <circle class="bg ink" cx="800" cy="450" r="52" fill="#EEECE7" stroke="#5E7186" stroke-width="8"/>
+  <polygon class="tint ink" points="800,428 821,443 813,468 787,468 779,443" fill="#5E7186" fill-opacity="0.12" stroke="#5E7186" stroke-width="8" stroke-linejoin="round"/>
+  <line class="ink" x1="800" y1="428" x2="800" y2="398" stroke="#5E7186" stroke-width="8" stroke-linecap="round"/>
+  <line class="ink" x1="821" y1="443" x2="849" y2="434" stroke="#5E7186" stroke-width="8" stroke-linecap="round"/>
+  <line class="ink" x1="813" y1="468" x2="831" y2="492" stroke="#5E7186" stroke-width="8" stroke-linecap="round"/>
+  <line class="ink" x1="787" y1="468" x2="769" y2="492" stroke="#5E7186" stroke-width="8" stroke-linecap="round"/>
+  <line class="ink" x1="779" y1="443" x2="751" y2="434" stroke="#5E7186" stroke-width="8" stroke-linecap="round"/>
 </svg>

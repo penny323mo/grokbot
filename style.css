@@ -11,6 +11,7 @@
   --card-border: #232328;
   --card-border-hover: #373740;
   --cover-border: #26262c;
+  --cover-bg: #1e1e1c;
   --fg: #f3f2ee;
   --fg-muted: #8e8b84;
   --fg-subtle: #63615b;
@@ -37,6 +38,7 @@
     --card-border: #e4e1d7;
     --card-border-hover: #ccc7ba;
     --cover-border: #dfdbd2;
+    --cover-bg: #eeece7;
     --fg: #191816;
     --fg-muted: #66635a;
     --fg-subtle: #8a867c;
@@ -302,7 +304,7 @@ body {
   aspect-ratio: 16 / 9;
   border-radius: 14px;
   overflow: hidden;
-  background-color: #EEECE7;
+  background-color: var(--cover-bg, #1e1e1c);
   border: 1px solid var(--cover-border);
 }
 

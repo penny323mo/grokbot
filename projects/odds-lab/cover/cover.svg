@@ -1,24 +1,61 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900">
-  <rect width="1600" height="900" fill="#EEECE7"/>
-  <!-- Thin geometric accent shape / analytics grid -->
-  <line x1="260" y1="360" x2="720" y2="360" stroke="#6E8B74" stroke-width="2" stroke-opacity="0.2" stroke-dasharray="6 6"/>
-  <line x1="260" y1="460" x2="720" y2="460" stroke="#6E8B74" stroke-width="2" stroke-opacity="0.2" stroke-dasharray="6 6"/>
-  <line x1="260" y1="560" x2="720" y2="560" stroke="#6E8B74" stroke-width="2.5" stroke-opacity="0.35"/>
-  <circle cx="630" cy="360" r="32" fill="#6E8B74" fill-opacity="0.06" stroke="#6E8B74" stroke-width="2" stroke-opacity="0.25"/>
+  <style>
+    :root {
+      --bg: #EEECE7;
+      --accent: #6E8B74;
+      --tint-opacity: 0.12;
+      --horizon-opacity: 0.15;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1E1E1C;
+        --accent: #80A287;
+        --tint-opacity: 0.18;
+        --horizon-opacity: 0.20;
+      }
+    }
+    .bg { fill: #EEECE7; fill: var(--bg); }
+    .tint { fill: #6E8B74; fill: var(--accent); fill-opacity: 0.12; fill-opacity: var(--tint-opacity); }
+    .horizon { stroke: #6E8B74; stroke: var(--accent); stroke-width: 2; stroke-opacity: 0.15; stroke-opacity: var(--horizon-opacity); }
+    .ink { stroke: #6E8B74; stroke: var(--accent); stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #1E1E1C; }
+      .tint { fill: #80A287; fill-opacity: 0.18; }
+      .horizon { stroke: #80A287; stroke-opacity: 0.20; }
+      .ink { stroke: #80A287; }
+    }
+  </style>
 
-  <!-- Subtle area tint under chart curve -->
-  <path d="M 290 560 L 370 490 L 460 520 L 550 420 L 630 360 L 690 390 L 690 560 Z"
-        fill="#6E8B74" fill-opacity="0.08"/>
+  <!-- Background canvas -->
+  <rect class="bg" width="1600" height="900" fill="#EEECE7"/>
 
-  <!-- Line chart stroke -->
-  <path d="M 290 560 L 370 490 L 460 520 L 550 420 L 630 360 L 690 390"
+  <!-- Thin horizon line across center -->
+  <line class="horizon" x1="0" y1="450" x2="1600" y2="450" stroke="#6E8B74" stroke-width="2" stroke-opacity="0.15"/>
+
+  <!-- Centered tint plate (r=150 at cx=800 cy=450) -->
+  <circle class="tint" cx="800" cy="450" r="150" fill="#6E8B74" fill-opacity="0.12"/>
+
+  <!-- Area tint under trend curve -->
+  <path class="tint"
+        d="M 720 535 L 720 495 L 765 440 L 810 470 L 855 395 L 885 365 L 885 535 Z"
+        fill="#6E8B74" fill-opacity="0.12"/>
+
+  <!-- Vertical dashed guide at peak -->
+  <line class="horizon" x1="885" y1="365" x2="885" y2="535" stroke="#6E8B74" stroke-width="2" stroke-opacity="0.15" stroke-dasharray="6 6"/>
+
+  <!-- Analytics baseline -->
+  <line class="ink" x1="715" y1="535" x2="885" y2="535" stroke="#6E8B74" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- Trend line stroke -->
+  <path class="ink"
+        d="M 720 495 L 765 440 L 810 470 L 855 395 L 885 365"
         fill="none" stroke="#6E8B74" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
 
-  <!-- Chart vertex dots -->
-  <circle cx="290" cy="560" r="9" fill="#EEECE7" stroke="#6E8B74" stroke-width="7"/>
-  <circle cx="370" cy="490" r="9" fill="#EEECE7" stroke="#6E8B74" stroke-width="7"/>
-  <circle cx="460" cy="520" r="9" fill="#EEECE7" stroke="#6E8B74" stroke-width="7"/>
-  <circle cx="550" cy="420" r="9" fill="#EEECE7" stroke="#6E8B74" stroke-width="7"/>
-  <circle cx="630" cy="360" r="11" fill="#6E8B74" stroke="#6E8B74" stroke-width="7"/>
-  <circle cx="690" cy="390" r="9" fill="#EEECE7" stroke="#6E8B74" stroke-width="7"/>
+  <!-- Data vertex nodes -->
+  <circle class="bg ink" cx="720" cy="495" r="10" fill="#EEECE7" stroke="#6E8B74" stroke-width="8"/>
+  <circle class="bg ink" cx="765" cy="440" r="10" fill="#EEECE7" stroke="#6E8B74" stroke-width="8"/>
+  <circle class="bg ink" cx="810" cy="470" r="10" fill="#EEECE7" stroke="#6E8B74" stroke-width="8"/>
+  <circle class="bg ink" cx="855" cy="395" r="10" fill="#EEECE7" stroke="#6E8B74" stroke-width="8"/>
+  <circle class="bg ink" cx="885" cy="365" r="12" fill="#EEECE7" stroke="#6E8B74" stroke-width="8"/>
+  <circle class="tint" cx="885" cy="365" r="6" fill="#6E8B74" fill-opacity="0.12"/>
 </svg>
