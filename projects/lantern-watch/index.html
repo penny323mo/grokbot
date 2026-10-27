@@ -19,24 +19,67 @@
         <button type="button" class="btn-icon-nav" id="btnNavHome" title="返回主選單" aria-label="返回主選單">
           <span class="nav-icon-txt">首</span>
         </button>
-        <button type="button" class="btn-icon-nav" id="btnNavWorldMap" title="大地圖" aria-label="大地圖" style="display:none;">
-          <span class="nav-icon-txt">圖</span>
-        </button>
         <div class="resource-pill" id="pillChapter">
           <span class="res-icon">★</span>
           <span id="txtChapterBadge">第1回</span>
         </div>
       </div>
       <div class="nav-right">
-        <button type="button" class="btn-icon-nav" id="btnHelp" title="軍略指引" aria-label="軍略指引">
-          <span class="nav-icon-txt">?</span>
+        <button type="button" class="btn-icon-nav" id="btnTopMenu" title="戰術選單" aria-label="戰術選單">
+          <span class="nav-icon-txt">≡</span>
         </button>
-        <button type="button" class="btn-icon-nav" id="btnToggleMusic" title="音樂開關" aria-label="音樂開關">
-          <span class="nav-icon-txt">樂</span>
-        </button>
-        <button type="button" class="btn-icon-nav" id="btnToggleSfx" title="音效開關" aria-label="音效開關">
-          <span class="nav-icon-txt">聲</span>
-        </button>
+      </div>
+
+      <!-- Folded ≡ Dropdown Menu (圖/樂/聲/自動結束/序章/兵法) -->
+      <div class="top-menu-dropdown" id="topMenuDropdown" style="display:none;">
+        <div class="menu-dropdown-header">
+          <span>戰術選單</span>
+          <button type="button" class="btn-menu-close" id="btnCloseTopMenu" title="關閉選單">✕</button>
+        </div>
+        <div class="menu-dropdown-list">
+          <button type="button" class="menu-item-btn" id="btnNavWorldMap" title="大地圖">
+            <span class="menu-item-icon">🗺️</span>
+            <div class="menu-item-info">
+              <span class="menu-item-name">大地圖 (圖)</span>
+              <span class="menu-item-desc">查看天下關隘</span>
+            </div>
+          </button>
+          <button type="button" class="menu-item-btn" id="btnToggleMusic" aria-pressed="true" title="背景音樂">
+            <span class="menu-item-icon">🎵</span>
+            <div class="menu-item-info">
+              <span class="menu-item-name">背景音樂 (樂)</span>
+              <span class="menu-item-desc" id="txtMusicState">開啟</span>
+            </div>
+          </button>
+          <button type="button" class="menu-item-btn" id="btnToggleSfx" aria-pressed="true" title="戰鬥音效">
+            <span class="menu-item-icon">🔊</span>
+            <div class="menu-item-info">
+              <span class="menu-item-name">戰鬥音效 (聲)</span>
+              <span class="menu-item-desc" id="txtSfxState">開啟</span>
+            </div>
+          </button>
+          <button type="button" class="menu-item-btn" id="btnToggleAutoEndTurn" title="自動結束回合">
+            <span class="menu-item-icon">⚡</span>
+            <div class="menu-item-info">
+              <span class="menu-item-name">自動結束回合</span>
+              <span class="menu-item-desc" id="txtAutoEndTurnState">關閉</span>
+            </div>
+          </button>
+          <button type="button" class="menu-item-btn" id="btnOpenPrologueMenu" title="前情序章">
+            <span class="menu-item-icon">📜</span>
+            <div class="menu-item-info">
+              <span class="menu-item-name">前情序章</span>
+              <span class="menu-item-desc">重溫天下大勢</span>
+            </div>
+          </button>
+          <button type="button" class="menu-item-btn" id="btnHelp" title="基礎兵法">
+            <span class="menu-item-icon">❓</span>
+            <div class="menu-item-info">
+              <span class="menu-item-name">基礎兵法</span>
+              <span class="menu-item-desc">兵法指南</span>
+            </div>
+          </button>
+        </div>
       </div>
     </header>
 
@@ -65,6 +108,10 @@
             <span class="brush-icon">卷</span>
             <span>將士列傳</span>
           </button>
+          <button type="button" class="btn-brush-secondary" id="btnOpenPrologueTitle">
+            <span class="brush-icon">📜</span>
+            <span>前情序章</span>
+          </button>
           <button type="button" class="btn-brush-secondary" id="btnOpenTutorial">
             <span class="brush-icon">?</span>
             <span>軍略指引</span>
@@ -74,6 +121,41 @@
         <div class="title-footer-callout">✦ 經典曹操傳式戰棋 · 破霧退敵 ✦</div>
       </div>
     </main>
+
+    <!-- SCREEN 1.5: PROLOGUE SCREEN (Illustrated Story Panels) -->
+    <section class="screen" id="screenPrologue">
+      <div class="prologue-container">
+        <div class="prologue-top-bar">
+          <span class="prologue-chapter-tag">序章 · 燈影降世</span>
+          <button type="button" class="btn-prologue-skip" id="btnPrologueSkip">跳過 ›</button>
+        </div>
+        <div class="prologue-artwork-stage" id="prologueArtStage">
+          <img src="assets/art/v4/title_keyart.webp" alt="序章插畫" class="prologue-art-img" id="prologueArtImg">
+          <div class="prologue-art-vignette"></div>
+          <div class="prologue-hero-spotlight" id="prologueHeroSpotlight" style="display:none;">
+            <img src="" alt="" class="hero-spot-por" id="prologueHeroPor">
+            <div class="hero-spot-meta">
+              <span class="hero-spot-name" id="prologueHeroName">熊岳</span>
+              <span class="hero-spot-title" id="prologueHeroTitle">不動磐石 · 槍盾</span>
+            </div>
+          </div>
+        </div>
+        <div class="prologue-narration-card">
+          <div class="prologue-card-header">
+            <span class="prologue-step-dots" id="prologueDots">● ○ ○ ○ ○</span>
+            <span class="prologue-step-count" id="prologueStepCount">1 / 5</span>
+          </div>
+          <h2 class="prologue-panel-title" id="prologuePanelTitle">長夜將至 · 燈影之境</h2>
+          <p class="prologue-panel-text" id="prologuePanelText">千百年來，九州大地皆由長明古燈庇佑。凡燈火所照之處，妖邪辟易，萬民安居。燈火是黑暗中唯一的屏障。</p>
+          <div class="prologue-action-row">
+            <button type="button" class="btn-prologue-prev" id="btnProloguePrev" style="display:none;">‹ 上一節</button>
+            <button type="button" class="btn-prologue-next" id="btnPrologueNext">
+              <span>下一節 ›</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- SCREEN 2: WORLD MAP SCREEN -->
     <section class="screen" id="screenWorldMap">
@@ -249,30 +331,6 @@
             <div class="lanterns-layer" id="lanternsLayer"></div>
             <!-- Visual Effects Layer -->
             <div class="vfx-layer" id="vfxLayer"></div>
-
-            <!-- Action Menu Popover (Anchored on Board Stage beside Unit) -->
-            <div class="action-menu-popover" id="actionMenuPopover" style="display:none;">
-              <div class="action-menu-buttons">
-                <button type="button" class="btn-action-tactics" id="btnActionAttack" data-action="attack">
-                  <span class="action-txt">攻擊</span>
-                </button>
-                <button type="button" class="btn-action-tactics" id="btnActionSkill" data-action="skill">
-                  <span class="action-txt">技能</span>
-                </button>
-                <button type="button" class="btn-action-tactics" id="btnActionMagic" data-action="magic">
-                  <span class="action-txt">法術</span>
-                </button>
-                <button type="button" class="btn-action-tactics bond" id="btnActionBond" data-action="bond" style="display:none;">
-                  <span class="action-txt">合擊</span>
-                </button>
-                <button type="button" class="btn-action-tactics wait" id="btnActionWait" data-action="wait">
-                  <span class="action-txt">待命</span>
-                </button>
-              </div>
-              <button type="button" class="btn-action-cancel" id="btnActionCancel">
-                <span>取消移動</span>
-              </button>
-            </div>
           </div>
         </div>
 
@@ -325,11 +383,85 @@
           </div>
         </div>
 
+        <!-- Docked Bottom Action Bar (Replaces popover, docked in bottom third) -->
+        <div class="action-menu-popover docked-action-bar" id="actionMenuPopover" style="display:none;">
+          <div class="docked-action-header">
+            <div class="docked-unit-pill">
+              <span class="docked-unit-badge" id="dockedUnitBadge">盾</span>
+              <span class="docked-acting-unit" id="dockedActingUnitName">熊岳 · 行動</span>
+              <span class="docked-unit-hp" id="dockedUnitHp">HP 36/36</span>
+            </div>
+            <button type="button" class="btn-docked-close" id="btnDockedClose" title="收起選單">✕</button>
+          </div>
+          <div class="action-menu-buttons">
+            <button type="button" class="btn-action-tactics" id="btnActionAttack" data-action="attack">
+              <span class="action-btn-icon">⚔️</span>
+              <div class="action-btn-text-group">
+                <span class="action-txt">攻擊</span>
+                <span class="action-sub-txt">近身物理·無消耗·可能被反擊</span>
+              </div>
+            </button>
+            <button type="button" class="btn-action-tactics" id="btnActionSkill" data-action="skill">
+              <span class="action-btn-icon">⚡</span>
+              <div class="action-btn-text-group">
+                <span class="action-txt">技能</span>
+                <span class="action-sub-txt">職業招式·耗氣力</span>
+              </div>
+              <span class="action-cost-tag" id="btnActionSkillCost"></span>
+            </button>
+            <button type="button" class="btn-action-tactics" id="btnActionMagic" data-action="magic">
+              <span class="action-btn-icon">🔮</span>
+              <div class="action-btn-text-group">
+                <span class="action-txt">法術</span>
+                <span class="action-sub-txt">屬性·克制·耗MP</span>
+              </div>
+              <span class="action-cost-tag" id="btnActionMagicCost"></span>
+            </button>
+            <button type="button" class="btn-action-tactics bond" id="btnActionBond" data-action="bond" style="display:none;">
+              <span class="action-btn-icon">🤝</span>
+              <div class="action-btn-text-group">
+                <span class="action-txt">合擊</span>
+                <span class="action-sub-txt">同氣連枝·協同突擊</span>
+              </div>
+            </button>
+            <button type="button" class="btn-action-tactics wait" id="btnActionWait" data-action="wait">
+              <span class="action-btn-icon">🛡️</span>
+              <div class="action-btn-text-group">
+                <span class="action-txt">待命</span>
+                <span class="action-sub-txt">結束行動·防禦+10%</span>
+              </div>
+            </button>
+            <button type="button" class="btn-action-tactics undo" id="btnActionCancel" data-action="undo">
+              <span class="action-btn-icon">↩️</span>
+              <div class="action-btn-text-group">
+                <span class="action-txt">復原</span>
+                <span class="action-sub-txt">撤回移動</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Skill / Magic Sub-list Panel -->
+        <div class="action-sublist-panel" id="actionSublistPanel" style="display:none;">
+          <div class="sublist-header">
+            <span class="sublist-title" id="sublistTitle">選擇招式</span>
+            <button type="button" class="btn-sublist-back" id="btnSublistBack">‹ 返回指令</button>
+          </div>
+          <div class="sublist-items" id="sublistItemsContainer">
+            <!-- Dynamically populated move cards -->
+          </div>
+        </div>
+
         <!-- Bottom Terrain & Unit Information Strip -->
         <div class="bottom-info-strip" id="bottomTerrainStrip">
-          <div class="strip-coord" id="stripCoord">(0,0)</div>
-          <div class="strip-terrain" id="stripTerrain">平地 · 移動消耗 1 · 防禦 +0 · 迴避 +0%</div>
-          <div class="strip-unit" id="stripUnitInfo" style="display:none;"></div>
+          <div class="strip-left">
+            <div class="strip-coord" id="stripCoord">(0,0)</div>
+            <div class="strip-terrain" id="stripTerrain">平地 · 移動消耗 1 · 防禦 +0 · 迴避 +0%</div>
+            <div class="strip-unit" id="stripUnitInfo" style="display:none;"></div>
+          </div>
+          <button type="button" class="btn-strip-next" id="btnNextUnactedUnit" title="切換至下一個未行動將士">
+            <span>下一個 ❯</span>
+          </button>
         </div>
 
         <!-- Animated Turn Transition Banner -->
@@ -364,6 +496,7 @@
                 <button type="button" class="btn-tutorial-suggest-mini" id="btnTutorialSuggest" title="建議行動">💡 建議</button>
                 <button type="button" class="btn-tutorial-expand-mini" id="btnTutorialExpand" title="展開詳情">詳情</button>
                 <button type="button" class="btn-tutorial-ack-mini" id="btnBoardTutorialAck">明白</button>
+                <button type="button" class="btn-tutorial-close-mini" id="btnBoardTutorialClose" title="關閉教學">✕</button>
               </div>
             </div>
             <div class="tutorial-card-expanded-body" id="tutorialCardExpandedBody" style="display:none;">

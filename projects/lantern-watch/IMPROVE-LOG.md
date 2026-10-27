@@ -137,3 +137,8 @@
   - Naive rush fails tactically across Ch2, Ch3, Ch5, Ch6, Ch7, Ch8 (< 50%).
   - Core invariants held: zero first-phase deaths, enemy hit cap at 30% maxHp.
 - Deployment: Published via `/workspace/orchestrator/publish.sh .`, live URL returns HTTP 200.
+
+## 2026-10-27 17:15 (Asia/Macau): improve round 11 launched (prompts/improve-10.txt)
+- Round 10 finished at 16:58. The live site returns 200. npm test passes (ch1 naive 50/50, reasonable ch1 100%, ch2–8 76–90%, no first-phase deaths); verify_map_fit passes.
+- Real-tap 390x844 playthrough (screenshots/play11) found: 開始戰役 skips straight to the world map with no prologue; pressing 明白 on a tutorial step performs the step for the player (熊岳 auto-moved onto the bridge next to 霧騎, 墨影 too), spending their turn; the fitted board leaves ~40% of the screen as empty black bands; figures are small and walk limbs unreadable; the action popover still covers units (backlog).
+- Brief: fix the tutorial so the player does every step (attack, 技能, 法術 once each, with when-to-use lines and element counters); docked bottom action bar with icons + subtitles, tap-twice targeting, undo, 下一個未行動, ≡ menu; recommended target tags (克制 ×1.5 / 可擊破 / 會反擊); a skippable illustrated prologue; exaggerated walk cycle and cavalry gallop; use the empty band. Screenshots go to screenshots/v14; old state in .orch-prev-10.

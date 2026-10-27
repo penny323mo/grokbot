@@ -52,13 +52,13 @@ Counter-attack: melee defenders hit back once if attacker in range and defender 
 
 ## 6. Tutorial (7 beats across Ch 1 + replayable via 「?」)
 Live board overlay with dimmed screen and pulsing spotlight ring (`.spotlight-active`), one-line hints, 8s idle advice, and `💡 建議行動` suggested-move button:
-1. ① 移動走位 (Move): 點選將士【熊岳】，腳下藍格為合法移動範圍。
-2. ② 攻擊鎖定 (Attack): 移動後點擊【攻擊】，紅格為射程範圍，再次點擊目標或點確認執行。
-3. ③ 險要據守 (Terrain): 林木加防禦與閃避，高地享有居高臨下傷害加成。
-4. ④ 反擊與背刺 (Counter & Flank): 正面交鋒易遭反擊；側翼打出1.2倍，背面享受1.5倍背刺且不受反擊（墨影疾影雙倍）。
-5. ⑤ 燈火長明 (Lantern Light): 引路燈車向前挺進，長明燈光照破夜霧、驅散幽冥咒縛。
-6. ⑥ 奇術破陣 (Spell & Directional Skill): 消耗法力施展專屬「技能」或「法術」，支援直線貫穿推進或扇面覆蓋群敵。
-7. ⑦ 軍略妙算 (Stratagem): 戰場即時發動全軍軍略妙計（火攻、水淹、夜襲、鼓舞），逆轉戰局克敵制勝。
+1. ① 選定將士 (Select): 點選將士查看移動範圍與指令。何時使用：戰鬥開始或切換行動目標時點選。
+2. ② 步法挺進 (Move): 點選藍色地塊走位挺進前線。何時使用：接近敵軍、搶佔要津或進入防守草叢時使用。
+3. ③ 普通攻擊 (Attack): 近身物理無消耗攻擊。何時使用：近距交鋒、節省MP或殘血補刀時使用。
+4. ④ 專屬技能 (Skill): 消耗氣力的職業專屬特技。何時使用：需要擊退破陣、穿透衝刺或強控局勢時使用。
+5. ⑤ 屬性法術 (Magic): 屬性魔法打擊五行弱點。何時使用：敵軍帶五行屬性時使用（如火克木享1.5倍傷害，顯示【克制 ×1.5】）。
+6. ⑥ 原地待命 (Standby): 原地固守結束將士行動。何時使用：已至戰略要地無須出招時待命，獲得防禦加成。
+7. ⑦ 結束回合 (End Turn): 結束我軍行動階段。何時使用：全員行動完畢或戰術就緒，輪到敵軍進攻時點選。
 Post-hit combat floating badges (`showFloatingDamage`) explain damage multipliers: `【背刺 ×1.5】`, `【側翼 ×1.2】`, `【居高臨下 ×1.2】`, `【正面護盾 -70%】`, `【地形防禦 -X】`, `【屬性相剋 ×2.0】`.
 Both the live Ch 1 overlay and the nav `?` help modal are in sync with all 7 beats. Persisted in localStorage `${GAME.storageKey}_tutorial`.
 

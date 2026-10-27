@@ -1,5 +1,21 @@
 # Changelog
 
+## v14.0.0 — 底部停靠指令列、五行克制推薦標籤、彩繪序章故事面板、非干涉引導教學 (Round 11 / v14)
+
+### 行動操控與介面精緻化 (Docked Action Bar & Sub-lists)
+- **底部停靠指令列 (Docked Action Bar)**: 全面替換覆蓋單位的浮動彈窗，改為固定停靠於 390×844 螢幕下三分之一的戰術指令面板，按鈕高度 ≥48px，附帶圖示與詳細戰術副標題（攻擊「近身物理·無消耗·可能被反擊」、技能「職業招式·耗氣力」、法術「屬性·克制·耗MP」、待命「結束行動·防禦+10%」、復原「撤回移動」）。
+- **技能/法術子清單面板 (`#actionSublistPanel`)**: 點擊技能或法術時平滑呼出子清單，展示招式名稱、五行屬性晶片、戰術描述與 MP 消耗，支援隨時返回主指令列。
+- **目標推薦地圖標籤**: 指令選定後，射程內敵軍頭頂即時計算並懸浮顯示微型地圖標籤（`克制 ×1.5`、`可擊破`、`會反擊`），一眼判明最佳戰術目標。
+- **頂部選單折疊與便利操作**: 將地圖、音樂、音效折疊收納入單一 `≡` 下拉選單；新增「下一個未行動」快捷切換鍵與可切換之「全員行動完畢自動結束回合」。長按動作按鈕之情報卡功能完整保留。
+
+### 引導教學與故事敘事 (Non-intrusive Tutorial & Illustrated Prologue)
+- **非干涉新手引導教學**: 重構第一回引導教學，「明白」按鈕僅切換說明文字與高亮聚光燈，絕不代操將士位移或消耗行動，中途關閉絕不影響戰局狀態；教學完整涵蓋選定、移動、攻擊、技能、五行克制法術（火克木 ×1.5）、待命與結束回合等 7 個關鍵動作。
+- **6頁彩繪故事序章 (`#screenPrologue`)**: 新戰役自動開啟並支援從標題或選單隨時重溫。依序展示長明古燈世界觀、夜霧狂湧危機、引路燈車使命、前驅先鋒（熊岳與墨影）與後應神術（燈娘與茶翁）之各自戰意動機，以及寒川渡橋吹角啟程。
+
+### 動畫步態與戰場比例提升 (Walk & Cavalry Gallop Readability)
+- **步態與騎兵馳騁視覺強化**: 步兵邁步角度大幅誇張至 38°、垂直起伏 6.5px、擺臂 10°；霧騎騎兵實裝 11px 騰空起伏、12° 揚蹄俯仰、42° 前肢前探與 -38° 後肢後蹬，並於行走時放大 1.38 倍，390px 螢幕下奔馳步態清晰可辨。
+- **戰場頂部空間最佳化**: 390×844 視圖下縮減頂部空幅，棋盤直接緊貼目標橫幅下方，將多餘空間全數釋放給底部指令列，全章節 E2E 地圖適配測試維持 100% 通過。
+
 ## Round 1 fixes
 
 ### 戰場視野與敵軍立繪修復 (Ch1 Framing & Enemy Silhouette Clarity)
@@ -932,3 +948,35 @@
   - Reset `this.deployPlacements = []` when launching different chapters so units use the proper chapter deploy slots, and framed living allies plus incoming reinforcement markers so 燈娘 小螢 and edge markers remain completely visible inside 390px boundaries.
 - **MINOR #5 (SPEC Alignment for Weather & Telegraphed Reinforcements)**:
   - Added §8b (Weather System & Telegraphed Reinforcements) to `SPEC.md` documenting weather conditions (`rain`, `fog`, `wind`, `night`) and 1-turn early glowing hazard warning indicators.
+
+
+## Round 1 fixes
+
+### MAJOR Fixes
+- **MAJOR #1 (Tutorial Beat 5 Magic & Element Advantage Tag Display)**:
+  - Repositioned Chapter 1 wood-element `shadow_archer` enemy spawn to `(4, 7)` in `js/data/maps.js`, perfectly placing it within 燈娘's range 2–3 attack radius from deploy tile `(2, 8)`.
+  - Updated `updateStepView(4)` in `js/app.js` to select 燈娘, open the docked action menu with the 法術 button spotlighted, and frame both units without auto-casting.
+  - Updated `refreshBattleUI` in `js/app.js` to dynamically compute `targetTagsMap` for magic on tutorial step 4, rendering the `克制 ×1.5` tag directly above the wood-type enemy on the board.
+  - Shortened compact copy to `點選【法術】· 克制×1.5` in `js/render/ui.js` and tightened compact row styles to completely avoid ellipsis truncation.
+  - Recaptured `screenshots/v14/tutorial-magic.png` showing the docked action bar, wood archer, and `克制 ×1.5` tag all simultaneously in frame.
+
+- **MAJOR #2 (Walk & Cavalry Gallop 390px Readability & Recapture Cleanliness)**:
+  - Ensured `#topMenuDropdown` is strictly closed (`style.display = 'none'`) during animation capture and removed all conflicting overlays.
+  - Robustified `buildWalkRig` in `js/render/ui.js` to construct the walking rig using figure sprite dimensions without failing on image state.
+  - Scaled active walking and galloping rigs by 1.38× with `transform-origin: center bottom` in `css/style.css`, elevating active walkers to `z-index: 25`.
+  - Added strict error-checking in screenshot capture script to fail immediately if rig creation fails.
+  - Recaptured clean 390px frames for `screenshots/v14/walk-midstride.png` (38° stride swing, 6.5px bounce) and `screenshots/v14/cavalry-gallop.png` (11px heave, 12° rearing pitch, 42° foreleg reach, -38° hind kick) with zero blocking overlays.
+
+### MINOR Fixes
+- **MINOR #1 (Docked Action Bar Subtitle Ellipsis)**:
+  - Shortened 法術 subtitle to `屬性·克制·耗MP` in both `index.html` and `js/render/ui.js`.
+  - Tightened `.action-sub-txt` letter-spacing in `css/style.css` to prevent truncation.
+- **MINOR #2 (Eliminate 390×844 Top Dead Space)**:
+  - Adjusted camera vertical anchoring in `applyCamera` (`js/render/ui.js`) to anchor the stage at `c.ty = 4` under the objective ticker when board height is unconstrained by viewport height, while preserving centering on height-constrained viewports (390×664). All 6 E2E map fit tests in `scripts/verify_map_fit.mjs` pass.
+- **MINOR #3 (UI-Driven Tutorial No-Mutate Unit Test)**:
+  - Enhanced `tests/interaction.test.mjs` to instantiate a real `UIRenderer` and drive `showBoardTutorial` step-by-step through all 7 steps via `btnBoardTutorialAck.onclick()`, as well as clicking `btnBoardTutorialClose.onclick()`, asserting after every click that all ally unit coordinates, HP, MP, and `acted` flags remain strictly untouched.
+- **MINOR #4 (Prologue Hero Motivations)**:
+  - Expanded `#screenPrologue` in `js/render/ui.js` to 6 painted panels, separating frontliners (熊岳 & 墨影) and support casters (燈娘 & 茶翁) into dedicated spotlight panels detailing their specific battle motivations.
+- **MINOR #5 & #6 (Changelog & SPEC.md Synchronisation)**:
+  - Added `## v14.0.0` release notes to `CHANGELOG.md`.
+  - Updated `SPEC.md` §6 to document the live 7 tutorial beats (選定 / 移動 / 攻擊 / 技能 / 法術 / 待命 / 結束回合).

@@ -70,3 +70,6 @@ balance ok: ch1 naive win 50/50, ch3/5/7 naive failed, all mid chapters reasonab
   - Reset `this.deployPlacements = []` when launching different chapters so units use the proper chapter deploy slots, and framed living allies plus incoming reinforcement markers so 燈娘 小螢 and edge markers remain completely visible inside 390px boundaries.
 - **MINOR #5 (SPEC Alignment for Weather & Telegraphed Reinforcements)**:
   - Added §8b (Weather System & Telegraphed Reinforcements) to `SPEC.md` documenting weather conditions (`rain`, `fog`, `wind`, `night`) and 1-turn early glowing hazard warning indicators.
+
+## Round 11 launched 2026-10-27 17:15 (Asia/Macau)
+Brief prompts/improve-10.txt: tutorial no longer auto-plays on 明白 and guides attack/技能/法術 once each; docked bottom action bar with subtitles, tap-twice targeting, undo, 下一個未行動, ≡ menu; target tags; illustrated prologue; readable walk/gallop; use empty screen bands.

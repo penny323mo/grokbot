@@ -71,6 +71,21 @@ export function canTargetUnit(attacker, defender, board, visionTiles = null) {
 }
 
 /**
+ * Elemental interaction matrix
+ */
+export function getElementEffectiveness(atkElem, defElem) {
+  if (!atkElem || !defElem) return { mult: 1.0, isAdvantage: false, isImmune: false };
+  if (defElem === 'water' && atkElem === 'fire') return { mult: 0.0, isAdvantage: false, isImmune: true };
+  if (defElem === 'water' && atkElem === 'thunder') return { mult: 2.0, isAdvantage: true, isImmune: false };
+  if (defElem === 'wood' && atkElem === 'fire') return { mult: 1.5, isAdvantage: true, isImmune: false };
+  if (defElem === 'fire' && atkElem === 'water') return { mult: 1.5, isAdvantage: true, isImmune: false };
+  if (defElem === 'earth' && atkElem === 'wood') return { mult: 1.5, isAdvantage: true, isImmune: false };
+  if (defElem === 'water' && atkElem === 'earth') return { mult: 1.5, isAdvantage: true, isImmune: false };
+  if (defElem === 'dark' && (atkElem === 'light' || atkElem === 'fire')) return { mult: 1.5, isAdvantage: true, isImmune: false };
+  return { mult: 1.0, isAdvantage: false, isImmune: false };
+}
+
+/**
  * Calculate combat resolution between attacker and defender
  */
 export function calculateCombat(attacker, defender, board, options = {}) {
@@ -148,15 +163,10 @@ export function calculateCombat(attacker, defender, board, options = {}) {
     damageMod *= 1.3;
   }
 
-  // 5. Elemental affinity vs water-type (paper_ghost)
-  const isDefenderWater = defender.element === 'water' || defender.trait?.id === 'water_spirit';
-  if (isDefenderWater) {
-    if (element === 'fire') {
-      damageMod *= 0.0; // Completely immune to fire
-    } else if (element === 'thunder') {
-      damageMod *= 2.0; // Thunder deals double
-    }
-  }
+  // 5. Elemental affinity
+  const defEffectiveElement = defender.element || (defender.trait?.id === 'water_spirit' ? 'water' : null);
+  const elemEff = getElementEffectiveness(element, defEffectiveElement);
+  damageMod *= elemEff.mult;
 
   // 6. Ally inspire stratagem (+20% dmg turns 1-2)
   if (attacker.inspireBonus) {
@@ -214,7 +224,7 @@ export function calculateCombat(attacker, defender, board, options = {}) {
   if (!options.aiEval) expectedDamage = capDamageToAlly(defender, expectedDamage);
 
   // If immune, damage is strictly 0
-  if (isDefenderWater && element === 'fire') {
+  if (elemEff.isImmune) {
     expectedDamage = 0;
   }
 
@@ -323,6 +333,17 @@ export function calculateCombat(attacker, defender, board, options = {}) {
     expectedDamage = Math.max(1, Math.floor(expectedDamage * 0.5));
   }
 
+  const targetTags = [];
+  if (elemEff.isAdvantage) {
+    targetTags.push(`克制 ×${elemEff.mult}`);
+  }
+  if (willKill) {
+    targetTags.push('可擊破');
+  }
+  if (canCounter && !willKill) {
+    targetTags.push('會反擊');
+  }
+
   return {
     attacker,
     defender,
@@ -344,7 +365,10 @@ export function calculateCombat(attacker, defender, board, options = {}) {
     knockbackResult,
     comboAlly,
     bondName,
-    comboDamage
+    comboDamage,
+    isAdvantage: elemEff.isAdvantage,
+    elemMult: elemEff.mult,
+    targetTags
   };
 }
 

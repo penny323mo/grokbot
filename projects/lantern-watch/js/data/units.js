@@ -97,6 +97,7 @@ export const GUARDIAN_PROTOS = {
       type: 'magic',
       range: [2, 3],
       power: 12,
+      element: 'fire',
       desc: '射出一記凝聚燈火的破煞靈矢，無視目標地形防禦',
       bark: '「一點靈光，洞穿迷障！」'
     },

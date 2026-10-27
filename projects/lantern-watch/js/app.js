@@ -74,15 +74,91 @@ class LanternTacticsApp {
       this.ui.showScreen('screenTitle');
     };
 
-    document.getElementById('btnNavWorldMap').onclick = () => {
-      this.sound?.playSfx('tap');
-      this.openWorldMap();
-    };
+    const btnTopMenu = document.getElementById('btnTopMenu');
+    const menuDropdown = document.getElementById('topMenuDropdown');
+    if (btnTopMenu && menuDropdown) {
+      btnTopMenu.onclick = (e) => {
+        e.stopPropagation();
+        const isOpen = menuDropdown.style.display !== 'none';
+        menuDropdown.style.display = isOpen ? 'none' : 'block';
+        this.sound?.playSfx('tap');
+      };
+      const btnCloseMenu = document.getElementById('btnCloseTopMenu');
+      if (btnCloseMenu) {
+        btnCloseMenu.onclick = (e) => {
+          e.stopPropagation();
+          menuDropdown.style.display = 'none';
+        };
+      }
+      document.addEventListener('click', (e) => {
+        if (!menuDropdown.contains(e.target) && e.target !== btnTopMenu) {
+          menuDropdown.style.display = 'none';
+        }
+      });
+    }
 
-    document.getElementById('btnHelp').onclick = () => {
-      this.sound?.playSfx('tap');
-      this.ui.showTacticsTutorialModal();
+    const btnWorldMap = document.getElementById('btnNavWorldMap');
+    if (btnWorldMap) {
+      btnWorldMap.onclick = () => {
+        if (menuDropdown) menuDropdown.style.display = 'none';
+        this.sound?.playSfx('tap');
+        this.openWorldMap();
+      };
+    }
+
+    const btnHelp = document.getElementById('btnHelp');
+    if (btnHelp) {
+      btnHelp.onclick = () => {
+        if (menuDropdown) menuDropdown.style.display = 'none';
+        this.sound?.playSfx('tap');
+        this.ui.showTacticsTutorialModal();
+      };
+    }
+
+    // Auto End Turn Setting
+    this.autoEndTurnEnabled = localStorage.getItem('lt_auto_end_turn') === '1';
+    const syncAutoEndBtn = () => {
+      const txt = document.getElementById('txtAutoEndTurnState');
+      if (txt) txt.textContent = this.autoEndTurnEnabled ? '開啟' : '關閉';
+      const btn = document.getElementById('btnToggleAutoEndTurn');
+      if (btn) btn.classList.toggle('is-active', this.autoEndTurnEnabled);
     };
+    syncAutoEndBtn();
+    const btnAutoEnd = document.getElementById('btnToggleAutoEndTurn');
+    if (btnAutoEnd) {
+      btnAutoEnd.onclick = () => {
+        this.autoEndTurnEnabled = !this.autoEndTurnEnabled;
+        localStorage.setItem('lt_auto_end_turn', this.autoEndTurnEnabled ? '1' : '0');
+        syncAutoEndBtn();
+        this.sound?.playSfx('tap');
+      };
+    }
+
+    // Prologue triggers
+    const triggerPrologue = () => {
+      if (menuDropdown) menuDropdown.style.display = 'none';
+      this.sound?.playSfx('tap');
+      this.ui.showPrologue(() => {
+        if (this.battle) {
+          this.ui.showScreen('screenBattle');
+        } else {
+          this.openWorldMap();
+        }
+      });
+    };
+    const btnProTitle = document.getElementById('btnOpenPrologueTitle');
+    if (btnProTitle) btnProTitle.onclick = triggerPrologue;
+    const btnProMenu = document.getElementById('btnOpenPrologueMenu');
+    if (btnProMenu) btnProMenu.onclick = triggerPrologue;
+
+    // Next Unacted Unit button
+    const btnNextUnacted = document.getElementById('btnNextUnactedUnit');
+    if (btnNextUnacted) {
+      btnNextUnacted.onclick = () => {
+        if (!this.battle || this.battle.phase !== 'ally') return;
+        this.selectNextUnactedUnit();
+      };
+    }
 
     const btnSpeed = document.getElementById('btnBattleSpeed');
     if (btnSpeed) {
@@ -135,7 +211,11 @@ class LanternTacticsApp {
     // Title screen
     document.getElementById('btnStartCampaign').onclick = () => {
       this.sound?.playSfx('tap');
-      this.openWorldMap();
+      if (!localStorage.getItem('lt_prologue_seen')) {
+        this.ui.showPrologue(() => this.openWorldMap());
+      } else {
+        this.openWorldMap();
+      }
     };
 
     const btnOpenCamp = document.getElementById('btnOpenCamp');
@@ -183,10 +263,7 @@ class LanternTacticsApp {
     }
 
     document.getElementById('btnEndTurn').onclick = () => {
-      if (!this.battle || this.battle.phase !== 'ally') return;
-      this.sound?.playSfx('tap');
-      this.clearSelection();
-      this.triggerEnemyTurn();
+      this.handleEndTurn();
     };
 
     document.getElementById('btnUndoMove').onclick = () => {
@@ -486,8 +563,65 @@ class LanternTacticsApp {
     }
   }
 
+  selectNextUnactedUnit() {
+    if (!this.battle) return;
+    const allies = this.battle.allies.filter(a => a.hp > 0 && a.role !== 'npc' && a.role !== 'objective');
+    const currentIndex = this.selectedUnit ? allies.indexOf(this.selectedUnit) : -1;
+    let next = null;
+    for (let i = 1; i <= allies.length; i++) {
+      const idx = (currentIndex + i) % allies.length;
+      if (!allies[idx].acted) {
+        next = allies[idx];
+        break;
+      }
+    }
+    if (next) {
+      this.sound?.playSfx('tap');
+      this.handleUnitTap(next);
+      this.ui.centerCameraOn(next.x, next.y, true);
+    }
+  }
+
+  checkAutoEndTurn() {
+    if (!this.autoEndTurnEnabled || !this.battle || this.battle.phase !== 'ally') return;
+    const livingAllies = this.battle.allies.filter(a => a.hp > 0 && a.role !== 'npc' && a.role !== 'objective');
+    if (livingAllies.length > 0 && livingAllies.every(a => a.acted)) {
+      setTimeout(() => {
+        if (this.battle && this.battle.phase === 'ally') {
+          this.handleEndTurn();
+        }
+      }, 450);
+    }
+  }
+
   refreshBattleUI() {
     if (!this.battle) return;
+
+    const targetTagsMap = new Map();
+    const actionForTags = this.activeActionType || (this.isGuidedTutorial && this.tutorialStep === 4 ? 'magic' : null);
+    if (this.selectedUnit && actionForTags) {
+      const unit = this.selectedUnit;
+      const skill = this.selectedSkill || (actionForTags === 'skill' ? unit.skill : (actionForTags === 'magic' ? unit.magic : null));
+      const rangeTiles = getAttackRangeTiles(this.battle.board, unit, unit.x, unit.y);
+      for (const enemy of this.battle.enemies) {
+        if (enemy.hp <= 0) continue;
+        const key = `${enemy.x},${enemy.y}`;
+        const inRange = rangeTiles.some(t => t.x === enemy.x && t.y === enemy.y);
+        if (!inRange && this.validTargetKeys && !this.validTargetKeys.has(key)) continue;
+        const pv = calculateCombat(unit, enemy, this.battle.board, {
+          actionType: actionForTags,
+          skill,
+          noCounter: !!skill?.aoe,
+          attackerX: unit.x,
+          attackerY: unit.y,
+          allies: this.battle.allies,
+          synergies: this.battle.synergies
+        });
+        if (pv.targetTags && pv.targetTags.length > 0) {
+          targetTagsMap.set(enemy.id, pv.targetTags);
+        }
+      }
+    }
 
     this.ui.renderBattle(this.battle, {
       selectedUnit: this.selectedUnit,
@@ -496,6 +630,7 @@ class LanternTacticsApp {
       aoeTiles: this.aoeTiles,
       validTargetKeys: this.targetingMode ? this.validTargetKeys : null,
       selectedTargetKey: this.targetingMode ? this.pendingTargetKey : null,
+      targetTagsMap,
       deploySlots: this.deploySlots,
       threatTiles: this.showThreat ? this.computeThreatTiles() : null,
       onUnitTap: (unit) => this.handleUnitTap(unit),
@@ -651,6 +786,9 @@ class LanternTacticsApp {
 
     // If unit is ally and has not acted yet: select it!
     if (unit.team === 'ally' && !unit.acted && unit.role !== 'npc' && unit.role !== 'objective') {
+      if (this.isGuidedTutorial && this.tutorialStep === 0) {
+        this.advanceGuidedTutorial(0);
+      }
       this.sound?.playSfx('tap');
       this.selectedUnit = unit;
       this.stagedMoveTile = null;
@@ -791,13 +929,17 @@ class LanternTacticsApp {
     this.attackableTiles = new Set();
     this.refreshBattleUI();
     const path = unit.lastPath || [];
-    if (path.length < 2 || !this.ui.animateWalks) { after && after(); this.refreshBattleUI(); return; }
-    this.inputLocked = true;
-    this.ui.animateWalks([{ id: unit.id, path, unit }]).then(() => {
+    const onWalkComplete = () => {
       this.inputLocked = false;
+      if (this.isGuidedTutorial && this.tutorialStep === 1) {
+        this.advanceGuidedTutorial(1);
+      }
       if (this.selectedUnit === unit) { after && after(); }
       this.refreshBattleUI();
-    });
+    };
+    if (path.length < 2 || !this.ui.animateWalks) { onWalkComplete(); return; }
+    this.inputLocked = true;
+    this.ui.animateWalks([{ id: unit.id, path, unit }]).then(onWalkComplete);
   }
 
   /** 原地行動: no movement, go straight to the action menu. */
@@ -806,6 +948,9 @@ class LanternTacticsApp {
     this.sound?.playSfx('tap');
     this.battle.holdPosition(unit);
     this.stagedMoveTile = { x: unit.x, y: unit.y };
+    if (this.isGuidedTutorial && this.tutorialStep === 1) {
+      this.advanceGuidedTutorial(1);
+    }
     this.openActionMenuForUnit(unit);
     this.refreshBattleUI();
   }
@@ -906,7 +1051,8 @@ class LanternTacticsApp {
         this.clearSelection();
         this.refreshBattleUI();
       },
-      (actionType, pressing) => this.showActionInfo(unit, actionType, pressing)
+      (actionType, pressing) => this.showActionInfo(unit, actionType, pressing),
+      unit
     );
     requestAnimationFrame(() => this.ui.frameTiles([unit, ...enemiesInRange]));
   }
@@ -929,7 +1075,30 @@ class LanternTacticsApp {
     this.ui.renderRangeOnly?.(this.attackableTiles, this.aoeTiles) ?? this.refreshBattleUI();
   }
 
-  handleActionMenuChoice(actionType) {
+  handleActionMenuChoice(actionType, skipSublist = false) {
+    const unit = this.selectedUnit;
+    if (!unit) return;
+
+    if (actionType === 'skill' && !skipSublist && unit.skill) {
+      const skills = [unit.skill].filter(Boolean);
+      this.ui.showActionSublist('技能列表', skills, () => {
+        this.handleActionMenuChoice('skill', true);
+      }, () => {
+        this.openActionMenuForUnit(unit);
+      });
+      return;
+    }
+
+    if (actionType === 'magic' && !skipSublist && unit.magic) {
+      const magics = [unit.magic].filter(Boolean);
+      this.ui.showActionSublist('法術列表', magics, () => {
+        this.handleActionMenuChoice('magic', true);
+      }, () => {
+        this.openActionMenuForUnit(unit);
+      });
+      return;
+    }
+
     this.activeActionType = actionType;
     this.ui.hideActionMenu();
 
@@ -937,9 +1106,6 @@ class LanternTacticsApp {
       this.confirmActionExecution('wait');
       return;
     }
-
-    const unit = this.selectedUnit;
-    if (!unit) return;
 
     // Self-buff magic
     if (actionType === 'magic' && unit.magic?.selfBuff) {
@@ -1143,7 +1309,19 @@ class LanternTacticsApp {
 
     const actingUnit = this.selectedUnit;
     const res = this.battle.confirmAction(actingUnit, actionType, target, options);
-    if (!(actionType === 'magic' && actingUnit.magic?.selfBuff)) this.sound?.playSfx('hit');
+    this.sound?.playSfx('hit');
+
+    if (this.isGuidedTutorial) {
+      if (actionType === 'attack' && this.tutorialStep === 2) {
+        this.advanceGuidedTutorial(2);
+      } else if (actionType === 'skill' && this.tutorialStep === 3) {
+        this.advanceGuidedTutorial(3);
+      } else if (actionType === 'magic' && this.tutorialStep === 4) {
+        this.advanceGuidedTutorial(4);
+      } else if (actionType === 'wait' && this.tutorialStep === 5) {
+        this.advanceGuidedTutorial(5);
+      }
+    }
 
     // Trigger voice bark banner on skill / magic / combo
     if (actionType === 'skill' || actionType === 'magic') {
@@ -1175,13 +1353,7 @@ class LanternTacticsApp {
       events: res.events || []
     };
 
-    const isSelfBuff = actionType === 'magic' && actingUnit.magic?.selfBuff;
-    if (isSelfBuff) {
-      // Self-buff is not an attack: no lunge, no hurt shake, no thunder strike on the caster
-      this.sound?.playSfx('buff');
-      this.ui.playBuffVfx?.(actingUnit, `防+${actingUnit.magic.selfBuff.def || 3}`);
-      setTimeout(() => this.afterActionResolved(res, actingUnit), 450 / (this.battleSpeed || 1));
-    } else if (target && target !== actingUnit) {
+    if (target) {
       this.ui.playCombatVfx(actingUnit, target, combatInfo, this.battleSpeed, () => {
         this.afterActionResolved(res, actingUnit);
       });
@@ -1204,6 +1376,7 @@ class LanternTacticsApp {
 
     this.clearSelection();
     this.refreshBattleUI();
+    this.checkAutoEndTurn();
 
     // First kill dialogue bark
     if (!this.firstKillBarkPlayed && res?.events?.some(e => e.type === 'defeat' || e.type === 'kill' || (e.type === 'hit' && e.targetDead))) {
@@ -1465,6 +1638,33 @@ class LanternTacticsApp {
     }
   }
 
+  advanceGuidedTutorial(expectedStep) {
+    if (!this.isGuidedTutorial) return;
+    if (this.tutorialStep === expectedStep) {
+      this.tutorialStep++;
+      if (this.tutorialStep > 6) {
+        this.isGuidedTutorial = false;
+        this.ui.hideBoardTutorial();
+        const tutKey = `${GAME.storageKey}_tutorial`;
+        localStorage.setItem(tutKey, '1');
+        localStorage.setItem('lt_tutorial_seen', '1');
+        document.querySelectorAll('.spotlight-active').forEach(el => el.classList.remove('spotlight-active'));
+      } else {
+        this.ui.setTutorialStep(this.tutorialStep, this._updateTutorialView);
+      }
+    }
+  }
+
+  handleEndTurn() {
+    if (!this.battle || this.battle.phase !== 'ally') return;
+    if (this.isGuidedTutorial && this.tutorialStep === 6) {
+      this.advanceGuidedTutorial(6);
+    }
+    this.sound?.playSfx('tap');
+    this.clearSelection();
+    this.triggerEnemyTurn();
+  }
+
   // ================= LIVE BOARD SPOTLIGHT TUTORIAL =================
   startTutorialFlow(startStep = 0) {
     this.isDeploying = false;
@@ -1477,9 +1677,7 @@ class LanternTacticsApp {
 
     // Snapshot player battle state before running tutorial demo
     const savedBattle = this.battle;
-    const savedChapter = this.activeChapter || CHAPTERS[0];
-    const savedPlacements = this.deployPlacements;
-    const savedStratagem = this.activeStratagemId;
+    const isExternal = isFromTitle || isFromMap;
 
     const badgeEl = document.getElementById('txtChapterBadge');
     if (badgeEl) badgeEl.textContent = '第1回';
@@ -1490,6 +1688,9 @@ class LanternTacticsApp {
       this.battle = new Battle(CHAPTERS[0], squad, this.activeStratagemId || 'inspire', this.campaign, this.rng);
     }
     this.ui.showScreen('screenBattle');
+
+    this.isGuidedTutorial = true;
+    this.tutorialStep = startStep;
 
     const updateSpotlight = (targetEl) => {
       const overlay = document.getElementById('tutorialBoardOverlay');
@@ -1510,129 +1711,84 @@ class LanternTacticsApp {
     };
 
     const updateStepView = (step) => {
+      this.tutorialStep = step;
       document.querySelectorAll('.spotlight-active').forEach(el => el.classList.remove('spotlight-active'));
 
       if (step === 0) {
-        // Beat 1: Move (移動)
-        this.clearSelection();
-        this.ui.hideActionMenu();
-        this.ui.hideTargetPreview();
-        const overlay = document.getElementById('tutorialBoardOverlay');
-        if (overlay) overlay.classList.add('card-at-top');
-        const bear = this.battle.allies.find(a => a.id === 'bear_guard');
+        // Step 1: Select unit (Bear Guard)
+        const bear = this.battle?.allies.find(a => a.id === 'bear_guard') || this.battle?.allies[0];
         if (bear) {
-          bear.x = 1; bear.y = 8;
-          bear.turnStartX = 1; bear.turnStartY = 8;
-          this.handleUnitTap(bear);
+          this.ui.centerCameraOn(bear.x, bear.y);
           const tileEl = document.querySelector(`.grid-tile[data-x="${bear.x}"][data-y="${bear.y}"]`);
           if (tileEl) {
             tileEl.classList.add('spotlight-active');
             updateSpotlight(tileEl);
           }
-          const liveAllies = this.battle.allies.filter(a => a.hp > 0);
-          this.ui.frameTiles(liveAllies, false, false);
-          if (tileEl) updateSpotlight(tileEl);
         }
       } else if (step === 1) {
-        // Beat 2: Attack (攻擊)
-        this.clearSelection();
-        this.ui.hideTargetPreview();
-        const bear = this.battle.allies.find(a => a.id === 'bear_guard');
-        const foe = this.battle.enemies[0];
-        if (bear && foe) {
-          bear.x = foe.x; bear.y = foe.y + 1;
-          bear.turnStartX = bear.x; bear.turnStartY = bear.y;
-          this.selectedUnit = bear;
-          this.openActionMenuForUnit(bear);
-          this.refreshBattleUI();
-          this.ui.centerCameraOn(bear.x, bear.y);
-          const pop = document.getElementById('actionMenuPopover');
-          if (pop) {
-            pop.classList.add('spotlight-active');
-            updateSpotlight(pop);
-          }
-        }
-      } else if (step === 2) {
-        // Beat 3: Terrain (地形)
-        this.clearSelection();
-        this.ui.hideActionMenu();
-        this.ui.hideTargetPreview();
-        const cat = this.battle.allies.find(a => a.id === 'cat_patrol');
-        if (cat) {
-          cat.x = 2; cat.y = 7; // Forest tile with DEF bonus
-          cat.turnStartX = 2; cat.turnStartY = 7;
-          this.selectedUnit = cat;
-          this.refreshBattleUI();
-          this.ui.centerCameraOn(cat.x, cat.y);
-          const tileEl = document.querySelector(`.grid-tile[data-x="${cat.x}"][data-y="${cat.y}"]`);
+        // Step 2: Move unit
+        const bear = this.battle?.allies.find(a => a.id === 'bear_guard') || this.battle?.allies[0];
+        if (bear) {
+          const targetY = Math.max(0, bear.y - 2);
+          const tileEl = document.querySelector(`.grid-tile[data-x="${bear.x}"][data-y="${targetY}"]`) ||
+                         document.querySelector(`.grid-tile[data-x="${bear.x}"][data-y="${bear.y - 1}"]`);
           if (tileEl) {
             tileEl.classList.add('spotlight-active');
             updateSpotlight(tileEl);
+          }
+          this.ui.centerCameraOn(bear.x, targetY);
+        }
+      } else if (step === 2) {
+        // Step 3: Attack
+        const btnAtk = document.getElementById('btnActionAttack');
+        if (btnAtk && btnAtk.offsetParent !== null) {
+          btnAtk.classList.add('spotlight-active');
+          updateSpotlight(btnAtk);
+        } else {
+          const foe = this.battle?.enemies.find(e => e.hp > 0);
+          if (foe) {
+            const tileEl = document.querySelector(`.grid-tile[data-x="${foe.x}"][data-y="${foe.y}"]`);
+            if (tileEl) { tileEl.classList.add('spotlight-active'); updateSpotlight(tileEl); }
+            this.ui.centerCameraOn(foe.x, foe.y);
           }
         }
       } else if (step === 3) {
-        // Beat 4: Counter / Flank (反擊與側翼背刺)
-        this.clearSelection();
-        this.ui.hideActionMenu();
-        const cat = this.battle.allies.find(a => a.id === 'cat_patrol');
-        const foe = this.battle.enemies[0];
-        if (cat && foe) {
-          foe.facing = 1; // Facing East
-          cat.x = foe.x - 1; cat.y = foe.y; // Attacking from West = Back Attack!
-          cat.turnStartX = cat.x; cat.turnStartY = cat.y;
-          this.selectedUnit = cat;
-          this.activeActionType = 'attack';
-          this.evaluateTargetPreview(foe);
-          this.ui.centerCameraOn(foe.x, foe.y);
-          const card = document.getElementById('targetPreviewCard');
-          if (card) {
-            card.classList.add('spotlight-active');
-            updateSpotlight(card);
-          }
+        // Step 4: Skill
+        const btnSkill = document.getElementById('btnActionSkill');
+        if (btnSkill && btnSkill.offsetParent !== null) {
+          btnSkill.classList.add('spotlight-active');
+          updateSpotlight(btnSkill);
         }
       } else if (step === 4) {
-        // Beat 5: Light (引魂明燈)
-        this.clearSelection();
-        this.ui.hideActionMenu();
-        this.ui.hideTargetPreview();
-        const cart = this.battle.allies.find(a => a.id === 'lantern_cart') || this.battle.allies.find(a => a.id === 'lantern_crafter');
-        if (cart) {
-          this.handleUnitTap(cart);
-          this.ui.centerCameraOn(cart.x, cart.y);
-          const tileEl = document.querySelector(`.grid-tile[data-x="${cart.x}"][data-y="${cart.y}"]`);
-          if (tileEl) {
-            tileEl.classList.add('spotlight-active');
-            updateSpotlight(tileEl);
-          }
+        // Step 5: Magic with element counter
+        const lc = this.battle?.allies.find(a => a.id === 'lantern_crafter');
+        const woodFoe = this.battle?.enemies.find(e => e.hp > 0 && e.element === 'wood') || this.battle?.enemies[0];
+        if (lc && !lc.acted) {
+          this.selectedUnit = lc;
+          this.openActionMenuForUnit(lc);
+          this.refreshBattleUI();
+        }
+        const btnMag = document.getElementById('btnActionMagic');
+        if (btnMag && btnMag.offsetParent !== null) {
+          btnMag.classList.add('spotlight-active');
+          updateSpotlight(btnMag);
+        }
+        if (woodFoe) {
+          this.ui.centerCameraOn(woodFoe.x, woodFoe.y);
         }
       } else if (step === 5) {
-        // Beat 6: Spell (奇術/絕技)
-        this.clearSelection();
-        this.ui.hideTargetPreview();
-        const caster = this.battle.allies.find(a => a.id === 'lantern_crafter') || this.battle.allies.find(a => a.id === 'tea_master');
-        if (caster) {
-          caster.x = 2; caster.y = 10;
-          caster.turnStartX = 2; caster.turnStartY = 10;
-          this.selectedUnit = caster;
-          this.openActionMenuForUnit(caster);
-          this.refreshBattleUI();
-          this.ui.centerCameraOn(caster.x, caster.y);
-          const btnSkill = document.getElementById('btnActionSkill');
-          if (btnSkill) {
-            btnSkill.classList.add('spotlight-active');
-            updateSpotlight(btnSkill);
-          }
+        // Step 6: Standby / 待命
+        const btnWait = document.getElementById('btnActionWait');
+        if (btnWait && btnWait.offsetParent !== null) {
+          btnWait.classList.add('spotlight-active');
+          updateSpotlight(btnWait);
         }
       } else if (step === 6) {
-        // Beat 7: Stratagem (軍略妙計)
-        this.clearSelection();
-        this.ui.hideActionMenu();
-        this.ui.hideTargetPreview();
-        this.refreshBattleUI();
-        const stratBtn = document.getElementById('btnStratagemTop');
-        if (stratBtn) {
-          stratBtn.classList.add('spotlight-active');
-          updateSpotlight(stratBtn);
+        // Step 7: End turn
+        const btnEnd = document.getElementById('btnEndTurn');
+        if (btnEnd) {
+          btnEnd.classList.add('spotlight-active');
+          updateSpotlight(btnEnd);
         }
       }
     };
@@ -1640,55 +1796,42 @@ class LanternTacticsApp {
     const handleSuggest = (step) => {
       document.querySelectorAll('.spotlight-active').forEach(el => el.classList.remove('spotlight-active'));
       if (step === 0) {
-        // Suggest move: moves bear to (4, 9)
-        const bear = this.battle.allies.find(a => a.id === 'bear_guard');
+        const bear = this.battle?.allies.find(a => a.id === 'bear_guard') || this.battle?.allies[0];
         if (bear) {
-          this.battle.moveUnit(bear, 4, 9);
-          this.stagedMoveTile = { x: 4, y: 9 };
-          this.openActionMenuForUnit(bear);
-          this.refreshBattleUI();
+          this.ui.centerCameraOn(bear.x, bear.y, true);
+          const el = document.querySelector(`.grid-tile[data-x="${bear.x}"][data-y="${bear.y}"]`);
+          if (el) { el.classList.add('spotlight-active'); updateSpotlight(el); }
         }
       } else if (step === 1) {
-        // Suggest attack: attacks enemy
-        const foe = this.battle.enemies[0];
-        if (foe && this.selectedUnit) {
-          this.activeActionType = 'attack';
-          this.evaluateTargetPreview(foe);
+        if (this.selectedUnit && this.reachableTiles?.size > 0) {
+          const keys = Array.from(this.reachableTiles.keys());
+          const [tx, ty] = keys[Math.floor(keys.length / 2)].split(',').map(Number);
+          this.ui.centerCameraOn(tx, ty, true);
+          const el = document.querySelector(`.grid-tile[data-x="${tx}"][data-y="${ty}"]`);
+          if (el) { el.classList.add('spotlight-active'); updateSpotlight(el); }
         }
       } else if (step === 2) {
-        // Suggest terrain: moves to forest (2, 7)
-        const cat = this.battle.allies.find(a => a.id === 'cat_patrol');
-        if (cat) {
-          this.battle.moveUnit(cat, 2, 7);
-          this.refreshBattleUI();
-        }
+        const btn = document.getElementById('btnActionAttack');
+        if (btn) { btn.classList.add('spotlight-active'); updateSpotlight(btn); }
       } else if (step === 3) {
-        // Suggest back attack execution
-        const foe = this.battle.enemies[0];
-        if (foe && this.selectedUnit) {
-          this.confirmActionExecution('attack', foe);
-        }
+        const btn = document.getElementById('btnActionSkill');
+        if (btn) { btn.classList.add('spotlight-active'); updateSpotlight(btn); }
       } else if (step === 4) {
-        // Suggest light: moves cart
-        const cart = this.battle.allies.find(a => a.id === 'lantern_cart');
-        if (cart) {
-          this.battle.moveUnit(cart, cart.x + 1, cart.y - 1);
-          this.refreshBattleUI();
-        }
+        const btn = document.getElementById('btnActionMagic');
+        if (btn) { btn.classList.add('spotlight-active'); updateSpotlight(btn); }
       } else if (step === 5) {
-        // Suggest spell: Lantern Crafter skill/magic
-        const caster = this.battle.allies.find(a => a.id === 'lantern_crafter') || this.battle.allies.find(a => a.id === 'tea_master');
-        if (caster) {
-          this.selectedUnit = caster;
-          this.handleActionMenuChoice('skill');
-        }
+        const btn = document.getElementById('btnActionWait');
+        if (btn) { btn.classList.add('spotlight-active'); updateSpotlight(btn); }
       } else if (step === 6) {
-        // Suggest stratagem
-        this.ui.showStratagemModal(this.activeStratagemId || 'inspire');
+        const btn = document.getElementById('btnEndTurn');
+        if (btn) { btn.classList.add('spotlight-active'); updateSpotlight(btn); }
       }
     };
 
+    this._updateTutorialView = updateStepView;
+
     this.ui.showBoardTutorial(startStep, updateStepView, () => {
+      this.isGuidedTutorial = false;
       const tutKey = `${GAME.storageKey}_tutorial`;
       localStorage.setItem(tutKey, '1');
       localStorage.setItem('lt_tutorial_seen', '1');
@@ -1699,7 +1842,7 @@ class LanternTacticsApp {
       this.ui.hideActionMenu();
       this.ui.hideTargetPreview();
 
-      if (isFromTitle || isFromMap) {
+      if (isExternal) {
         // Restore prior screen and battle state
         this.battle = savedBattle;
         this.ui.showScreen(previousScreen);

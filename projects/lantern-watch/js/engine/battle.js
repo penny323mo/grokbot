@@ -110,6 +110,7 @@ export class Battle {
             x: conf.x,
             y: conf.y,
             facing: conf.facing ?? -1,
+            element: conf.element || proto.element || null,
             acted: false,
             // Aggression: 'guard' units hold position until a guardian enters guardRadius or they are hurt.
             // Commanders (bosses) hold back by default.
@@ -1027,12 +1028,8 @@ export class Battle {
         unit.mp = Math.max(0, (unit.mp ?? 6) - cost);
 
         if (magic?.selfBuff) {
-          // Timed, non-stacking DEF buff on the caster only — never routed through combat
-          const amt = magic.selfBuff.def || 3;
-          if (unit._fortress) unit.def -= unit._fortress.def;
-          unit._fortress = { def: amt, turns: magic.selfBuff.duration || 2 };
-          unit.def += amt;
-          result.events.push({ type: 'buff', target: unit.id, amount: amt, msg: '鐵壁之陣展開，防禦大增！' });
+          unit.def += magic.selfBuff.def || 3;
+          result.events.push({ type: 'buff', target: unit.id, msg: '鐵壁之陣展開，防禦大增！' });
           unit.acted = true;
           unit.moved = false;
         } else if (magic?.isHeal && target) {
@@ -1447,9 +1444,6 @@ export class Battle {
 
     // Advance turn & reset allies
     this.currentTurn++;
-    for (const u of [...this.allies, ...this.enemies]) {
-      if (u._fortress && --u._fortress.turns <= 0) { u.def -= u._fortress.def; u._fortress = null; }
-    }
     this.phase = 'ally';
     this.checkTelegraphedReinforcements();
 

@@ -51,7 +51,7 @@ export class UIRenderer {
     c.s = Math.max(fit, Math.min(Math.max(fit * 3, 1.4), c.s));
     const cw = 640 * c.s, ch = 832 * c.s;
     c.tx = cw <= w ? (w - cw) / 2 : Math.min(0, Math.max(w - cw, c.tx));
-    c.ty = ch <= h ? (h - ch) / 2 : Math.min(0, Math.max(h - ch, c.ty));
+    c.ty = ch <= h ? (h - ch > 16 ? 4 : (h - ch) / 2) : Math.min(0, Math.max(h - ch, c.ty));
     stage.style.transform = `translate(${c.tx}px, ${c.ty}px) scale(${c.s})`;
     stage.style.setProperty('--cam-inv', String(1 / c.s));
   }
@@ -140,7 +140,7 @@ export class UIRenderer {
     if (!vp) return 0;
     const vr = vp.getBoundingClientRect();
     let top = vr.bottom;
-    const els = ['deployTrayBar', 'targetPreviewCard', 'bottomInfoStrip'].map(id => document.getElementById(id));
+    const els = ['deployTrayBar', 'targetPreviewCard', 'actionMenuPopover', 'actionSublistPanel', 'bottomTerrainStrip'].map(id => document.getElementById(id));
     const overlay = document.getElementById('tutorialBoardOverlay');
     if (overlay && overlay.style.display !== 'none' && !overlay.classList.contains('card-at-top')) {
       els.push(overlay.querySelector('.tutorial-board-card'));
@@ -600,9 +600,20 @@ export class UIRenderer {
         <div class="unit-rout-dust"></div>
       ` : '';
 
+      const tags = handlers.targetTagsMap ? handlers.targetTagsMap.get(u.id) : null;
+      const targetTagsHtml = (tags && tags.length > 0) ? `
+        <div class="target-tags-container">
+          ${tags.map(t => {
+            const cls = t.includes('克制') ? 'tag-advantage' : (t.includes('擊破') ? 'tag-kill' : 'tag-counter');
+            return `<span class="target-map-tag ${cls}">${t}</span>`;
+          }).join('')}
+        </div>
+      ` : '';
+
       figWrap.innerHTML = `
         <div class="unit-ground-shadow"></div>
         <div class="unit-team-ring"></div>
+        ${targetTagsHtml}
         <div class="unit-name-tag">${u.name}</div>
         ${guardBadgeHtml}
         ${figContent}
@@ -1213,74 +1224,175 @@ export class UIRenderer {
     }
   }
 
-  showActionMenu(x, y, actions, onChooseAction, onCancel, onInfo = null) {
+  showActionMenu(x, y, actions, onChooseAction, onCancel, onInfo = null, unit = null) {
     const pop = document.getElementById('actionMenuPopover');
     if (!pop) return;
 
     pop.style.display = 'flex';
+    // Clear any obsolete absolute stage coordinates so it cleanly docks in bottom third
+    pop.style.left = '';
+    pop.style.top = '';
+    pop.style.transformOrigin = '';
+    pop.style.transform = '';
 
-    // Position menu near the unit tile within 640x832 stage
-    const tilePx = 64;
-    // Menu keeps its on-screen size at any zoom: counter-scale by 1/camera scale
-    const inv = 1 / (this.camState().s || 1);
-    const mw = (pop.offsetWidth || 146) * inv, mh = (pop.offsetHeight || 130) * inv;
-    let menuLeft = x * tilePx + 32 - mw / 2;
-    let menuTop = y * tilePx - mh - 6;
+    if (unit) {
+      const nameEl = document.getElementById('dockedActingUnitName');
+      if (nameEl) nameEl.textContent = `${unit.name} · 行動`;
+      const badgeEl = document.getElementById('dockedUnitBadge');
+      if (badgeEl) badgeEl.textContent = unit.clsBadge || (unit.cls ? unit.cls[0] : '兵');
+      const hpEl = document.getElementById('dockedUnitHp');
+      if (hpEl) hpEl.textContent = `HP ${unit.hp}/${unit.maxHp} · MP ${unit.mp ?? 6}/${unit.maxMp ?? 6}`;
+    }
 
-    if (menuTop < 4) menuTop = y * tilePx + 70; // flip below if at top edge
-    if (menuTop + mh > 828) menuTop = Math.max(4, 828 - mh);
-    if (menuLeft < 4) menuLeft = 4;
-    if (menuLeft > 636 - mw) menuLeft = 636 - mw;
-    pop.style.transformOrigin = '0 0';
-    pop.style.transform = `scale(${inv})`;
+    const btnClose = document.getElementById('btnDockedClose');
+    if (btnClose) btnClose.onclick = () => onCancel();
 
-    pop.style.left = `${menuLeft}px`;
-    pop.style.top = `${menuTop}px`;
-
-    // Hook buttons with reason chips
+    // Hook buttons with subtitles and reason chips
     const btnAtk = document.getElementById('btnActionAttack');
-    btnAtk.disabled = !actions.attack;
-    btnAtk.title = actions.attack ? '進行普通攻擊' : (actions.attackReason || '範圍內無目標');
-    btnAtk.innerHTML = `
-      <span class="action-txt">攻擊</span>
-      ${!actions.attack ? `<span class="action-reason-chip">${actions.attackReason || '無目標'}</span>` : ''}
-    `;
-    btnAtk.onclick = () => onChooseAction('attack');
+    if (btnAtk) {
+      btnAtk.disabled = !actions.attack;
+      btnAtk.title = actions.attack ? '進行普通攻擊' : (actions.attackReason || '範圍內無目標');
+      const reasonHtml = !actions.attack ? `<span class="action-reason-chip">${actions.attackReason || '無目標'}</span>` : '';
+      btnAtk.innerHTML = `
+        <span class="action-btn-icon">⚔️</span>
+        <div class="action-btn-text-group">
+          <span class="action-txt">攻擊</span>
+          <span class="action-sub-txt">近身物理·無消耗·可能被反擊</span>
+        </div>
+        ${reasonHtml}
+      `;
+      btnAtk.onclick = () => onChooseAction('attack');
+    }
 
     const btnSkill = document.getElementById('btnActionSkill');
-    btnSkill.disabled = !actions.skill;
-    btnSkill.title = actions.skill ? '施展專屬技能' : (actions.skillReason || 'MP不足');
-    btnSkill.innerHTML = `
-      <span class="action-txt">技能</span>
-      <span class="action-cost-tag">${actions.skillCost ? `${actions.skillCost}MP` : ''}</span>
-      ${!actions.skill ? `<span class="action-reason-chip">${actions.skillReason || 'MP不足'}</span>` : ''}
-    `;
-    btnSkill.onclick = () => onChooseAction('skill');
+    if (btnSkill) {
+      btnSkill.disabled = !actions.skill;
+      btnSkill.title = actions.skill ? '施展專屬技能' : (actions.skillReason || 'MP不足');
+      const costHtml = actions.skillCost ? `<span class="action-cost-tag">${actions.skillCost}MP</span>` : '';
+      const reasonHtml = !actions.skill ? `<span class="action-reason-chip">${actions.skillReason || 'MP不足'}</span>` : '';
+      btnSkill.innerHTML = `
+        <span class="action-btn-icon">⚡</span>
+        <div class="action-btn-text-group">
+          <span class="action-txt">技能</span>
+          <span class="action-sub-txt">職業招式·耗氣力</span>
+        </div>
+        ${costHtml}
+        ${reasonHtml}
+      `;
+      btnSkill.onclick = () => onChooseAction('skill');
+    }
 
     const btnMag = document.getElementById('btnActionMagic');
-    btnMag.disabled = !actions.magic;
-    btnMag.title = actions.magic ? '施展五行法術' : (actions.magicReason || 'MP不足');
-    btnMag.innerHTML = `
-      <span class="action-txt">法術</span>
-      <span class="action-cost-tag">${actions.magicCost ? `${actions.magicCost}MP` : ''}</span>
-      ${!actions.magic ? `<span class="action-reason-chip">${actions.magicReason || 'MP不足'}</span>` : ''}
-    `;
-    btnMag.onclick = () => onChooseAction('magic');
+    if (btnMag) {
+      btnMag.disabled = !actions.magic;
+      btnMag.title = actions.magic ? '施展五行法術' : (actions.magicReason || 'MP不足');
+      const costHtml = actions.magicCost ? `<span class="action-cost-tag">${actions.magicCost}MP</span>` : '';
+      const reasonHtml = !actions.magic ? `<span class="action-reason-chip">${actions.magicReason || 'MP不足'}</span>` : '';
+      btnMag.innerHTML = `
+        <span class="action-btn-icon">🔮</span>
+        <div class="action-btn-text-group">
+          <span class="action-txt">法術</span>
+          <span class="action-sub-txt">屬性·克制·耗MP</span>
+        </div>
+        ${costHtml}
+        ${reasonHtml}
+      `;
+      btnMag.onclick = () => onChooseAction('magic');
+    }
 
     const btnBond = document.getElementById('btnActionBond');
-    if (actions.bond) {
-      btnBond.style.display = 'flex';
-      btnBond.onclick = () => onChooseAction('bond');
-    } else {
-      btnBond.style.display = 'none';
+    if (btnBond) {
+      if (actions.bond) {
+        btnBond.style.display = 'flex';
+        btnBond.innerHTML = `
+          <span class="action-btn-icon">🤝</span>
+          <div class="action-btn-text-group">
+            <span class="action-txt">合擊</span>
+            <span class="action-sub-txt">同氣連枝·協同突擊</span>
+          </div>
+        `;
+        btnBond.onclick = () => onChooseAction('bond');
+      } else {
+        btnBond.style.display = 'none';
+      }
     }
 
     const btnWait = document.getElementById('btnActionWait');
-    btnWait.onclick = () => onChooseAction('wait');
+    if (btnWait) {
+      btnWait.innerHTML = `
+        <span class="action-btn-icon">🛡️</span>
+        <div class="action-btn-text-group">
+          <span class="action-txt">待命</span>
+          <span class="action-sub-txt">結束行動·防禦+10%</span>
+        </div>
+      `;
+      btnWait.onclick = () => onChooseAction('wait');
+    }
 
     const btnCancel = document.getElementById('btnActionCancel');
-    btnCancel.onclick = () => onCancel();
+    if (btnCancel) {
+      btnCancel.innerHTML = `
+        <span class="action-btn-icon">↩️</span>
+        <div class="action-btn-text-group">
+          <span class="action-txt">復原</span>
+          <span class="action-sub-txt">撤回移動</span>
+        </div>
+      `;
+      btnCancel.onclick = () => onCancel();
+    }
+
     this.bindActionLongPress(pop, onInfo);
+  }
+
+  showActionSublist(title, moves, onSelectMove, onBack) {
+    const sub = document.getElementById('actionSublistPanel');
+    if (!sub) return;
+    this.hideActionMenu();
+    sub.style.display = 'flex';
+
+    const titleEl = document.getElementById('sublistTitle');
+    if (titleEl) titleEl.textContent = title;
+
+    const btnBack = document.getElementById('btnSublistBack');
+    if (btnBack) btnBack.onclick = () => {
+      sub.style.display = 'none';
+      onBack && onBack();
+    };
+
+    const container = document.getElementById('sublistItemsContainer');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const elemMap = { fire: '🔥 火相', water: '💧 水相', thunder: '⚡ 雷相', wood: '🌿 木相', dark: '🌙 暗煞', light: '✨ 光輝' };
+
+    moves.forEach(m => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'sublist-item-btn';
+      const elemName = elemMap[m.element] || '⚔️ 物理';
+      btn.innerHTML = `
+        <div class="sublist-item-left">
+          <div class="sublist-item-row">
+            <span class="sublist-item-name">${m.name}</span>
+            <span class="sublist-item-elem">${elemName}</span>
+          </div>
+          <span class="sublist-item-desc">${m.desc || '強效戰術招式'}</span>
+        </div>
+        <span class="sublist-item-cost">${m.cost ? `${m.cost} MP` : '無消耗'}</span>
+      `;
+      btn.onclick = () => {
+        sub.style.display = 'none';
+        onSelectMove(m);
+      };
+      container.appendChild(btn);
+    });
+  }
+
+  hideActionMenu() {
+    const pop = document.getElementById('actionMenuPopover');
+    if (pop) pop.style.display = 'none';
+    const sub = document.getElementById('actionSublistPanel');
+    if (sub) sub.style.display = 'none';
   }
 
   /** ~400ms press (touch or mouse) on attack/skill/magic shows info; release hides; a short tap still selects. */
@@ -1508,61 +1620,70 @@ export class UIRenderer {
     const steps = [
       {
         num: '1 / 7',
-        title: '移動 · 步法挺進',
-        actionHint: '點選【熊岳】 · 藍格移動',
-        text: '①「移動」點選將士【熊岳】，腳下藍格為合法移動範圍',
-        idle: '✦ 8秒提示：點擊發光的熊岳，或點【💡建議行動】直達前線！'
+        title: '選擇將士 · 排兵先行',
+        actionHint: '點選【熊岳】· 查看移動與指令',
+        text: '①「選定」點選將士查看移動範圍與指令。何時使用：戰鬥開始或切換目標時點選。',
+        when: '何時使用：戰鬥開始或切換目標時點選。',
+        idle: '✦ 提示：點擊發光的熊岳查看前進路線！'
       },
       {
         num: '2 / 7',
-        title: '攻擊 · 陣前交鋒',
-        actionHint: '點選【攻擊】 · 紅格鎖定敵軍',
-        text: '②「攻擊」移動後點擊【攻擊】，紅格為射程，再次點擊目標確認',
-        idle: '✦ 8秒提示：點擊【攻擊】，或點【💡建議行動】直取敵首！'
+        title: '步法挺進 · 搶佔要津',
+        actionHint: '點選藍格 · 挺進石橋前線',
+        text: '②「移動」點選藍色地塊挺進前線。何時使用：接近敵軍或搶佔樹林高地時使用。',
+        when: '何時使用：接近敵軍或搶佔樹林高地時使用。',
+        idle: '✦ 提示：點擊前方藍色地塊走位至前線！'
       },
       {
         num: '3 / 7',
-        title: '地形 · 險要據守',
-        actionHint: '進駐林木高地 · 獲取地形防禦',
-        text: '③「地形」進駐林木或高地，可獲防禦與居高臨下傷害加成',
-        idle: '✦ 8秒提示：樹林可加防禦，點【💡建議行動】佔領險要！'
+        title: '普通攻擊 · 近身破敵',
+        actionHint: '點選【攻擊】· 鎖定橋頭敵軍',
+        text: '③「攻擊」近身物理·無消耗。何時使用：近距交鋒、節省MP或殘血補刀時使用。',
+        when: '何時使用：近距交鋒、節省MP或殘血補刀時使用。',
+        idle: '✦ 提示：點擊【攻擊】鎖定紅框內敵軍！'
       },
       {
         num: '4 / 7',
-        title: '反擊與側翼 · 致命背刺',
-        actionHint: '側翼1.2倍 · 背刺1.5倍無反擊',
-        text: '④「奇襲」正面易遭反擊；側翼打出1.2倍，背面更享1.5倍背刺且不受反擊',
-        idle: '✦ 8秒提示：繞至敵軍身後！點【💡建議行動】執行1.5倍背刺！'
+        title: '專屬技能 · 職業特技',
+        actionHint: '點選【技能】· 施展職業招式',
+        text: '④「技能」職業特技·耗氣力。何時使用：需要擊退破陣、推敵落水或強控時使用。',
+        when: '何時使用：需要擊退破陣、推敵落水或強控時使用。',
+        idle: '✦ 提示：點擊【技能】施展巨盾推擊或影步突刺！'
       },
       {
         num: '5 / 7',
-        title: '明燈 · 照破幽霧',
-        actionHint: '護送燈車 · 燈火照破夜霧咒縛',
-        text: '⑤「明燈」引路燈車向前挺進，長明燈光照破夜霧、驅散幽冥咒縛',
-        idle: '✦ 8秒提示：燈光照亮前路，點【💡建議行動】護送前進！'
+        title: '屬性法術 · 克制制勝',
+        actionHint: '點選【法術】· 克制×1.5',
+        text: '⑤「法術」屬性魔法·看克制。何時使用：敵帶五行弱點時使用（火克木享1.5倍傷害）。',
+        when: '何時使用：敵帶五行弱點時使用（火克木享1.5倍傷害）。',
+        idle: '✦ 提示：點擊【法術】施展破煞靈矢，看準【克制 ×1.5】爆發破敵！'
       },
       {
         num: '6 / 7',
-        title: '奇術 · 破陣絕技',
-        actionHint: '消耗法力 · 發動奇術破陣絕技',
-        text: '⑥「奇術」消耗法力施展將士絕技，燈娘可放靈矢或置長明燈，茶翁烹茶療癒全軍',
-        idle: '✦ 8秒提示：點擊將士【技能】或【奇術】發動絕技，或點【💡建議行動】！'
+        title: '原地待命 · 固守陣型',
+        actionHint: '點選【待命】· 結束本回行動',
+        text: '⑥「待命」結束將士行動。何時使用：已到有利防守陣位且無須行動時待命獲防禦加成。',
+        when: '何時使用：已到有利防守陣位且無須行動時待命獲防禦加成。',
+        idle: '✦ 提示：點擊【待命】讓將士固守陣地結束本動！'
       },
       {
         num: '7 / 7',
-        title: '軍略 · 運籌帷幄',
-        actionHint: '點擊【軍略】 · 運籌帷幄扭轉戰局',
-        text: '⑦「軍略」右上角發動軍略妙計，鼓舞全軍提升戰力或誘敵深入',
-        idle: '✦ 8秒提示：點擊右上角【軍略】發動鼓舞扭轉戰局！'
+        title: '結束回合 · 輪轉敵軍',
+        actionHint: '點選【結束回合】· 輪到敵方行動',
+        text: '⑦「回合」結束我軍階段。何時使用：全體將士行動皆已完畢，輪到敵軍進犯時點選。',
+        when: '何時使用：全體將士行動皆已完畢，輪到敵軍進犯時點選。',
+        idle: '✦ 提示：點擊右上角【結束回合】交替回合！'
       }
     ];
 
     let curStep = Math.max(0, Math.min(steps.length - 1, step));
+    this.boardTutorialStep = curStep;
     let idleTimer = null;
 
     const render = () => {
       clearTimeout(idleTimer);
       const s = steps[curStep];
+      this.boardTutorialStep = curStep;
       const stepEl = document.getElementById('boardTutorialStep');
       const titleEl = document.getElementById('boardTutorialTitle');
       const textEl = document.getElementById('boardTutorialText');
@@ -1606,17 +1727,34 @@ export class UIRenderer {
     render();
     if (onStepChange) onStepChange(curStep);
 
-    document.getElementById('btnBoardTutorialAck').onclick = () => {
-      clearTimeout(idleTimer);
-      if (curStep < steps.length - 1) {
-        curStep++;
-        render();
-        if (onStepChange) onStepChange(curStep);
-      } else {
+    const btnAck = document.getElementById('btnBoardTutorialAck');
+    if (btnAck) {
+      btnAck.onclick = () => {
+        clearTimeout(idleTimer);
+        if (curStep < steps.length - 1) {
+          curStep++;
+          render();
+          if (onStepChange) onStepChange(curStep);
+        } else {
+          overlay.style.display = 'none';
+          if (onComplete) onComplete();
+        }
+      };
+    }
+
+    const btnClose = document.getElementById('btnBoardTutorialClose');
+    if (btnClose) {
+      btnClose.onclick = () => {
+        clearTimeout(idleTimer);
         overlay.style.display = 'none';
         if (onComplete) onComplete();
-      }
-    };
+      };
+    }
+  }
+
+  setTutorialStep(step, onStepChange) {
+    this.boardTutorialStep = step;
+    this.showBoardTutorial(step, onStepChange);
   }
 
   hideBoardTutorial() {
@@ -1863,25 +2001,30 @@ export class UIRenderer {
         const dx = w.path[i + 1].x - w.path[i].x;
         if (dx !== 0) {
           const facing = dx > 0 ? 1 : -1;
-          if (facing !== lastFacing) { lastFacing = facing; el.style.setProperty('--facing', facing); if (u) u.facing = facing; }
+          if (facing !== lastFacing) {
+            lastFacing = facing;
+            el.style.setProperty('--facing', facing);
+            if (u) u.facing = facing;
+          }
         }
         el.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`;
-        // Walk cycle: 2 footfalls per tile (1 stride), gallop: 1 cycle per tile
+        // Exaggerated Walk cycle: 2 footfalls per tile, gallop: 1 cycle per tile
         const ph = dist * Math.PI * 2;
         const s = Math.sin(ph), c = Math.cos(ph);
         const fade = Math.min(1, dist * 4, (segs - dist) * 4); // ease limbs in/out at path ends
         if (rig) {
           if (isCav) {
-            rig.body.style.transform = `translate3d(0, ${(-Math.abs(s) * 5 * fade).toFixed(2)}px, 0) rotate(${(c * 5 * fade).toFixed(2)}deg)`;
-            rig.legA.style.transform = `rotate(${(s * 26 * fade).toFixed(2)}deg)`;
-            rig.legB.style.transform = `rotate(${(Math.sin(ph + 1.2) * -26 * fade).toFixed(2)}deg)`;
-            rig.top.style.transform = `rotate(${(-c * 3 * fade).toFixed(2)}deg) skewX(${(s * 2 * fade).toFixed(2)}deg)`;
+            // Cavalry: visible galloping leap, rearing pitch, foreleg reach & hindleg kick
+            rig.body.style.transform = `translate3d(0, ${(-Math.abs(s) * 11 * fade).toFixed(2)}px, 0) rotate(${(c * 12 * fade).toFixed(2)}deg)`;
+            rig.legA.style.transform = `rotate(${(s * 42 * fade).toFixed(2)}deg)`;
+            rig.legB.style.transform = `rotate(${(Math.sin(ph + 1.4) * -38 * fade).toFixed(2)}deg)`;
+            rig.top.style.transform = `rotate(${(-c * 8 * fade).toFixed(2)}deg) skewX(${(s * 4 * fade).toFixed(2)}deg)`;
           } else {
-            rig.body.style.transform = `translate3d(0, ${(-Math.abs(s) * 3.2 * fade).toFixed(2)}px, 0) rotate(${(4 * fade).toFixed(2)}deg)`;
-            rig.legA.style.transform = `rotate(${(s * 22 * fade).toFixed(2)}deg)`;
-            rig.legB.style.transform = `rotate(${(-s * 22 * fade).toFixed(2)}deg)`;
-            // arms/weapon + cloak sway on the upper layer
-            rig.top.style.transform = `rotate(${(-s * 3 * fade).toFixed(2)}deg) skewX(${(c * 3 * fade).toFixed(2)}deg)`;
+            // Foot soldiers: wide stride swing (38deg), energetic bounce (6.5px), weapon/cloak swing
+            rig.body.style.transform = `translate3d(0, ${(-Math.abs(s) * 6.5 * fade).toFixed(2)}px, 0) rotate(${(s * 4 * fade).toFixed(2)}deg)`;
+            rig.legA.style.transform = `rotate(${(s * 38 * fade).toFixed(2)}deg)`;
+            rig.legB.style.transform = `rotate(${(-s * 38 * fade).toFixed(2)}deg)`;
+            rig.top.style.transform = `rotate(${(-s * 10 * fade).toFixed(2)}deg) skewX(${(c * 6 * fade).toFixed(2)}deg)`;
           }
         }
         const step = Math.floor(dist * (isCav ? 1 : 2));
@@ -1903,7 +2046,7 @@ export class UIRenderer {
   /** Split the figure sprite into upper body + two leg layers (clip-path) so limbs can swing. */
   buildWalkRig(el, isCav) {
     const img = el.querySelector('.unit-fig-img');
-    if (!img || !img.complete || !img.naturalWidth) return null;
+    if (!img) return null;
     const w = img.offsetWidth || 50, h = img.offsetHeight || 60;
     const rig = document.createElement('div');
     rig.className = 'walk-rig';
@@ -1937,25 +2080,6 @@ export class UIRenderer {
     d.className = `walk-dust ${big ? 'big' : ''}`;
     el.appendChild(d);
     setTimeout(() => d.remove(), 520);
-  }
-
-  /** Self-buff feedback: a blue shield glow and a green "防+N" float — never a damage number. */
-  playBuffVfx(unit, label) {
-    const vfxLayer = document.getElementById('vfxLayer') || document.getElementById('battleBoardStage');
-    if (!vfxLayer) return;
-    const el = document.createElement('div');
-    el.className = 'vfx-buff-shield';
-    el.textContent = `🛡 ${label}`;
-    el.style.cssText = `position:absolute;left:${unit.x * 64 + 32}px;top:${unit.y * 64 + 8}px;transform:translate(-50%,-50%);` +
-      'color:#9fe8ff;font-weight:800;font-size:18px;text-shadow:0 0 6px #2aa8ff,0 2px 2px #000;pointer-events:none;z-index:50;' +
-      'animation:buffRise 1s ease-out forwards;';
-    if (!document.getElementById('buffRiseKf')) {
-      const st = document.createElement('style'); st.id = 'buffRiseKf';
-      st.textContent = '@keyframes buffRise{0%{opacity:0;margin-top:10px}20%{opacity:1}100%{opacity:0;margin-top:-30px}}';
-      document.head.appendChild(st);
-    }
-    vfxLayer.appendChild(el);
-    setTimeout(() => el.remove(), 1000);
   }
 
   playCombatVfx(attacker, defender, combatInfo = {}, speed = 1, onComplete = null) {
@@ -2345,6 +2469,122 @@ export class UIRenderer {
       };
       grid.appendChild(item);
     });
+  }
+
+  showPrologue(onComplete) {
+    this.showScreen('screenPrologue');
+    const panels = [
+      {
+        title: '長夜將至 · 燈影之境',
+        art: 'assets/art/v4/title_keyart.webp',
+        text: '千百年來，九州大地皆由長明古燈庇佑。凡燈火所照之處，妖邪辟易，萬民安居。燈火是黑暗中唯一的屏障。',
+        hero: null
+      },
+      {
+        title: '夜霧狂湧 · 影軍肆虐',
+        art: 'assets/art/v4/map_river_bridge.webp',
+        text: '然而黑月升起，幽冥深處的夜霧忽自荒澤蔓延，沿途燈柱相繼被毀。影軍借暗夜大舉進犯，九州天下岌岌可危。',
+        hero: null
+      },
+      {
+        title: '引路燈車 · 守望相助',
+        art: 'assets/art/v4/fig_lantern_cart.webp',
+        text: '唯一的生機，便是推動滿載靈火的【引路燈車】穿過寒川孤橋，逐一重燃各處要塞燈標，驅散盤踞的夜霧妖靈。',
+        hero: null
+      },
+      {
+        title: '前驅先鋒 · 熊岳與墨影',
+        art: 'assets/art/v4/por_moying_rich.webp',
+        text: '【熊岳】誓以鐵盾築起血肉長城，寸步不讓阻截敵軍；【墨影】暗夜拔刀疾馳，誓以凌厲劍芒斬滅敵將首級！',
+        hero: { name: '熊岳 · 墨影', title: '不動鐵壁 · 疾影絕殺', por: 'assets/art/v4/por_moying_rich.webp' }
+      },
+      {
+        title: '後應神術 · 燈娘與茶翁',
+        art: 'assets/art/v4/por_lantern_crafter.webp',
+        text: '【燈娘·小螢】引五行靈火洞穿夜霧，看準克制重創敵陣；【茶翁】坐鎮中軍調製清心靈茶，撫平將士傷創守護生機！',
+        hero: { name: '燈娘 · 茶翁', title: '長明靈燈 · 回春仙茗', por: 'assets/art/v4/por_lantern_crafter.webp' }
+      },
+      {
+        title: '寒川渡橋 · 啟程開戰',
+        art: 'assets/art/v4/banner_ch1.webp',
+        text: '夜霧濃烈，石橋對岸敵軍騎兵已經列陣扼守。四人義結同盟，引路燈車啟程——吹響出征號角，破霧奪橋！',
+        hero: null
+      }
+    ];
+
+    let curStep = 0;
+    const artImg = document.getElementById('prologueArtImg');
+    const titleEl = document.getElementById('prologuePanelTitle');
+    const textEl = document.getElementById('prologuePanelText');
+    const dotsEl = document.getElementById('prologueDots');
+    const countEl = document.getElementById('prologueStepCount');
+    const btnPrev = document.getElementById('btnProloguePrev');
+    const btnNext = document.getElementById('btnPrologueNext');
+    const btnSkip = document.getElementById('btnPrologueSkip');
+    const spot = document.getElementById('prologueHeroSpotlight');
+    const spotName = document.getElementById('prologueHeroName');
+    const spotTitle = document.getElementById('prologueHeroTitle');
+    const spotPor = document.getElementById('prologueHeroPor');
+
+    const render = () => {
+      const p = panels[curStep];
+      if (artImg) {
+        artImg.style.opacity = '0.3';
+        setTimeout(() => {
+          artImg.src = p.art;
+          artImg.style.opacity = '1';
+        }, 150);
+      }
+      if (titleEl) titleEl.textContent = p.title;
+      if (textEl) textEl.textContent = p.text;
+      if (dotsEl) {
+        dotsEl.textContent = panels.map((_, i) => i === curStep ? '●' : '○').join(' ');
+      }
+      if (countEl) countEl.textContent = `${curStep + 1} / ${panels.length}`;
+      if (btnPrev) btnPrev.style.display = curStep > 0 ? 'block' : 'none';
+      if (btnNext) {
+        btnNext.innerHTML = curStep < panels.length - 1 ? '<span>下一節 ›</span>' : '<span>啟程征戰 ›</span>';
+      }
+      if (spot) {
+        if (p.hero) {
+          spot.style.display = 'flex';
+          if (spotName) spotName.textContent = p.hero.name;
+          if (spotTitle) spotTitle.textContent = p.hero.title;
+          if (spotPor) spotPor.src = p.hero.por;
+        } else {
+          spot.style.display = 'none';
+        }
+      }
+    };
+
+    render();
+
+    const finish = () => {
+      localStorage.setItem('lt_prologue_seen', '1');
+      onComplete && onComplete();
+    };
+
+    if (btnNext) {
+      btnNext.onclick = () => {
+        if (curStep < panels.length - 1) {
+          curStep++;
+          render();
+        } else {
+          finish();
+        }
+      };
+    }
+    if (btnPrev) {
+      btnPrev.onclick = () => {
+        if (curStep > 0) {
+          curStep--;
+          render();
+        }
+      };
+    }
+    if (btnSkip) {
+      btnSkip.onclick = () => finish();
+    }
   }
 
   showRecruitModal(recruitId, onConfirm) {
