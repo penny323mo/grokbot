@@ -157,3 +157,10 @@
 - Round 13 finished at 21:30 (live 200, npm test all pass: ch1 naive 50/50, reasonable ch1 100%, ch2–8 76–86%; verify_map_fit pass). Shipped stratagems with 成功率 + rain blocks 火計, terrain + village/fort heal, officer 5 stats + 特技, tap-twice confirm / double-tap fit / vibrate + ≤2-tap test, manual mini-diagrams + 策略 tab; tutorial pill no longer truncates.
 - Real-tap 390x844 play (screenshots/play14): no errors; ch1 first enemy phase no deaths (墨影 19/28, 燈娘 16/22). Remaining: ~200px empty band under the strip, ch1 start plates overlap and figures small, tutorial stuck on 5/7 into turn 2, stratagem preview lacks the stratagem name and the 成功率 tag is tiny, long-press card covers the dock.
 - Brief: carry-over polish, distinct hero look + signature moves (挑釁/潛影/點燈/清心), new 策士/醫者/盾兵 classes in enemy comps, EXP/level-up + optional 單挑, 自動結束回合 toggle. Screenshots to screenshots/v17; old state in .orch-prev-12.
+
+## Round 14 verified (2026-10-27 23:15) — FINAL round
+- Orchestrator DONE 22:56; live 200; interaction 10/10, friendlyfire 25/25, balance sim pass (ch1 naive 50/50), map-fit PASS.
+- Own 390px play (screenshots/play15): title→prologue→tutorial→deploy→select→walk→action menu→long-press attack→enemy turn→turn 2, no JS errors; no unit died in first enemy phase (墨影 28→19 lowest).
+- Shipped: distinct hero looks (SVG weapons, per-hero idle poses) + signature statuses (挑釁/潛影), 策士/醫者/盾兵 enemies, five stats driving combat, EXP/level-up card, 單挑 event (ch4+), 自動結束回合 toggle, stratagem preview with real success rate.
+- Remaining: tutorial pill (5/7) still lingers over the map after steps; starting cluster bottom-left has overlapping name plates (熊岳/引路燈車/墨影); upper half of ch1 map is mostly empty scenery; no tile grid visible outside selection.
+- Loop ended at 22:00 cutoff; no new rounds launched.

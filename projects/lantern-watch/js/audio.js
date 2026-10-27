@@ -5,6 +5,61 @@
  */
 
 const AUDIO_STORAGE_KEY = "lantern_watch_audio_settings";
+// Bump to bust iPhone/GitHub Pages caches when a music file changes.
+export const BGM_VERSION = "20261027-battle1";
+export const BGM_TRACKS = {
+  town: { mp3: "./assets/audio/bgm_town.mp3", alt: "./assets/audio/bgm_town.m4a" },
+  battle: { mp3: "./assets/audio/battle-bgm.mp3", alt: "./assets/audio/battle-bgm.ogg" }
+};
+const BGM_VOLUME = 0.4;
+const CROSSFADE_S = 1.2;
+const bufferCache = {};
+
+/** Gapless loop: decoded AudioBuffer + AudioBufferSourceNode(loop). Mimics the HTMLAudio surface (paused/volume/play/pause). */
+class BufferLoopTrack {
+  constructor(ctx, url) {
+    this.ctx = ctx; this.src = url; this.paused = true; this.node = null; this._vol = BGM_VOLUME;
+    this.gain = ctx.createGain(); this.gain.gain.value = 0; this.gain.connect(ctx.destination);
+    this.isBufferLoop = true;
+  }
+  load() {
+    if (!bufferCache[this.src]) {
+      bufferCache[this.src] = fetch(this.src).then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+        .then(ab => new Promise((res, rej) => { const p = this.ctx.decodeAudioData(ab, res, rej); if (p && p.then) p.then(res, rej); }));
+      bufferCache[this.src].catch(() => { delete bufferCache[this.src]; });
+    }
+    return bufferCache[this.src];
+  }
+  get volume() { return this._vol; }
+  set volume(v) { this._vol = v; this.fadeTo(v, 0.05); }
+  fadeTo(v, secs) {
+    const g = this.gain.gain, t = this.ctx.currentTime;
+    try { g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(v, t + secs); } catch (e) { g.value = v; }
+  }
+  play() {
+    this.paused = false;
+    return this.load().then(buf => {
+      if (this.paused || this.node) return;
+      const n = this.ctx.createBufferSource();
+      n.buffer = buf; n.loop = true; n.loopStart = 0; n.loopEnd = buf.duration;
+      n.connect(this.gain); n.start(0); this.node = n;
+      this.fadeTo(this._vol, CROSSFADE_S);
+    });
+  }
+  pause() {
+    this.paused = true;
+    if (this.node) { try { this.node.stop(); } catch (e) {} this.node.disconnect?.(); this.node = null; }
+  }
+  fadeOutAndStop(secs = CROSSFADE_S) {
+    this.fadeTo(0, secs);
+    setTimeout(() => this.pause(), secs * 1000 + 50);
+  }
+}
+
+function fadeOutHtmlAudio(a, secs = CROSSFADE_S) {
+  const start = a.volume, steps = 12; let i = 0;
+  const id = setInterval(() => { i++; try { a.volume = Math.max(0, start * (1 - i / steps)); } catch (e) {} if (i >= steps) { clearInterval(id); try { a.pause(); } catch (e) {} } }, (secs * 1000) / steps);
+}
 
 export class SoundEngine {
   constructor() {
@@ -23,6 +78,7 @@ export class SoundEngine {
     this.bgmAudio = null;
 
     this.unlocked = false;
+    this.desiredScene = "town";
     this.loadSettings();
   }
 
@@ -43,7 +99,15 @@ export class SoundEngine {
         src.buffer = b; src.connect(this.ctx.destination); src.start(0);
       } catch (e) {}
     }
-    if (!this.musicMuted) this.playMusic(this.currentMusicType || "town");
+    if (!this.musicMuted) this.playMusic(this.desiredScene || "town");
+  }
+
+  /** Called on every screen change: battle screen -> battle-bgm, everything else -> town track (crossfaded). */
+  setScene(type) {
+    this.desiredScene = type === "battle" ? "battle" : "town";
+    if (!this.unlocked) return;
+    if (this.musicMuted) { this.stopMusic(); return; }
+    this.playMusic(this.desiredScene);
   }
 
   init() {
@@ -97,12 +161,12 @@ export class SoundEngine {
     this.init();
     this.resume();
     if (this.bgmAudio) {
-      this.bgmAudio.volume = this.musicMuted ? 0 : 0.4;
+      this.bgmAudio.volume = this.musicMuted ? 0 : BGM_VOLUME;
       if (this.musicMuted) this.bgmAudio.pause();
       else this.bgmAudio.play().catch(() => {});
     } else if (!this.musicMuted && !this.musicTimer) {
       // Music was never started (it previously had no caller) — start it now, inside the tap.
-      const type = this.currentMusicType || "town";
+      const type = this.desiredScene || this.currentMusicType || "town";
       this.currentMusicType = null;
       this.playMusic(type);
     }
@@ -388,43 +452,57 @@ export class SoundEngine {
   }
 
   // ================= BGM PLAY WITH WEBAUDIO FALLBACK =================
-  playMusic(type = "town") {
-    if (this.currentMusicType === type) return;
-    this.stopMusic();
-    this.currentMusicType = type;
+  musicUrl(type, alt = false) {
+    const t = BGM_TRACKS[type] || BGM_TRACKS.town;
+    let url = t.mp3;
+    if (alt) url = t.alt;
+    else if (typeof Audio !== "undefined") {
+      try { const a = new Audio(); if (a.canPlayType && a.canPlayType("audio/mpeg") === "" && a.canPlayType("audio/ogg") !== "") url = t.alt; } catch (e) {}
+    }
+    return `${url}?v=${BGM_VERSION}`;
+  }
 
-    // Try playing bundled BGM audio file
-    const musicFile = type === "town" ? "./assets/audio/bgm_town.mp3" : "./assets/audio/bgm_battle.mp3";
-    if (typeof Audio !== "undefined") {
-      try {
-        const audio = new Audio(musicFile);
-        audio.loop = true;
-        audio.volume = this.musicMuted ? 0 : 0.4;
-        this.bgmAudio = audio;
-        audio.play().then(() => {
-          // Muted while play() was pending (e.g. first tap was the 樂 button itself)
-          if (this.musicMuted || this.bgmAudio !== audio) audio.pause();
-        }).catch(() => {
-          if (this.bgmAudio !== audio) return;
-          // If mp3 fails, try m4a before procedural synth
-          const m4aFile = musicFile.replace(".mp3", ".m4a");
-          const m4a = new Audio(m4aFile);
-          m4a.loop = true;
-          m4a.volume = audio.volume;
-          this.bgmAudio = m4a;
-          m4a.play().then(() => {
-            if (this.musicMuted || this.bgmAudio !== m4a) m4a.pause();
-          }).catch(() => {
-            if (this.bgmAudio !== m4a) return;
-            this.bgmAudio = null;
-            this.playProceduralMusic(type);
-          });
-        });
-        return;
-      } catch (e) {
-        this.playProceduralMusic(type);
-      }
-    } else {
+  playMusic(type = "town") {
+    if (this.currentMusicType === type && this.bgmAudio) return;
+    this.stopMusic(true);
+    this.currentMusicType = type;
+    const vol = this.musicMuted ? 0 : BGM_VOLUME;
+
+    // Preferred: gapless WebAudio buffer loop (no seam at the loop point).
+    if (this.ctx && this.ctx.decodeAudioData && typeof fetch !== "undefined") {
+      const track = new BufferLoopTrack(this.ctx, this.musicUrl(type));
+      track._vol = vol;
+      this.bgmAudio = track;
+      track.play().then(() => {
+        if (this.musicMuted || this.bgmAudio !== track) track.pause();
+      }).catch(() => {
+        if (this.bgmAudio !== track) return;
+        this.bgmAudio = null; this.currentMusicType = null;
+        this.playHtmlMusic(type, vol);
+      });
+      return;
+    }
+    this.playHtmlMusic(type, vol);
+  }
+
+  playHtmlMusic(type, vol) {
+    this.currentMusicType = type;
+    if (typeof Audio === "undefined") { this.playProceduralMusic(type); return; }
+    try {
+      const audio = new Audio(this.musicUrl(type));
+      audio.loop = true;
+      audio.volume = vol;
+      this.bgmAudio = audio;
+      audio.play().then(() => {
+        if (this.musicMuted || this.bgmAudio !== audio) audio.pause();
+      }).catch(() => {
+        if (this.bgmAudio !== audio) return;
+        const alt = new Audio(this.musicUrl(type, true));
+        alt.loop = true; alt.volume = audio.volume; this.bgmAudio = alt;
+        alt.play().then(() => { if (this.musicMuted || this.bgmAudio !== alt) alt.pause(); })
+          .catch(() => { if (this.bgmAudio !== alt) return; this.bgmAudio = null; this.playProceduralMusic(type); });
+      });
+    } catch (e) {
       this.playProceduralMusic(type);
     }
   }
@@ -475,11 +553,14 @@ export class SoundEngine {
     this.musicTimer = setInterval(playNote, interval);
   }
 
-  stopMusic() {
+  stopMusic(crossfade = false) {
     if (this.bgmAudio) {
+      const a = this.bgmAudio;
+      this.bgmAudio = null;
       try {
-        this.bgmAudio.pause();
-        this.bgmAudio = null;
+        if (crossfade && !a.paused && !this.musicMuted) {
+          if (a.isBufferLoop) a.fadeOutAndStop(); else fadeOutHtmlAudio(a);
+        } else a.pause();
       } catch (e) {}
     }
     if (this.musicTimer) {

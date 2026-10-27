@@ -35,3 +35,22 @@ test('toggles are independent, return ON state, mute gain/element, persist', () 
   assert.ok(s2.bgmAudio && !s2.bgmAudio.paused, 'turning music on starts playback even if never started');
   assert.ok(s2.musicGain.gain.value > 0);
 });
+
+test('battle scene plays battle-bgm (cache-busted), other screens go back to town track', () => {
+  store.lantern_watch_audio_settings = JSON.stringify({ musicMuted: false, sfxMuted: false });
+  const s = new SoundEngine();
+  s.setScene('battle');            // before unlock: only remembered
+  assert.equal(s.bgmAudio, null);
+  s.unlock();
+  assert.match(s.bgmAudio.src, /assets\/audio\/battle-bgm\.mp3\?v=/);
+  assert.ok(!s.bgmAudio.paused && s.bgmAudio.loop);
+  s.setScene('town');
+  assert.match(s.bgmAudio.src, /bgm_town\.mp3/);
+  s.setScene('battle');
+  assert.match(s.bgmAudio.src, /battle-bgm\.mp3/);
+  assert.equal(s.toggleMusic(), false);
+  s.setScene('town');              // scene change while muted: no playback
+  assert.equal(s.bgmAudio, null);
+  assert.equal(s.toggleMusic(), true);
+  assert.match(s.bgmAudio.src, /bgm_town\.mp3/);
+});

@@ -15,24 +15,37 @@ const st = () => p.evaluate(() => { const s = window.__lt.app.sound; const m = d
   return { mOff: m.classList.contains('is-off'), fOff: f.classList.contains('is-off'), mAria: m.getAttribute('aria-pressed'), fAria: f.getAttribute('aria-pressed'),
     mGain: s.musicGain?.gain.value, fGain: s.sfxGain?.gain.value, ctx: s.ctx?.state, bgmPaused: s.bgmAudio ? s.bgmAudio.paused : null, bgmVol: s.bgmAudio?.volume, saved: localStorage.getItem('lantern_watch_audio_settings') }; });
 const log = [];
+// 樂/聲 live in the ≡ menu since round 11: open it first if the button is hidden, then do a real tap.
+const tapMenu = async (sel) => {
+  const vis = await p.evaluate(s => { const e = document.querySelector(s); return !!e && e.offsetParent !== null; }, sel);
+  if (!vis) { await p.tap('#btnTopMenu'); await sleep(250); }
+  await p.tap(sel); await sleep(50);
+  await p.evaluate(() => { const d = document.getElementById('topMenuDropdown'); if (d) d.style.display = 'none'; });
+};
 let s = await st(); console.log(JSON.stringify(s)); log.push(['title-initial', s]); assert.ok(!s.mOff && !s.fOff && s.mAria === 'true');
-await p.tap('#btnToggleMusic'); await sleep(300); s = await st(); log.push(['title-music-off', s]);console.log(JSON.stringify(s));
+await tapMenu('#btnToggleMusic'); await sleep(300); s = await st(); log.push(['title-music-off', s]);console.log(JSON.stringify(s));
 assert.ok(s.mOff && !s.fOff && s.mGain === 0 && s.ctx === 'running' && s.fGain > 0 && (s.bgmPaused !== false));
 await p.screenshot({ path: `${OUT}/390-title-music-off.png` });
-await p.tap('#btnToggleMusic'); await sleep(600); s = await st(); log.push(['title-music-on', s]);
+await tapMenu('#btnToggleMusic'); await sleep(600); s = await st(); log.push(['title-music-on', s]);
 assert.ok(!s.mOff && s.mGain > 0 && s.bgmPaused === false && s.bgmVol > 0, 'music should actually play');
-await p.tap('#btnToggleSfx'); await sleep(300); s = await st(); log.push(['title-sfx-off', s]);
+await tapMenu('#btnToggleSfx'); await sleep(300); s = await st(); log.push(['title-sfx-off', s]);
 assert.ok(s.fOff && !s.mOff && s.fGain === 0 && s.mGain > 0);
 assert.deepEqual(JSON.parse(s.saved), { musicMuted: false, sfxMuted: true });
 await p.reload({ waitUntil: "networkidle2" }); await sleep(600); s = await st(); log.push(['after-reload', s]);
 assert.ok(s.fOff && !s.mOff && s.fAria === 'false', 'persisted state reflected on load');
 await p.evaluate(() => window.__lt.launchBattle(1)); await sleep(2500);
-await p.tap('#btnToggleSfx'); await sleep(300); s = await st(); log.push(['battle-sfx-on', s]); assert.ok(!s.fOff && s.fGain > 0);
-await p.tap('#btnToggleMusic'); await sleep(300); s = await st(); log.push(['battle-music-off', s]); assert.ok(s.mOff && s.mGain === 0 && s.bgmPaused !== false);
+
+await tapMenu('#btnToggleSfx'); await sleep(300); s = await st(); log.push(['battle-sfx-on', s]); assert.ok(!s.fOff && s.fGain > 0);
+await tapMenu('#btnToggleMusic'); await sleep(300); s = await st(); log.push(['battle-music-off', s]); assert.ok(s.mOff && s.mGain === 0 && s.bgmPaused !== false);
 await p.screenshot({ path: `${OUT}/390-battle-music-off.png` });
-await p.tap('#btnToggleMusic'); await sleep(500); s = await st(); log.push(['battle-music-on', s]); assert.ok(!s.mOff && s.mGain > 0 && s.bgmPaused === false);
+await tapMenu('#btnToggleMusic'); await sleep(500); s = await st(); log.push(['battle-music-on', s]); assert.ok(!s.mOff && s.mGain > 0 && s.bgmPaused === false);
+await sleep(1500);
+{ const bm = await p.evaluate(() => { const a = window.__lt.app.sound.bgmAudio; return { src: a?.src, buf: !!a?.isBufferLoop, node: !!a?.node, loop: a?.node?.loop, paused: a?.paused, type: window.__lt.app.sound.currentMusicType }; });
+  console.log('battle-bgm', JSON.stringify(bm)); log.push(['battle-bgm', bm]);
+  assert.ok(/battle-bgm\.(mp3|ogg)\?v=/.test(bm.src) && bm.type === 'battle' && bm.paused === false, 'battle scene must play battle-bgm');
+  assert.ok(!bm.buf || (bm.node && bm.loop === true), 'gapless buffer loop'); }
 await p.screenshot({ path: `${OUT}/390-battle-both-on.png` });
-await p.tap('#btnToggleSfx'); await p.tap('#btnToggleMusic'); await sleep(300);
+await tapMenu('#btnToggleSfx'); await tapMenu('#btnToggleMusic'); await sleep(300);
 await p.screenshot({ path: `${OUT}/390-battle-both-off.png` });
 assert.deepEqual(errs, []);
 for (const [k, v] of log) console.log(k, JSON.stringify(v));

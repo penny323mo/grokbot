@@ -25,6 +25,7 @@ export class UIRenderer {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const screen = document.getElementById(screenId);
     if (screen) screen.classList.add('active');
+    this.sound?.setScene?.(screenId === 'screenBattle' ? 'battle' : 'town');
 
     // Keep Grokbot back button visible
     delete document.body.dataset.gbPlaying;
