@@ -1018,8 +1018,10 @@ button {
 }
 
 .prompt-sheet.expanded {
-  max-height: 75vh;
+  max-height: calc(100vh - var(--tab-bar-height) - env(safe-area-inset-bottom, 0px) - 70px);
+  max-height: calc(100dvh - var(--tab-bar-height) - env(safe-area-inset-bottom, 0px) - 70px);
 }
+.negative-details[hidden] { display: none !important; }
 
 /* Hide prompt composer sheet on non-builder tabs */
 [data-active-tab="tab-recipes"] .prompt-sheet,
@@ -1042,7 +1044,9 @@ body.keyboard-open .bottom-tab-bar {
 
 .sheet-drag-handle {
   width: 100%;
-  height: 16px;
+  height: 28px;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1069,7 +1073,7 @@ body.keyboard-open .bottom-tab-bar {
 
 .prompt-sheet:not(.expanded) .explanation-details,
 .prompt-sheet:not(.expanded) .negative-details {
-  display: none;
+  display: none !important;
 }
 
 .prompt-sheet:not(.expanded) .sheet-body {
@@ -1089,6 +1093,9 @@ body.keyboard-open .bottom-tab-bar {
   font-size: 13px;
   line-height: 1.35;
   min-height: unset;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* Expanded state header */
@@ -1219,8 +1226,15 @@ body.keyboard-open .bottom-tab-bar {
 }
 
 .prompt-sheet.expanded .prompt-display-card {
-  max-height: 180px;
-  overflow-y: auto;
+  max-height: none;
+  overflow: visible;
+}
+.prompt-sheet.expanded .sheet-body > * { flex-shrink: 0; }
+body.sheet-expanded .gb-back { opacity: 0; pointer-events: none; }
+.prompt-sheet.expanded .sheet-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overscroll-behavior: contain;
 }
 
 .prompt-display-card.pulse {

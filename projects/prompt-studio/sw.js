@@ -1,9 +1,9 @@
 /**
  * sw.js - Service Worker for Prompt Studio offline app shell caching.
- * Version: prompt-studio-v3
+ * Version: prompt-studio-v4
  */
 
-const CACHE_NAME = "prompt-studio-v3";
+const CACHE_NAME = "prompt-studio-v4";
 
 const APP_SHELL_FILES = [
   "./index.html",

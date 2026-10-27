@@ -877,10 +877,10 @@
     el.explanationDisplay.textContent = explanationText;
 
     if (negativeText) {
-      el.detailsNegative.style.display = "block";
+      el.detailsNegative.hidden = false;
       el.negativeDisplay.textContent = negativeText;
     } else {
-      el.detailsNegative.style.display = "none";
+      el.detailsNegative.hidden = true;
     }
 
     // Subtle highlight pulse
@@ -1500,12 +1500,40 @@
     });
 
     // Sticky sheet controls
+    function setSheetExpanded(open) {
+      el.promptSheet.classList.toggle("expanded", open);
+      document.body.classList.toggle("sheet-expanded", open);
+      el.sheetDragHandle.setAttribute("aria-expanded", String(open));
+      el.btnToggleSheet.setAttribute("aria-expanded", String(open));
+      if (!open) el.sheetBody.scrollTop = 0;
+    }
+    function toggleSheet() {
+      setSheetExpanded(!el.promptSheet.classList.contains("expanded"));
+    }
+    el.sheetBody = el.sheetBody || document.getElementById("sheetBody");
     el.sheetDragHandle.addEventListener("click", toggleSheet);
     el.btnToggleSheet.addEventListener("click", toggleSheet);
-
-    function toggleSheet() {
-      el.promptSheet.classList.toggle("expanded");
-    }
+    // Tapping the collapsed prompt preview expands it
+    el.promptDisplay.addEventListener("click", () => {
+      if (!el.promptSheet.classList.contains("expanded")) setSheetExpanded(true);
+    });
+    // Swipe up / down on the handle (or the collapsed sheet) to expand / collapse
+    let swipeStartY = null, swipeFromBodyTop = false;
+    el.promptSheet.addEventListener("touchstart", (e) => {
+      if (e.touches.length !== 1) return;
+      const onHandle = el.sheetDragHandle.contains(e.target);
+      const expanded = el.promptSheet.classList.contains("expanded");
+      // In expanded mode only the handle/header starts a swipe, so the body can scroll
+      if (expanded && !onHandle && !e.target.closest(".sheet-header")) { swipeStartY = null; return; }
+      swipeStartY = e.touches[0].clientY;
+    }, { passive: true });
+    el.promptSheet.addEventListener("touchend", (e) => {
+      if (swipeStartY === null) return;
+      const dy = e.changedTouches[0].clientY - swipeStartY;
+      swipeStartY = null;
+      if (dy < -30) setSheetExpanded(true);
+      else if (dy > 30) setSheetExpanded(false);
+    }, { passive: true });
 
     // Sheet copy buttons
     el.btnCopyPrompt.addEventListener("click", () => {
