@@ -1250,6 +1250,10 @@ html, body {
   z-index: 4;
   filter: blur(4px);
 }
+#weatherOverlayCanvas {
+  z-index: 8;
+  pointer-events: none;
+}
 
 /* Floating Combat Voice Bark Banner */
 .combat-bark-banner {
@@ -1401,6 +1405,16 @@ html, body {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
 }
 
+.unit-figure.row-even .unit-name-tag {
+  top: -15px;
+}
+.unit-figure.row-odd .unit-name-tag {
+  top: -7px;
+}
+.unit-figure[data-unit-id="lantern_cart"] .unit-name-tag {
+  top: -5px;
+}
+
 .unit-figure.ally .unit-name-tag {
   color: #FFF2C8;
   background: rgba(14, 22, 52, 0.88);
@@ -1446,7 +1460,7 @@ html, body {
 }
 
 .unit-figure.enemy .unit-fig-img {
-  filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.85)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.85));
+  filter: drop-shadow(0 0 1.5px rgba(239, 68, 68, 0.75)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.85));
 }
 
 .unit-figure.promoted .unit-fig-img {
@@ -4543,7 +4557,7 @@ html, body {
   filter: drop-shadow(0 2px 3px rgba(0,0,0,0.8));
 }
 .unit-figure.ally .walk-rig { filter: drop-shadow(0 0 4px rgba(56,189,248,0.75)) drop-shadow(0 2px 3px rgba(0,0,0,0.8)); }
-.unit-figure.enemy .walk-rig { filter: drop-shadow(0 0 4px rgba(239,68,68,0.8)) drop-shadow(0 2px 3px rgba(0,0,0,0.8)); }
+.unit-figure.enemy .walk-rig { filter: drop-shadow(0 0 1.5px rgba(239,68,68,0.75)) drop-shadow(0 2px 3px rgba(0,0,0,0.8)); }
 .walk-body, .walk-part { position: absolute; inset: 0; will-change: transform; }
 .walk-part img { position: absolute; inset: 0; width: 100%; height: 100%; }
 .walk-dust {

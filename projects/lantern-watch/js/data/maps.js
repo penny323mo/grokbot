@@ -94,7 +94,7 @@ export const CHAPTERS = [
     ],
     enemySpawns: [
       // Tutorial: 3 light enemies, spaced so they arrive one at a time
-      { id: 'fog_rider', x: 5, y: 1, facing: -1 },
+      { id: 'fog_rider', x: 4, y: 4, facing: -1 },
       { id: 'shadow_archer', x: 7, y: 3, facing: -1 },
       { id: 'shadow_archer', x: 8, y: 9, facing: -1, aggro: 'guard', guardRadius: 4 } // on hill, holds until approached
     ],

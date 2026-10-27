@@ -205,6 +205,10 @@ export class Battle {
         center = bestCenter;
       }
       this.triggerFireAttack(center.x, center.y);
+    } else if (this.stratagemId === 'cart_speed') {
+      this.triggerCartSpeed();
+    } else if (this.stratagemId === 'cart_hold') {
+      this.triggerCartHold();
     } else if (this.stratagemId === 'rolling_log') {
       this.triggerRollingLog();
     }

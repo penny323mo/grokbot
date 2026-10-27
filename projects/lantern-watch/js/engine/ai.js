@@ -205,6 +205,7 @@ function decideArcherAction(enemy, reachableList, playerUnits, board, rng) {
       if (inRange) {
         const combat = calculateCombat(enemy, p, board, { aiEval: true, attackerX: m.x, attackerY: m.y });
         let score = combat.expectedDamage * 2;
+        if (p.id === 'lantern_cart') score += 40;
         if (isHill) score += 15; // Prefers hill制高點
         if (combat.willKill) score += 50;
         // Prefer max range (distance 3) over close combat
@@ -323,6 +324,7 @@ function decideCavalryAction(enemy, reachableList, playerUnits, board, rng) {
         if (getsChargeBonus) score += 20; // 衝鋒 bonus
         if (protectingAllies === 0) score += 25; // 針對落單目標
         if (p.role === 'healer' || p.role === 'archer') score += 20; // 針對後排
+        if (p.id === 'lantern_cart') score += 50;
 
         if (score > bestScore) {
           bestScore = score;
@@ -340,11 +342,13 @@ function decideCavalryAction(enemy, reachableList, playerUnits, board, rng) {
 
   if (bestAction) return bestAction;
 
-  // Move toward most isolated or squishy player
+  // Move toward most isolated or squishy player (or lantern cart if on escort mission)
   let bestMove = reachableList[0];
   let minTargetDist = Infinity;
+  const cart = playerUnits.find(p => p.id === 'lantern_cart');
+  const targetPool = cart ? [cart, ...playerUnits] : playerUnits;
   for (const m of reachableList) {
-    for (const p of playerUnits) {
+    for (const p of targetPool) {
       const d = Board.manhattan(m.x, m.y, p.x, p.y);
       if (d < minTargetDist) {
         minTargetDist = d;

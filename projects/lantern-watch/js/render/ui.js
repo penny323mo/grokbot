@@ -167,8 +167,7 @@ export class UIRenderer {
     // Only move if a tile is out of the visible area
     if (minX + c.tx < 0 || maxX + c.tx > w) c.tx = w / 2 - (minX + maxX) / 2;
     if (minY + c.ty < 0 || maxY + c.ty > h) {
-      c.ty = preferTop || !fitsY ? 8 - minY : h / 2 - (minY + maxY) / 2;
-      if (!fitsY && !preferTop) c.ty = h - 8 - maxY;
+      c.ty = preferTop ? 8 - minY : (fitsY ? h / 2 - (minY + maxY) / 2 : Math.max(8 - minY, h - 36 - maxY));
       // allow lifting the map above an overlay even when at fit scale
       const stage = document.getElementById('battleBoardStage');
       const ch = 832 * c.s;
@@ -416,8 +415,9 @@ export class UIRenderer {
       const guardText = isGuarded ? '護衛中' : '落單警戒';
       const totalSteps = battle.escortPath ? battle.escortPath.length : 9;
       const currentStep = (battle.escortStep ?? 0) + 1;
+      const stepSpeed = battle.cartHold ? '固守+0' : (battle.cartSpeedBoost ? '疾馳+2' : '行進+1');
       document.getElementById('hudObjectiveTicker').textContent =
-        `✦ ${battle.chapter.mapName} · 護送燈車 【燈車 HP ${cart.hp}/${cart.maxHp} · ${guardText} · 進度 ${currentStep}/${totalSteps}】 ✦`;
+        `${battle.chapter.mapName} · 護送燈車 【HP ${cart.hp}/${cart.maxHp} · ${guardText} · ${stepSpeed} · ${currentStep}/${totalSteps}】`;
     } else {
       document.getElementById('hudObjectiveTicker').textContent = `${battle.chapter.mapName} · ${shortObj}`;
     }
@@ -566,7 +566,7 @@ export class UIRenderer {
     const allUnits = battle.getAllLivingUnits();
     allUnits.forEach((u, uIdx) => {
       const figWrap = document.createElement('div');
-      figWrap.className = `unit-figure ${u.team} ${u.promoted ? 'promoted' : ''} ${u.acted ? 'acted' : ''} ${u.isRouted ? 'is-routed' : ''}`;
+      figWrap.className = `unit-figure ${u.team} ${u.promoted ? 'promoted' : ''} ${u.acted ? 'acted' : ''} ${u.isRouted ? 'is-routed' : ''} ${u.y % 2 === 0 ? 'row-even' : 'row-odd'}`;
       figWrap.dataset.unitId = u.id;
       figWrap.style.left = `${u.x * 64}px`;
       figWrap.style.top = `${u.y * 64}px`;
@@ -1113,18 +1113,34 @@ export class UIRenderer {
     const weather = battle?.weather || battle?.chapter?.weather || 'clear';
     if (weather === 'rain') {
       ctx.save();
-      ctx.strokeStyle = 'rgba(215, 240, 255, 0.85)';
-      ctx.lineWidth = 1.6;
+      // Stormy atmospheric mist wash
+      ctx.fillStyle = 'rgba(15, 30, 55, 0.2)';
+      ctx.fillRect(0, 0, 640, 832);
+
+      ctx.strokeStyle = 'rgba(215, 240, 255, 0.88)';
+      ctx.lineWidth = 1.8;
       ctx.lineCap = 'round';
       ctx.beginPath();
-      // Draw rain streaks slanted at -15 deg
-      for (let i = 0; i < 120; i++) {
-        const x = (i * 37 + 19) % 640;
-        const y = (i * 53 + 27) % 832;
+      // Draw 260 distinct rain streaks slanted at -15 deg
+      for (let i = 0; i < 260; i++) {
+        const x = (i * 29 + 17) % 640;
+        const y = (i * 43 + 23) % 832;
+        const len = (i % 3 === 0) ? 32 : ((i % 2 === 0) ? 26 : 20);
         ctx.moveTo(x, y);
-        ctx.lineTo(x - 8, y + 28);
+        ctx.lineTo(x - 7, y + len);
       }
       ctx.stroke();
+
+      // Rain splashes / ripples on ground
+      ctx.strokeStyle = 'rgba(215, 240, 255, 0.45)';
+      ctx.lineWidth = 1.2;
+      for (let i = 0; i < 45; i++) {
+        const sx = (i * 59 + 31) % 640;
+        const sy = (i * 71 + 47) % 832;
+        ctx.beginPath();
+        ctx.ellipse(sx, sy, 5, 2, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
       ctx.restore();
     } else if (weather === 'fog') {
       ctx.save();

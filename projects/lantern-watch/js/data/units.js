@@ -1069,6 +1069,8 @@ export const STRATAGEMS = [
   { id: 'night_raid', name: '夜襲', icon: '夜', desc: '借夜色急襲，敵方全體第1回合無法行動' },
   { id: 'inspire', name: '鼓舞', icon: '鼓', desc: '號角齊鳴，我方全體第1與第2回合傷害提升20%' },
   { id: 'rally', name: '擂鼓', icon: '擂', desc: '擂鼓振威：全軍士氣提升25點，且統領周圍2格內友軍本回合移動力+1' },
+  { id: 'cart_speed', name: '全速前進', icon: '馳', mapReq: 1, desc: '護送專屬：號令引路燈車全速前進，下回合行軍速度提升為雙倍（移動2格）' },
+  { id: 'cart_hold', name: '原地待援', icon: '固', mapReq: 1, desc: '護送專屬：號令引路燈車原地固守待援，暫停行軍並強化全軍護衛' },
   { id: 'rolling_log', name: '滾木', icon: '木', mapReq: 8, desc: '第8章山道專屬：自上方滾落擂木，對整列路徑造成16點傷害並擊破盾陣' }
 ];
 

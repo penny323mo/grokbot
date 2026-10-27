@@ -351,9 +351,19 @@ class LanternTacticsApp {
   frameDeploy(smooth) {
     const deployTiles = [...(this.activeChapter?.deployTiles || []), ...(this.deployPlacements || [])];
     const livingFoes = (this.battle?.enemies || []).filter(e => e.hp > 0);
-    const nearestFoes = [...livingFoes].sort((a, b) => b.y - a.y).slice(0, 2);
-    const tiles = [...deployTiles, ...nearestFoes];
-    this.ui.frameTiles(tiles.length ? tiles : deployTiles, smooth);
+    let nearestFoe = null;
+    let minDist = Infinity;
+    const deployCenterY = deployTiles.reduce((acc, t) => acc + t.y, 0) / (deployTiles.length || 1);
+    const deployCenterX = deployTiles.reduce((acc, t) => acc + t.x, 0) / (deployTiles.length || 1);
+    for (const foe of livingFoes) {
+      const d = Math.hypot(foe.x - deployCenterX, foe.y - deployCenterY);
+      if (d < minDist) {
+        minDist = d;
+        nearestFoe = foe;
+      }
+    }
+    const tiles = nearestFoe ? [...deployTiles, nearestFoe] : deployTiles;
+    this.ui.frameTiles(tiles, smooth);
   }
 
   computeThreatTiles() {
@@ -1505,8 +1515,8 @@ class LanternTacticsApp {
         if (overlay) overlay.classList.add('card-at-top');
         const bear = this.battle.allies.find(a => a.id === 'bear_guard');
         if (bear) {
-          bear.x = 1; bear.y = 11;
-          bear.turnStartX = 1; bear.turnStartY = 11;
+          bear.x = 1; bear.y = 8;
+          bear.turnStartX = 1; bear.turnStartY = 8;
           this.handleUnitTap(bear);
           const tileEl = document.querySelector(`.grid-tile[data-x="${bear.x}"][data-y="${bear.y}"]`);
           if (tileEl) {
