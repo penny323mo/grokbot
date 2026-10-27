@@ -142,8 +142,8 @@ export class UIRenderer {
     // if preferTop is requested (for scouting or enemy reveal), anchor to top tiles
     if (preferTop) {
       sy = Math.max(0, minY - 24);
-    } else if (maxY - minY > h - 24) {
-      sy = maxY - h + 12;
+    } else if (maxY - minY > h - 36) {
+      sy = Math.max(minY - 24, maxY - h + 42);
     }
     if (maxX - minX > w - 16) sx = minX - 8;
 
@@ -382,7 +382,18 @@ export class UIRenderer {
       battle.chapter.objectiveType === 'survive_or_rout' ? '破咒誅妖' :
       battle.chapter.objectiveType === 'breach_gate_or_rout' ? '破關斬將' :
       battle.chapter.objectiveType === 'break_phalanx_or_rout' ? '破陣斬將' : '討伐鐵將';
-    document.getElementById('hudObjectiveTicker').textContent = `${battle.chapter.mapName} · ${shortObj}`;
+
+    const cart = battle.getEscortCart ? battle.getEscortCart() : battle.allies.find(u => u.id === 'lantern_cart');
+    if (cart && battle.chapter.objectiveType === 'escort') {
+      const isGuarded = battle.isCartGuarded ? battle.isCartGuarded() : false;
+      const guardText = isGuarded ? '護衛中' : '落單警戒';
+      const totalSteps = battle.escortPath ? battle.escortPath.length : 9;
+      const currentStep = (battle.escortStep ?? 0) + 1;
+      document.getElementById('hudObjectiveTicker').textContent =
+        `✦ ${battle.chapter.mapName} · 護送燈車 【燈車 HP ${cart.hp}/${cart.maxHp} · ${guardText} · 進度 ${currentStep}/${totalSteps}】 ✦`;
+    } else {
+      document.getElementById('hudObjectiveTicker').textContent = `${battle.chapter.mapName} · ${shortObj}`;
+    }
 
     // Update Morale HUD
     const allyMorale = battle.allyMorale ?? 100;
@@ -546,6 +557,10 @@ export class UIRenderer {
       const delay = ((u.x * 7 + u.y * 13 + uIdx * 3) % 10) * 0.3;
 
       const isCart = (u.id === 'lantern_cart' || u.id === 'market_lantern');
+      const isGuarded = (u.id === 'lantern_cart' && battle.isCartGuarded?.());
+      if (isGuarded) figWrap.classList.add('is-guarded');
+
+      const guardBadgeHtml = isGuarded ? `<div class="cart-guard-badge">🛡️ 護衛減傷50%</div>` : '';
       const figContent = isCart ?
         `<div class="npc-ambient-halo" style="position:absolute;width:64px;height:64px;background:radial-gradient(circle,rgba(255,190,60,0.5) 0%,transparent 70%);border-radius:50%;pointer-events:none;"></div>
          <img src="assets/art/v4/fig_${u.id}.webp" alt="${u.name}" class="unit-fig-img" style="animation-delay: -${delay}s;">` :
@@ -562,6 +577,7 @@ export class UIRenderer {
         <div class="unit-ground-shadow"></div>
         <div class="unit-team-ring"></div>
         <div class="unit-name-tag">${u.name}</div>
+        ${guardBadgeHtml}
         ${figContent}
         ${routHtml}
         <div class="unit-class-badge">${classChar}</div>
@@ -602,6 +618,36 @@ export class UIRenderer {
       `;
       figuresLayer.appendChild(marker);
     });
+
+    // Render Escort Mission Path & Next Turn Destination Marker
+    if (battle.chapter?.objectiveType === 'escort' && battle.escortPath && battle.escortPath.length > 0) {
+      const currentStep = battle.escortStep ?? 0;
+      // Dotted path steps for remaining route
+      for (let i = currentStep + 1; i < battle.escortPath.length; i++) {
+        const pt = battle.escortPath[i];
+        const pathDot = document.createElement('div');
+        pathDot.className = 'escort-path-dot';
+        pathDot.style.left = `${pt.x * 64}px`;
+        pathDot.style.top = `${pt.y * 64}px`;
+        figuresLayer.appendChild(pathDot);
+      }
+      // Destination marker for next move (only during active battle phase)
+      const isDeploy = handlers.deploySlots && handlers.deploySlots.size > 0;
+      if (!isDeploy && battle.phase !== 'deploy') {
+        const nextDest = battle.getNextCartDestination ? battle.getNextCartDestination() : null;
+        if (nextDest) {
+          const destMarker = document.createElement('div');
+          destMarker.className = 'escort-dest-marker';
+          destMarker.style.left = `${nextDest.x * 64}px`;
+          destMarker.style.top = `${nextDest.y * 64}px`;
+          destMarker.innerHTML = `
+            <div class="escort-dest-ring"></div>
+            <div class="escort-dest-badge">⚑ 次回進軍</div>
+          `;
+          figuresLayer.appendChild(destMarker);
+        }
+      }
+    }
 
     // Bottom terrain info: reflect selected unit or clear stale info
     if (selectedUnit) {
@@ -2285,36 +2331,63 @@ export class UIRenderer {
 
       // 4-Star Evaluation Calculation
       const maxT = chapter?.maxTurns || 12;
+      const targetTurns = Math.ceil(maxT * 0.6);
       const hasVictory = Boolean(status.victory);
-      const underTurnLimit = battle ? (battle.currentTurn <= Math.ceil(maxT * 0.6)) : true;
+      const underTurnLimit = battle ? (battle.currentTurn <= targetTurns) : true;
       const noAllyLost = battle ? battle.allies.every(a => a.hp > 0) : true;
       const sideObjDone = battle ? (battle.enemyMorale <= 35) : true;
 
       const starRow = document.getElementById('resultStarRow');
       if (starRow) {
-        starRow.style.display = 'flex';
-        document.getElementById('starVictory')?.classList.toggle('active', hasVictory);
-        document.getElementById('starTurns')?.classList.toggle('active', underTurnLimit);
-        document.getElementById('starCasualty')?.classList.toggle('active', noAllyLost);
-        document.getElementById('starObjective')?.classList.toggle('active', sideObjDone);
+        starRow.style.display = 'grid';
+        const starVic = document.getElementById('starVictory');
+        const starTur = document.getElementById('starTurns');
+        const starCas = document.getElementById('starCasualty');
+        const starObj = document.getElementById('starObjective');
+
+        if (starVic) {
+          starVic.classList.toggle('active', hasVictory);
+          const c = document.getElementById('condVictory');
+          if (c) c.textContent = hasVictory ? '達成主目標' : '未達主目標';
+        }
+        if (starTur) {
+          starTur.classList.toggle('active', underTurnLimit);
+          const c = document.getElementById('condTurns');
+          if (c) c.textContent = underTurnLimit ? `${targetTurns}回合內速勝` : `超限(需≤${targetTurns}回合)`;
+        }
+        if (starCas) {
+          starCas.classList.toggle('active', noAllyLost);
+          const c = document.getElementById('condCasualty');
+          if (c) c.textContent = noAllyLost ? '全軍生還無損' : '有將士陣亡';
+        }
+        if (starObj) {
+          starObj.classList.toggle('active', sideObjDone);
+          const c = document.getElementById('condObjective');
+          if (c) c.textContent = sideObjDone ? '大挫敵軍士氣' : '敵士氣未降至35';
+        }
       }
 
-      // MVP Highlight Card
+      // Unified MVP Highlight Card
       const awards = rewards?.awards || [
-        { id: 'cat_patrol', name: '墨影', isMvp: true, expGained: 85, reason: '【本戰MVP】斬將拔旗，戰功卓著！' },
-        { id: 'bear_guard', name: '熊岳', isMvp: false, expGained: 65, reason: '鐵壁扼守，格擋千鈞傷害' },
-        { id: 'tea_master', name: '茶翁', isMvp: false, expGained: 55, reason: '靈茶甘露，妙手回春援護' },
-        { id: 'crane_rider', name: '鶴羽', isMvp: false, expGained: 60, reason: '雲霄奇襲，突擊敵軍腹地' }
+        { id: 'cat_patrol', name: '墨影', isMvp: true, expGained: 85, reason: '【本戰MVP】斬將拔旗，戰功卓著！', stats: { damageDealt: 68, kills: 3, heals: 0 } },
+        { id: 'bear_guard', name: '熊岳', isMvp: false, expGained: 65, reason: '鐵壁扼守，格擋千鈞傷害', stats: { damageDealt: 42, kills: 1, heals: 0 } },
+        { id: 'tea_master', name: '茶翁', isMvp: false, expGained: 55, reason: '靈茶甘露，妙手回春援護', stats: { damageDealt: 12, kills: 0, heals: 58 } },
+        { id: 'crane_rider', name: '鶴羽', isMvp: false, expGained: 60, reason: '雲霄奇襲，突擊敵軍腹地', stats: { damageDealt: 54, kills: 2, heals: 0 } }
       ];
-      const mvpInfo = awards.find(a => a.isMvp) || (squad && squad[0]) || { id: 'cat_patrol', name: '墨影' };
+      const mvpInfo = awards.find(a => a.isMvp) || awards[0] || (squad && squad[0]) || { id: 'cat_patrol', name: '墨影', expGained: 85, stats: { damageDealt: 60, kills: 2, heals: 0 } };
+      const mvpStats = mvpInfo.stats || { damageDealt: 0, kills: 0, heals: 0 };
       const mvpCard = document.getElementById('resultMvpCard');
       if (mvpCard) {
         mvpCard.style.display = 'flex';
         const porEl = document.getElementById('resultMvpPor');
         const nameEl = document.getElementById('resultMvpName');
+        const expEl = document.getElementById('resultMvpExp');
+        const statsEl = document.getElementById('resultMvpStats');
         const quoteEl = document.getElementById('resultMvpQuote');
         if (porEl) porEl.src = `assets/art/v4/por_${mvpInfo.id}.webp`;
         if (nameEl) nameEl.textContent = `【本戰MVP】${mvpInfo.name} · 戰功卓著`;
+        if (expEl) expEl.textContent = `+${mvpInfo.expGained || 85} EXP`;
+        if (statsEl) statsEl.textContent = `造成 ${mvpStats.damageDealt} 傷害 · 斬敵 ${mvpStats.kills} · 治癒 ${mvpStats.heals}`;
         const mvpQuotes = {
           cat_patrol: '「暗夜之中，劍鋒所向披靡。敵酋已斬，長夜將明！」',
           bear_guard: '「鐵甲如磐，固若金湯！隨我乘勝破敵！」',
@@ -2327,34 +2400,30 @@ export class UIRenderer {
         if (quoteEl) quoteEl.textContent = mvpQuotes[mvpInfo.id] || '「長夜終有盡，迷霧隨燈散。全軍稍作整頓，繼續進軍！」';
       }
 
+      // Non-MVP squad members list (MVP is displayed above, no duplicates)
       if (xpList) {
         xpList.innerHTML = '';
-        const awards = rewards?.awards || [
-          { id: 'cat_patrol', name: '墨影', isMvp: true, expGained: 85, reason: '【本戰MVP】斬將拔旗，戰功卓著！' },
-          { id: 'bear_guard', name: '熊岳', isMvp: false, expGained: 65, reason: '鐵壁扼守，格擋千鈞傷害' },
-          { id: 'tea_master', name: '茶翁', isMvp: false, expGained: 55, reason: '靈茶甘露，妙手回春援護' },
-          { id: 'crane_rider', name: '鶴羽', isMvp: false, expGained: 60, reason: '雲霄奇襲，突擊敵軍腹地' }
-        ];
+        const nonMvpAwards = awards.filter(u => u.id !== mvpInfo.id);
 
-        awards.forEach(u => {
+        nonMvpAwards.forEach(u => {
+          const uStats = u.stats || { damageDealt: 0, kills: 0, heals: 0 };
           const row = document.createElement('div');
-          row.className = `xp-unit-row ${u.isMvp ? 'is-mvp' : ''}`;
+          row.className = 'xp-unit-row';
           row.innerHTML = `
             <div class="xp-unit-por-wrap">
               <img src="assets/art/v4/por_${u.id}.webp" class="xp-unit-por" alt="${u.name}">
-              ${u.isMvp ? '<span class="xp-mvp-crown">👑</span>' : ''}
             </div>
             <div class="xp-unit-info">
               <div class="xp-unit-name-line">
                 <span class="xp-unit-name">${u.name}</span>
-                ${u.isMvp ? '<span class="xp-mvp-badge">本戰MVP · 戰功卓著</span>' : ''}
+                <span class="xp-unit-reason">${u.reason}</span>
               </div>
-              <span class="xp-unit-reason">${u.reason}</span>
+              <div class="xp-unit-stats">造成 ${uStats.damageDealt} 傷害 · 斬敵 ${uStats.kills} · 治癒 ${uStats.heals}</div>
               <div class="xp-bar-track">
-                <div class="xp-bar-fill ${u.isMvp ? 'mvp-fill' : ''}" style="width: ${Math.min(100, Math.max(30, (u.expGained || 50) % 100))}%;"></div>
+                <div class="xp-bar-fill" style="width: ${Math.min(100, Math.max(30, (u.expGained || 50) % 100))}%;"></div>
               </div>
             </div>
-            <span class="xp-gain-badge ${u.isMvp ? 'mvp-badge' : ''}">+${u.expGained} EXP</span>
+            <span class="xp-gain-badge">+${u.expGained} EXP</span>
           `;
           xpList.appendChild(row);
         });
@@ -2377,26 +2446,6 @@ export class UIRenderer {
         document.getElementById('resultRelicName').textContent = rew.name;
         const rDesc = document.getElementById('resultRelicDesc');
         if (rDesc) rDesc.textContent = rew.desc;
-      }
-
-      const speakerPor = document.getElementById('resultSpeakerPor');
-      const speakerName = document.getElementById('resultSpeakerName');
-      const speakerText = document.getElementById('resultSpeakerText');
-      if (speakerPor && speakerName && speakerText) {
-        const awards = rewards?.awards || [];
-        const mvpInfo = awards.find(a => a.isMvp) || (squad && squad[0]) || { id: 'cat_patrol', name: '墨影' };
-        speakerPor.src = `assets/art/v4/por_${mvpInfo.id}.webp`;
-        speakerName.textContent = `${mvpInfo.name} · 本戰MVP`;
-
-        const mvpQuotes = {
-          cat_patrol: '「暗夜之中，劍鋒所向披靡。敵酋已斬，長夜將明！」',
-          bear_guard: '「鐵甲如磐，固若金湯！隨我乘勝破敵！」',
-          crane_rider: '「雲海縱橫，長空無敵！敵陣破綻已盡在掌中！」',
-          tea_master: '「品茗笑談間，檣櫓灰飛煙滅。全軍且進熱茶！」',
-          tanuki_mage: '「雷霆破霄，天威莫測！妖霧豈能擋我玄門道法！」',
-          fox_maiden: '「靈狐引火，照破十方。這漫漫黑夜，該退了！」'
-        };
-        speakerText.textContent = mvpQuotes[mvpInfo.id] || '「長夜終有盡，迷霧隨燈散。全軍稍作整頓，繼續進軍！」';
       }
     } else {
       card.className = 'result-card defeat';

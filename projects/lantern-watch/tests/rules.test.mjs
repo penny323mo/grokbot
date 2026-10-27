@@ -1122,12 +1122,12 @@ test('Rules: Class badges and Tutorial Beat 1 identity agreement', () => {
   const squad = ['bear_guard', 'cat_patrol', 'lantern_crafter', 'tea_master'].map(id => ({ ...GUARDIAN_PROTOS[id] }));
   const battle = new Battle(ch1, squad);
 
-  // Unit placed on tile (1, 11) must be bear_guard
-  const unitAt1_11 = battle.getUnitAt(1, 11);
-  assert.ok(unitAt1_11, 'Unit must exist at (1, 11)');
-  assert.strictEqual(unitAt1_11.id, 'bear_guard', 'Unit at (1, 11) must be bear_guard');
-  assert.strictEqual(unitAt1_11.name, '熊岳', 'Unit at (1, 11) must be named 熊岳');
-  assert.strictEqual(unitAt1_11.clsBadge, '盾', 'Unit at (1, 11) must display 盾 badge');
+  // Unit placed on tile (1, 8) must be bear_guard
+  const unitAt1_8 = battle.getUnitAt(1, 8);
+  assert.ok(unitAt1_8, 'Unit must exist at (1, 8)');
+  assert.strictEqual(unitAt1_8.id, 'bear_guard', 'Unit at (1, 8) must be bear_guard');
+  assert.strictEqual(unitAt1_8.name, '熊岳', 'Unit at (1, 8) must be named 熊岳');
+  assert.strictEqual(unitAt1_8.clsBadge, '盾', 'Unit at (1, 8) must display 盾 badge');
 });
 
 test('Rules: Morale Rally (擂鼓) stratagem and routed enemy flee bonus XP', () => {

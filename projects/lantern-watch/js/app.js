@@ -6,7 +6,7 @@
 
 import { GAME } from './config.js';
 import { CHAPTERS } from './data/maps.js';
-import { GUARDIAN_PROTOS, ENEMY_PROTOS, RELICS } from './data/units.js';
+import { GUARDIAN_PROTOS, ENEMY_PROTOS, RELICS, STRATAGEMS } from './data/units.js';
 import { CampaignManager } from './engine/campaign.js';
 import { Battle } from './engine/battle.js';
 import { Board } from './engine/board.js';
@@ -328,8 +328,11 @@ class LanternTacticsApp {
   }
 
   frameDeploy(smooth) {
-    const tiles = [...(this.activeChapter?.deployTiles || []), ...(this.deployPlacements || [])];
-    this.ui.frameTiles(tiles, smooth);
+    const deployTiles = [...(this.activeChapter?.deployTiles || []), ...(this.deployPlacements || [])];
+    const livingFoes = (this.battle?.enemies || []).filter(e => e.hp > 0);
+    const nearestFoes = [...livingFoes].sort((a, b) => b.y - a.y).slice(0, 2);
+    const tiles = [...deployTiles, ...nearestFoes];
+    this.ui.frameTiles(tiles.length ? tiles : deployTiles, smooth);
   }
 
   computeThreatTiles() {

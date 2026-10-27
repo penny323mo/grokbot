@@ -114,3 +114,26 @@
   - Naive rush fails tactically across Ch2, Ch3, Ch5, Ch6, Ch7, Ch8 (< 50%).
   - Core invariants held: zero first-phase deaths, enemy hit cap at 30% maxHp.
 - Deployment: Published via `/workspace/orchestrator/publish.sh .`, live URL returns HTTP 200.
+
+## 2026-10-27 15:40 (Asia/Macau): improve round 10 launched (prompts/improve-9.txt)
+- Round 9 finished at 15:19. The live site returns 200. npm test passes: ch1 naive 50/50, reasonable ch1 100% and ch2–8 76–90%, no first-phase deaths.
+- The 390px review of screenshots/v12 found these issues. Ch1 figures still hug the bottom edge with about 70% of the view showing empty river. Ch6 figures overlap each other. The tutorial hint covers the objective banner. The enemy crimson glow flattens sprites into red silhouettes. 引路燈車 is drawn as a floating lantern, not a cart. The result screen shows the MVP twice.
+- Brief: reframe the camera and the ch1 deploy area; one figure per tile; replace the red glow with a rim light and cloth trim; add a cart sprite and a real escort mechanic (moving cart, 護衛, progress shown in the objective line); give stars their conditions and add per-character stat lines on the result screen. Keep all balance invariants. Screenshots go to screenshots/v13, and the old state is in .orch-prev-9.
+
+## 2026-10-27 16:20 (Asia/Macau): Improve round 10 DONE (prompts/orch-build.txt)
+- All test suites passing (`npm test`: 32 rules, 10 AI, 9 objectives, 2 branding, 16 encounter simulations, 8 balance simulations).
+- 390px mobile battle UI verified across 5 critical steps in `screenshots/v13/`:
+  - `screenshots/v13/a-deploy.png`: Chapter 1 deploy formation centered on action (rows 8 & 9), empty row 10 & grass breathing room below, camera framing deploy zone and bridge/enemies, no figure clipped by bottom strip.
+  - `screenshots/v13/b-escort-cart.png`: Escort cart moving along the road, faint dotted line path ahead with destination marker (`⚑ 次回進軍`), adjacent allies providing `護衛` (50% damage reduction badge), and objective line displaying progress `✦ 河橋 · 護送燈車 【燈車 HP 35/35 · 護衛中 · 進度 2/9】 ✦`.
+  - `screenshots/v13/c-ch6-battle.png`: Chapter 6 siege with non-overlapping units in staggered checkerboard formation (unique columns 2, 3, 4, 5, 6, 7), scaled 52px figures, and crisp 1.5px enemy rim light replacing overdone flat red glow.
+  - `screenshots/v13/d-tutorial-hint.png`: Compact dockable tutorial hint sitting cleanly below the top HUD, leaving the objective banner fully visible and readable.
+  - `screenshots/v13/e-star-result.png`: 4-star result screen with earned vs missed conditions (e.g. `★ 速戰速決 [超限(需≤8回合)]` greyed out), unified MVP spotlight card (shown once with quote, EXP, and battle stats), and deduplicated squad list with per-character battle stats (`造成 X 傷害 · 斬敵 Y · 治癒 Z`).
+- Escort Objective & Authenticity:
+  - Generated authentic painted wooden hand-cart sprite with wheels, shafts, cargo, and mounted amber lantern (`assets/art/v4/fig_lantern_cart.webp`, `por_lantern_cart.webp`).
+  - Implemented dynamic cart advancement, `護衛` guarded damage reduction (-50%), hold/speed stratagem orders, and dedicated test suite in `tests/objectives.test.mjs`.
+- Balance Calibration (Zero Stat Inflation):
+  - Ch1 naive win rate: 50/50 (100% >= 90%).
+  - Reasonable bot win rate: Ch1 100%, Ch2 86%, Ch3 90%, Ch4 88%, Ch5 84%, Ch6 90%, Ch7 80%, Ch8 76% (75–90% range across Ch2–Ch8).
+  - Naive rush fails tactically across Ch2, Ch3, Ch5, Ch6, Ch7, Ch8 (< 50%).
+  - Core invariants held: zero first-phase deaths, enemy hit cap at 30% maxHp.
+- Deployment: Published via `/workspace/orchestrator/publish.sh .`, live URL returns HTTP 200.

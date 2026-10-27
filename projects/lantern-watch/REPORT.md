@@ -70,3 +70,8 @@ balance ok: ch1 naive win 50/50, ch3/5/7 naive failed, all mid chapters reasonab
   - Reset `this.deployPlacements = []` when launching different chapters so units use the proper chapter deploy slots, and framed living allies plus incoming reinforcement markers so 燈娘 小螢 and edge markers remain completely visible inside 390px boundaries.
 - **MINOR #5 (SPEC Alignment for Weather & Telegraphed Reinforcements)**:
   - Added §8b (Weather System & Telegraphed Reinforcements) to `SPEC.md` documenting weather conditions (`rain`, `fog`, `wind`, `night`) and 1-turn early glowing hazard warning indicators.
+
+## 2026-10-27 15:40 (Asia/Macau): improve round 10 launched (prompts/improve-9.txt)
+- Round 9 finished at 15:19. The live site returns 200. npm test passes: ch1 naive 50/50, reasonable ch1 100% and ch2–8 76–90%, no first-phase deaths.
+- The 390px review of screenshots/v12 found these issues. Ch1 figures still hug the bottom edge with about 70% of the view showing empty river. Ch6 figures overlap each other. The tutorial hint covers the objective banner. The enemy crimson glow flattens sprites into red silhouettes. 引路燈車 is drawn as a floating lantern, not a cart. The result screen shows the MVP twice.
+- Brief: reframe the camera and the ch1 deploy area; one figure per tile; replace the red glow with a rim light and cloth trim; add a cart sprite and a real escort mechanic (moving cart, 護衛, progress shown in the objective line); give stars their conditions and add per-character stat lines on the result screen. Keep all balance invariants. Screenshots go to screenshots/v13, and the old state is in .orch-prev-9.

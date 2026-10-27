@@ -318,6 +318,11 @@ export function calculateCombat(attacker, defender, board, options = {}) {
     directionMarker = `【側翼突襲】+${Math.round((flankRateSide - 1) * 100)}% 傷害`;
   }
 
+  const isCartGuarded = (defender.id === 'lantern_cart' && (options.isCartGuarded !== undefined ? options.isCartGuarded : options.battle?.isCartGuarded?.()));
+  if (isCartGuarded) {
+    expectedDamage = Math.max(1, Math.floor(expectedDamage * 0.5));
+  }
+
   return {
     attacker,
     defender,
@@ -369,7 +374,13 @@ export function executeCombat(attacker, defender, board, rng, options = {}) {
   // Crit roll
   const critRoll = rng ? rng.nextInt(1, 100) : 50;
   const isCrit = critRoll <= preview.critRate;
-  const finalDamage = capDamageToAlly(defender, isCrit ? Math.round(preview.expectedDamage * 1.5) : preview.expectedDamage);
+  let finalDamage = isCrit ? Math.round(preview.expectedDamage * 1.5) : preview.expectedDamage;
+  const isCartGuarded = (defender.id === 'lantern_cart' && (options.isCartGuarded !== undefined ? options.isCartGuarded : options.battle?.isCartGuarded?.()));
+  if (isCartGuarded) {
+    finalDamage = Math.max(1, Math.floor(finalDamage * 0.5));
+    events.push({ type: 'guard_reduction', msg: '【護衛減傷 -50%】' });
+  }
+  finalDamage = capDamageToAlly(defender, finalDamage);
 
   defender.hp = Math.max(0, defender.hp - finalDamage);
   events.push({

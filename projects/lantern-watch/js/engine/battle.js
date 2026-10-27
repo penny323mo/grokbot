@@ -38,12 +38,20 @@ export class Battle {
     this.usedBondPairThisBattle = false;
     this.rallyUsed = false;
     this.actionScores = {};
+    this.unitStats = {};
+    this.escortPath = chapter.escortPath || null;
+    this.escortStep = 0;
+    this.cartHold = false;
+    this.cartSpeedBoost = false;
     this.floodedTiles = new Map();
     this.originalTerrain = new Map();
     this.burningTiles = new Set();
     this.cursedTiles = new Set();
 
     this.initUnits(squadUnits, this.options);
+    for (const a of this.allies) {
+      this.unitStats[a.id] = { damageDealt: 0, kills: 0, heals: 0 };
+    }
     this.updateLastStand();
     this.applyStratagemAtStart();
     this.checkTelegraphedReinforcements();
@@ -206,6 +214,9 @@ export class Battle {
     if (this.rallyUsed) return false;
     this.rallyUsed = true;
     this.modifyMorale('ally', 25, '擂鼓振威');
+    if (this.chapter?.objectiveType === 'escort') {
+      this.cartSpeedBoost = true;
+    }
     const leader = this.allies.find(a => a.hp > 0);
     if (leader) {
       for (const a of this.allies) {
@@ -254,6 +265,14 @@ export class Battle {
 
     // Check flank attacks by allies against enemies
     if (attacker.team === 'ally' && defender.team === 'enemy') {
+      const st = (this.unitStats[attacker.id] = this.unitStats[attacker.id] || { damageDealt: 0, kills: 0, heals: 0 });
+      const hitEvent = combatRes.events?.find(e => e.type === 'hit');
+      if (hitEvent) {
+        st.damageDealt += (hitEvent.damage || 0);
+      }
+      if (!defenderAlive) {
+        st.kills += 1;
+      }
       if (preview.isBackAttack) {
         this.modifyMorale('enemy', -5, '背刺重創');
       } else if (preview.isSideAttack) {
@@ -602,10 +621,111 @@ export class Battle {
         isMvp,
         score: this.actionScores[ally.id] || 0,
         expGained: totalExp,
+        stats: this.unitStats[ally.id] || { damageDealt: 0, kills: 0, heals: 0 },
         reason: isMvp ? '【本戰MVP】斬將拔旗，戰功卓著！' : '作戰英勇，獲軍略功勳'
       });
     }
     return { awards, mvpId };
+  }
+
+  getEscortCart() {
+    return this.allies.find(a => a.id === (this.chapter.escortTargetId || 'lantern_cart'));
+  }
+
+  isCartGuarded() {
+    const cart = this.getEscortCart();
+    if (!cart || cart.hp <= 0) return false;
+    return this.allies.some(a => a.hp > 0 && a.id !== cart.id && (Math.abs(a.x - cart.x) + Math.abs(a.y - cart.y) === 1));
+  }
+
+  getNextCartDestination() {
+    const path = this.chapter?.escortPath;
+    if (!path) return null;
+    const nextIdx = (this.escortStep || 0) + 1;
+    if (nextIdx < path.length) {
+      return path[nextIdx];
+    }
+    return null;
+  }
+
+  triggerCartSpeed() {
+    this.cartSpeedBoost = true;
+    this.cartHold = false;
+    this.eventLog.push({ type: 'cart_speed', msg: '【全速前進】號令下達！引路燈車將加速疾馳！' });
+  }
+
+  triggerCartHold() {
+    this.cartHold = true;
+    this.cartSpeedBoost = false;
+    this.eventLog.push({ type: 'cart_hold', msg: '【原地待援】號令下達！引路燈車原地固守待援！' });
+  }
+
+  advanceEscortCart() {
+    const cart = this.getEscortCart();
+    if (!cart || cart.hp <= 0) return;
+    const path = this.chapter?.escortPath;
+    if (!path || !path.length) return;
+
+    if (this.cartHold) {
+      this.cartHold = false;
+      this.eventLog.push({ type: 'cart_held', msg: '【燈車止步】引路燈車遵令原地據守待援！' });
+      return;
+    }
+
+    const stepsToMove = this.cartSpeedBoost ? 2 : 1;
+    this.cartSpeedBoost = false;
+
+    for (let s = 0; s < stepsToMove; s++) {
+      const nextStepIdx = (this.escortStep || 0) + 1;
+      if (nextStepIdx >= path.length) break;
+      const targetCoord = path[nextStepIdx];
+      // Check if blocked by enemy
+      const enemyAtTile = this.enemies.find(e => e.hp > 0 && e.x === targetCoord.x && e.y === targetCoord.y);
+      if (enemyAtTile) {
+        this.eventLog.push({ type: 'cart_blocked', msg: `【路障受阻】前方有敵軍【${enemyAtTile.name}】攔路，燈車暫緩前行！` });
+        break;
+      }
+      // If blocked by ally, shift ally to adjacent open tile
+      const allyAtTile = this.allies.find(a => a.hp > 0 && a.id !== cart.id && a.x === targetCoord.x && a.y === targetCoord.y);
+      if (allyAtTile) {
+        const adj = [
+          { x: allyAtTile.x + 1, y: allyAtTile.y }, { x: allyAtTile.x - 1, y: allyAtTile.y },
+          { x: allyAtTile.x, y: allyAtTile.y + 1 }, { x: allyAtTile.x, y: allyAtTile.y - 1 }
+        ];
+        const open = adj.find(p => this.board.inBounds(p.x, p.y) && !this.getUnitAt(p.x, p.y) && !this.board.isImpassable(p.x, p.y));
+        if (open) {
+          allyAtTile.x = open.x;
+          allyAtTile.y = open.y;
+        } else {
+          break;
+        }
+      }
+
+      // Move cart
+      cart.turnStartX = cart.x;
+      cart.turnStartY = cart.y;
+      cart.x = targetCoord.x;
+      cart.y = targetCoord.y;
+      this.escortStep = nextStepIdx;
+      this.eventLog.push({
+        type: 'cart_move',
+        x: cart.x,
+        y: cart.y,
+        step: this.escortStep,
+        total: path.length,
+        msg: `【燈車前進】引路燈車沿石道推進至(${cart.x},${cart.y})！`
+      });
+
+      // Check win condition
+      if (this.chapter.escortGoal) {
+        const { rowMax, colMin } = this.chapter.escortGoal;
+        if (cart.y <= rowMax && cart.x >= colMin) {
+          this.status = { finished: true, victory: true, reason: '引路燈車成功安抵北岸燈標！' };
+          this.phase = 'finished';
+          break;
+        }
+      }
+    }
   }
 
   getAllLivingUnits() {
@@ -790,8 +910,13 @@ export class Battle {
           unit.acted = true;
           unit.moved = false;
         } else if (skill?.isHeal && target) {
-          target.hp = Math.min(target.maxHp, target.hp + (skill.heal || 14));
-          result.events.push({ type: 'heal', target: target.id, amount: skill.heal || 14, msg: '甘泉清茶，氣血充盈！' });
+          const healAmt = skill.heal || 14;
+          target.hp = Math.min(target.maxHp, target.hp + healAmt);
+          if (unit.team === 'ally') {
+            const st = (this.unitStats[unit.id] = this.unitStats[unit.id] || { damageDealt: 0, kills: 0, heals: 0 });
+            st.heals += healAmt;
+          }
+          result.events.push({ type: 'heal', target: target.id, amount: healAmt, msg: '甘泉清茶，氣血充盈！' });
           unit.acted = true;
           unit.moved = false;
         } else if (skill?.aoe === 'cross') {
@@ -900,8 +1025,13 @@ export class Battle {
           unit.acted = true;
           unit.moved = false;
         } else if (magic?.isHeal && target) {
-          target.hp = Math.min(target.maxHp, target.hp + (magic.heal || 18));
-          result.events.push({ type: 'heal', target: target.id, amount: magic.heal || 18, msg: '靈露滋潤，生機勃發！' });
+          const healAmt = magic.heal || 18;
+          target.hp = Math.min(target.maxHp, target.hp + healAmt);
+          if (unit.team === 'ally') {
+            const st = (this.unitStats[unit.id] = this.unitStats[unit.id] || { damageDealt: 0, kills: 0, heals: 0 });
+            st.heals += healAmt;
+          }
+          result.events.push({ type: 'heal', target: target.id, amount: healAmt, msg: '靈露滋潤，生機勃發！' });
           unit.acted = true;
           unit.moved = false;
         } else if (magic?.aoe === 'cross') {
@@ -1305,6 +1435,11 @@ export class Battle {
     this.currentTurn++;
     this.phase = 'ally';
     this.checkTelegraphedReinforcements();
+
+    // Escort cart advances along road in escort missions
+    if (this.chapter?.objectiveType === 'escort') {
+      this.advanceEscortCart();
+    }
 
     for (const a of this.allies) {
       if (a.rallyBuffed) {

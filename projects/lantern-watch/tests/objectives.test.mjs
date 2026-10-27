@@ -57,6 +57,54 @@ test('Objectives: Escort chapter (River Bridge)', () => {
   assert.strictEqual(status.victory, false);
 });
 
+test('Objectives: Escort cart movement, 護衛 damage reduction, and speed/hold orders', async () => {
+  const { Battle } = await import('../js/engine/battle.js');
+  const { calculateCombat, executeCombat } = await import('../js/engine/combat.js');
+  const { Board } = await import('../js/engine/board.js');
+  const chapter = CHAPTERS.find(c => c.key === 'river_bridge');
+
+  const squad = [
+    { id: 'bear_guard', name: '熊岳', team: 'ally', hp: 35, maxHp: 35, atk: 12, def: 8, mov: 3 },
+    { id: 'cat_patrol', name: '墨影', team: 'ally', hp: 28, maxHp: 28, atk: 14, def: 4, mov: 5 }
+  ];
+  const battle = new Battle(chapter, squad);
+
+  const cart = battle.getEscortCart();
+  assert.ok(cart, 'Escort cart must be present in chapter 1');
+  assert.strictEqual(cart.id, 'lantern_cart');
+
+  // 1. Initial position & 護衛 guarded state (bear_guard is adjacent at (1,8) to cart at (1,9))
+  assert.strictEqual(cart.x, 1);
+  assert.strictEqual(cart.y, 9);
+  assert.strictEqual(battle.isCartGuarded(), true, 'Cart with adjacent ally must be in 護衛 state');
+
+  // 2. Guarded damage reduction: 50% damage reduction when attacked
+  const enemyAttacker = { id: 'shadow_archer', name: '影弓', team: 'enemy', x: 1, y: 7, atk: 16, def: 2, range: 2, facing: 1 };
+  const previewGuarded = calculateCombat(enemyAttacker, cart, battle.board, { battle });
+  const previewUnguarded = calculateCombat(enemyAttacker, cart, battle.board, { battle, isCartGuarded: false });
+  assert.ok(previewGuarded.expectedDamage < previewUnguarded.expectedDamage, 'Guarded cart must take reduced damage');
+  assert.strictEqual(previewGuarded.expectedDamage, Math.max(1, Math.floor(previewUnguarded.expectedDamage * 0.5)));
+
+  // 3. Normal path advance: advanceEscortCart moves 1 step along escortPath
+  const initialStep = battle.escortStep;
+  battle.advanceEscortCart();
+  assert.strictEqual(battle.escortStep, initialStep + 1);
+  assert.strictEqual(cart.x, chapter.escortPath[battle.escortStep].x);
+  assert.strictEqual(cart.y, chapter.escortPath[battle.escortStep].y);
+
+  // 4. Hold order: cartHold stops cart movement for the turn
+  battle.triggerCartHold();
+  const stepBeforeHold = battle.escortStep;
+  battle.advanceEscortCart();
+  assert.strictEqual(battle.escortStep, stepBeforeHold, 'Cart must hold position when cartHold is active');
+
+  // 5. Speed order: triggerCartSpeed advances 2 steps
+  battle.triggerCartSpeed();
+  const stepBeforeSpeed = battle.escortStep;
+  battle.advanceEscortCart();
+  assert.strictEqual(battle.escortStep, stepBeforeSpeed + 2, 'Cart must advance 2 steps when cartSpeedBoost is active');
+});
+
 test('Objectives: Hold Gate chapter', () => {
   const chapter = CHAPTERS.find(c => c.key === 'gate');
   const ally = { id: 'bear_guard', role: 'tank', hp: 30, x: 4, y: 7 };

@@ -75,11 +75,22 @@ export const CHAPTERS = [
       { x: 8, y: 1, radius: 2 }
     ],
     deployTiles: [
-      { x: 1, y: 11 }, { x: 0, y: 11 }, { x: 3, y: 12 }, { x: 4, y: 12 },
-      { x: 1, y: 12 }, { x: 0, y: 12 }, { x: 0, y: 10 }, { x: 1, y: 10 }
+      { x: 1, y: 8 }, { x: 0, y: 9 }, { x: 2, y: 8 }, { x: 2, y: 9 },
+      { x: 0, y: 8 }, { x: 1, y: 10 }, { x: 2, y: 10 }
     ],
     npcSpawns: [
-      { id: 'lantern_cart', x: 2, y: 12 }
+      { id: 'lantern_cart', x: 1, y: 9 }
+    ],
+    escortPath: [
+      { x: 1, y: 9 },
+      { x: 1, y: 8 },
+      { x: 1, y: 7 },
+      { x: 2, y: 6 },
+      { x: 2, y: 5 },
+      { x: 3, y: 5 },
+      { x: 4, y: 4 },
+      { x: 5, y: 3 },
+      { x: 6, y: 2 }
     ],
     enemySpawns: [
       // Tutorial: 3 light enemies, spaced so they arrive one at a time
@@ -104,7 +115,7 @@ export const CHAPTERS = [
       "..wwssswww", // 7: Stepping stones cols 4-6
       "...wssshhh", // 8: Shallows to hill base cols 7-9
       "...ww.hhhh", // 9: Stone platform left, hill cols 6-9
-      "..##wwhhhh", // 10: River deep water cols 4-5, hill right
+      "...ww.hhhh", // 10: Courtyard plain cols 0-2 & 5, hill right
       "..#wwwhhhh", // 11: River deep water cols 3-5, hill right
       ".....hhhh#"  // 12: Forecourt & hill base
     ]
@@ -386,9 +397,9 @@ export const CHAPTERS = [
       { x: 4, y: 11, radius: 2 }
     ],
     deployTiles: [
-      { x: 3, y: 11 }, { x: 4, y: 11 }, { x: 5, y: 11 }, { x: 6, y: 11 },
-      { x: 4, y: 12 }, { x: 5, y: 12 },
-      { x: 4, y: 10 }, { x: 5, y: 10 }
+      { x: 3, y: 11 }, { x: 5, y: 11 }, { x: 7, y: 11 },
+      { x: 2, y: 12 }, { x: 4, y: 12 }, { x: 6, y: 12 },
+      { x: 4, y: 10 }, { x: 6, y: 10 }
     ],
     reinforcements: [
       { turn: 5, id: 'mist_scout', x: 8, y: 6, facing: -1, bark: '「斥候查探，敵軍已被切斷後路！」' }

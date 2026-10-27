@@ -1341,12 +1341,12 @@ html, body {
 
 .unit-fig-img {
   position: absolute;
-  bottom: 8px;
+  bottom: 6px;
   left: 50%;
   transform: translateX(-50%) scaleX(var(--facing, 1));
-  height: 60px;
+  height: 52px;
   width: auto;
-  max-width: 58px;
+  max-width: 50px;
   pointer-events: none;
   transition: transform 0.12s ease;
   animation: figureBob 3s ease-in-out infinite;
@@ -4115,12 +4115,12 @@ html, body {
    ROUND 9: COMPACT TUTORIAL, ROUT VISIBILITY, WEATHER HUD & 4-STAR MVP
    ========================================================================== */
 
-/* 1. Compact Live Board Tutorial Docked Bar */
+/* 1. Compact Live Board Tutorial Docked Bar (docks cleanly below HUD objective banner) */
 .tutorial-board-overlay.compact {
   background: transparent !important;
   pointer-events: none;
   justify-content: flex-start !important;
-  padding: calc(48px + env(safe-area-inset-top, 0px)) 10px 0 !important;
+  padding: calc(84px + env(safe-area-inset-top, 0px)) 10px 0 !important;
   z-index: 75;
 }
 .tutorial-board-card.compact {
@@ -4289,50 +4289,61 @@ html, body {
 
 /* 5. 4-Star Evaluation & MVP Highlight in Result Modal */
 .result-star-row {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 4px;
-  background: rgba(14, 18, 44, 0.6);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  padding: 6px 4px;
+  background: rgba(14, 18, 44, 0.7);
   border: 1px solid rgba(242, 180, 90, 0.35);
   border-radius: 8px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 .result-star-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  opacity: 0.35;
-  filter: grayscale(0.8);
+  justify-content: center;
+  gap: 1px;
+  padding: 4px 2px;
+  border-radius: 6px;
+  background: rgba(20, 26, 60, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  transition: all 0.2s ease;
 }
 .result-star-item.active {
-  opacity: 1;
-  filter: none;
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.5);
+}
+.star-badge {
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 .result-star-item .star-icon {
-  font-size: 22px;
-  color: #94A3B8;
-  text-shadow: 0 1px 2px #000;
+  font-size: 13px;
+  color: #64748B;
 }
 .result-star-item.active .star-icon {
   color: #FBBF24;
-  text-shadow: 0 0 10px rgba(251, 191, 36, 0.9), 0 0 4px #FFF;
-  animation: starPop 0.4s ease-out;
-}
-@keyframes starPop {
-  0% { transform: scale(0.6); }
-  50% { transform: scale(1.25); }
-  100% { transform: scale(1); }
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.9);
 }
 .result-star-item .star-label {
   font-size: 10px;
   font-weight: 700;
-  color: var(--text-parchment-muted);
+  color: #94A3B8;
+  white-space: nowrap;
 }
 .result-star-item.active .star-label {
   color: var(--lantern-gold);
+}
+.star-cond {
+  font-size: 8.5px;
+  color: #64748B;
+  white-space: nowrap;
+  letter-spacing: -0.2px;
+}
+.result-star-item.active .star-cond {
+  color: #86EFAC;
 }
 .result-mvp-card {
   display: flex;
@@ -4378,11 +4389,35 @@ html, body {
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  flex: 1;
+}
+.mvp-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
 }
 .mvp-name-tag {
   font-family: var(--font-brush);
   font-size: 13px;
   color: var(--lantern-gold);
+  white-space: nowrap;
+}
+.mvp-exp-badge {
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  color: #1A0E05;
+  font-weight: 900;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
+  white-space: nowrap;
+}
+.mvp-stats-row {
+  font-size: 9.5px;
+  color: #FDE68A;
+  font-weight: 600;
+  letter-spacing: 0.3px;
 }
 .mvp-quote-text {
   font-size: 11px;
@@ -4391,25 +4426,103 @@ html, body {
   line-height: 1.35;
 }
 
-/* 6. Art Pop for Enemy Figures (rim light & contrast so they pop on dark terrain) */
-.unit-figure.enemy .unit-fig-img {
-  filter: drop-shadow(0 0 2px rgba(255, 60, 60, 0.95))
-          drop-shadow(0 0 7px rgba(220, 38, 38, 0.85))
-          drop-shadow(0 0 12px rgba(248, 113, 113, 0.45))
-          brightness(1.12)
-          contrast(1.15) !important;
-}
-.unit-figure.enemy::before {
-  content: '';
+/* Escort Cart Path & 護衛 Guarded Visuals */
+.escort-path-dot {
   position: absolute;
-  top: 6px;
-  left: 6px;
-  right: 6px;
-  bottom: 12px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(220, 38, 38, 0.22) 0%, rgba(220, 38, 38, 0) 70%);
+  top: 0;
+  left: 0;
+  width: 64px;
+  height: 64px;
   pointer-events: none;
-  z-index: 1;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.escort-path-dot::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(245, 158, 11, 0.8);
+  background: rgba(245, 158, 11, 0.3);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+  animation: pulsePathDot 2.5s infinite ease-in-out;
+}
+@keyframes pulsePathDot {
+  0%, 100% { transform: scale(0.9); opacity: 0.5; }
+  50% { transform: scale(1.15); opacity: 0.95; }
+}
+
+.escort-dest-marker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 64px;
+  height: 64px;
+  pointer-events: none;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 6px;
+}
+.escort-dest-ring {
+  position: absolute;
+  top: 7px;
+  width: 50px;
+  height: 50px;
+  border: 2px dashed #F59E0B;
+  border-radius: 50%;
+  animation: pulseDestRing 2s infinite ease-in-out;
+}
+@keyframes pulseDestRing {
+  0%, 100% { transform: scale(0.9); opacity: 0.6; }
+  50% { transform: scale(1.1); opacity: 1; filter: drop-shadow(0 0 6px #F59E0B); }
+}
+.escort-dest-badge {
+  background: rgba(20, 16, 40, 0.92);
+  border: 1px solid #F59E0B;
+  color: #FDE68A;
+  font-size: 8.5px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 4px;
+  z-index: 7;
+  white-space: nowrap;
+}
+.unit-figure.is-guarded .unit-team-ring {
+  border-color: #38BDF8 !important;
+  box-shadow: 0 0 10px #38BDF8, inset 0 0 6px rgba(56, 189, 248, 0.5) !important;
+}
+.cart-guard-badge {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(14, 28, 64, 0.94);
+  border: 1px solid #38BDF8;
+  color: #BAE6FD;
+  font-size: 8px;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 4px;
+  white-space: nowrap;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+  z-index: 12;
+}
+
+.xp-unit-stats {
+  font-size: 9.5px;
+  color: #CBD5E1;
+  letter-spacing: 0.2px;
+}
+
+/* 6. Art Pop for Enemy Figures: thin crisp rim light allowing armor, weapon and face details to read */
+.unit-figure.enemy .unit-fig-img {
+  filter: drop-shadow(0 0 1.5px rgba(239, 68, 68, 0.75))
+          drop-shadow(0 2px 4px rgba(0, 0, 0, 0.85)) !important;
 }
 
 /* ===== Walk cycle rig (rAF driven) ===== */

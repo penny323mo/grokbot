@@ -519,31 +519,35 @@
         <!-- 4-Star Tactical Evaluation -->
         <div class="result-star-row" id="resultStarRow">
           <div class="result-star-item active" id="starVictory">
-            <span class="star-icon">★</span>
-            <span class="star-label">旗開得勝</span>
+            <div class="star-badge"><span class="star-icon">★</span><span class="star-label">旗開得勝</span></div>
+            <div class="star-cond" id="condVictory">達成主目標</div>
           </div>
           <div class="result-star-item active" id="starTurns">
-            <span class="star-icon">★</span>
-            <span class="star-label">速戰速決</span>
+            <div class="star-badge"><span class="star-icon">★</span><span class="star-label">速戰速決</span></div>
+            <div class="star-cond" id="condTurns">8回合內通關</div>
           </div>
           <div class="result-star-item active" id="starCasualty">
-            <span class="star-icon">★</span>
-            <span class="star-label">全員生還</span>
+            <div class="star-badge"><span class="star-icon">★</span><span class="star-label">全員生還</span></div>
+            <div class="star-cond" id="condCasualty">無將士陣亡</div>
           </div>
           <div class="result-star-item active" id="starObjective">
-            <span class="star-icon">★</span>
-            <span class="star-label">勢如破竹</span>
+            <div class="star-badge"><span class="star-icon">★</span><span class="star-label">勢如破竹</span></div>
+            <div class="star-cond" id="condObjective">敵士氣≤35</div>
           </div>
         </div>
-        <!-- MVP Highlight Banner -->
+        <!-- Unified MVP Highlight Card -->
         <div class="result-mvp-card" id="resultMvpCard">
           <div class="mvp-por-box">
-            <img src="assets/art/v4/por_cat_patrol.webp" alt="MVP" class="mvp-por" id="resultMvpPor">
+            <img src="assets/art/v4/por_bear_guard.webp" alt="MVP" class="mvp-por" id="resultMvpPor">
             <span class="mvp-crown-badge">👑 MVP</span>
           </div>
           <div class="mvp-quote-box">
-            <div class="mvp-name-tag" id="resultMvpName">【本戰MVP】墨影 · 影步遊俠</div>
-            <div class="mvp-quote-text" id="resultMvpQuote">「暗夜之中，劍鋒所向披靡。敵酋已斬，長夜將明！」</div>
+            <div class="mvp-title-row">
+              <span class="mvp-name-tag" id="resultMvpName">【本戰MVP】熊岳 · 戰功卓著</span>
+              <span class="mvp-exp-badge" id="resultMvpExp">+65 EXP</span>
+            </div>
+            <div class="mvp-stats-row" id="resultMvpStats">造成 54 傷害 · 斬敵 2 · 治癒 0</div>
+            <div class="mvp-quote-text" id="resultMvpQuote">「鐵甲如磐，固若金湯！隨我乘勝破敵！」</div>
           </div>
         </div>
         <div class="result-body">
