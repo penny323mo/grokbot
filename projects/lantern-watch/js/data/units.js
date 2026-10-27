@@ -10,6 +10,8 @@ export const GUARDIAN_PROTOS = {
     title: '影刃劍客',
     cls: '劍客',
     clsBadge: '劍',
+    roleTag: '刺客',
+    howToUse: '繞後背刺爆擊雙倍傷害，煙幕障目脫戰隱匿，切敵後排脆皮。',
     richPortrait: 'assets/art/v4/por_moying_rich.webp',
     role: 'flanker',
     team: 'ally',
@@ -28,7 +30,7 @@ export const GUARDIAN_PROTOS = {
     isLight: true,
     trait: {
       id: 'swift_shadow',
-      name: '疾影',
+      name: '疾影背刺',
       desc: '背擊傷害由+30%提升至+100%，且無視敵方ZOC控制領域'
     },
     skill: {
@@ -61,6 +63,8 @@ export const GUARDIAN_PROTOS = {
     title: '持燈使',
     cls: '弓手',
     clsBadge: '弓',
+    roleTag: '遠程',
+    howToUse: '超遠距定點狙擊，佈設明燈驅散戰場匿霧，靈矢克制火破木。',
     role: 'archer',
     team: 'ally',
     mov: 4,
@@ -77,8 +81,8 @@ export const GUARDIAN_PROTOS = {
     flyer: false,
     trait: {
       id: 'hang_lantern',
-      name: '掛燈',
-      desc: '可於指定格子置放引魂燈，照亮半徑2格破除匿霧，持續3回合'
+      name: '照夜破霧',
+      desc: '置放引魂燈照亮半徑2格破除匿霧，攻擊距離遠且超遠視野'
     },
     skill: {
       id: 'place_lantern',
@@ -111,6 +115,8 @@ export const GUARDIAN_PROTOS = {
     title: '引雷靈狸',
     cls: '術士',
     clsBadge: '術',
+    roleTag: '策士',
+    howToUse: '落雷連鎖引發群體觸電，天雷重創克制水相妖怪。',
     role: 'mage',
     team: 'ally',
     mov: 4,
@@ -127,7 +133,7 @@ export const GUARDIAN_PROTOS = {
     flyer: false,
     trait: {
       id: 'chain_lightning',
-      name: '連雷',
+      name: '連鎖天雷',
       desc: '雷擊可連鎖至相鄰敵人；對水相敵人傷害×2'
     },
     skill: {
@@ -163,6 +169,8 @@ export const GUARDIAN_PROTOS = {
     title: '靜心老泉',
     cls: '醫師',
     clsBadge: '醫',
+    roleTag: '支援',
+    howToUse: '站位中軍隨行救治，奉熱茶回春驅散異常，甘露加固隊友防線。',
     role: 'healer',
     team: 'ally',
     mov: 4,
@@ -179,8 +187,8 @@ export const GUARDIAN_PROTOS = {
     flyer: false,
     trait: {
       id: 'soothing_tea',
-      name: '清心茶',
-      desc: '2格範圍治療隊友並清除異常狀態'
+      name: '清心回春',
+      desc: '2格範圍治療隊友並清除異常狀態，相鄰友軍每回合回血'
     },
     skill: {
       id: 'healing_brew',
@@ -214,6 +222,8 @@ export const GUARDIAN_PROTOS = {
     title: '青丘靈狐',
     cls: '術士',
     clsBadge: '法',
+    roleTag: '策士',
+    howToUse: '十字蔓延與扇形烈火面傷，焚盡群敵與樹林草木。',
     role: 'mage_aoe',
     team: 'ally',
     mov: 4,
@@ -230,8 +240,8 @@ export const GUARDIAN_PROTOS = {
     flyer: false,
     trait: {
       id: 'fox_fire',
-      name: '狐火',
-      desc: '十字範圍烈火沖天；但烈火對水相敵人無效（傷害×0）'
+      name: '妖火燎原',
+      desc: '十字烈火群攻，引燃樹林草木；對水相無效'
     },
     skill: {
       id: 'flame_cross',
@@ -266,6 +276,8 @@ export const GUARDIAN_PROTOS = {
     title: '不動磐石',
     cls: '槍盾',
     clsBadge: '盾',
+    roleTag: '坦',
+    howToUse: '頂在前排卡位堵路，鐵壁護衛周邊隊友，巨盾推敵落水KO。',
     role: 'tank',
     team: 'ally',
     mov: 3,
@@ -282,8 +294,8 @@ export const GUARDIAN_PROTOS = {
     flyer: false,
     trait: {
       id: 'spear_wall',
-      name: '槍林',
-      desc: '阻截領域(ZOC)：騎兵進入相鄰格子立即止步並受一次截擊傷害'
+      name: '槍林鐵壁',
+      desc: '阻截領域(ZOC)：騎兵進入相鄰格子立即止步；相鄰隊友受傷減免'
     },
     skill: {
       id: 'shield_push',
@@ -316,6 +328,8 @@ export const GUARDIAN_PROTOS = {
     title: '雲間行者',
     cls: '飛騎',
     clsBadge: '飛',
+    roleTag: '刺客',
+    howToUse: '御鶴凌空無視地形，直線穿透陣型克制敵方弓手。',
     role: 'flyer',
     team: 'ally',
     mov: 6,
@@ -332,7 +346,7 @@ export const GUARDIAN_PROTOS = {
     flyer: true,
     trait: {
       id: 'sky_dive',
-      name: '俯衝',
+      name: '凌空俯衝',
       desc: '無視所有地形阻礙；對弓手部隊造成+30%額外剋制傷害'
     },
     skill: {
@@ -353,11 +367,11 @@ export const GUARDIAN_PROTOS = {
       type: 'magic',
       range: 2,
       power: 11,
-      desc: '雙翼掀起銳利罡風刃，進行2格遠程切割',
-      bark: '「風隨翎動，破敵如剪！」'
+      desc: '羽扇揮舞呼召狂暴罡風，席捲撕裂敵陣',
+      bark: '「狂風聽令，掃蕩群妖！」'
     },
-    bark: '「俯瞰大地，敵蹤一覽無餘。」',
-    backstory: '騎乘仙鶴穿梭於群山之巔的信使，俯瞰全場，來去無痕。'
+    bark: '「乘鶴逐雲，天地廣闊任我行。」',
+    backstory: '隱居青雲峰的馭鶴遊俠，來去如風，箭矢難傷其分毫。'
   }
 };
 

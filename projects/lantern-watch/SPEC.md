@@ -38,6 +38,7 @@ Terrain per tile defined in `js/data/maps.js` as 13 strings of 10 chars, hand-al
 | `g` | 城門 gate | 1 | +2 | 0 | hold-objective tile |
 | `m` | 市集 market | 1 | 0 | 10 | |
 | `s` | 淺灘 shallows | 3 | -1 | 0 | |
+| `v` | 村莊 village | 1 | +2 | 0 | 回合開始時回復駐守單位 4 HP (villages heal a little each turn) |
 Tap an empty tile (or long-press any) → bottom info strip shows terrain name, move cost, DEF/EVA bonus.
 
 ## 5. Controls (classic 曹操傳 flow)
@@ -157,3 +158,28 @@ Invariant tests (`tests/balance.sim.test.mjs`):
 2. Zero guardian deaths in the first enemy phase across all chapters.
 3. Naive rush fails non-tutorial tactical chapters (Ch3, Ch5, Ch7 < 25/50).
 4. Generic reasonable bot achieves 75%–90% win rate across mid-to-late chapters Ch2–Ch8.
+
+## 14. Distinct Character Kits (v15)
+Each starting guardian possesses a unique role tag, distinct passive trait, signature move set, visual silhouette/aura palette, and concise tactical guide ("怎樣用"):
+- **熊岳** (`bear_guard`, 坦): 槍林鐵壁 (ZOC截擊) + 巨盾推擊 (擊退/溺斃KO) + 鐵壁之陣 (+4 DEF 自體增益). 口訣：頂在前排卡位堵路，鐵壁護衛周邊隊友，巨盾推敵落水KO.
+- **墨影** (`cat_patrol`, 刺客): 疾影背刺 (+100% 背擊爆發、無視ZOC) + 影步突刺 + 障目煙幕 (-3 DEF / 迴避提升). 口訣：繞後背刺爆擊雙倍傷害，煙幕障目脫戰隱匿，切敵後排脆皮.
+- **小螢** (`lantern_crafter`, 遠程): 照夜破霧 (超遠視野) + 引魂明燈 (放置靈燈驅散迷霧) + 破煞靈矢 (火屬無視地形防禦). 口訣：超遠距定點狙擊，佈設明燈驅散戰場匿霧，靈矢克制火破木.
+- **茶翁** (`tea_master`, 支援): 清心回春 (相鄰每回合回血、解除異常) + 回春靈茶 (單體治療) + 茶甘靈露 (群體回血 +2 DEF). 口訣：站位中軍隨行救治，奉熱茶回春驅散異常，甘露加固隊友防線.
+- **雷狸** (`tanuki_mage`, 策士): 連鎖天雷 (相鄰連鎖、水相×2) + 天雷掣電 + 聚靈雷暴. 口訣：落雷連鎖引發群體觸電，天雷重創克制水相妖怪.
+- **狐火** (`fox_maiden`, 策士): 妖火燎原 (十字蔓延點燃草木) + 狐火焚霧 + 紅蓮扇炎 (扇形面傷). 口訣：十字蔓延與扇形烈火面傷，焚盡群敵與樹林草木.
+- **鶴羽** (`crane_rider`, 刺客/飛騎): 凌空俯衝 (無視地形、對弓手+30%) + 鶴鳴貫空 (3格直線穿透) + 翎羽罡風. 口訣：御鶴凌空無視地形，直線穿透陣型克制敵方弓手.
+
+## 15. 三國志 Class Triangle & Terrain (v15)
+- **兵種相剋**: 騎兵 > 步兵 > 弓兵 > 騎兵 (×1.2 傷害優勢 / ×0.8 傷害劣勢). 傷害預覽卡與戰場目標即時顯現「兵種克制 ×1.2」徽章.
+- **村莊地形**: 地塊代碼 `v`，提供 +2 DEF 並於回合開始時回復駐守單位 4 HP.
+
+## 16. 兵法手冊 (Tactics Manual, v15)
+- 卷軸手冊 `#modalTacticsManual` 可由頂部選單 `≡` 或指令列快捷按鈕 `?` 開啟.
+- 圖解 6 大核心戰術模組：攻擊 vs 技能 vs 法術、三國志兵種相剋、五行克制、反擊與四向朝向、地形防禦與村莊回血、士氣潰退機制.
+
+## 17. 掛機託管 AI (Objective-Aware Auto-Battle, v15)
+- 全軍託管 (`toggleAutoBattle`) 與單兵長按自動模式.
+- 3 種戰術風格：均衡 (balanced)、進攻 (aggressive)、防守 (defensive)，支援 1x/2x/4x 加速.
+- 關卡目標意識：護送引路燈車、進攻奪取祭壇、突破城門.
+- 任何戰場點擊或「暫停」按鈕瞬間中斷並歸還操作.
+- 0 隊友傷害保證，通過單元測試驗證.

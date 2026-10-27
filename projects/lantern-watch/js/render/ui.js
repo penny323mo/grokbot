@@ -42,6 +42,11 @@ export class UIRenderer {
     const w = vp?.clientWidth || 390, h = vp?.clientHeight || 520;
     return Math.min(w / 640, h / 832);
   }
+  fillHeightScale() {
+    const vp = document.getElementById('battleViewport');
+    const h = vp?.clientHeight || 680;
+    return Math.min(1.15, h / 832);
+  }
   applyCamera() {
     const vp = document.getElementById('battleViewport');
     const stage = document.getElementById('battleBoardStage');
@@ -51,11 +56,23 @@ export class UIRenderer {
     c.s = Math.max(fit, Math.min(Math.max(fit * 3, 1.4), c.s));
     const cw = 640 * c.s, ch = 832 * c.s;
     c.tx = cw <= w ? (w - cw) / 2 : Math.min(0, Math.max(w - cw, c.tx));
-    c.ty = ch <= h ? (h - ch > 16 ? 4 : (h - ch) / 2) : Math.min(0, Math.max(h - ch, c.ty));
+    c.ty = ch <= h ? (h - ch) / 2 : Math.min(0, Math.max(h - ch, c.ty));
     stage.style.transform = `translate(${c.tx}px, ${c.ty}px) scale(${c.s})`;
     stage.style.setProperty('--cam-inv', String(1 / c.s));
   }
   fitCamera() { const c = this.camState(); c.s = this.fitScale(); c.fit = true; this.applyCamera(); }
+  fillHeightCamera() {
+    const vp = document.getElementById('battleViewport');
+    if (!vp) return;
+    const w = vp.clientWidth, h = vp.clientHeight;
+    const c = this.camState();
+    c.s = Math.max(this.fitScale(), this.fillHeightScale());
+    c.fit = false;
+    const cw = 640 * c.s;
+    c.tx = (w - cw) / 2;
+    c.ty = 0;
+    this.applyCamera();
+  }
 
   setupViewportDrag() {
     const vp = document.getElementById('battleViewport');
@@ -610,9 +627,12 @@ export class UIRenderer {
         </div>
       ` : '';
 
+      const autoBadgeHtml = u.isAuto ? `<div class="unit-auto-badge">🤖</div>` : '';
+
       figWrap.innerHTML = `
         <div class="unit-ground-shadow"></div>
         <div class="unit-team-ring"></div>
+        ${autoBadgeHtml}
         ${targetTagsHtml}
         <div class="unit-name-tag">${u.name}</div>
         ${guardBadgeHtml}
@@ -627,8 +647,27 @@ export class UIRenderer {
         </div>
       `;
 
+      let pressTimer = null;
+      let isLongPress = false;
+
+      figWrap.onpointerdown = (e) => {
+        if (u.team !== 'ally') return;
+        isLongPress = false;
+        pressTimer = setTimeout(() => {
+          isLongPress = true;
+          u.isAuto = !u.isAuto;
+          if (navigator.vibrate) try { navigator.vibrate(15); } catch (_) {}
+          if (window.__lt?.app) window.__lt.app.refreshBattleUI();
+        }, 450);
+      };
+
+      const cancelPress = () => { clearTimeout(pressTimer); };
+      figWrap.onpointerup = cancelPress;
+      figWrap.onpointerleave = cancelPress;
+      figWrap.onpointercancel = cancelPress;
+
       figWrap.onclick = (e) => {
-        if (this.hasDraggedBeyondThreshold) return;
+        if (this.hasDraggedBeyondThreshold || isLongPress) return;
         e.stopPropagation();
         if (!isVisible && u.team === 'enemy') {
           // Cannot target or inspect enemy in deep fog
@@ -1178,6 +1217,7 @@ export class UIRenderer {
   }
 
   showCombatBark(unit, title, text, duration = 1500) {
+    if (window.__lt?.app?.isAutoBattle) return;
     const banner = document.getElementById('combatBarkBanner');
     if (!banner) return;
     const por = document.getElementById('barkPortrait');
@@ -1195,6 +1235,11 @@ export class UIRenderer {
     }, duration);
   }
 
+  hideCombatBark() {
+    const banner = document.getElementById('combatBarkBanner');
+    if (banner) banner.style.display = 'none';
+  }
+
   clearBottomStrip() {
     const coord = document.getElementById('stripCoord');
     const terrain = document.getElementById('stripTerrain');
@@ -1209,18 +1254,24 @@ export class UIRenderer {
 
   updateBottomStrip(x, y, board, unit = null) {
     const t = board.getTerrain(x, y);
-    document.getElementById('stripCoord').textContent = `(${x},${y})`;
-    if (unit) {
-      document.getElementById('stripTerrain').textContent =
-        `${t.name} · 移${t.moveCost === 99 ? '∞' : t.moveCost} · 防${t.defBonus >= 0 ? '+' : ''}${t.defBonus}`;
-      const unitInfoEl = document.getElementById('stripUnitInfo');
-      unitInfoEl.style.display = 'block';
-      unitInfoEl.textContent = `【${unit.name}】Lv.${unit.level || 1} HP ${unit.hp}/${unit.maxHp}`;
-    } else {
-      document.getElementById('stripTerrain').textContent =
-        `${t.name} · 移耗 ${t.moveCost === 99 ? '∞' : t.moveCost} · 防${t.defBonus >= 0 ? '+' : ''}${t.defBonus} · 避+${t.evaBonus}%`;
-      const unitInfoEl = document.getElementById('stripUnitInfo');
-      unitInfoEl.style.display = 'none';
+    const coordEl = document.getElementById('stripCoord');
+    if (coordEl) coordEl.textContent = `(${x},${y})`;
+    const healTxt = t.isVillage || t.healAmount ? ` · 回血+${t.healAmount || 4}` : '';
+    const hillTxt = t.char === 'h' ? ' · 高地+20%' : '';
+    const descTxt = `${t.name} · 移耗 ${t.moveCost === 99 ? '∞' : t.moveCost} · 防${t.defBonus >= 0 ? '+' : ''}${t.defBonus} · 避+${t.evaBonus}%${healTxt}${hillTxt}`;
+
+    const terrainEl = document.getElementById('stripTerrain');
+    if (terrainEl) terrainEl.textContent = descTxt;
+
+    const unitInfoEl = document.getElementById('stripUnitInfo');
+    if (unitInfoEl) {
+      if (unit) {
+        unitInfoEl.style.display = 'block';
+        const roleTag = unit.roleTag ? `[${unit.roleTag}] ` : '';
+        unitInfoEl.textContent = `【${unit.name}】${roleTag}HP ${unit.hp}/${unit.maxHp}`;
+      } else {
+        unitInfoEl.style.display = 'none';
+      }
     }
   }
 
@@ -1247,6 +1298,16 @@ export class UIRenderer {
     const btnClose = document.getElementById('btnDockedClose');
     if (btnClose) btnClose.onclick = () => onCancel();
 
+    const btnDockedHelp = document.getElementById('btnDockedHelp');
+    if (btnDockedHelp) btnDockedHelp.onclick = () => this.showTacticsManualModal();
+
+    const btnDockedAuto = document.getElementById('btnDockedAuto');
+    if (btnDockedAuto) {
+      btnDockedAuto.onclick = () => {
+        if (window.__lt?.app) window.__lt.app.toggleAutoBattle();
+      };
+    }
+
     // Hook buttons with subtitles and reason chips
     const btnAtk = document.getElementById('btnActionAttack');
     if (btnAtk) {
@@ -1257,7 +1318,7 @@ export class UIRenderer {
         <span class="action-btn-icon">⚔️</span>
         <div class="action-btn-text-group">
           <span class="action-txt">攻擊</span>
-          <span class="action-sub-txt">近身物理·無消耗·可能被反擊</span>
+          <span class="action-sub-txt">近身物理·無消耗</span>
         </div>
         ${reasonHtml}
       `;
@@ -1274,7 +1335,7 @@ export class UIRenderer {
         <span class="action-btn-icon">⚡</span>
         <div class="action-btn-text-group">
           <span class="action-txt">技能</span>
-          <span class="action-sub-txt">職業招式·耗氣力</span>
+          <span class="action-sub-txt">職業招式·耗氣</span>
         </div>
         ${costHtml}
         ${reasonHtml}
@@ -1292,7 +1353,7 @@ export class UIRenderer {
         <span class="action-btn-icon">🔮</span>
         <div class="action-btn-text-group">
           <span class="action-txt">法術</span>
-          <span class="action-sub-txt">屬性·克制·耗MP</span>
+          <span class="action-sub-txt">五行克制·耗MP</span>
         </div>
         ${costHtml}
         ${reasonHtml}
@@ -1301,6 +1362,7 @@ export class UIRenderer {
     }
 
     const btnBond = document.getElementById('btnActionBond');
+    const btnManual = document.getElementById('btnActionManual');
     if (btnBond) {
       if (actions.bond) {
         btnBond.style.display = 'flex';
@@ -1308,12 +1370,17 @@ export class UIRenderer {
           <span class="action-btn-icon">🤝</span>
           <div class="action-btn-text-group">
             <span class="action-txt">合擊</span>
-            <span class="action-sub-txt">同氣連枝·協同突擊</span>
+            <span class="action-sub-txt">同氣連枝·協同</span>
           </div>
         `;
         btnBond.onclick = () => onChooseAction('bond');
+        if (btnManual) btnManual.style.display = 'none';
       } else {
         btnBond.style.display = 'none';
+        if (btnManual) {
+          btnManual.style.display = 'flex';
+          btnManual.onclick = () => this.showTacticsManualModal();
+        }
       }
     }
 
@@ -1323,7 +1390,7 @@ export class UIRenderer {
         <span class="action-btn-icon">🛡️</span>
         <div class="action-btn-text-group">
           <span class="action-txt">待命</span>
-          <span class="action-sub-txt">結束行動·防禦+10%</span>
+          <span class="action-sub-txt">防禦+10%·結束</span>
         </div>
       `;
       btnWait.onclick = () => onChooseAction('wait');
@@ -1447,7 +1514,7 @@ export class UIRenderer {
         <span>威力 <b>${info.power ?? '—'}</b></span>
         <span>屬性 <b>${esc(info.element)}</b></span>
         <span>命中 <b>${info.baseHit != null ? info.baseHit + '%' : '—'}</b></span>
-        <span>MP <b>${info.cost}/${info.mp}</b></span>${info.hpCost ? `<span class="aic-counter">耗血 -${info.hpCost}</span>` : ''}
+        <span>${info.cost > 0 ? `消耗 <b>${info.cost} MP（現 ${info.mp}）</b>` : '消耗 <b>無</b>'}</span>${info.hpCost ? `<span class="aic-counter">耗血 -${info.hpCost}</span>` : ''}
         <span>射程 <b>${esc(info.range)}</b></span>
         <span>範圍 <b>${esc(info.aoe)}</b></span>
       </div>
@@ -1499,6 +1566,22 @@ export class UIRenderer {
         comboEl.textContent = `【合擊】+${comboAlly.name} (+${comboDamage})`;
       } else {
         comboEl.style.display = 'none';
+      }
+    }
+
+    // Class Triangle Badge (三國志-style 兵種相剋: 騎 > 步 > 弓 > 騎)
+    const classBadge = document.getElementById('prevClassBadge');
+    if (classBadge) {
+      if (preview.classTriangle?.relation === 'advantage') {
+        classBadge.style.display = 'inline-block';
+        classBadge.className = 'preview-class-badge advantage';
+        classBadge.textContent = `兵種克制 ×${preview.classTriangle.mult}`;
+      } else if (preview.classTriangle?.relation === 'disadvantage') {
+        classBadge.style.display = 'inline-block';
+        classBadge.className = 'preview-class-badge disadvantage';
+        classBadge.textContent = `兵種劣勢 ×${preview.classTriangle.mult}`;
+      } else {
+        classBadge.style.display = 'none';
       }
     }
 
@@ -1621,7 +1704,7 @@ export class UIRenderer {
       {
         num: '1 / 7',
         title: '選擇將士 · 排兵先行',
-        actionHint: '點選【熊岳】· 查看移動與指令',
+        actionHint: '【熊岳】· 移動與指令',
         text: '①「選定」點選將士查看移動範圍與指令。何時使用：戰鬥開始或切換目標時點選。',
         when: '何時使用：戰鬥開始或切換目標時點選。',
         idle: '✦ 提示：點擊發光的熊岳查看前進路線！'
@@ -1629,7 +1712,7 @@ export class UIRenderer {
       {
         num: '2 / 7',
         title: '步法挺進 · 搶佔要津',
-        actionHint: '點選藍格 · 挺進石橋前線',
+        actionHint: '挺進藍格 · 搶佔要津',
         text: '②「移動」點選藍色地塊挺進前線。何時使用：接近敵軍或搶佔樹林高地時使用。',
         when: '何時使用：接近敵軍或搶佔樹林高地時使用。',
         idle: '✦ 提示：點擊前方藍色地塊走位至前線！'
@@ -1637,7 +1720,7 @@ export class UIRenderer {
       {
         num: '3 / 7',
         title: '普通攻擊 · 近身破敵',
-        actionHint: '點選【攻擊】· 鎖定橋頭敵軍',
+        actionHint: '【攻擊】· 近身物理',
         text: '③「攻擊」近身物理·無消耗。何時使用：近距交鋒、節省MP或殘血補刀時使用。',
         when: '何時使用：近距交鋒、節省MP或殘血補刀時使用。',
         idle: '✦ 提示：點擊【攻擊】鎖定紅框內敵軍！'
@@ -1645,7 +1728,7 @@ export class UIRenderer {
       {
         num: '4 / 7',
         title: '專屬技能 · 職業特技',
-        actionHint: '點選【技能】· 施展職業招式',
+        actionHint: '【技能】· 職業招式',
         text: '④「技能」職業特技·耗氣力。何時使用：需要擊退破陣、推敵落水或強控時使用。',
         when: '何時使用：需要擊退破陣、推敵落水或強控時使用。',
         idle: '✦ 提示：點擊【技能】施展巨盾推擊或影步突刺！'
@@ -1653,15 +1736,15 @@ export class UIRenderer {
       {
         num: '5 / 7',
         title: '屬性法術 · 克制制勝',
-        actionHint: '點選【法術】· 克制×1.5',
-        text: '⑤「法術」屬性魔法·看克制。何時使用：敵帶五行弱點時使用（火克木享1.5倍傷害）。',
-        when: '何時使用：敵帶五行弱點時使用（火克木享1.5倍傷害）。',
-        idle: '✦ 提示：點擊【法術】施展破煞靈矢，看準【克制 ×1.5】爆發破敵！'
+        actionHint: '【燈娘】法術 · 克制×1.5',
+        text: '⑤「法術」屬性魔法·看克制。點選【燈娘】施展【破煞靈矢】，火克木享1.5倍克制爆發！',
+        when: '何時使用：敵帶五行弱點時點選【燈娘】施法破敵。',
+        idle: '✦ 提示：點擊【燈娘】施展破煞靈矢，看準【克制 ×1.5】爆發破敵！'
       },
       {
         num: '6 / 7',
         title: '原地待命 · 固守陣型',
-        actionHint: '點選【待命】· 結束本回行動',
+        actionHint: '【待命】· 固守結束',
         text: '⑥「待命」結束將士行動。何時使用：已到有利防守陣位且無須行動時待命獲防禦加成。',
         when: '何時使用：已到有利防守陣位且無須行動時待命獲防禦加成。',
         idle: '✦ 提示：點擊【待命】讓將士固守陣地結束本動！'
@@ -1669,7 +1752,7 @@ export class UIRenderer {
       {
         num: '7 / 7',
         title: '結束回合 · 輪轉敵軍',
-        actionHint: '點選【結束回合】· 輪到敵方行動',
+        actionHint: '【結束回合】· 輪轉敵軍',
         text: '⑦「回合」結束我軍階段。何時使用：全體將士行動皆已完畢，輪到敵軍進犯時點選。',
         when: '何時使用：全體將士行動皆已完畢，輪到敵軍進犯時點選。',
         idle: '✦ 提示：點擊右上角【結束回合】交替回合！'
@@ -1804,7 +1887,13 @@ export class UIRenderer {
       chip.dataset.unitId = u.id;
       chip.innerHTML = `
         <img src="assets/art/v4/por_${u.id}.webp" alt="${u.name}" class="deploy-unit-por">
-        <div class="deploy-unit-name">${u.name}</div>
+        <div class="deploy-unit-info">
+          <div class="deploy-unit-top">
+            <span class="deploy-unit-name">${u.name}</span>
+            <span class="deploy-role-tag">${u.roleTag || '主力'}</span>
+          </div>
+          <div class="deploy-how-to-use" title="${u.howToUse || ''}">${u.howToUse || ''}</div>
+        </div>
       `;
       chip.onclick = () => {
         document.querySelectorAll('.deploy-unit-chip').forEach(c => c.classList.remove('selected'));
@@ -1833,6 +1922,56 @@ export class UIRenderer {
     if (tray) tray.style.display = 'none';
     const stage = document.querySelector('.battle-board-stage');
     this.applyCamera();
+  }
+
+  showTacticsManualModal(tab = 'tab1', onClose = null) {
+    if (typeof tab === 'function') {
+      onClose = tab;
+      tab = 'tab1';
+    }
+    const modal = document.getElementById('modalTacticsManual');
+    if (!modal) return;
+    modal.style.display = 'flex';
+
+    const switchTab = (targetTab) => {
+      document.querySelectorAll('#manualTabsBar .btn-manual-tab').forEach(b => {
+        b.classList.toggle('active', b.dataset.tab === targetTab);
+      });
+      document.querySelectorAll('.manual-tab-page').forEach(page => {
+        page.style.display = (page.dataset.page === targetTab) ? 'block' : 'none';
+      });
+      const scroll = modal.querySelector('.manual-scrollable-content');
+      if (scroll) scroll.scrollTop = 0;
+    };
+
+    document.querySelectorAll('#manualTabsBar .btn-manual-tab').forEach(btn => {
+      btn.onclick = () => switchTab(btn.dataset.tab);
+    });
+
+    switchTab(tab);
+
+    const close = () => {
+      modal.style.display = 'none';
+      if (onClose) onClose();
+    };
+
+    const btnClose = document.getElementById('btnCloseTacticsManual');
+    if (btnClose) btnClose.onclick = close;
+
+    const btnConfirm = document.getElementById('btnManualConfirm');
+    if (btnConfirm) btnConfirm.onclick = close;
+
+    modal.onclick = (e) => {
+      if (e.target === modal) close();
+    };
+
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        window.removeEventListener('keydown', onKey);
+        close();
+      }
+    };
+    window.addEventListener('keydown', onKey);
   }
 
   showTutorial(step = 0, onComplete) {
@@ -2336,7 +2475,28 @@ export class UIRenderer {
     document.getElementById('detailTitle').textContent = unitInst.title || unitInst.cls;
     document.getElementById('detailLevel').textContent = `Lv.${unitInst.level || 1}`;
     document.getElementById('detailName').textContent = unitInst.name;
-    document.getElementById('detailClass').textContent = `${unitInst.cls} · MOV ${unitInst.mov}`;
+    const roleTagText = unitInst.roleTag ? `【${unitInst.roleTag}】` : '';
+    document.getElementById('detailClass').textContent = `${unitInst.cls} ${roleTagText} · MOV ${unitInst.mov}`;
+
+    const autoBtn = document.getElementById('btnDetailAutoToggle');
+    if (autoBtn) {
+      if (unitInst.team === 'ally') {
+        autoBtn.style.display = 'inline-block';
+        autoBtn.textContent = unitInst.isAuto ? '🤖 自動: 開啟' : '🤖 自動: 關閉';
+        autoBtn.onclick = () => {
+          unitInst.isAuto = !unitInst.isAuto;
+          autoBtn.textContent = unitInst.isAuto ? '🤖 自動: 開啟' : '🤖 自動: 關閉';
+          if (window.__lt?.app) {
+            window.__lt.app.refreshBattleUI();
+            if (unitInst.isAuto && !unitInst.acted && window.__lt.app.battle?.phase === 'ally') {
+              window.__lt.app.runAutoBattleLoop();
+            }
+          }
+        };
+      } else {
+        autoBtn.style.display = 'none';
+      }
+    }
 
     document.getElementById('detailHp').textContent = `${unitInst.hp}/${unitInst.maxHp}`;
     const detailMpEl = document.getElementById('detailMp');
@@ -2349,7 +2509,8 @@ export class UIRenderer {
     document.getElementById('detailRes').textContent = unitInst.res;
     document.getElementById('detailSpd').textContent = unitInst.spd;
 
-    document.getElementById('detailTrait').textContent = `【${unitInst.trait.name}】${unitInst.trait.desc}`;
+    const howToUseHtml = unitInst.howToUse ? `<div style="margin-top:6px;padding:4px 8px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:6px;font-size:11px;color:#FCD34D;"><b>✦ 怎樣用：</b>${unitInst.howToUse}</div>` : '';
+    document.getElementById('detailTrait').innerHTML = `<div>【${unitInst.trait.name}】${unitInst.trait.desc}</div>${howToUseHtml}`;
 
     // Render both skill and magic as two clean rows
     const s = unitInst.skill;

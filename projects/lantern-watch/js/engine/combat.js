@@ -86,6 +86,47 @@ export function getElementEffectiveness(atkElem, defElem) {
 }
 
 /**
+ * Determine unit class category for the 三國志-style Class Triangle
+ * 騎 > 步 > 弓 > 騎
+ */
+export function getUnitClassCategory(unit) {
+  if (!unit) return null;
+  const c = unit.cls || '';
+  const r = unit.role || '';
+  if (c === '騎兵' || c === '飛騎' || c === '斥候' || r === 'cavalry' || r === 'flyer' || r === 'scout' || unit.id === 'crane_rider') return 'cavalry';
+  if (c === '槍盾' || c === '劍客' || c === '盾衛' || c === '重將' || c === '刺客' || c === '首領' || c === '統領' || c === '主將' || r === 'tank' || r === 'flanker' || r === 'infantry' || r === 'shield_guard' || r === 'shield_phalanx' || r === 'commander' || r === 'warlord') return 'infantry';
+  if (c === '弓手' || c === '砲車' || r === 'archer' || r === 'fire_archer' || r === 'siege') return 'archer';
+  return null;
+}
+
+/**
+ * 三國志-style class triangle: 騎 > 步 > 弓 > 騎 (x1.2 / x0.8)
+ */
+export function getClassTriangleMultiplier(attacker, defender) {
+  const atkCat = getUnitClassCategory(attacker);
+  const defCat = getUnitClassCategory(defender);
+  if (!atkCat || !defCat || atkCat === defCat) return { mult: 1.0, relation: null };
+
+  if (
+    (atkCat === 'cavalry' && defCat === 'infantry') ||
+    (atkCat === 'infantry' && defCat === 'archer') ||
+    (atkCat === 'archer' && defCat === 'cavalry')
+  ) {
+    return { mult: 1.2, relation: 'advantage' };
+  }
+
+  if (
+    (atkCat === 'infantry' && defCat === 'cavalry') ||
+    (atkCat === 'archer' && defCat === 'infantry') ||
+    (atkCat === 'cavalry' && defCat === 'archer')
+  ) {
+    return { mult: 0.8, relation: 'disadvantage' };
+  }
+
+  return { mult: 1.0, relation: null };
+}
+
+/**
  * Calculate combat resolution between attacker and defender
  */
 export function calculateCombat(attacker, defender, board, options = {}) {
@@ -167,6 +208,10 @@ export function calculateCombat(attacker, defender, board, options = {}) {
   const defEffectiveElement = defender.element || (defender.trait?.id === 'water_spirit' ? 'water' : null);
   const elemEff = getElementEffectiveness(element, defEffectiveElement);
   damageMod *= elemEff.mult;
+
+  // 5b. Class triangle: 騎 > 步 > 弓 > 騎 (x1.2 / x0.8)
+  const classTri = getClassTriangleMultiplier(attacker, defender);
+  damageMod *= classTri.mult;
 
   // 6. Ally inspire stratagem (+20% dmg turns 1-2)
   if (attacker.inspireBonus) {
@@ -334,6 +379,9 @@ export function calculateCombat(attacker, defender, board, options = {}) {
   }
 
   const targetTags = [];
+  if (classTri.relation === 'advantage') {
+    targetTags.push(`兵種克制 ×${classTri.mult}`);
+  }
   if (elemEff.isAdvantage) {
     targetTags.push(`克制 ×${elemEff.mult}`);
   }
@@ -354,6 +402,7 @@ export function calculateCombat(attacker, defender, board, options = {}) {
     isSideAttack,
     isFrontAttack,
     hasHillAdvantage,
+    classTriangle: classTri,
     damageMod,
     expectedDamage,
     hitRate,

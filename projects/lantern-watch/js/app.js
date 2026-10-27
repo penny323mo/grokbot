@@ -16,6 +16,7 @@ import { UIRenderer } from './render/ui.js';
 import { getReachableTiles, getAttackRangeTiles, getAttackableTilesFromReachable } from './engine/pathfinding.js';
 import { calculateCombat, canTargetUnit } from './engine/combat.js';
 import { getActionInfo } from './engine/actioninfo.js';
+import { computeAutoAction } from './engine/autobattle.js';
 
 class LanternTacticsApp {
   constructor() {
@@ -31,6 +32,11 @@ class LanternTacticsApp {
     this.activeStratagemId = null;
     this.battle = null;
     this.battleSpeed = 1;
+
+    // Auto Battle State
+    this.isAutoBattle = false;
+    this.autoStyle = 'balanced'; // 'balanced' | 'aggressive' | 'defensive'
+    this._autoLoopRunning = false;
 
     // Deploy Phase State
     this.isDeploying = false;
@@ -111,8 +117,43 @@ class LanternTacticsApp {
       btnHelp.onclick = () => {
         if (menuDropdown) menuDropdown.style.display = 'none';
         this.sound?.playSfx('tap');
-        this.ui.showTacticsTutorialModal();
+        this.ui.showTacticsManualModal();
       };
+    }
+
+    // Auto Battle Menu & Strip Toggles
+    const btnAutoMenu = document.getElementById('btnToggleAutoBattleMenu');
+    if (btnAutoMenu) {
+      btnAutoMenu.onclick = () => {
+        if (menuDropdown) menuDropdown.style.display = 'none';
+        this.toggleAutoBattle();
+      };
+    }
+
+    const btnAutoStrip = document.getElementById('btnToggleAutoBattleStrip');
+    if (btnAutoStrip) {
+      btnAutoStrip.onclick = () => {
+        this.toggleAutoBattle();
+      };
+    }
+
+    const btnAutoPause = document.getElementById('btnAutoBattlePause');
+    if (btnAutoPause) {
+      btnAutoPause.onclick = (e) => {
+        e.stopPropagation();
+        this.pauseAutoBattle();
+      };
+    }
+
+    // Board tap-to-pause auto-battle immediately
+    const battleVp = document.getElementById('battleViewport');
+    if (battleVp) {
+      battleVp.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('#btnAutoBattlePause') || e.target.closest('#btnBattleSpeed') || e.target.closest('#autoStyleChips')) return;
+        if (this.isAutoBattle) {
+          this.pauseAutoBattle();
+        }
+      });
     }
 
     // Auto End Turn Setting
@@ -163,10 +204,12 @@ class LanternTacticsApp {
     const btnSpeed = document.getElementById('btnBattleSpeed');
     if (btnSpeed) {
       btnSpeed.onclick = () => {
-        this.battleSpeed = this.battleSpeed === 1 ? 2 : 1;
+        if (this.battleSpeed === 1) this.battleSpeed = 2;
+        else if (this.battleSpeed === 2) this.battleSpeed = 4;
+        else this.battleSpeed = 1;
         const txt = document.getElementById('txtBattleSpeed');
         if (txt) txt.textContent = `${this.battleSpeed}x`;
-        btnSpeed.classList.toggle('fast', this.battleSpeed === 2);
+        btnSpeed.classList.toggle('fast', this.battleSpeed > 1);
         this.sound?.playSfx('tap');
       };
     }
@@ -1622,6 +1665,9 @@ class LanternTacticsApp {
           phasePill.className = 'battle-phase-pill ally';
         }
         this.refreshBattleUI();
+        if (this.isAutoBattle) {
+          setTimeout(() => this.runAutoBattleLoop(), 400);
+        }
 
         // Check telegraphed reinforcement alerts
         const warnings = this.battle?.eventLog?.filter(e => e.type === 'reinforce_warning' && !e._notified);
@@ -1669,6 +1715,120 @@ class LanternTacticsApp {
     this.sound?.playSfx('tap');
     this.clearSelection();
     this.triggerEnemyTurn();
+  }
+
+  // ================= AUTO-BATTLE / 掛機託管 =================
+  toggleAutoBattle(force = null) {
+    if (force !== null) {
+      this.isAutoBattle = !!force;
+    } else {
+      this.isAutoBattle = !this.isAutoBattle;
+    }
+    this.syncAutoBattleUI();
+    if (this.isAutoBattle && this.battle && this.battle.phase === 'ally') {
+      this.runAutoBattleLoop();
+    }
+  }
+
+  pauseAutoBattle() {
+    this.isAutoBattle = false;
+    this.syncAutoBattleUI();
+  }
+
+  setAutoStyle(style) {
+    this.autoStyle = style;
+    this.syncAutoBattleUI();
+  }
+
+  syncAutoBattleUI() {
+    if (this.isAutoBattle) {
+      this.ui.hideCombatBark();
+      if (this.battleStartBarkTimer) clearTimeout(this.battleStartBarkTimer);
+    }
+    const banner = document.getElementById('autobattleBanner');
+    if (banner) banner.style.display = this.isAutoBattle ? 'flex' : 'none';
+
+    const bannerTxt = document.getElementById('txtAutoBattleBanner');
+    const styleName = this.autoStyle === 'aggressive' ? '進攻' : (this.autoStyle === 'defensive' ? '防守' : '均衡');
+    if (bannerTxt) bannerTxt.textContent = `自動作戰中 · ${styleName}`;
+
+    document.querySelectorAll('#autoStyleChips .style-chip').forEach(c => {
+      c.classList.toggle('active', c.dataset.style === this.autoStyle);
+      c.onclick = (e) => {
+        e.stopPropagation();
+        this.setAutoStyle(c.dataset.style);
+      };
+    });
+
+    const stripTxt = document.getElementById('txtStripAutoState');
+    if (stripTxt) stripTxt.textContent = this.isAutoBattle ? '暫停' : '自動';
+    const stripBtn = document.getElementById('btnToggleAutoBattleStrip');
+    if (stripBtn) stripBtn.classList.toggle('active', this.isAutoBattle);
+
+    const btnDockedAuto = document.getElementById('btnDockedAuto');
+    if (btnDockedAuto) {
+      btnDockedAuto.textContent = this.isAutoBattle ? '⏸️' : '🤖';
+      btnDockedAuto.title = this.isAutoBattle ? '暫停託管' : '掛機託管';
+    }
+
+    const menuTxt = document.getElementById('txtAutoBattleState');
+    if (menuTxt) menuTxt.textContent = this.isAutoBattle ? `開啟 (${styleName})` : '關閉';
+    const menuBtn = document.getElementById('btnToggleAutoBattleMenu');
+    if (menuBtn) menuBtn.classList.toggle('is-active', this.isAutoBattle);
+  }
+
+  async runAutoBattleLoop() {
+    if (this._autoLoopRunning) return;
+    this._autoLoopRunning = true;
+
+    try {
+      while ((this.isAutoBattle || this.battle?.allies.some(u => u.hp > 0 && !u.acted && u.isAuto)) && this.battle && !this.battle.status?.finished && this.battle.phase === 'ally') {
+        const livingUnacted = this.battle.allies.filter(u => u.hp > 0 && !u.acted);
+        if (livingUnacted.length === 0) {
+          await new Promise(r => setTimeout(r, 400 / this.battleSpeed));
+          if (!this.isAutoBattle) break;
+          this.handleEndTurn();
+          break;
+        }
+
+        const ally = livingUnacted.find(u => this.isAutoBattle || u.isAuto);
+        if (!ally) {
+          break;
+        }
+
+        const plan = computeAutoAction(this.battle, ally, this.autoStyle);
+        if (!plan) {
+          this.battle.confirmAction(ally, 'wait');
+          this.refreshBattleUI();
+          continue;
+        }
+
+        if (plan.move && (plan.move.x !== ally.x || plan.move.y !== ally.y)) {
+          this.battle.moveUnit(ally, plan.move.x, plan.move.y);
+          this.refreshBattleUI();
+          const walkWait = Math.max(80, 260 / this.battleSpeed);
+          await new Promise(r => setTimeout(r, walkWait));
+          if (!this.isAutoBattle && !ally.isAuto) break;
+        }
+
+        this.selectedUnit = ally;
+        if (plan.type === 'attack' && plan.target) {
+          this.confirmActionExecution('attack', plan.target);
+        } else if (plan.type === 'skill' && plan.target) {
+          this.confirmActionExecution('skill', plan.target, { skill: plan.skill });
+        } else if (plan.type === 'magic' && plan.target) {
+          this.confirmActionExecution('magic', plan.target, { skill: plan.skill });
+        } else {
+          this.confirmActionExecution('wait');
+        }
+        this.refreshBattleUI();
+
+        const actWait = Math.max(120, 360 / this.battleSpeed);
+        await new Promise(r => setTimeout(r, actWait));
+      }
+    } finally {
+      this._autoLoopRunning = false;
+    }
   }
 
   // ================= LIVE BOARD SPOTLIGHT TUTORIAL =================

@@ -70,3 +70,8 @@ balance ok: ch1 naive win 50/50, ch3/5/7 naive failed, all mid chapters reasonab
 - **MINOR #5 & #6 (Changelog & SPEC.md Synchronisation)**:
   - Added `## v14.0.0` release notes to `CHANGELOG.md`.
   - Updated `SPEC.md` §6 to document the live 7 tutorial beats (選定 / 移動 / 攻擊 / 技能 / 法術 / 待命 / 結束回合).
+
+## 2026-10-27 18:40 (Asia/Macau): improve round 12 launched (prompts/improve-11.txt)
+- Round 11 finished at 18:11 (live 200, npm test 81/81, verify_map_fit pass). Cherry-picked the 熊岳 鐵壁之陣 self-buff hotfix (c32b1ba) into master; verify_selfbuff updated for the new skill/magic sub-list and passes; republished at 18:36 (200).
+- Real-tap 390x844 play (screenshots/play12): prologue (6 painted panels) works; tutorial no longer plays moves for you; docked action bar works but the 法術 card overflows past the right edge; tutorial pill still truncates and stays on 5/7; ~200px empty band under the board with tiny figures; normal attack card shows "MP 0/6". Ch1 first enemy phase: no deaths (墨影 19/28, 燈娘 16/22).
+- Brief: UI polish of the above, distinct heroes (role tags, passives, signature moves, silhouettes), 兵法手冊 help page, 騎>步>弓>騎 class triangle + terrain bonuses, 掛機 auto-battle. Screenshots to screenshots/v15; old state in .orch-prev-11.

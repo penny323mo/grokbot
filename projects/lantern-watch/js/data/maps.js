@@ -13,6 +13,7 @@ export const TERRAIN_INFO = {
   '#': { char: '#', name: '城牆/屋頂/峭壁', moveCost: 99, defBonus: 0, evaBonus: 0, impassable: true, flyerOnly: true, desc: '高聳障礙，非飛行單位不可通行' },
   'g': { char: 'g', name: '城門', moveCost: 1, defBonus: 2, evaBonus: 0, isGate: true, desc: '要塞門戶，防禦+2，防守目標核心' },
   'm': { char: 'm', name: '市集', moveCost: 1, defBonus: 0, evaBonus: 10, isMarket: true, desc: '貨架棚帳，迴避+10%' },
+  'v': { char: 'v', name: '村莊', moveCost: 1, defBonus: 2, evaBonus: 5, isVillage: true, healAmount: 4, desc: '鄉野村落，防禦+2，迴避+5%，駐紮每回合初恢復 4 HP' },
   's': { char: 's', name: '淺灘', moveCost: 3, defBonus: -1, evaBonus: 0, desc: '碎石泥灘，需3移動力，防禦-1' }
 };
 
@@ -407,6 +408,7 @@ export const CHAPTERS = [
     enemySpawns: [
       { id: 'shield_guard', x: 4, y: 1, facing: 2, aggro: 'guard', guardRadius: 2 },
       { id: 'citadel_warlord', x: 4, y: 2, facing: -1 }, // Fortress Keep commander
+      { id: 'shadow_archer', x: 5, y: 2, facing: -1, aggro: 'guard', guardRadius: 3 }, // Inner keep bodyguard
       { id: 'siege_engine', x: 2, y: 2, facing: -1 },    // Artillery on ramparts
       { id: 'shadow_archer', x: 2, y: 4, facing: 1 },    // Wall archer
       { id: 'shadow_archer', x: 7, y: 4, facing: -1 },   // Wall archer
@@ -504,9 +506,9 @@ export const CHAPTERS = [
     weather: 'clear',
     banner: 'banner_ch8.webp',
     squadLimit: 6,
-    maxTurns: 6,
+    maxTurns: 7,
     objectiveType: 'break_phalanx_or_rout',
-    objectiveDesc: '斬殺【伏兵統領】或擊潰重裝盾陣全殲敵軍（6回合內）',
+    objectiveDesc: '斬殺【伏兵統領】或擊潰重裝盾陣全殲敵軍（7回合內）',
     defeatDesc: '我方全軍覆沒 或 超過6回合',
     bossId: 'mountain_warlord',
     lanterns: [

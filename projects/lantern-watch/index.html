@@ -72,11 +72,18 @@
               <span class="menu-item-desc">重溫天下大勢</span>
             </div>
           </button>
-          <button type="button" class="menu-item-btn" id="btnHelp" title="基礎兵法">
+          <button type="button" class="menu-item-btn" id="btnToggleAutoBattleMenu" title="掛機託管">
+            <span class="menu-item-icon">🤖</span>
+            <div class="menu-item-info">
+              <span class="menu-item-name">掛機託管 (自動)</span>
+              <span class="menu-item-desc" id="txtAutoBattleState">關閉</span>
+            </div>
+          </button>
+          <button type="button" class="menu-item-btn" id="btnHelp" title="兵法手冊">
             <span class="menu-item-icon">❓</span>
             <div class="menu-item-info">
-              <span class="menu-item-name">基礎兵法</span>
-              <span class="menu-item-desc">兵法指南</span>
+              <span class="menu-item-name">兵法手冊</span>
+              <span class="menu-item-desc">三國志相剋·五行·軍略</span>
             </div>
           </button>
         </div>
@@ -345,6 +352,7 @@
           <div class="preview-header">
             <span class="preview-title" id="prevActionName">攻擊預覽</span>
             <span class="preview-combo-badge" id="prevComboBadge" style="display:none;"></span>
+            <span class="preview-class-badge" id="prevClassBadge" style="display:none;"></span>
             <span class="preview-direction-badge" id="prevDirectionBadge">背擊 (+50%)</span>
           </div>
           <div class="preview-combatants">
@@ -391,21 +399,25 @@
               <span class="docked-acting-unit" id="dockedActingUnitName">熊岳 · 行動</span>
               <span class="docked-unit-hp" id="dockedUnitHp">HP 36/36</span>
             </div>
-            <button type="button" class="btn-docked-close" id="btnDockedClose" title="收起選單">✕</button>
+            <div class="docked-header-tools">
+              <button type="button" class="btn-docked-tool" id="btnDockedHelp" title="兵法手冊">?</button>
+              <button type="button" class="btn-docked-tool" id="btnDockedAuto" title="掛機託管">🤖</button>
+              <button type="button" class="btn-docked-close" id="btnDockedClose" title="收起選單">✕</button>
+            </div>
           </div>
           <div class="action-menu-buttons">
             <button type="button" class="btn-action-tactics" id="btnActionAttack" data-action="attack">
               <span class="action-btn-icon">⚔️</span>
               <div class="action-btn-text-group">
                 <span class="action-txt">攻擊</span>
-                <span class="action-sub-txt">近身物理·無消耗·可能被反擊</span>
+                <span class="action-sub-txt">近身物理·無消耗</span>
               </div>
             </button>
             <button type="button" class="btn-action-tactics" id="btnActionSkill" data-action="skill">
               <span class="action-btn-icon">⚡</span>
               <div class="action-btn-text-group">
                 <span class="action-txt">技能</span>
-                <span class="action-sub-txt">職業招式·耗氣力</span>
+                <span class="action-sub-txt">職業招式·耗氣</span>
               </div>
               <span class="action-cost-tag" id="btnActionSkillCost"></span>
             </button>
@@ -413,22 +425,15 @@
               <span class="action-btn-icon">🔮</span>
               <div class="action-btn-text-group">
                 <span class="action-txt">法術</span>
-                <span class="action-sub-txt">屬性·克制·耗MP</span>
+                <span class="action-sub-txt">五行克制·耗MP</span>
               </div>
               <span class="action-cost-tag" id="btnActionMagicCost"></span>
-            </button>
-            <button type="button" class="btn-action-tactics bond" id="btnActionBond" data-action="bond" style="display:none;">
-              <span class="action-btn-icon">🤝</span>
-              <div class="action-btn-text-group">
-                <span class="action-txt">合擊</span>
-                <span class="action-sub-txt">同氣連枝·協同突擊</span>
-              </div>
             </button>
             <button type="button" class="btn-action-tactics wait" id="btnActionWait" data-action="wait">
               <span class="action-btn-icon">🛡️</span>
               <div class="action-btn-text-group">
                 <span class="action-txt">待命</span>
-                <span class="action-sub-txt">結束行動·防禦+10%</span>
+                <span class="action-sub-txt">防禦+10%·結束</span>
               </div>
             </button>
             <button type="button" class="btn-action-tactics undo" id="btnActionCancel" data-action="undo">
@@ -436,6 +441,20 @@
               <div class="action-btn-text-group">
                 <span class="action-txt">復原</span>
                 <span class="action-sub-txt">撤回移動</span>
+              </div>
+            </button>
+            <button type="button" class="btn-action-tactics bond" id="btnActionBond" data-action="bond" style="display:none;">
+              <span class="action-btn-icon">🤝</span>
+              <div class="action-btn-text-group">
+                <span class="action-txt">合擊</span>
+                <span class="action-sub-txt">同氣連枝·協同</span>
+              </div>
+            </button>
+            <button type="button" class="btn-action-tactics manual" id="btnActionManual" data-action="manual" title="查看兵法手冊">
+              <span class="action-btn-icon">📜</span>
+              <div class="action-btn-text-group">
+                <span class="action-txt">兵法</span>
+                <span class="action-sub-txt">兵法手冊·指南</span>
               </div>
             </button>
           </div>
@@ -459,9 +478,31 @@
             <div class="strip-terrain" id="stripTerrain">平地 · 移動消耗 1 · 防禦 +0 · 迴避 +0%</div>
             <div class="strip-unit" id="stripUnitInfo" style="display:none;"></div>
           </div>
-          <button type="button" class="btn-strip-next" id="btnNextUnactedUnit" title="切換至下一個未行動將士">
-            <span>下一個 ❯</span>
-          </button>
+          <div class="strip-right-controls">
+            <button type="button" class="btn-strip-auto" id="btnToggleAutoBattleStrip" title="掛機託管 (自動戰鬥)">
+              <span class="strip-auto-icon">🤖</span>
+              <span class="strip-auto-txt" id="txtStripAutoState">自動</span>
+            </button>
+            <button type="button" class="btn-strip-next" id="btnNextUnactedUnit" title="切換至下一個未行動將士">
+              <span>下一個 ❯</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Floating Auto-Battle Running Banner with Instant Pause -->
+        <div class="autobattle-banner" id="autobattleBanner" style="display:none;">
+          <div class="autobattle-pill">
+            <span class="autobattle-pulse">●</span>
+            <span class="autobattle-txt" id="txtAutoBattleBanner">自動作戰中 · 均衡</span>
+            <div class="autobattle-style-chips" id="autoStyleChips">
+              <span class="style-chip active" data-style="balanced">均衡</span>
+              <span class="style-chip" data-style="aggressive">進攻</span>
+              <span class="style-chip" data-style="defensive">防守</span>
+            </div>
+            <button type="button" class="btn-autobattle-pause" id="btnAutoBattlePause" title="點擊暫停或任意點擊地圖即交還手動控制">
+              <span>⏸️ 暫停</span>
+            </button>
+          </div>
         </div>
 
         <!-- Animated Turn Transition Banner -->
@@ -493,7 +534,7 @@
               <span class="tutorial-step-pill" id="boardTutorialStep">1 / 7</span>
               <span class="tutorial-compact-text" id="boardTutorialTextCompact">移動：點選將士【熊岳】，藍格為移動範圍</span>
               <div class="tutorial-compact-btns">
-                <button type="button" class="btn-tutorial-suggest-mini" id="btnTutorialSuggest" title="建議行動">💡 建議</button>
+                <button type="button" class="btn-tutorial-suggest-mini" id="btnTutorialSuggest" title="建議行動">💡建議</button>
                 <button type="button" class="btn-tutorial-expand-mini" id="btnTutorialExpand" title="展開詳情">詳情</button>
                 <button type="button" class="btn-tutorial-ack-mini" id="btnBoardTutorialAck">明白</button>
                 <button type="button" class="btn-tutorial-close-mini" id="btnBoardTutorialClose" title="關閉教學">✕</button>
@@ -572,6 +613,7 @@
             <div class="detail-title-row">
               <span class="detail-title-badge" id="detailTitle">夜行俠客</span>
               <span class="detail-level-badge" id="detailLevel">Lv.1</span>
+              <button type="button" class="btn-detail-auto-toggle" id="btnDetailAutoToggle" style="margin-left:auto;padding:2px 8px;font-size:10.5px;font-weight:700;border-radius:10px;border:1px solid #38BDF8;background:rgba(56,189,248,0.2);color:#38BDF8;cursor:pointer;">🤖 自動: 關閉</button>
             </div>
             <h3 class="detail-name" id="detailName">墨影</h3>
             <div class="detail-class" id="detailClass">劍客 · MOV 5</div>
@@ -728,6 +770,146 @@
         <h3 class="route-event-title" id="routeEventTitle">官道分水嶺</h3>
         <p class="route-event-desc" id="routeEventDesc">突破雄關後，大軍暫憩於山麓驛站。軍師請將軍定奪休整方略：</p>
         <div class="route-event-choices" id="routeEventChoices"></div>
+      </div>
+    </div>
+
+    <!-- MODAL 8: 兵法手冊 (Tactics Manual) -->
+    <div class="modal-overlay modal-tactics-manual-overlay" id="modalTacticsManual" style="display:none;">
+      <div class="tactics-manual-card">
+        <div class="manual-header">
+          <div class="manual-title-group">
+            <span class="manual-badge">兵法指南</span>
+            <h2 class="manual-title">燈影兵法手冊 · 作戰要旨</h2>
+          </div>
+          <button type="button" class="btn-manual-close" id="btnCloseTacticsManual" title="關閉手冊">✕</button>
+        </div>
+        <div class="manual-tabs-bar" id="manualTabsBar">
+          <button type="button" class="btn-manual-tab active" data-tab="tab1">① 兵種武藝</button>
+          <button type="button" class="btn-manual-tab" data-tab="tab2">② 五行走位</button>
+          <button type="button" class="btn-manual-tab" data-tab="tab3">③ 地形士氣</button>
+        </div>
+        <div class="manual-scrollable-content">
+          <!-- TAB 1: 兵種相剋與武藝招式 -->
+          <div class="manual-tab-page" data-page="tab1">
+            <!-- Section 1: 攻擊 vs 技能 vs 法術 -->
+            <div class="manual-section">
+              <h3 class="manual-sec-title">一、指令軍略：攻擊 vs 技能 vs 法術</h3>
+              <div class="manual-sec-desc">何時使用各項指令？因敵制宜方能立於不敗之地。</div>
+              <div class="manual-grid-3">
+                <div class="manual-card-mini">
+                  <div class="mini-card-head"><span class="m-icon">⚔️</span><b>普通攻擊</b></div>
+                  <div class="mini-card-tag green">無消耗·可反擊</div>
+                  <div class="mini-card-body">近身物理交鋒。<b>何時使用：</b>節省MP、殘血補刀；但正面攻擊會承受敵軍反擊。</div>
+                </div>
+                <div class="manual-card-mini">
+                  <div class="mini-card-head"><span class="m-icon">⚡</span><b>專屬技能</b></div>
+                  <div class="mini-card-tag gold">消耗 2~3 MP</div>
+                  <div class="mini-card-body">各將士專屬戰術招式。<b>何時使用：</b>巨盾推擊落水KO、影步突刺繞後、佈設明燈破除匿霧。</div>
+                </div>
+                <div class="manual-card-mini">
+                  <div class="mini-card-head"><span class="m-icon">🔮</span><b>屬性法術</b></div>
+                  <div class="mini-card-tag purple">消耗 3~4 MP</div>
+                  <div class="mini-card-body">五行屬性魔法。<b>何時使用：</b>無視目標物理防禦與地形；看準五行弱點享 1.5~2.0 倍爆發！</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section 2: 三國志-style Class Triangle (兵種相剋) -->
+            <div class="manual-section highlight-box">
+              <h3 class="manual-sec-title">二、兵種相剋：騎 > 步 > 弓 > 騎（三國志軍略）</h3>
+              <div class="manual-sec-desc">三元兵種環環相剋，克制者享 <b>×1.2 增傷</b>，劣勢者受 <b>×0.8 減傷</b>！</div>
+              <div class="triangle-diagram">
+                <div class="triangle-node node-cavalry">
+                  <span class="t-badge">騎</span>
+                  <span class="t-name">騎兵 / 飛騎</span>
+                  <span class="t-sub">高機動 · 直線衝鋒</span>
+                </div>
+                <div class="triangle-arrows">
+                  <div class="t-arrow t-c-to-i">騎克步 ×1.2 ➔</div>
+                  <div class="t-arrow t-i-to-a">步克弓 ×1.2 ➔</div>
+                  <div class="t-arrow t-a-to-c">弓克騎 ×1.2 ➔</div>
+                </div>
+                <div class="triangle-row-bottom">
+                  <div class="triangle-node node-infantry">
+                    <span class="t-badge">步</span>
+                    <span class="t-name">步兵 / 槍盾</span>
+                    <span class="t-sub">穩健卡位 · 固守推擊</span>
+                  </div>
+                  <div class="triangle-node node-archer">
+                    <span class="t-badge">弓</span>
+                    <span class="t-name">弓手 / 砲車</span>
+                    <span class="t-sub">超遠射殺 · 盲區需防</span>
+                  </div>
+                </div>
+              </div>
+              <div class="triangle-notes">
+                ✦ <b>術士 / 醫師：</b>超脫於三元相剋之外，專精五行術法與靈茶療傷。<br>
+                ✦ <b>槍林截擊：</b>熊岳等槍衛具備ZOC領域，騎兵進入相鄰格將強制停步並受槍陣截擊！
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 2: 五行相剋與朝向走位 -->
+          <div class="manual-tab-page" data-page="tab2" style="display:none;">
+            <!-- Section 3: 五行相剋 -->
+            <div class="manual-section">
+              <h3 class="manual-sec-title">三、五行相剋：陰陽五行·生克破幻</h3>
+              <div class="element-chips-row">
+                <span class="elem-chip fire">🔥 火克木 ×1.5</span>
+                <span class="elem-chip thunder">⚡ 雷克水 ×2.0</span>
+                <span class="elem-chip water">💧 水克火 (火對水×0)</span>
+                <span class="elem-chip wood">🌿 木克土 ×1.5</span>
+                <span class="elem-chip earth">⛰️ 土克水 ×1.5</span>
+              </div>
+              <div class="manual-text-p">水相靈怪對烈火免疫（傷害×0），但遭受天雷引導將承受 2 倍粉碎性轟擊！</div>
+            </div>
+
+            <!-- Section 4: 反擊與朝向 -->
+            <div class="manual-section">
+              <h3 class="manual-sec-title">四、朝向走位：背刺偷襲與側翼合擊</h3>
+              <div class="manual-grid-2">
+                <div class="manual-card-mini">
+                  <div class="mini-card-head"><b>背擊 (+50% ~ +100%)</b></div>
+                  <div class="mini-card-body">從正後方突襲目標，享有 <b>+50% 傷害加成</b>（墨影更享 <b>+100% 爆發</b>），且敵軍<b>無法反擊</b>！</div>
+                </div>
+                <div class="manual-card-mini">
+                  <div class="mini-card-head"><b>正面交鋒與反擊</b></div>
+                  <div class="mini-card-body">正面近戰將承受敵方反擊；盾衛等重甲單位正面擁有 70%~85% 巨盾格擋減傷，務必以法術或繞背破之。</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 3: 地形村莊與士氣計策 -->
+          <div class="manual-tab-page" data-page="tab3" style="display:none;">
+            <!-- Section 5: 地形軍略 -->
+            <div class="manual-section">
+              <h3 class="manual-sec-title">五、地形與要塞防禦</h3>
+              <div class="terrain-legend-grid">
+                <div class="t-legend-item"><span class="t-char">f</span> <b>森林</b>：需2移動力，防禦+1，迴避+15%</div>
+                <div class="t-legend-item"><span class="t-char">h</span> <b>山丘</b>：制高點，防禦+1，高處攻擊低處增傷+20%</div>
+                <div class="t-legend-item"><span class="t-char">v</span> <b>村莊</b>：防禦+2，迴避+5%，<b>每回合初恢復 4 HP</b></div>
+                <div class="t-legend-item"><span class="t-char">g</span> <b>城門/要塞</b>：要津門戶，防禦+2，兵家必爭</div>
+                <div class="t-legend-item"><span class="t-char">w</span> <b>河水</b>：深水天塹，非飛行不可通行；落水將直接溺亡KO！</div>
+              </div>
+            </div>
+
+            <!-- Section 6: 士氣與軍略計策 -->
+            <div class="manual-section">
+              <h3 class="manual-sec-title">六、士氣激昂與軍略計策</h3>
+              <div class="manual-text-p">
+                ✦ <b>背水一戰：</b>敵眾我寡時觸發士氣激昂，攻擊力提升+20%。<br>
+                ✦ <b>敵軍潰散：</b>敵方統領陣亡或士氣耗盡時部隊陷入潰逃（⚑ 潰），擊破逃敵可獲豐厚戰功！<br>
+                ✦ <b>軍略計策：</b>鼓舞提振戰力、夜襲搶得先手、水淹決堤破敵、火攻引燃草木、滾木崩落砸裂盾陣。
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="manual-footer">
+          <button type="button" class="btn-brush-main" id="btnManualConfirm">
+            <span>謹記兵法 · 重返沙場</span>
+          </button>
+        </div>
       </div>
     </div>
 

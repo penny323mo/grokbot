@@ -1419,6 +1419,27 @@ export class Battle {
     }
   }
 
+  tickVillageHealing() {
+    const allLiving = [...this.allies, ...this.enemies].filter(u => u.hp > 0);
+    for (const u of allLiving) {
+      const t = this.board.getTerrain(u.x, u.y);
+      if (t && (t.isVillage || t.healAmount)) {
+        const heal = t.healAmount || 4;
+        const oldHp = u.hp;
+        u.hp = Math.min(u.maxHp, u.hp + heal);
+        const actual = u.hp - oldHp;
+        if (actual > 0) {
+          this.eventLog.push({
+            type: 'village_heal',
+            unitId: u.id,
+            heal: actual,
+            msg: `【村莊補給】${u.name} 於村莊休養生息，恢復 ${actual} HP！`
+          });
+        }
+      }
+    }
+  }
+
   endEnemyPhase() {
     if (this.status.finished) return;
 
@@ -1511,6 +1532,7 @@ export class Battle {
     this.tickBurningTiles();
     this.tickFloodedTiles();
     this.tickCursedTiles();
+    this.tickVillageHealing();
 
     for (const a of this.allies) {
       a.acted = false;

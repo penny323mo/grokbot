@@ -175,3 +175,98 @@ test('Tutorial: acknowledging/closing every tutorial step never changes unit pos
     assert.strictEqual(u.acted, snap.acted, `Unit ${u.id} acted flag must not change on tutorial close`);
   }
 });
+
+test('Distinct Characters: each starting hero has unique role tag, passive, moves, and howToUse', () => {
+  const heroes = Object.values(GUARDIAN_PROTOS);
+  const validRoles = new Set(['坦', '刺客', '遠程', '支援', '策士']);
+  const traits = new Set();
+  const skills = new Set();
+  const magics = new Set();
+
+  for (const h of heroes) {
+    assert.ok(validRoles.has(h.roleTag), `Hero ${h.id} (${h.name}) must have valid roleTag, got: ${h.roleTag}`);
+    assert.ok(typeof h.howToUse === 'string' && h.howToUse.length >= 10, `Hero ${h.id} must have descriptive howToUse string`);
+    assert.ok(h.trait && h.trait.name && h.trait.desc, `Hero ${h.id} must have passive trait`);
+    assert.ok(!traits.has(h.trait.name), `Duplicate passive trait name: ${h.trait.name}`);
+    traits.add(h.trait.name);
+
+    assert.ok(h.skill && h.skill.name && h.skill.desc, `Hero ${h.id} must have signature skill`);
+    assert.ok(!skills.has(h.skill.name), `Duplicate signature skill name: ${h.skill.name}`);
+    skills.add(h.skill.name);
+
+    assert.ok(h.magic && h.magic.name && h.magic.desc, `Hero ${h.id} must have signature magic`);
+    assert.ok(!magics.has(h.magic.name), `Duplicate signature magic name: ${h.magic.name}`);
+    magics.add(h.magic.name);
+  }
+});
+
+test('Auto-Battle: auto mode finishes Chapter 1 with 100% win rate and zero friendly fire', async () => {
+  const { CHAPTERS } = await import('../js/data/maps.js');
+  const { computeAutoAction } = await import('../js/engine/autobattle.js');
+  const ch1 = CHAPTERS[0];
+
+  for (let seed = 1; seed <= 10; seed++) {
+    const squad = ['bear_guard', 'cat_patrol', 'lantern_crafter', 'tea_master'].map(id => ({
+      ...GUARDIAN_PROTOS[id],
+      id,
+      hp: GUARDIAN_PROTOS[id].maxHp,
+      mp: GUARDIAN_PROTOS[id].maxMp,
+      acted: false
+    }));
+    const battle = new Battle(ch1, squad, 'inspire', null, new RNG(seed));
+
+    for (let t = 0; t < 25 && battle.phase !== 'finished'; t++) {
+      const aliveAllies = battle.allies.filter(a => a.hp > 0 && !a.acted);
+      for (const ally of aliveAllies) {
+        if (ally.acted || ally.hp <= 0) continue;
+        const act = computeAutoAction(battle, ally, 'balanced');
+        if (!act) {
+          battle.confirmAction(ally, 'wait');
+          continue;
+        }
+        if (act.move && (act.move.x !== ally.x || act.move.y !== ally.y)) {
+          battle.moveUnit(ally, act.move.x, act.move.y);
+        }
+        if (act.type === 'wait' || !act.target) {
+          battle.confirmAction(ally, 'wait');
+        } else {
+          // Zero friendly fire invariant
+          if (act.target.team === 'ally') {
+            const isHeal = act.skill?.isHeal || ally[act.type]?.isHeal;
+            const isSelf = act.target.id === ally.id;
+            assert.ok(isHeal || isSelf, `Auto-battle targeted ally ${act.target.id} with damaging action ${act.type}`);
+          }
+          const res = battle.confirmAction(ally, act.type, act.target, { skill: act.skill });
+          if (!res || res.success === false) {
+            battle.confirmAction(ally, 'wait');
+          }
+        }
+      }
+      for (const remaining of battle.allies.filter(a => a.hp > 0 && !a.acted)) {
+        battle.confirmAction(remaining, 'wait');
+      }
+      if (battle.phase === 'finished') break;
+      battle.endTurn();
+    }
+    assert.strictEqual(battle.status?.victory, true, `Seed ${seed}: Auto-battle should achieve victory in Chapter 1`);
+  }
+});
+
+test('Per-Unit Auto: ally unit with isAuto=true computes valid action without army-wide auto', async () => {
+  const { CHAPTERS } = await import('../js/data/maps.js');
+  const { computeAutoAction } = await import('../js/engine/autobattle.js');
+  const ch1 = CHAPTERS[0];
+  const squad = ['bear_guard', 'cat_patrol'].map(id => ({
+    ...GUARDIAN_PROTOS[id],
+    id,
+    hp: GUARDIAN_PROTOS[id].maxHp,
+    mp: GUARDIAN_PROTOS[id].maxMp,
+    isAuto: id === 'bear_guard',
+    acted: false
+  }));
+  const battle = new Battle(ch1, squad, 'inspire', null, new RNG(42));
+  const bear = battle.allies.find(a => a.id === 'bear_guard');
+  assert.strictEqual(bear.isAuto, true);
+  const act = computeAutoAction(battle, bear, 'balanced');
+  assert.ok(act && act.move, 'Per-unit auto must generate valid tactical action plan');
+});

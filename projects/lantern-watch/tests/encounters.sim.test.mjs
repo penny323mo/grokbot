@@ -142,9 +142,9 @@ export function executeAllyBotTurn(battle, botType, rng) {
       }
     }
 
-    // 2. Mountain chapter exit rush
-    if (chapter.id === 4 && (ally.id === 'crane_rider' || ally.id === 'cat_patrol')) {
-      const exitTiles = chapter.exitTiles || [{ x: 4, y: 0 }, { x: 5, y: 0 }];
+    // 2. Mountain / Bamboo Pass chapter exit/shrine rush
+    if ((chapter.id === 4 || chapter.id === 5) && (ally.id === 'crane_rider' || ally.id === 'cat_patrol')) {
+      const exitTiles = chapter.exitTiles || chapter.shrineTiles || [{ x: 4, y: 0 }, { x: 5, y: 0 }];
       for (const m of reachableList) {
         if (exitTiles.some(e => e.x === m.x && e.y === m.y)) {
           battle.moveUnit(ally, m.x, m.y);
