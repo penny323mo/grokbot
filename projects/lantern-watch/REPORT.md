@@ -1,14 +1,14 @@
 # 燈影軍略 — orchestrator report
 
-- Generated: 2026-10-27 16:58 (Macau, UTC+8)
+- Generated: 2026-10-27 18:11 (Macau, UTC+8)
 - Live: https://penny323mo.github.io/grokbot/projects/lantern-watch/ (HTTP 200)
-- Rounds: 1  ·  Started: 2026-10-27T15:39:14+08:00
+- Rounds: 1  ·  Started: 2026-10-27T17:14:42+08:00
 
 ## Phases
-- build finished 2026-10-27T16:20:14+08:00
-- review-1 finished 2026-10-27T16:26:25+08:00
-- fix-1 finished 2026-10-27T16:58:47+08:00
-- publish finished 2026-10-27T16:58:56+08:00
+- build finished 2026-10-27T17:54:25+08:00
+- review-1 finished 2026-10-27T17:59:57+08:00
+- fix-1 finished 2026-10-27T18:11:24+08:00
+- publish finished 2026-10-27T18:11:33+08:00
 
 ## Reviews
 - orch-r1-grok.md: VERDICT: NOT READY
@@ -16,9 +16,9 @@
 ## Tests
 ### tests-build
 ```
-ch2 reasonable win: 43/50 (86%)
+ch2 reasonable win: 41/50 (82%)
 ch3 reasonable win: 45/50 (90%)
-ch4 reasonable win: 44/50 (88%)
+ch4 reasonable win: 45/50 (90%)
 ch5 reasonable win: 42/50 (84%)
 ch6 reasonable win: 45/50 (90%)
 ch7 reasonable win: 40/50 (80%)
@@ -45,31 +45,28 @@ balance ok: ch1 naive win 50/50, ch3/5/7 naive failed, all mid chapters reasonab
 - screenshots/orch/live-title.png
 
 ## Changelog (tail)
-  - Refined `.unit-name-tag` positioning to `top: -11px; z-index: 10` with high-contrast text shadows.
+  - Updated `updateStepView(4)` in `js/app.js` to select 燈娘, open the docked action menu with the 法術 button spotlighted, and frame both units without auto-casting.
+  - Updated `refreshBattleUI` in `js/app.js` to dynamically compute `targetTagsMap` for magic on tutorial step 4, rendering the `克制 ×1.5` tag directly above the wood-type enemy on the board.
+  - Shortened compact copy to `點選【法術】· 克制×1.5` in `js/render/ui.js` and tightened compact row styles to completely avoid ellipsis truncation.
+  - Recaptured `screenshots/v14/tutorial-magic.png` showing the docked action bar, wood archer, and `克制 ×1.5` tag all simultaneously in frame.
 
-- **MINOR #4: SPEC Alignment**:
-  - Updated `SPEC.md` §8 計策 list to include `擂鼓` (mid-battle war drums: ally morale +25, allies within radius 2 gain +1 MOV this turn).
-  - Updated §9 balance table to reflect live simulation results: Chapter 5 reasonable win rate at 42/50 (84%) and Chapter 7 at 40/50 (80%).
-
-- **MINOR #5: Chapter 8 Mountain Pass 390px Viewport Framing**:
-  - Updated framing targets in `scripts/verify_battle_ui.steps.json` for Chapter 8 to include warlord (4, 1), western archer (2, 2), eastern archer (7, 2), and the 滾木 log ramp chute.
-  - Recaptured `screenshots/v11/e-ch8-mountain-pass.png` ensuring the eastern archer has clear margin and is not clipped by the 390px right border.
-
-
-## Round 1 fixes
+- **MAJOR #2 (Walk & Cavalry Gallop 390px Readability & Recapture Cleanliness)**:
+  - Ensured `#topMenuDropdown` is strictly closed (`style.display = 'none'`) during animation capture and removed all conflicting overlays.
+  - Robustified `buildWalkRig` in `js/render/ui.js` to construct the walking rig using figure sprite dimensions without failing on image state.
+  - Scaled active walking and galloping rigs by 1.38× with `transform-origin: center bottom` in `css/style.css`, elevating active walkers to `z-index: 25`.
+  - Added strict error-checking in screenshot capture script to fail immediately if rig creation fails.
+  - Recaptured clean 390px frames for `screenshots/v14/walk-midstride.png` (38° stride swing, 6.5px bounce) and `screenshots/v14/cavalry-gallop.png` (11px heave, 12° rearing pitch, 42° foreleg reach, -38° hind kick) with zero blocking overlays.
 
 ### MINOR Fixes
-- **MINOR #1 (Compact Tutorial Hint Copy - Action First)**:
-  - Updated `showBoardTutorial` in `js/render/ui.js` with concise `actionHint` values for all 7 beats (Beat 1: `點選【熊岳】 · 藍格移動`, Beat 2: `點選【攻擊】 · 紅格鎖定敵軍`, etc.), preventing trailing text truncation by ellipsis. Long title and descriptive lore are cleanly preserved in the 詳情 expanded drawer.
-- **MINOR #2 (Four-Star Rating & Objective Calibration)**:
-  - Tuned `underTurnLimit` to require fast victory within 60% of turn limit (`currentTurn <= Math.ceil(maxTurns * 0.6)`) for 速戰速決, and `sideObjDone` to require breaking enemy morale (`enemyMorale <= 35`) for 勢如破竹, avoiding trivial 4-star completion on standard wins.
-- **MINOR #3 (Combat Bark Header Wrapping)**:
-  - Added `white-space: nowrap` to `.bark-header` in `css/style.css` and tightened default bark header to `【${unit.name} · 開戰】`, preventing header line break artifacts on mobile 390px screens.
-- **MINOR #4 (Chapter 6 Weather Rain Overlay & Viewport Framing)**:
-  - Boosted rain streak canvas stroke alpha from 0.55 to 0.85 and increased streak count in `renderWeatherOverlay` (`js/render/ui.js`) for sharp readability against dark wet stone.
-  - Reset `this.deployPlacements = []` when launching different chapters so units use the proper chapter deploy slots, and framed living allies plus incoming reinforcement markers so 燈娘 小螢 and edge markers remain completely visible inside 390px boundaries.
-- **MINOR #5 (SPEC Alignment for Weather & Telegraphed Reinforcements)**:
-  - Added §8b (Weather System & Telegraphed Reinforcements) to `SPEC.md` documenting weather conditions (`rain`, `fog`, `wind`, `night`) and 1-turn early glowing hazard warning indicators.
-
-## Round 11 launched 2026-10-27 17:15 (Asia/Macau)
-Brief prompts/improve-10.txt: tutorial no longer auto-plays on 明白 and guides attack/技能/法術 once each; docked bottom action bar with subtitles, tap-twice targeting, undo, 下一個未行動, ≡ menu; target tags; illustrated prologue; readable walk/gallop; use empty screen bands.
+- **MINOR #1 (Docked Action Bar Subtitle Ellipsis)**:
+  - Shortened 法術 subtitle to `屬性·克制·耗MP` in both `index.html` and `js/render/ui.js`.
+  - Tightened `.action-sub-txt` letter-spacing in `css/style.css` to prevent truncation.
+- **MINOR #2 (Eliminate 390×844 Top Dead Space)**:
+  - Adjusted camera vertical anchoring in `applyCamera` (`js/render/ui.js`) to anchor the stage at `c.ty = 4` under the objective ticker when board height is unconstrained by viewport height, while preserving centering on height-constrained viewports (390×664). All 6 E2E map fit tests in `scripts/verify_map_fit.mjs` pass.
+- **MINOR #3 (UI-Driven Tutorial No-Mutate Unit Test)**:
+  - Enhanced `tests/interaction.test.mjs` to instantiate a real `UIRenderer` and drive `showBoardTutorial` step-by-step through all 7 steps via `btnBoardTutorialAck.onclick()`, as well as clicking `btnBoardTutorialClose.onclick()`, asserting after every click that all ally unit coordinates, HP, MP, and `acted` flags remain strictly untouched.
+- **MINOR #4 (Prologue Hero Motivations)**:
+  - Expanded `#screenPrologue` in `js/render/ui.js` to 6 painted panels, separating frontliners (熊岳 & 墨影) and support casters (燈娘 & 茶翁) into dedicated spotlight panels detailing their specific battle motivations.
+- **MINOR #5 & #6 (Changelog & SPEC.md Synchronisation)**:
+  - Added `## v14.0.0` release notes to `CHANGELOG.md`.
+  - Updated `SPEC.md` §6 to document the live 7 tutorial beats (選定 / 移動 / 攻擊 / 技能 / 法術 / 待命 / 結束回合).

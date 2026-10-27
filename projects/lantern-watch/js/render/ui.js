@@ -2082,6 +2082,25 @@ export class UIRenderer {
     setTimeout(() => d.remove(), 520);
   }
 
+  /** Self-buff feedback: a blue shield glow and a green "防+N" float — never a damage number. */
+  playBuffVfx(unit, label) {
+    const vfxLayer = document.getElementById('vfxLayer') || document.getElementById('battleBoardStage');
+    if (!vfxLayer) return;
+    const el = document.createElement('div');
+    el.className = 'vfx-buff-shield';
+    el.textContent = `🛡 ${label}`;
+    el.style.cssText = `position:absolute;left:${unit.x * 64 + 32}px;top:${unit.y * 64 + 8}px;transform:translate(-50%,-50%);` +
+      'color:#9fe8ff;font-weight:800;font-size:18px;text-shadow:0 0 6px #2aa8ff,0 2px 2px #000;pointer-events:none;z-index:50;' +
+      'animation:buffRise 1s ease-out forwards;';
+    if (!document.getElementById('buffRiseKf')) {
+      const st = document.createElement('style'); st.id = 'buffRiseKf';
+      st.textContent = '@keyframes buffRise{0%{opacity:0;margin-top:10px}20%{opacity:1}100%{opacity:0;margin-top:-30px}}';
+      document.head.appendChild(st);
+    }
+    vfxLayer.appendChild(el);
+    setTimeout(() => el.remove(), 1000);
+  }
+
   playCombatVfx(attacker, defender, combatInfo = {}, speed = 1, onComplete = null) {
     const vfxLayer = document.getElementById('vfxLayer') || document.getElementById('battleBoardStage');
     const figuresLayer = document.getElementById('figuresLayer');

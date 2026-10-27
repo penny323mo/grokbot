@@ -1309,7 +1309,7 @@ class LanternTacticsApp {
 
     const actingUnit = this.selectedUnit;
     const res = this.battle.confirmAction(actingUnit, actionType, target, options);
-    this.sound?.playSfx('hit');
+    if (!(actionType === 'magic' && actingUnit.magic?.selfBuff)) this.sound?.playSfx('hit');
 
     if (this.isGuidedTutorial) {
       if (actionType === 'attack' && this.tutorialStep === 2) {
@@ -1353,7 +1353,13 @@ class LanternTacticsApp {
       events: res.events || []
     };
 
-    if (target) {
+    const isSelfBuff = actionType === 'magic' && actingUnit.magic?.selfBuff;
+    if (isSelfBuff) {
+      // Self-buff is not an attack: no lunge, no hurt shake, no thunder strike on the caster
+      this.sound?.playSfx('buff');
+      this.ui.playBuffVfx?.(actingUnit, `防+${actingUnit.magic.selfBuff.def || 3}`);
+      setTimeout(() => this.afterActionResolved(res, actingUnit), 450 / (this.battleSpeed || 1));
+    } else if (target && target !== actingUnit) {
       this.ui.playCombatVfx(actingUnit, target, combatInfo, this.battleSpeed, () => {
         this.afterActionResolved(res, actingUnit);
       });
