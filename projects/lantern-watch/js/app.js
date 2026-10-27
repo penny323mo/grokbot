@@ -15,6 +15,7 @@ import { SoundEngine } from './audio.js';
 import { UIRenderer } from './render/ui.js';
 import { getReachableTiles, getAttackRangeTiles, getAttackableTilesFromReachable } from './engine/pathfinding.js';
 import { calculateCombat, canTargetUnit } from './engine/combat.js';
+import { getActionInfo } from './engine/actioninfo.js';
 
 class LanternTacticsApp {
   constructor() {
@@ -576,6 +577,18 @@ class LanternTacticsApp {
     }
 
     if (!this.battle || this.battle.phase !== 'ally') return;
+    if (this.inputLocked) return;
+
+    // Re-tap the selected unit during the move stage: stay put (原地行動) and open the action menu
+    if (this.selectedUnit && unit === this.selectedUnit && !this.stagedMoveTile && !this.activeActionType && !this.targetingMode) {
+      this.stayInPlace(unit);
+      return;
+    }
+
+    // Tap an enemy while still in the move stage: attack directly (from here if in range, else walk to the nearest tile that reaches it)
+    if (unit.team === 'enemy' && this.selectedUnit && !this.stagedMoveTile && !this.activeActionType && !this.targetingMode) {
+      if (this.quickAttack(this.selectedUnit, unit)) return;
+    }
 
     // If unit is enemy and we are in target mode
     if (unit.team === 'enemy' && this.selectedUnit && this.activeActionType) {
@@ -652,6 +665,14 @@ class LanternTacticsApp {
     }
 
     if (!this.battle || this.battle.phase !== 'ally') return;
+    if (this.inputLocked) return;
+
+    // Tapping the selected unit's own tile = stay in place
+    if (this.selectedUnit && !this.stagedMoveTile && !this.targetingMode && !this.activeActionType &&
+        x === this.selectedUnit.x && y === this.selectedUnit.y) {
+      this.stayInPlace(this.selectedUnit);
+      return;
+    }
 
     // Update bottom terrain strip
     this.ui.updateBottomStrip(x, y, this.battle.board, this.battle.getUnitAt(x, y));
@@ -714,17 +735,7 @@ class LanternTacticsApp {
       const key = `${x},${y}`;
       if (this.reachableTiles.has(key)) {
         this.sound?.playSfx('tap');
-        this.battle.moveUnit(this.selectedUnit, x, y);
-        this.stagedMoveTile = { x, y };
-        this.reachableTiles = new Map();
-
-        // Switch to current tile range only
-        const curRange = getAttackRangeTiles(this.battle.board, this.selectedUnit, x, y);
-        this.attackableTiles = new Set(curRange.filter(t => !this.battle.board.isImpassable(t.x, t.y, false)).map(t => `${t.x},${t.y}`));
-
-        // Pop action menu
-        this.openActionMenuForUnit(this.selectedUnit);
-        this.refreshBattleUI();
+        this.walkSelectedTo(x, y, () => this.openActionMenuForUnit(this.selectedUnit));
         return;
       }
     }
@@ -734,6 +745,67 @@ class LanternTacticsApp {
       this.clearSelection();
       this.refreshBattleUI();
     }
+  }
+
+  /** Move the selected unit with a tile-by-tile walk; input is locked until the walk ends. */
+  walkSelectedTo(x, y, after) {
+    const unit = this.selectedUnit;
+    if (!unit) return;
+    this.battle.moveUnit(unit, x, y);
+    this.stagedMoveTile = { x, y };
+    this.reachableTiles = new Map();
+    this.attackableTiles = new Set();
+    this.refreshBattleUI();
+    const path = unit.lastPath || [];
+    if (path.length < 2 || !this.ui.animateWalks) { after && after(); this.refreshBattleUI(); return; }
+    this.inputLocked = true;
+    this.ui.animateWalks([{ id: unit.id, path, unit }]).then(() => {
+      this.inputLocked = false;
+      if (this.selectedUnit === unit) { after && after(); }
+      this.refreshBattleUI();
+    });
+  }
+
+  /** 原地行動: no movement, go straight to the action menu. */
+  stayInPlace(unit) {
+    if (!unit || unit.acted) return;
+    this.sound?.playSfx('tap');
+    this.battle.holdPosition(unit);
+    this.stagedMoveTile = { x: unit.x, y: unit.y };
+    this.openActionMenuForUnit(unit);
+    this.refreshBattleUI();
+  }
+
+  /** Tap enemy in the move stage: attack from the current tile if possible, otherwise walk to the cheapest tile in range. */
+  quickAttack(unit, foe) {
+    const startAttack = () => {
+      this.openActionMenuForUnit(unit);
+      const vision = this.battle.isFogActive() ? this.battle.calculateVisionMap() : null;
+      if (!canTargetUnit(unit, foe, this.battle.board, vision)) { this.refreshBattleUI(); return; }
+      this.handleActionMenuChoice('attack');
+      const key = `${foe.x},${foe.y}`;
+      if (this.validTargetKeys?.has(key)) this.tapTarget(key, () => this.evaluateTargetPreview(foe));
+      this.refreshBattleUI();
+    };
+    if (this.battle.getTargetsInRangeNow(unit).includes(foe)) {
+      this.sound?.playSfx('tap');
+      this.battle.holdPosition(unit);
+      this.stagedMoveTile = { x: unit.x, y: unit.y };
+      startAttack();
+      return true;
+    }
+    let best = null;
+    for (const [key, info] of this.reachableTiles) {
+      const [tx, ty] = key.split(',').map(Number);
+      const occ = this.battle.getUnitAt(tx, ty);
+      if (occ && occ !== unit) continue;
+      const inRange = getAttackRangeTiles(this.battle.board, unit, tx, ty).some(t => t.x === foe.x && t.y === foe.y);
+      if (inRange && (!best || info.cost < best.cost)) best = { x: tx, y: ty, cost: info.cost };
+    }
+    if (!best) return false;
+    this.sound?.playSfx('tap');
+    this.walkSelectedTo(best.x, best.y, startAttack);
+    return true;
   }
 
   openActionMenuForUnit(unit) {
@@ -799,9 +871,28 @@ class LanternTacticsApp {
         this.battle.undoMove(unit);
         this.clearSelection();
         this.refreshBattleUI();
-      }
+      },
+      (actionType, pressing) => this.showActionInfo(unit, actionType, pressing)
     );
     requestAnimationFrame(() => this.ui.frameTiles([unit, ...enemiesInRange]));
+  }
+
+  /** Long-press on 攻擊/技能/法術: info card + range highlight; release restores the menu state. */
+  showActionInfo(unit, actionType, pressing) {
+    if (!pressing) {
+      this.ui.hideActionInfoCard();
+      if (this._infoSavedTiles) { this.attackableTiles = this._infoSavedTiles; this._infoSavedTiles = null; }
+      this.aoeTiles = new Set();
+      this.ui.renderRangeOnly?.(this.attackableTiles, this.aoeTiles) ?? this.refreshBattleUI();
+      return;
+    }
+    const info = getActionInfo(this.battle, unit, actionType);
+    if (!info) return;
+    this._infoSavedTiles = this.attackableTiles;
+    this.attackableTiles = new Set(info.tiles.map(t => `${t.x},${t.y}`));
+    this.aoeTiles = new Set(info.targets.map(t => `${t.x},${t.y}`));
+    this.ui.showActionInfoCard(info, unit);
+    this.ui.renderRangeOnly?.(this.attackableTiles, this.aoeTiles) ?? this.refreshBattleUI();
   }
 
   handleActionMenuChoice(actionType) {
@@ -1265,7 +1356,22 @@ class LanternTacticsApp {
     this.ui.showTurnBanner('敵方回合', '夜霧湧動 · 敵軍進犯', () => {
       this.battle.endTurn();
       this.refreshBattleUI();
+      const walks = (this.battle.movePaths || []).filter(m => m.path && m.path.length > 1);
+      if (walks.length && this.ui.animateWalks) {
+        this.inputLocked = true;
+        this.ui.animateWalks(walks, { sequential: true }).then(() => {
+          this.inputLocked = false;
+          this.refreshBattleUI();
+          this.afterEnemyWalks(phasePill);
+        });
+      } else {
+        this.afterEnemyWalks(phasePill);
+      }
+    });
+  }
 
+  afterEnemyWalks(phasePill) {
+    {
       // Check rout events from enemy turn
       if (this.battle.eventLog) {
         const routEvs = this.battle.eventLog.filter(e => e.type === 'rout');
@@ -1314,7 +1420,7 @@ class LanternTacticsApp {
           }
         }
       });
-    });
+    }
   }
 
   // ================= LIVE BOARD SPOTLIGHT TUTORIAL =================

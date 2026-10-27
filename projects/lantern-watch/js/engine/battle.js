@@ -621,8 +621,47 @@ export class Battle {
     return getReachableTiles(this.board, unit, this.getAllLivingUnits(), { cursedTiles: this.cursedTiles, ...options });
   }
 
+  /** Pathfinding route from the unit's current tile to (toX,toY), used for walk animation. */
+  computeMovePath(unit, toX, toY) {
+    if (unit.x === toX && unit.y === toY) return [{ x: toX, y: toY }];
+    try {
+      const reach = getReachableTiles(this.board, unit, this.getAllLivingUnits(), { cursedTiles: this.cursedTiles });
+      const hit = reach.get(`${toX},${toY}`);
+      if (hit && hit.path && hit.path.length) {
+        const path = hit.path.map(p => ({ x: p.x, y: p.y }));
+        const last = path[path.length - 1];
+        if (last.x !== toX || last.y !== toY) path.push({ x: toX, y: toY });
+        return path;
+      }
+    } catch (e) { /* fall through */ }
+    // Fallback: L-shaped orthogonal steps (never a diagonal slide)
+    const path = [{ x: unit.x, y: unit.y }];
+    let cx = unit.x, cy = unit.y;
+    while (cx !== toX) { cx += Math.sign(toX - cx); path.push({ x: cx, y: cy }); }
+    while (cy !== toY) { cy += Math.sign(toY - cy); path.push({ x: cx, y: cy }); }
+    return path;
+  }
+
+  /** Enemies the unit can attack right now from its current tile, without moving. */
+  getTargetsInRangeNow(unit) {
+    if (!unit || unit.acted) return [];
+    const keys = new Set(getAttackRangeTiles(this.board, unit, unit.x, unit.y).map(t => `${t.x},${t.y}`));
+    const foes = unit.team === 'ally' ? this.enemies : this.allies;
+    return foes.filter(f => f.hp > 0 && keys.has(`${f.x},${f.y}`) && (!this.isUnitVisible || this.isUnitVisible(f)));
+  }
+
+  /** Stay in place: counts as the move step (0 tiles) so the action menu can open. */
+  holdPosition(unit) {
+    if (unit.acted) return false;
+    return this.moveUnit(unit, unit.x, unit.y);
+  }
+
   moveUnit(unit, toX, toY) {
     if (unit.acted) return false;
+    const path = this.computeMovePath(unit, toX, toY);
+    unit.lastPath = path;
+    if (!this.movePaths) this.movePaths = [];
+    if (path.length > 1) this.movePaths.push({ id: unit.id, team: unit.team, path });
     unit.turnStartX = unit.x;
     unit.turnStartY = unit.y;
 
@@ -1042,6 +1081,7 @@ export class Battle {
   }
 
   endTurn() {
+    this.movePaths = [];
     if (this.phase === 'finished') return;
 
     // Tick lanterns

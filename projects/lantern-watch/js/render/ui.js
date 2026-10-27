@@ -4,6 +4,7 @@
  * action menus, and modal dialogs for 燈影軍略 · Lantern Tactics (v4).
  */
 
+import { GAME } from '../config.js';
 import { CHAPTERS, TERRAIN_INFO, WEATHER_CONFIG } from '../data/maps.js';
 import { GUARDIAN_PROTOS, ENEMY_PROTOS, STRATAGEMS, RELICS, BOND_PAIRS, PROMOTIONS, getClassSynergies } from '../data/units.js';
 export { getClassSynergies };
@@ -1123,7 +1124,7 @@ export class UIRenderer {
     }
   }
 
-  showActionMenu(x, y, actions, onChooseAction, onCancel) {
+  showActionMenu(x, y, actions, onChooseAction, onCancel, onInfo = null) {
     const pop = document.getElementById('actionMenuPopover');
     if (!pop) return;
 
@@ -1184,6 +1185,79 @@ export class UIRenderer {
 
     const btnCancel = document.getElementById('btnActionCancel');
     btnCancel.onclick = () => onCancel();
+    this.bindActionLongPress(pop, onInfo);
+  }
+
+  /** ~400ms press (touch or mouse) on attack/skill/magic shows info; release hides; a short tap still selects. */
+  bindActionLongPress(pop, onInfo) {
+    pop._onInfo = onInfo;
+    if (pop._lpBound) return;
+    pop._lpBound = true;
+    let timer = null, active = null, suppressClick = false;
+    const end = () => {
+      clearTimeout(timer); timer = null;
+      if (active) { const a = active; active = null; pop._onInfo && pop._onInfo(a, false); }
+    };
+    pop.addEventListener('pointerdown', (e) => {
+      const btn = e.target.closest('[data-action]');
+      const act = btn?.dataset.action;
+      if (!['attack', 'skill', 'magic'].includes(act)) return;
+      suppressClick = false;
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        active = act; suppressClick = true;
+        if (navigator.vibrate) try { navigator.vibrate(10); } catch (_) {}
+        pop._onInfo && pop._onInfo(act, true);
+      }, 400);
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => pop.addEventListener(t, end));
+    window.addEventListener('pointerup', end);
+    pop.addEventListener('contextmenu', (e) => e.preventDefault());
+    // Swallow the click that follows a long-press so it doesn't also select
+    pop.addEventListener('click', (e) => { if (suppressClick) { suppressClick = false; e.stopPropagation(); e.preventDefault(); } }, true);
+  }
+
+  showActionInfoCard(info, unit) {
+    let card = document.getElementById('actionInfoCard');
+    if (!card) {
+      card = document.createElement('div');
+      card.id = 'actionInfoCard';
+      card.className = 'action-info-card';
+      document.body.appendChild(card);
+    }
+    const esc = (v) => String(v ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const rows = info.targets.length ? info.targets.map(t => `
+      <div class="aic-target">
+        <span class="aic-tname">${esc(t.name)}</span>
+        <span class="aic-dmg">-${t.damage}<small>/${t.hp}</small></span>
+        <span>命中${t.hit}%</span>
+        <span class="${t.koChance > 0 ? 'aic-ko' : ''}">擊破${t.koChance}%</span>
+        <span class="${t.counter ? 'aic-counter' : 'aic-safe'}">${t.counter ? `反擊-${t.counterDamage}` : '無反擊'}</span>
+      </div>`).join('') : `<div class="aic-none">${info.isSupport ? '輔助招式' : '射程內暫無敵人'}</div>`;
+    card.innerHTML = `
+      <div class="aic-head"><b>${esc(info.name)}</b><span>${esc(info.desc)}</span></div>
+      <div class="aic-stats">
+        <span>威力 <b>${info.power ?? '—'}</b></span>
+        <span>屬性 <b>${esc(info.element)}</b></span>
+        <span>命中 <b>${info.baseHit != null ? info.baseHit + '%' : '—'}</b></span>
+        <span>MP <b>${info.cost}/${info.mp}</b></span>
+        <span>射程 <b>${esc(info.range)}</b></span>
+        <span>範圍 <b>${esc(info.aoe)}</b></span>
+      </div>
+      <div class="aic-note">${esc(info.counterNote)}</div>
+      ${rows}`;
+    // Keep the unit visible: dock the card on the opposite half of the screen
+    const el = document.querySelector(`[data-unit-id="${unit.id}"]`);
+    const r = el ? el.getBoundingClientRect() : { top: 0, bottom: 0 };
+    const vh = window.innerHeight;
+    card.classList.toggle('dock-top', (r.top + r.bottom) / 2 > vh / 2);
+    card.classList.toggle('dock-bottom', (r.top + r.bottom) / 2 <= vh / 2);
+    card.style.display = 'block';
+  }
+
+  hideActionInfoCard() {
+    const card = document.getElementById('actionInfoCard');
+    if (card) card.style.display = 'none';
   }
 
   hideActionMenu() {
@@ -1631,12 +1705,143 @@ export class UIRenderer {
       };
     }
 
-    if (btnClose) {
-      btnClose.onclick = () => {
-        modal.style.display = 'none';
-        if (onClose) onClose();
+    let closed = false;
+    const close = () => {
+      if (closed) return;
+      closed = true;
+      modal.style.display = 'none';
+      document.removeEventListener('keydown', onKey);
+      modal.onclick = null;
+      if (onClose) onClose();
+    };
+    const onKey = (e) => { if (e.key === 'Escape') close(); };
+    document.addEventListener('keydown', onKey);
+    // Tap on the dimmed backdrop (outside the card) closes too
+    modal.onclick = (e) => { if (e.target === modal) close(); };
+    if (btnClose) btnClose.onclick = (e) => { e.stopPropagation(); close(); };
+    if (btnNext) {
+      btnNext.onclick = () => {
+        if (curStep < steps.length - 1) { curStep++; updateView(); } else { close(); }
       };
     }
+  }
+
+  // ================= WALK ANIMATION (rAF, distance-synced rig) =================
+  /**
+   * Animate units walking tile by tile along their pathfinding route.
+   * walks: [{ id, path:[{x,y}...], unit? }]. Figures are already rendered at the final tile;
+   * we offset them back with translate3d and interpolate per frame (GPU transforms only).
+   */
+  animateWalks(walks, opts = {}) {
+    const layer = document.getElementById('figuresLayer');
+    if (!layer || !walks || !walks.length) return Promise.resolve();
+    const TILE = 64, MS_PER_TILE = opts.msPerTile || window.__ltWalkMs || 140;
+    const prep = walks.map(w => {
+      const el = layer.querySelector(`[data-unit-id="${w.id}"]`);
+      if (!el || !w.path || w.path.length < 2) return null;
+      const end = w.path[w.path.length - 1];
+      const off = (p) => ({ x: (p.x - end.x) * TILE, y: (p.y - end.y) * TILE });
+      const s0 = off(w.path[0]);
+      el.style.transform = `translate3d(${s0.x}px, ${s0.y}px, 0)`;
+      return { ...w, el, off };
+    }).filter(Boolean);
+    this.walkFrameTimes = [];
+    const runOne = (w) => new Promise(resolve => {
+      const el = w.el;
+      const u = w.unit || {};
+      const isCav = u.role === 'cavalry' || u.cls === '騎兵' || /騎|cavalry|rider/.test(`${u.cls || ''}${u.role || ''}${w.id}`);
+      const rig = this.buildWalkRig(el, isCav);
+      el.classList.add('is-walking');
+      const segs = w.path.length - 1;
+      const total = segs * MS_PER_TILE;
+      let t0 = null, lastStep = 0, lastFacing = null, prevTs = null;
+      const frame = (ts) => {
+        if (t0 === null) t0 = ts;
+        if (prevTs !== null) this.walkFrameTimes.push(ts - prevTs);
+        prevTs = ts;
+        const tt = Math.min(1, (ts - t0) / total);
+        const dist = tt * segs;                       // tiles travelled
+        const i = Math.min(segs - 1, Math.floor(dist));
+        const f = dist - i;
+        const a = w.off(w.path[i]), b = w.off(w.path[i + 1]);
+        const x = a.x + (b.x - a.x) * f, y = a.y + (b.y - a.y) * f;
+        const dx = w.path[i + 1].x - w.path[i].x;
+        if (dx !== 0) {
+          const facing = dx > 0 ? 1 : -1;
+          if (facing !== lastFacing) { lastFacing = facing; el.style.setProperty('--facing', facing); if (u) u.facing = facing; }
+        }
+        el.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`;
+        // Walk cycle: 2 footfalls per tile (1 stride), gallop: 1 cycle per tile
+        const ph = dist * Math.PI * 2;
+        const s = Math.sin(ph), c = Math.cos(ph);
+        const fade = Math.min(1, dist * 4, (segs - dist) * 4); // ease limbs in/out at path ends
+        if (rig) {
+          if (isCav) {
+            rig.body.style.transform = `translate3d(0, ${(-Math.abs(s) * 5 * fade).toFixed(2)}px, 0) rotate(${(c * 5 * fade).toFixed(2)}deg)`;
+            rig.legA.style.transform = `rotate(${(s * 26 * fade).toFixed(2)}deg)`;
+            rig.legB.style.transform = `rotate(${(Math.sin(ph + 1.2) * -26 * fade).toFixed(2)}deg)`;
+            rig.top.style.transform = `rotate(${(-c * 3 * fade).toFixed(2)}deg) skewX(${(s * 2 * fade).toFixed(2)}deg)`;
+          } else {
+            rig.body.style.transform = `translate3d(0, ${(-Math.abs(s) * 3.2 * fade).toFixed(2)}px, 0) rotate(${(4 * fade).toFixed(2)}deg)`;
+            rig.legA.style.transform = `rotate(${(s * 22 * fade).toFixed(2)}deg)`;
+            rig.legB.style.transform = `rotate(${(-s * 22 * fade).toFixed(2)}deg)`;
+            // arms/weapon + cloak sway on the upper layer
+            rig.top.style.transform = `rotate(${(-s * 3 * fade).toFixed(2)}deg) skewX(${(c * 3 * fade).toFixed(2)}deg)`;
+          }
+        }
+        const step = Math.floor(dist * (isCav ? 1 : 2));
+        if (step > lastStep) { lastStep = step; this.spawnDustPuff(el, isCav); }
+        if (tt < 1) { requestAnimationFrame(frame); return; }
+        el.style.transform = '';
+        el.classList.remove('is-walking');
+        if (rig) rig.destroy();
+        resolve();
+      };
+      requestAnimationFrame(frame);
+    });
+    if (opts.sequential) {
+      return prep.reduce((p, w) => p.then(() => runOne(w)), Promise.resolve());
+    }
+    return Promise.all(prep.map(runOne));
+  }
+
+  /** Split the figure sprite into upper body + two leg layers (clip-path) so limbs can swing. */
+  buildWalkRig(el, isCav) {
+    const img = el.querySelector('.unit-fig-img');
+    if (!img || !img.complete || !img.naturalWidth) return null;
+    const w = img.offsetWidth || 50, h = img.offsetHeight || 60;
+    const rig = document.createElement('div');
+    rig.className = 'walk-rig';
+    rig.style.width = `${w}px`;
+    rig.style.height = `${h}px`;
+    const body = document.createElement('div');
+    body.className = 'walk-body';
+    const hip = isCav ? 52 : 58;
+    const mk = (cls, clip, origin) => {
+      const d = document.createElement('div');
+      d.className = `walk-part ${cls}`;
+      d.style.clipPath = clip;
+      d.style.transformOrigin = origin;
+      const im = document.createElement('img');
+      im.src = img.src; im.alt = '';
+      d.appendChild(im);
+      body.appendChild(d);
+      return d;
+    };
+    const legB = mk('leg-back', `inset(${hip - 4}% 0 0 50%)`, `75% ${hip}%`);
+    const legA = mk('leg-front', `inset(${hip - 4}% 50% 0 0)`, `25% ${hip}%`);
+    const top = mk('upper', `inset(0 0 ${100 - hip - 2}% 0)`, `50% ${hip}%`);
+    rig.appendChild(body);
+    el.appendChild(rig);
+    img.style.visibility = 'hidden';
+    return { body, legA, legB, top, destroy: () => { rig.remove(); img.style.visibility = ''; } };
+  }
+
+  spawnDustPuff(el, big) {
+    const d = document.createElement('div');
+    d.className = `walk-dust ${big ? 'big' : ''}`;
+    el.appendChild(d);
+    setTimeout(() => d.remove(), 520);
   }
 
   playCombatVfx(attacker, defender, combatInfo = {}, speed = 1, onComplete = null) {
