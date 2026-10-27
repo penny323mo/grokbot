@@ -22,7 +22,28 @@ export class SoundEngine {
     this.audioCache = {};
     this.bgmAudio = null;
 
+    this.unlocked = false;
     this.loadSettings();
+  }
+
+  get musicOn() { return !this.musicMuted; }
+  get sfxOn() { return !this.sfxMuted; }
+
+  /** iOS: AudioContext + media playback only start inside a user gesture. Call from the first tap. */
+  unlock() {
+    this.init();
+    this.resume();
+    if (this.unlocked) return;
+    this.unlocked = true;
+    if (this.ctx) {
+      // Play a silent buffer: required by iOS Safari to un-suspend WebAudio.
+      try {
+        const b = this.ctx.createBuffer(1, 1, 22050);
+        const src = this.ctx.createBufferSource();
+        src.buffer = b; src.connect(this.ctx.destination); src.start(0);
+      } catch (e) {}
+    }
+    if (!this.musicMuted) this.playMusic(this.currentMusicType || "town");
   }
 
   init() {
@@ -72,10 +93,18 @@ export class SoundEngine {
 
   toggleMusic() {
     this.musicMuted = !this.musicMuted;
+    this.unlocked = true;
+    this.init();
+    this.resume();
     if (this.bgmAudio) {
       this.bgmAudio.volume = this.musicMuted ? 0 : 0.4;
       if (this.musicMuted) this.bgmAudio.pause();
       else this.bgmAudio.play().catch(() => {});
+    } else if (!this.musicMuted && !this.musicTimer) {
+      // Music was never started (it previously had no caller) — start it now, inside the tap.
+      const type = this.currentMusicType || "town";
+      this.currentMusicType = null;
+      this.playMusic(type);
     }
     if (this.musicGain) {
       this.musicGain.gain.value = this.musicMuted ? 0 : 0.18;
@@ -86,6 +115,8 @@ export class SoundEngine {
 
   toggleSfx() {
     this.sfxMuted = !this.sfxMuted;
+    this.init();
+    this.resume();
     if (this.sfxGain) {
       this.sfxGain.gain.value = this.sfxMuted ? 0 : 0.28;
     }
@@ -370,14 +401,22 @@ export class SoundEngine {
         audio.loop = true;
         audio.volume = this.musicMuted ? 0 : 0.4;
         this.bgmAudio = audio;
-        audio.play().catch(() => {
+        audio.play().then(() => {
+          // Muted while play() was pending (e.g. first tap was the 樂 button itself)
+          if (this.musicMuted || this.bgmAudio !== audio) audio.pause();
+        }).catch(() => {
+          if (this.bgmAudio !== audio) return;
           // If mp3 fails, try m4a before procedural synth
           const m4aFile = musicFile.replace(".mp3", ".m4a");
           const m4a = new Audio(m4aFile);
           m4a.loop = true;
           m4a.volume = audio.volume;
           this.bgmAudio = m4a;
-          m4a.play().catch(() => {
+          m4a.play().then(() => {
+            if (this.musicMuted || this.bgmAudio !== m4a) m4a.pause();
+          }).catch(() => {
+            if (this.bgmAudio !== m4a) return;
+            this.bgmAudio = null;
             this.playProceduralMusic(type);
           });
         });

@@ -95,21 +95,42 @@ class LanternTacticsApp {
       };
     }
 
+    // Audio toggles: toggle*() returns the ON state. Reflect it (class + aria-pressed) and sync on load.
     const btnMusic = document.getElementById('btnToggleMusic');
-    if (btnMusic) {
-      btnMusic.onclick = () => {
-        const muted = this.sound?.toggleMusic();
-        btnMusic.style.opacity = muted ? '0.4' : '1';
-      };
-    }
-
     const btnSfx = document.getElementById('btnToggleSfx');
-    if (btnSfx) {
-      btnSfx.onclick = () => {
-        const muted = this.sound?.toggleSfx();
-        btnSfx.style.opacity = muted ? '0.4' : '1';
+    const syncAudioBtns = () => {
+      const set = (btn, on, label) => {
+        if (!btn) return;
+        btn.classList.toggle('is-off', !on);
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        btn.title = `${label}：${on ? '開' : '關'}`;
+        btn.style.opacity = '';
+      };
+      set(btnMusic, this.sound?.musicOn !== false, '音樂');
+      set(btnSfx, this.sound?.sfxOn !== false, '音效');
+    };
+    if (btnMusic) {
+      btnMusic.onclick = (e) => {
+        e.stopPropagation();
+        this.sound?.toggleMusic();
+        syncAudioBtns();
       };
     }
+    if (btnSfx) {
+      btnSfx.onclick = (e) => {
+        e.stopPropagation();
+        this.sound?.toggleSfx();
+        syncAudioBtns();
+        this.sound?.playSfx('tap');
+      };
+    }
+    syncAudioBtns();
+    // iOS unlock on the very first tap anywhere (capture so it runs before the button handler).
+    const unlockAudio = () => {
+      this.sound?.unlock();
+      ['pointerdown', 'touchend', 'click'].forEach(ev => document.removeEventListener(ev, unlockAudio, true));
+    };
+    ['pointerdown', 'touchend', 'click'].forEach(ev => document.addEventListener(ev, unlockAudio, true));
 
     // Title screen
     document.getElementById('btnStartCampaign').onclick = () => {

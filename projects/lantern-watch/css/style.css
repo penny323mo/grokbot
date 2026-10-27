@@ -4593,3 +4593,10 @@ html, body {
   background: rgba(14, 18, 48, 0.85); color: var(--lantern-gold);
   border: 1px solid var(--lantern-gold); font-size: 13px; font-weight: 700;
 }
+
+/* Audio toggle off-state: dimmed + red diagonal strike */
+.btn-icon-nav.is-off { opacity: 0.55; position: relative; }
+.btn-icon-nav.is-off::after {
+  content: ""; position: absolute; left: 18%; right: 18%; top: 50%;
+  height: 2px; background: #e0554a; transform: rotate(-35deg); border-radius: 2px; pointer-events: none;
+}

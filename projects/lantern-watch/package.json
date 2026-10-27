@@ -4,7 +4,7 @@
   "type": "module",
   "description": "燈影軍略 (Lantern Tactics) - Classic Grid Tactics RPG",
   "scripts": {
-    "test": "node tests/interaction.test.mjs && node tests/friendlyfire.test.mjs && node tests/rules.test.mjs && node tests/ai.test.mjs && node tests/objectives.test.mjs && node tests/name.test.mjs && node tests/encounters.sim.test.mjs && node tests/balance.sim.test.mjs",
+    "test": "node tests/audio.test.mjs && node tests/interaction.test.mjs && node tests/friendlyfire.test.mjs && node tests/rules.test.mjs && node tests/ai.test.mjs && node tests/objectives.test.mjs && node tests/name.test.mjs && node tests/encounters.sim.test.mjs && node tests/balance.sim.test.mjs",
     "screenshots": "node scripts/capture_screenshots.mjs"
   }
 }
