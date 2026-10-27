@@ -1,0 +1,341 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 700" width="100%" height="100%" class="case-scene-svg">
+  <defs>
+    <!-- Backstage Warm Lamplight & Velvet Ambient -->
+    <linearGradient id="c3_theatreWall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#241B18"/>
+      <stop offset="50%" stop-color="#3D2922"/>
+      <stop offset="100%" stop-color="#241B18"/>
+    </linearGradient>
+    <radialGradient id="c3_vanityGlow" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#FFF8E0" stop-opacity="0.9"/>
+      <stop offset="45%" stop-color="#E8C372" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#241B18" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Velvet Curtain Shadow -->
+    <linearGradient id="c3_curtainVelvet" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#4A1410"/>
+      <stop offset="30%" stop-color="#822018"/>
+      <stop offset="70%" stop-color="#9A2B20"/>
+      <stop offset="100%" stop-color="#3A0D0A"/>
+    </linearGradient>
+    <!-- Floral Stage Carpet Pattern -->
+    <pattern id="c3_carpet" width="30" height="30" patternUnits="userSpaceOnUse">
+      <rect width="30" height="30" fill="#6A1C16"/>
+      <circle cx="15" cy="15" r="8" fill="#8C2B22"/>
+      <path d="M15 5 Q20 15 15 25 Q10 15 15 5 Z" fill="#C49B4B" opacity="0.4"/>
+      <path d="M5 15 Q15 20 25 15 Q15 10 5 15 Z" fill="#C49B4B" opacity="0.4"/>
+    </pattern>
+  </defs>
+
+  <!-- Deep Theatrical Timber Wall -->
+  <rect width="390" height="700" fill="url(#c3_theatreWall)"/>
+
+  <!-- Timber Wall Paneling Hatching -->
+  <g stroke="#1F1512" stroke-width="1.2">
+    <line x1="70" y1="0" x2="70" y2="450"/>
+    <line x1="140" y1="0" x2="140" y2="450"/>
+    <line x1="210" y1="0" x2="210" y2="450"/>
+    <line x1="280" y1="0" x2="280" y2="450"/>
+    <!-- Horizontal batten rails -->
+    <line x1="0" y1="80" x2="390" y2="80"/>
+    <line x1="0" y1="180" x2="390" y2="180"/>
+  </g>
+
+  <!-- Fly Grid Loft (Top Rigging, Pulleys & Sandbags) -->
+  <rect x="0" y="0" width="390" height="70" fill="#1A120E" stroke="#1F1B16" stroke-width="2"/>
+  <g stroke="#1F1B16" stroke-width="1.5">
+    <!-- Hanging Hemp Ropes & Pulleys -->
+    <line x1="45" y1="0" x2="45" y2="65" stroke="#C49B4B" stroke-width="1.2"/>
+    <circle cx="45" cy="65" r="5" fill="#8A9297"/>
+    <line x1="110" y1="0" x2="110" y2="55" stroke="#C49B4B" stroke-width="1.2"/>
+    <circle cx="110" cy="55" r="5" fill="#8A9297"/>
+    <line x1="250" y1="0" x2="250" y2="60" stroke="#C49B4B" stroke-width="1.2"/>
+    <circle cx="250" cy="60" r="5" fill="#8A9297"/>
+    <!-- Suspended Sandbag Counterweight -->
+    <ellipse cx="280" cy="50" rx="9" ry="14" fill="#755E46" stroke="#1F1B16" stroke-width="1.2"/>
+    <line x1="280" y1="0" x2="280" y2="36" stroke="#C49B4B" stroke-width="1.5"/>
+  </g>
+
+  <!-- Rich Backstage Stage Carpet (Floor from y:430 down) -->
+  <polygon points="0,430 390,430 390,700 0,700" fill="url(#c3_carpet)" stroke="#1F1B16" stroke-width="2"/>
+
+  <!-- ==============================================
+       HOTSPOT 8: c3_playbill (32%, 26% -> x:124.8, y:182)
+       Cantonese Opera Performance Playbill 《梁祝殉情》
+       ============================================== -->
+  <g id="art_c3_playbill" transform="translate(100, 130)">
+    <!-- Weathered Parchment Poster with curled corner -->
+    <polygon points="0,0 52,0 52,85 0,85" fill="#E8DEC8" stroke="#1F1B16" stroke-width="1.5"/>
+    <polygon points="44,77 52,77 52,85" fill="#D3C5AE" stroke="#1F1B16" stroke-width="0.8"/>
+    <!-- Vermilion Decorative Border -->
+    <rect x="3" y="3" width="46" height="79" fill="none" stroke="#9A3B2C" stroke-width="1"/>
+    <!-- Playbill Header -->
+    <rect x="6" y="6" width="40" height="14" fill="#9A3B2C"/>
+    <text x="26" y="16" font-size="7.5" font-family="'Noto Serif CJK TC', serif" font-weight="900" fill="#FAF6EE" text-anchor="middle">清平戲院</text>
+    <!-- Show Title Vertical -->
+    <text x="26" y="36" font-size="11" font-family="'Noto Serif CJK TC', serif" font-weight="900" fill="#1F1B16" text-anchor="middle">梁祝殉情</text>
+    <!-- Star Name -->
+    <text x="26" y="52" font-size="6.5" font-family="'Noto Serif CJK TC', serif" font-weight="bold" fill="#9A3B2C" text-anchor="middle">楚雲天 主演</text>
+    <text x="26" y="62" font-size="4.5" font-family="'Noto Sans TC', sans-serif" fill="#5A4E3E" text-anchor="middle">壬寅年秋 · 特邀乾旦</text>
+    <!-- Red Official Seal -->
+    <rect x="20" y="68" width="12" height="10" fill="#9A3B2C" opacity="0.8"/>
+  </g>
+
+  <!-- ==============================================
+       HOTSPOT 5: c3_stage_curtain (78%, 35% -> x:304.2, y:245)
+       Heavy Crimson Velvet Stage Curtain with Gold Tassels
+       ============================================== -->
+  <g id="art_c3_curtain" transform="translate(250, 70)">
+    <!-- Proscenium Arch Gold Molding -->
+    <rect x="110" y="0" width="30" height="380" fill="#C49B4B" stroke="#1F1B16" stroke-width="2"/>
+    <path d="M115 20 Q125 10 135 20 T135 60 T135 100" stroke="#8A6B29" stroke-width="1.2" fill="none"/>
+    <!-- Heavy Velvet Fabric Drapes with Deep Shadow Folds -->
+    <path d="M0 0 Q40 10 80 0 Q110 0 110 360 Q80 340 50 360 Q20 340 0 360 Z" fill="url(#c3_curtainVelvet)" stroke="#1F1B16" stroke-width="2"/>
+    <!-- Deep vertical shadow folds -->
+    <g stroke="#3A0D0A" stroke-width="3" opacity="0.8">
+      <path d="M25 0 Q30 180 20 360"/>
+      <path d="M55 0 Q65 180 50 360"/>
+      <path d="M85 0 Q95 180 80 360"/>
+    </g>
+    <!-- Gold Cord Tie-Back & Tassel (c3_stage_curtain) -->
+    <path d="M0 175 Q45 200 90 175" stroke="#C49B4B" stroke-width="3" fill="none"/>
+    <!-- Braided Tassel -->
+    <polygon points="50,190 55,220 45,220" fill="#C49B4B" stroke="#1F1B16" stroke-width="1"/>
+    <!-- Gold fringe along curtain hem -->
+    <g stroke="#C49B4B" stroke-width="1.2">
+      <line x1="5" y1="360" x2="5" y2="368"/>
+      <line x1="15" y1="360" x2="15" y2="368"/>
+      <line x1="25" y1="360" x2="25" y2="368"/>
+      <line x1="35" y1="360" x2="35" y2="368"/>
+      <line x1="45" y1="360" x2="45" y2="368"/>
+      <line x1="55" y1="360" x2="55" y2="368"/>
+      <line x1="65" y1="360" x2="65" y2="368"/>
+      <line x1="75" y1="360" x2="75" y2="368"/>
+      <line x1="85" y1="360" x2="85" y2="368"/>
+    </g>
+  </g>
+
+  <!-- ==============================================
+       HOTSPOT 10: c3_wardrobe (16%, 40% -> x:62.4, y:280)
+       Tall Rosewood Costume Wardrobe & Embroidered Robes
+       ============================================== -->
+  <g id="art_c3_wardrobe" transform="translate(15, 170)">
+    <!-- Wardrobe Cabinet Body in perspective -->
+    <polygon points="0,20 75,0 75,220 0,240" fill="#422E21" stroke="#1F1B16" stroke-width="2.2"/>
+    <!-- Wardrobe open door swung out -->
+    <polygon points="0,20 -15,40 -15,255 0,240" fill="#2E1F16" stroke="#1F1B16" stroke-width="2"/>
+    <ellipse cx="-8" cy="140" rx="3" ry="5" fill="#C49B4B" stroke="#1F1B16" stroke-width="0.8"/>
+    <!-- Hanging Silk Opera Robes inside wardrobe -->
+    <g transform="translate(15, 30)">
+      <!-- Gold embroidered dragon robe -->
+      <path d="M5 25 L45 20 L50 160 L0 160 Z" fill="#C49B4B" stroke="#1F1B16" stroke-width="1.5"/>
+      <path d="M12 40 Q25 35 38 40" stroke="#9A3B2C" stroke-width="1.5" fill="none"/>
+      <!-- Cyan silk water-sleeve robe behind -->
+      <path d="M15 22 L55 18 L55 155 L15 155 Z" fill="#2E6B66" stroke="#1F1B16" stroke-width="1.2"/>
+      <!-- Phoenix headpiece on shelf -->
+      <ellipse cx="28" cy="12" rx="12" ry="6" fill="#FAF6EE" stroke="#1F1B16" stroke-width="1"/>
+      <circle cx="28" cy="10" r="3" fill="#4F6F5F"/>
+    </g>
+  </g>
+
+  <!-- ==============================================
+       HOTSPOT 7: c3_opium_lamp (30%, 46% -> x:117, y:322)
+       Carved Stool, Brass Opium Pipe & Glass Oil Lamp
+       ============================================== -->
+  <g id="art_c3_opium_stool" transform="translate(95, 280)">
+    <!-- Rosewood Corner Table -->
+    <polygon points="5,25 45,25 50,42 0,42" fill="#5C3F2B" stroke="#1F1B16" stroke-width="1.5"/>
+    <rect x="2" y="42" width="6" height="45" fill="#3D291C" stroke="#1F1B16" stroke-width="1.2"/>
+    <rect x="42" y="42" width="6" height="45" fill="#3D291C" stroke="#1F1B16" stroke-width="1.2"/>
+    <!-- Glass Chimney Opium Lamp (c3_opium_lamp) -->
+    <rect x="18" y="24" width="12" height="6" fill="#C49B4B" stroke="#1F1B16" stroke-width="1"/>
+    <!-- Glass chimney dome -->
+    <path d="M19 24 Q18 12 24 8 Q30 12 29 24 Z" fill="#FAF6EE" stroke="#1F1B16" stroke-width="1" opacity="0.8"/>
+    <!-- Tiny blue-and-gold flame -->
+    <ellipse cx="24" cy="18" rx="2" ry="3.5" fill="#E8C372"/>
+    <circle cx="24" cy="19" r="1.2" fill="#2E6B8A"/>
+    <!-- Long bamboo and brass opium smoking pipe -->
+    <line x1="12" y1="36" x2="42" y2="30" stroke="#8A6032" stroke-width="2.2"/>
+    <circle cx="42" cy="30" r="3.5" fill="#C49B4B" stroke="#1F1B16" stroke-width="1"/>
+  </g>
+
+  <!-- ==============================================
+       HOTSPOT 2: c3_dressing_mirror (52%, 35% -> x:202.8, y:245)
+       HOTSPOT 3: c3_teapot (64%, 54% -> x:249.6, y:378)
+       HOTSPOT 11: c3_half_eaten_snack (68%, 62% -> x:265.2, y:434)
+       Elaborate Three-Fold Vanity Mirror & Makeup Table
+       ============================================== -->
+  <g id="art_c3_vanity_mirror" transform="translate(140, 160)">
+    <!-- Vanity Light Halo Wash -->
+    <circle cx="65" cy="85" r="95" fill="url(#c3_vanityGlow)"/>
+
+    <!-- Three-Fold Mirror Rosewood Frame -->
+    <!-- Left Wing Mirror -->
+    <polygon points="5,45 25,35 25,140 5,135" fill="#6A808C" stroke="#1F1B16" stroke-width="1.8"/>
+    <!-- Right Wing Mirror -->
+    <polygon points="105,35 125,45 125,135 105,140" fill="#6A808C" stroke="#1F1B16" stroke-width="1.8"/>
+    <!-- Main Center Oval Mirror (c3_dressing_mirror at 52%, 35%) -->
+    <ellipse cx="65" cy="85" rx="36" ry="50" fill="#422E21" stroke="#1F1B16" stroke-width="2.5"/>
+    <ellipse cx="65" cy="85" rx="32" ry="46" fill="#8EA4B0" stroke="#C49B4B" stroke-width="1.5"/>
+    <!-- Mirror glass highlight reflection lines -->
+    <line x1="48" y1="55" x2="78" y2="115" stroke="#FAF6EE" stroke-width="2.5" opacity="0.6"/>
+    <line x1="56" y1="52" x2="84" y2="108" stroke="#FAF6EE" stroke-width="1" opacity="0.6"/>
+
+    <!-- Glowing Incandescent Bulbs around Vanity Mirror Frame -->
+    <g fill="#FFF5D6" stroke="#C49B4B" stroke-width="1.2">
+      <circle cx="28" cy="85" r="4.5"/>
+      <circle cx="34" cy="55" r="4.5"/>
+      <circle cx="50" cy="38" r="4.5"/>
+      <circle cx="65" cy="32" r="4.5"/>
+      <circle cx="80" cy="38" r="4.5"/>
+      <circle cx="96" cy="55" r="4.5"/>
+      <circle cx="102" cy="85" r="4.5"/>
+      <circle cx="96" cy="115" r="4.5"/>
+      <circle cx="34" cy="115" r="4.5"/>
+    </g>
+
+    <!-- Dressing Table Surface (Rosewood) -->
+    <polygon points="-10,140 140,140 130,175 -20,175" fill="#5C3F2B" stroke="#1F1B16" stroke-width="2"/>
+    <!-- Front Drawer Apron -->
+    <polygon points="-20,175 130,175 130,210 -20,210" fill="#422D1F" stroke="#1F1B16" stroke-width="2"/>
+    <!-- Half-open drawer with bird's nest snack (c3_half_eaten_snack at 68%, 62%) -->
+    <polygon points="65,182 125,182 135,215 75,215" fill="#2E1F16" stroke="#1F1B16" stroke-width="1.5"/>
+    <!-- Box of Bird's Nest Sweet Snack -->
+    <rect x="80" y="188" width="35" height="18" fill="#FAF6EE" stroke="#1F1B16" stroke-width="1"/>
+    <rect x="83" y="191" width="14" height="12" fill="#E8DEC8"/>
+    <!-- Silver dessert fork -->
+    <line x1="102" y1="192" x2="114" y2="202" stroke="#8A9297" stroke-width="1.2"/>
+
+    <!-- Tabletop Props: Cinnabar rouge pots & brush -->
+    <circle cx="15" cy="155" r="6" fill="#9A3B2C" stroke="#1F1B16" stroke-width="1"/>
+    <ellipse cx="32" cy="155" rx="5" ry="3" fill="#FAF6EE" stroke="#1F1B16" stroke-width="0.8"/>
+    <line x1="8" y1="165" x2="35" y2="162" stroke="#C49B4B" stroke-width="1.5"/>
+
+    <!-- Yixing Purple-Clay Teapot & Cup (c3_teapot at 64%, 54%) -->
+    <g transform="translate(100, 142)">
+      <!-- Celadon tray -->
+      <ellipse cx="8" cy="12" rx="16" ry="6" fill="#4F6F5F" stroke="#1F1B16" stroke-width="1"/>
+      <!-- Purple clay teapot -->
+      <ellipse cx="6" cy="7" rx="8" ry="6" fill="#5A2E28" stroke="#1F1B16" stroke-width="1.2"/>
+      <ellipse cx="6" cy="2" rx="4" ry="2" fill="#753C35" stroke="#1F1B16" stroke-width="0.8"/>
+      <!-- Bamboo overhead carrying handle -->
+      <path d="M-1 5 Q6 -4 13 5" fill="none" stroke="#C49B4B" stroke-width="1.2"/>
+      <!-- Spout -->
+      <path d="M-2 7 L-6 4" stroke="#5A2E28" stroke-width="2.5" stroke-linecap="round"/>
+      <!-- Matching small teacup -->
+      <ellipse cx="16" cy="11" rx="3.5" ry="2" fill="#5A2E28" stroke="#1F1B16" stroke-width="0.8"/>
+      <!-- Faint steam wisps -->
+      <path d="M-6 2 Q-10 -4 -6 -10" stroke="#FAF6EE" stroke-width="0.8" fill="none" opacity="0.5"/>
+    </g>
+  </g>
+
+  <!-- ==============================================
+       HOTSPOT 1: c3_victim (50%, 55% -> x:195, y:385)
+       Dry-Dan Opera Star Chu Wan-tin Slumped in Armchair
+       ============================================== -->
+  <g id="art_c3_victim" transform="translate(145, 330)">
+    <!-- Carved Rosewood Armchair back -->
+    <rect x="25" y="0" width="50" height="70" rx="4" fill="#3D291C" stroke="#1F1B16" stroke-width="2"/>
+    <circle cx="50" cy="12" r="6" fill="#C49B4B" stroke="#1F1B16" stroke-width="1"/>
+
+    <!-- Slumped Body in Silver-and-Cyan Embroidered Stage Costume -->
+    <!-- Torso slumped forward onto table -->
+    <ellipse cx="50" cy="55" rx="32" ry="24" fill="#2E6B66" stroke="#1F1B16" stroke-width="2"/>
+    <!-- Elaborate Silver Dragon embroidery on costume -->
+    <path d="M30 45 Q50 35 70 45 Q65 65 35 60" stroke="#FAF6EE" stroke-width="1.5" fill="none" opacity="0.85"/>
+    <circle cx="50" cy="50" r="3" fill="#C49B4B"/>
+    <!-- Flowing white silk water-sleeves trailing down -->
+    <path d="M22 65 Q18 95 10 115 Q25 110 32 85 Z" fill="#FAF6EE" stroke="#1F1B16" stroke-width="1.5"/>
+    <!-- Head slumped sideways on table arm -->
+    <ellipse cx="36" cy="38" rx="14" ry="12" fill="#E8DEC8" stroke="#1F1B16" stroke-width="1.5"/>
+    <!-- Elaborate opera hair coiled in net with silver pins -->
+    <path d="M24 35 Q30 22 46 28 Q44 42 24 35 Z" fill="#1F1B16"/>
+    <circle cx="28" cy="28" r="2.5" fill="#9A3B2C"/>
+  </g>
+
+  <!-- ==============================================
+       HOTSPOT 9: c3_hairpin (42%, 62% -> x:163.8, y:434)
+       Fallen Kingfisher Feather & Pearl Phoenix Hairpin
+       ============================================== -->
+  <g id="art_c3_hairpin" transform="translate(150, 420)">
+    <!-- Shadow on carpet -->
+    <ellipse cx="14" cy="15" rx="16" ry="6" fill="#1F1B16" opacity="0.4"/>
+    <!-- Silver Hairpin Stem -->
+    <line x1="0" y1="22" x2="25" y2="8" stroke="#8A9297" stroke-width="2"/>
+    <!-- Phoenix Head & Celadon Kingfisher Feather Inlay -->
+    <path d="M22 10 Q28 2 34 6 Q30 14 22 10 Z" fill="#248A7A" stroke="#1F1B16" stroke-width="1"/>
+    <!-- Dangling genuine pearls on fine gold chains (步搖) -->
+    <circle cx="32" cy="12" r="2" fill="#FAF6EE" stroke="#1F1B16" stroke-width="0.6"/>
+    <circle cx="34" cy="17" r="2" fill="#FAF6EE" stroke="#1F1B16" stroke-width="0.6"/>
+    <circle cx="36" cy="22" r="2.5" fill="#FAF6EE" stroke="#1F1B16" stroke-width="0.6"/>
+  </g>
+
+  <!-- ==============================================
+       HOTSPOT 4: c3_costume_trunk (22%, 62% -> x:85.8, y:434)
+       Stacked Black Leather Theatrical Costume Trunks
+       ============================================== -->
+  <g id="art_c3_trunks" transform="translate(40, 390)">
+    <!-- Bottom Heavy Trunk -->
+    <polygon points="0,35 80,25 80,85 0,95" fill="#2E231D" stroke="#1F1B16" stroke-width="2.2"/>
+    <!-- Reinforced Brass Ball Corners -->
+    <circle cx="3" cy="35" r="4" fill="#C49B4B" stroke="#1F1B16" stroke-width="1"/>
+    <circle cx="77" cy="25" r="4" fill="#C49B4B" stroke="#1F1B16" stroke-width="1"/>
+    <circle cx="3" cy="92" r="4" fill="#C49B4B" stroke="#1F1B16" stroke-width="1"/>
+    <circle cx="77" cy="82" r="4" fill="#C49B4B" stroke="#1F1B16" stroke-width="1"/>
+    <!-- Heavy Brass Trunk Lock -->
+    <rect x="35" y="45" width="12" height="16" fill="#C49B4B" stroke="#1F1B16" stroke-width="1.2"/>
+    <!-- Shipping label from Hong Kong / Canton -->
+    <polygon points="12,50 30,48 28,68 10,70" fill="#FAF6EE" stroke="#1F1B16" stroke-width="0.8"/>
+    <text x="20" y="60" font-size="4" font-family="sans-serif" font-weight="bold" fill="#9A3B2C">清平班</text>
+
+    <!-- Top Smaller Leather Trunk -->
+    <polygon points="5,0 72,-8 72,32 5,40" fill="#3D2E24" stroke="#1F1B16" stroke-width="2"/>
+    <circle cx="7" cy="1" r="3.5" fill="#C49B4B" stroke="#1F1B16" stroke-width="0.8"/>
+    <circle cx="70" cy="-7" r="3.5" fill="#C49B4B" stroke="#1F1B16" stroke-width="0.8"/>
+  </g>
+
+  <!-- ==============================================
+       HOTSPOT 6: c3_prop_weapons (82%, 64% -> x:319.8, y:448)
+       Timber Weapon Rack with Crossed Spears & Halberds
+       ============================================== -->
+  <g id="art_c3_weapons" transform="translate(295, 380)">
+    <!-- Heavy Timber Stand Frame -->
+    <rect x="15" y="60" width="40" height="12" fill="#5A3E2C" stroke="#1F1B16" stroke-width="2"/>
+    <rect x="20" y="20" width="8" height="50" fill="#3D281B" stroke="#1F1B16" stroke-width="1.5"/>
+    <rect x="42" y="20" width="8" height="50" fill="#3D281B" stroke="#1F1B16" stroke-width="1.5"/>
+
+    <!-- Red-Tasselled Red-Spears & Halberds (Crossed) -->
+    <!-- Spear 1 -->
+    <line x1="5" y1="80" x2="55" y2="0" stroke="#8A6032" stroke-width="3"/>
+    <polygon points="55,0 60,-12 50,-8" fill="#8A9297" stroke="#1F1B16" stroke-width="1.2"/>
+    <!-- Red horsehair tassel -->
+    <circle cx="52" cy="-3" r="5" fill="#9A3B2C"/>
+    <!-- Crescent Halberd 2 -->
+    <line x1="60" y1="80" x2="10" y2="0" stroke="#8A6032" stroke-width="3"/>
+    <polygon points="10,0 6,-14 14,-10" fill="#8A9297" stroke="#1F1B16" stroke-width="1.2"/>
+    <path d="M14 -10 Q24 -8 20 2 Q12 -2 14 -10 Z" fill="#8A9297" stroke="#1F1B16" stroke-width="1"/>
+    <circle cx="12" cy="-4" r="5" fill="#9A3B2C"/>
+  </g>
+
+  <!-- ==============================================
+       HOTSPOT 12: c3_backstage_door (88%, 75% -> x:343.2, y:525)
+       Heavy Timber Exit Door to Cheng Peng Straight Street
+       ============================================== -->
+  <g id="art_c3_backstage_door" transform="translate(325, 460)">
+    <!-- Doorway frame -->
+    <rect x="0" y="0" width="65" height="180" fill="#241913" stroke="#1F1B16" stroke-width="2.5"/>
+    <!-- Door leaf panels -->
+    <rect x="6" y="6" width="53" height="168" fill="#422C1D" stroke="#1F1B16" stroke-width="1.8"/>
+    <!-- Cast-iron crossbars -->
+    <rect x="6" y="35" width="53" height="10" fill="#1F1B16"/>
+    <rect x="6" y="125" width="53" height="10" fill="#1F1B16"/>
+    <!-- Heavy Iron Bolt & Brass Padlock (c3_backstage_door at 88%, 75%) -->
+    <rect x="18" y="75" width="22" height="12" fill="#1F1B16" stroke="#8A9297" stroke-width="1.2"/>
+    <line x1="12" y1="81" x2="35" y2="81" stroke="#8A9297" stroke-width="3"/>
+    <rect x="22" y="90" width="12" height="14" fill="#C49B4B" stroke="#1F1B16" stroke-width="1.2"/>
+  </g>
+
+  <!-- Overall Archival Paper Border & Vignette Frame -->
+  <rect x="1" y="1" width="388" height="698" fill="none" stroke="#1F1B16" stroke-width="2"/>
+  <rect x="4" y="4" width="382" height="692" fill="none" stroke="#9A3B2C" stroke-width="0.8" opacity="0.6"/>
+</svg>

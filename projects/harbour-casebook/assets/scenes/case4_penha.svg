@@ -1,0 +1,375 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 700" width="100%" height="100%" class="case-scene-svg">
+  <defs>
+    <!-- Mid-Autumn Nocturnal Penha Sky Gradient -->
+    <linearGradient id="c4_skyWash" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0E1724"/>
+      <stop offset="40%" stop-color="#1A283B"/>
+      <stop offset="70%" stop-color="#283A4F"/>
+      <stop offset="100%" stop-color="#41566B"/>
+    </linearGradient>
+    <!-- Portuguese Calçada Wave Mosaic Pattern -->
+    <pattern id="c4_calcada" width="28" height="18" patternUnits="userSpaceOnUse">
+      <rect width="28" height="18" fill="#F4EDE2"/>
+      <path d="M0 9 Q7 0 14 9 T28 9" stroke="#1F1B16" stroke-width="3.2" fill="none"/>
+      <path d="M0 18 Q7 9 14 18 T28 18" stroke="#1F1B16" stroke-width="3.2" fill="none"/>
+    </pattern>
+    <!-- Full Moon Glow -->
+    <radialGradient id="c4_moonGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFDF5" stop-opacity="0.95"/>
+      <stop offset="25%" stop-color="#F4E8C1" stop-opacity="0.6"/>
+      <stop offset="60%" stop-color="#E8C372" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#0E1724" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="c4_marbleShadow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1F1B16" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#1F1B16" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Deep Nocturnal Sky -->
+  <rect width="390" height="360" fill="url(#c4_skyWash)"/>
+
+  <!-- Mid-Autumn Radiant Full Moon (Upper Right) -->
+  <circle cx="280" cy="85" r="45" fill="url(#c4_moonGlow)"/>
+  <circle cx="280" cy="85" r="22" fill="#FFFDF5" stroke="#F4EDE2" stroke-width="1.5"/>
+  <!-- Moon sea/crater texture -->
+  <ellipse cx="274" cy="80" rx="6" ry="4" fill="#E2D4B7" opacity="0.45"/>
+  <ellipse cx="286" cy="88" rx="8" ry="5" fill="#E2D4B7" opacity="0.45"/>
+
+  <!-- Moonlit Silver Cloud Wisps -->
+  <path d="M160 85 Q220 70 280 82 T380 75" stroke="#FAF6EE" stroke-width="1.8" fill="none" opacity="0.35"/>
+  <path d="M220 100 Q270 92 320 98 T390 92" stroke="#FAF6EE" stroke-width="1.2" fill="none" opacity="0.25"/>
+
+  <!-- Panoramic View of Macau Harbour & Taipa Hills in Distance -->
+  <path d="M120 170 Q240 145 390 160 L390 280 L120 280 Z" fill="#182330" opacity="0.8"/>
+  <!-- Twinkling harbour lights & junk boat lanterns -->
+  <circle cx="250" cy="180" r="1.5" fill="#FFEAA7"/>
+  <circle cx="290" cy="185" r="1.2" fill="#FFEAA7"/>
+  <circle cx="340" cy="178" r="1.5" fill="#FFEAA7"/>
+  <circle cx="370" cy="182" r="1.2" fill="#FFEAA7"/>
+
+  <!-- Mountain Slope Trees (Cypress & Banyan Silhouettes) -->
+  <path d="M0 240 Q60 210 120 230 L120 380 L0 380 Z" fill="#131C18"/>
+  <ellipse cx="40" cy="210" rx="22" ry="38" fill="#1B2922"/>
+  <ellipse cx="80" cy="225" rx="26" ry="32" fill="#16241C"/>
+
+  <!-- ==============================================
+       HOTSPOT 2: c4_spire_chapel (24%, 24% -> x:93.6, y:168)
+       Penha Chapel Granite Spire, Belfry & Stone Cross
+       ============================================== -->
+  <g id="art_c4_chapel" transform="translate(45, 60)">
+    <!-- Granite Belfry Tower Structure -->
+    <polygon points="35,160 65,160 60,65 40,65" fill="#756D60" stroke="#1F1B16" stroke-width="2.2"/>
+    <!-- Masonry stone block lines -->
+    <g stroke="#4A443A" stroke-width="0.8">
+      <line x1="39" y1="85" x2="61" y2="85"/>
+      <line x1="38" y1="105" x2="62" y2="105"/>
+      <line x1="37" y1="125" x2="63" y2="125"/>
+      <line x1="36" y1="145" x2="64" y2="145"/>
+    </g>
+    <!-- Pointed Gothic Arch Louvered Windows (c4_spire_chapel at 24%, 24%) -->
+    <path d="M44 110 L44 85 Q50 72 56 85 L56 110 Z" fill="#24221F" stroke="#1F1B16" stroke-width="1.5"/>
+    <line x1="44" y1="92" x2="56" y2="92" stroke="#C49B4B" stroke-width="1"/>
+    <line x1="44" y1="98" x2="56" y2="98" stroke="#C49B4B" stroke-width="1"/>
+    <line x1="44" y1="104" x2="56" y2="104" stroke="#C49B4B" stroke-width="1"/>
+    <!-- Belfry Cornice Molding -->
+    <rect x="36" y="60" width="28" height="6" fill="#8C8374" stroke="#1F1B16" stroke-width="1.5"/>
+    <!-- Tall Octagonal Neo-Gothic Granite Spire -->
+    <polygon points="38,60 50,5 62,60" fill="#5A5245" stroke="#1F1B16" stroke-width="2"/>
+    <line x1="50" y1="5" x2="50" y2="60" stroke="#1F1B16" stroke-width="1.2"/>
+    <!-- Granite Cross on Apex -->
+    <line x1="50" y1="0" x2="50" y2="8" stroke="#1F1B16" stroke-width="1.8"/>
+    <line x1="46" y1="3" x2="54" y2="3" stroke="#1F1B16" stroke-width="1.8"/>
+
+    <!-- Chapel Nave Buttress -->
+    <polygon points="65,160 110,160 110,110 65,95" fill="#5E5649" stroke="#1F1B16" stroke-width="2"/>
+    <path d="M78 140 L78 120 Q86 110 94 120 L94 140 Z" fill="#2E4A66" stroke="#1F1B16" stroke-width="1.2"/>
+  </g>
+
+  <!-- ==============================================
+       HOTSPOT 3: c4_balustrade (72%, 45% -> x:280.8, y:315)
+       HOTSPOT 9: c4_telescope (82%, 42% -> x:319.8, y:294)
+       Portuguese Carved Granite Balustrade & Brass Telescope
+       ============================================== -->
+  <g id="art_c4_balustrade" transform="translate(190, 260)">
+    <!-- Balustrade Handrail in perspective -->
+    <polygon points="0,55 190,25 190,35 0,65" fill="#8C8374" stroke="#1F1B16" stroke-width="2"/>
+    <!-- Classical Turned Granite Balusters (c4_balustrade at 72%, 45%) -->
+    <g fill="#756D60" stroke="#1F1B16" stroke-width="1.2">
+      <rect x="15" y="65" width="8" height="35"/>
+      <circle cx="19" cy="80" r="5"/>
+      <rect x="45" y="58" width="8" height="35"/>
+      <circle cx="49" cy="73" r="5"/>
+      <rect x="75" y="52" width="8" height="35"/>
+      <circle cx="79" cy="67" r="5"/>
+      <rect x="105" y="46" width="8" height="35"/>
+      <circle cx="109" cy="61" r="5"/>
+      <rect x="135" y="40" width="8" height="35"/>
+      <circle cx="139" cy="55" r="5"/>
+      <rect x="165" y="34" width="8" height="35"/>
+      <circle cx="169" cy="49" r="5"/>
+    </g>
+    <!-- Balustrade Base plinth curb -->
+    <polygon points="0,100 190,68 190,82 0,114" fill="#5E5649" stroke="#1F1B16" stroke-width="2"/>
+
+    <!-- Brass Astronomical Telescope on Mahogany Tripod (c4_telescope at 82%, 42%) -->
+    <g transform="translate(125, -5)">
+      <!-- Mahogany tripod legs -->
+      <line x1="12" y1="42" x2="0" y2="85" stroke="#5A3A22" stroke-width="2.5"/>
+      <line x1="12" y1="42" x2="16" y2="82" stroke="#5A3A22" stroke-width="2"/>
+      <line x1="12" y1="42" x2="30" y2="80" stroke="#5A3A22" stroke-width="2.5"/>
+      <!-- Brass altitude-azimuth mount -->
+      <circle cx="12" cy="42" r="4.5" fill="#C49B4B" stroke="#1F1B16" stroke-width="1.2"/>
+      <!-- Main Brass Telescope Barrel pointing toward harbour -->
+      <polygon points="-8,48 38,32 39,38 -7,54" fill="#C49B4B" stroke="#1F1B16" stroke-width="1.5"/>
+      <!-- Objective lens dew shield & cap -->
+      <rect x="36" y="30" width="6" height="12" fill="#E8C372" stroke="#1F1B16" stroke-width="1"/>
+      <ellipse cx="42" cy="36" rx="2" ry="5" fill="#8EA4B0" stroke="#1F1B16" stroke-width="0.8"/>
+      <!-- Eyepiece optical tube -->
+      <rect x="-14" y="48" width="8" height="5" fill="#C49B4B" stroke="#1F1B16" stroke-width="1"/>
+    </g>
+  </g>
+
+  <!-- Garden Terrace: Portuguese Calçada Stone Mosaic (Wave pattern) -->
+  <polygon points="0,350 390,320 390,700 0,700" fill="url(#c4_calcada)" stroke="#1F1B16" stroke-width="2.5"/>
+
+  <!-- ==============================================
+       HOTSPOT 10: c4_iron_gate (18%, 68% -> x:70.2, y:476)
+       Ornate Victorian Black Wrought-Iron Estate Gate
+       ============================================== -->
+  <g id="art_c4_iron_gate" transform="translate(20, 390)">
+    <!-- Granite gate pillar -->
+    <rect x="0" y="20" width="22" height="150" fill="#756D60" stroke="#1F1B16" stroke-width="2.2"/>
+    <ellipse cx="11" cy="20" rx="14" ry="6" fill="#8C8374" stroke="#1F1B16" stroke-width="1.5"/>
+    <!-- Granite stone sphere on pillar cap -->
+    <circle cx="11" cy="10" r="9" fill="#8C8374" stroke="#1F1B16" stroke-width="1.5"/>
+
+    <!-- Wrought Iron Gate Leaf Standing Ajar (c4_iron_gate at 18%, 68%) -->
+    <polygon points="22,35 78,55 78,175 22,165" fill="none" stroke="#1F1B16" stroke-width="2.2"/>
+    <!-- Scrollwork filigree and vertical railings -->
+    <g stroke="#1F1B16" stroke-width="1.5">
+      <line x1="33" y1="39" x2="33" y2="167"/>
+      <line x1="45" y1="43" x2="45" y2="169"/>
+      <line x1="56" y1="47" x2="56" y2="171"/>
+      <line x1="67" y1="51" x2="67" y2="173"/>
+      <!-- Spearhead finials -->
+      <polygon points="33,39 30,30 36,30" fill="#1F1B16"/>
+      <polygon points="45,43 42,34 48,34" fill="#1F1B16"/>
+      <polygon points="56,47 53,38 59,38" fill="#1F1B16"/>
+      <polygon points="67,51 64,42 70,42" fill="#1F1B16"/>
+    </g>
+    <!-- Heavy iron lock latch swung open -->
+    <rect x="68" y="105" width="10" height="15" fill="#1F1B16"/>
+  </g>
+
+  <!-- ==============================================
+       HOTSPOT 4: c4_fountain (46%, 56% -> x:179.4, y:392)
+       HOTSPOT 7: c4_broken_cufflink (44%, 68% -> x:171.6, y:476)
+       HOTSPOT 12: c4_blood_drips (48%, 70% -> x:187.2, y:490)
+       Three-Tiered Italian Marble Angel Fountain & Stone Basin
+       ============================================== -->
+  <g id="art_c4_fountain" transform="translate(115, 305)">
+    <!-- Shadow on calçada pavement -->
+    <ellipse cx="65" cy="145" rx="65" ry="24" fill="#1F1B16" opacity="0.4"/>
+
+    <!-- Octagonal Stone Basin Plinth -->
+    <polygon points="10,135 120,135 138,155 -8,155" fill="#B3A898" stroke="#1F1B16" stroke-width="2.5"/>
+    <polygon points="-8,155 138,155 134,170 -12,170" fill="#8C8172" stroke="#1F1B16" stroke-width="2"/>
+    <!-- Water in Basin with ripples -->
+    <ellipse cx="65" cy="138" rx="55" ry="14" fill="#4F6F5F" stroke="#1F1B16" stroke-width="1.8"/>
+
+    <!-- Fountain Pedestal Column -->
+    <rect x="56" y="80" width="18" height="55" fill="#D3C9B8" stroke="#1F1B16" stroke-width="1.8"/>
+    <!-- Lower Scalloped Marble Basin Tier -->
+    <ellipse cx="65" cy="80" rx="38" ry="12" fill="#E8DEC8" stroke="#1F1B16" stroke-width="2"/>
+    <ellipse cx="65" cy="78" rx="34" ry="10" fill="#6A8F7D" stroke="#1F1B16" stroke-width="1"/>
+
+    <!-- Middle Pedestal Column -->
+    <rect x="58" y="45" width="14" height="35" fill="#D3C9B8" stroke="#1F1B16" stroke-width="1.5"/>
+    <!-- Upper Marble Basin Tier -->
+    <ellipse cx="65" cy="45" rx="22" ry="7" fill="#E8DEC8" stroke="#1F1B16" stroke-width="1.8"/>
+    <ellipse cx="65" cy="44" rx="19" ry="5.5" fill="#6A8F7D" stroke="#1F1B16" stroke-width="0.8"/>
+
+    <!-- Top Sculpted Marble Cherub Spout (c4_fountain at 46%, 56%) -->
+    <g transform="translate(56, 12)">
+      <circle cx="9" cy="8" r="6" fill="#FAF6EE" stroke="#1F1B16" stroke-width="1.2"/>
+      <polygon points="5,14 13,14 11,28 7,28" fill="#FAF6EE" stroke="#1F1B16" stroke-width="1.2"/>
+      <!-- Cherub wing -->
+      <path d="M4 16 Q-6 10 -2 20 Z" fill="#E8DEC8" stroke="#1F1B16" stroke-width="1"/>
+      <!-- Urn spout & water stream -->
+      <ellipse cx="9" cy="5" rx="3" ry="4" fill="#C49B4B"/>
+      <!-- Splashing fountain water streams -->
+      <path d="M9 2 Q9 -8 18 10" stroke="#FAF6EE" stroke-width="1.5" fill="none"/>
+      <path d="M9 2 Q9 -8 0 10" stroke="#FAF6EE" stroke-width="1.5" fill="none"/>
+    </g>
+
+    <!-- Moss on fountain step & Broken Cufflink (c4_broken_cufflink at 44%, 68%) -->
+    <g transform="translate(52, 160)">
+      <!-- Green moss patch -->
+      <ellipse cx="4" cy="5" rx="10" ry="4" fill="#3D5A40" opacity="0.8"/>
+      <!-- Gold Portuguese Coat-of-Arms Cufflink -->
+      <circle cx="4" cy="4" r="3.5" fill="#C49B4B" stroke="#1F1B16" stroke-width="0.9"/>
+      <!-- Quinas shield crest -->
+      <polygon points="4,2 6,4 4,6 2,4" fill="#9A3B2C"/>
+      <!-- Broken toggle post -->
+      <line x1="6" y1="5" x2="9" y2="8" stroke="#C49B4B" stroke-width="1"/>
+    </g>
+
+    <!-- Dark Blood Dripping onto Step & Flags (c4_blood_drips at 48%, 70%) -->
+    <g transform="translate(68, 165)">
+      <circle cx="3" cy="4" r="2.5" fill="#821C14"/>
+      <circle cx="10" cy="8" r="2" fill="#821C14"/>
+      <circle cx="16" cy="14" r="1.8" fill="#821C14"/>
+      <circle cx="22" cy="22" r="2.2" fill="#821C14"/>
+    </g>
+  </g>
+
+  <!-- ==============================================
+       HOTSPOT 6: c4_champagne_table (76%, 58% -> x:296.4, y:406)
+       White Cast-Iron Garden Table, Champagne & Coupes
+       ============================================== -->
+  <g id="art_c4_champagne" transform="translate(265, 370)">
+    <!-- Cast-Iron Tabletop -->
+    <ellipse cx="30" cy="25" rx="28" ry="12" fill="#FAF6EE" stroke="#1F1B16" stroke-width="2"/>
+    <ellipse cx="30" cy="25" rx="24" ry="10" fill="#E8DEC8" stroke="#1F1B16" stroke-width="1"/>
+    <!-- Wrought Iron Scrollwork Legs -->
+    <path d="M12 34 Q8 60 4 80" stroke="#1F1B16" stroke-width="2" fill="none"/>
+    <path d="M48 34 Q52 60 56 80" stroke="#1F1B16" stroke-width="2" fill="none"/>
+    <circle cx="30" cy="55" r="5" fill="none" stroke="#1F1B16" stroke-width="1.5"/>
+
+    <!-- Silver Ice Bucket with French Champagne -->
+    <polygon points="22,14 38,14 36,30 24,30" fill="#C5CFD6" stroke="#1F1B16" stroke-width="1.2"/>
+    <!-- Champagne bottle neck protruding from ice -->
+    <polygon points="28,2 32,2 33,14 27,14" fill="#2E4A38" stroke="#1F1B16" stroke-width="1"/>
+    <!-- Gold foil on neck -->
+    <rect x="28" y="2" width="4" height="5" fill="#C49B4B"/>
+    <!-- Crystal champagne flutes -->
+    <line x1="14" y1="20" x2="14" y2="28" stroke="#1F1B16" stroke-width="0.8"/>
+    <polygon points="12,14 16,14 14,20" fill="#FAF6EE" stroke="#1F1B16" stroke-width="0.8" opacity="0.8"/>
+    <line x1="45" y1="22" x2="45" y2="30" stroke="#1F1B16" stroke-width="0.8"/>
+    <polygon points="43,16 47,16 45,22" fill="#FAF6EE" stroke="#1F1B16" stroke-width="0.8" opacity="0.8"/>
+  </g>
+
+  <!-- ==============================================
+       HOTSPOT 1: c4_victim (52%, 62% -> x:202.8, y:434)
+       Colonial Advisor Menezes Fallen Beside Fountain
+       ============================================== -->
+  <g id="art_c4_victim" transform="translate(170, 405)">
+    <!-- Pool of dark blood spreading on calçada -->
+    <path d="M15 35 Q45 22 75 32 Q95 45 80 58 Q45 65 15 35 Z" fill="#6A1812" opacity="0.85"/>
+    <path d="M25 36 Q45 28 65 34 Q80 44 70 52 Q45 56 25 36 Z" fill="#4A100C" opacity="0.95"/>
+
+    <!-- Slumped Body in Black Formal Dinner Jacket (Tuxedo) -->
+    <ellipse cx="48" cy="34" rx="28" ry="16" fill="#1C1B1A" stroke="#1F1B16" stroke-width="2"/>
+    <!-- Crisp White Pleated Tuxedo Shirt Front -->
+    <polygon points="44,24 54,24 50,38" fill="#FAF6EE" stroke="#1F1B16" stroke-width="1"/>
+    <!-- Black silk bow tie -->
+    <polygon points="46,24 52,24 49,26" fill="#1F1B16"/>
+    <!-- Red Carnation Boutonniere in Lapel -->
+    <circle cx="40" cy="27" r="2.5" fill="#9A3B2C"/>
+    <!-- Outstretched Arm -->
+    <path d="M68 34 L92 42 L90 46 L66 38 Z" fill="#1C1B1A" stroke="#1F1B16" stroke-width="1.2"/>
+    <!-- Hand on calçada flags -->
+    <circle cx="95" cy="44" r="4.5" fill="#D3C5B4" stroke="#1F1B16" stroke-width="0.9"/>
+    <!-- Head fallen back against fountain plinth -->
+    <ellipse cx="26" cy="28" rx="12" ry="11" fill="#D3C5B4" stroke="#1F1B16" stroke-width="1.2"/>
+    <path d="M18 24 Q24 16 34 20 Q30 32 18 24 Z" fill="#423E3A"/>
+  </g>
+
+  <!-- ==============================================
+       HOTSPOT 5: c4_walther_gun (64%, 66% -> x:249.6, y:462)
+       Walther PPK Pistol Caught in Dark Red Rose Bushes
+       ============================================== -->
+  <g id="art_c4_rose_gun" transform="translate(225, 430)">
+    <!-- Thorny Rose Bush Cluster -->
+    <path d="M10 40 Q25 10 45 25 Q65 15 80 45 Q70 65 40 60 Q15 65 10 40 Z" fill="#1C2D20" stroke="#1F1B16" stroke-width="1.5"/>
+    <!-- Dark red mid-autumn blooming roses -->
+    <circle cx="28" cy="25" r="7" fill="#821C14" stroke="#1F1B16" stroke-width="1"/>
+    <circle cx="58" cy="28" r="8" fill="#9A2218" stroke="#1F1B16" stroke-width="1"/>
+    <circle cx="42" cy="45" r="7.5" fill="#6A1610" stroke="#1F1B16" stroke-width="1"/>
+    <!-- Rose Thorns on Stems -->
+    <g stroke="#1F1B16" stroke-width="1.2">
+      <line x1="20" y1="35" x2="35" y2="45"/>
+      <line x1="50" y1="35" x2="65" y2="50"/>
+    </g>
+
+    <!-- Walther PPK Blued-Steel Pistol (c4_walther_gun at 64%, 66%) -->
+    <g transform="translate(24, 28) rotate(-22)">
+      <!-- Slide barrel -->
+      <rect x="0" y="0" width="22" height="7" rx="1" fill="#2E343A" stroke="#1F1B16" stroke-width="1.5"/>
+      <!-- Muzzle bore -->
+      <circle cx="0" cy="3.5" r="1.5" fill="#1F1B16"/>
+      <!-- Serrations on slide -->
+      <line x1="16" y1="1" x2="16" y2="6" stroke="#1F1B16" stroke-width="0.8"/>
+      <line x1="18" y1="1" x2="18" y2="6" stroke="#1F1B16" stroke-width="0.8"/>
+      <line x1="20" y1="1" x2="20" y2="6" stroke="#1F1B16" stroke-width="0.8"/>
+      <!-- Trigger guard & hammer -->
+      <path d="M8 7 Q14 12 14 7" fill="none" stroke="#1F1B16" stroke-width="1.2"/>
+      <path d="M22 2 Q25 4 23 7" stroke="#1F1B16" stroke-width="1.2" fill="none"/>
+      <!-- Grip handle with checkered stock -->
+      <polygon points="12,7 24,7 22,22 8,20" fill="#1C1814" stroke="#1F1B16" stroke-width="1.5"/>
+      <circle cx="16" cy="14" r="2.5" fill="#C49B4B" stroke="#1F1B16" stroke-width="0.6"/>
+    </g>
+  </g>
+
+  <!-- ==============================================
+       HOTSPOT 8: c4_footprints_mud (34%, 72% -> x:132.6, y:504)
+       Military Combat Boot Footprints in Muddy Verge
+       ============================================== -->
+  <g id="art_c4_bootprints" stroke="#1F1B16" stroke-width="0.8">
+    <!-- Muddy grass verge border -->
+    <path d="M80 470 Q120 460 160 480" stroke="#4A3F2C" stroke-width="14" fill="none" opacity="0.6"/>
+
+    <!-- Combat boot print 1 (deep commando lug sole) -->
+    <g transform="translate(115, 475) rotate(42)">
+      <polygon points="-4,-10 4,-10 5,6 -5,6" fill="#3D2E20" opacity="0.9"/>
+      <polygon points="-4,8 4,8 3,14 -3,14" fill="#3D2E20" opacity="0.9"/>
+      <!-- Deep chevron tread pattern -->
+      <line x1="-3" y1="-6" x2="3" y2="-6" stroke="#1A120B" stroke-width="1"/>
+      <line x1="-3" y1="-2" x2="3" y2="-2" stroke="#1A120B" stroke-width="1"/>
+      <line x1="-3" y1="2" x2="3" y2="2" stroke="#1A120B" stroke-width="1"/>
+    </g>
+    <!-- Combat boot print 2 (c4_footprints_mud at 34%, 72%) -->
+    <g transform="translate(133, 504) rotate(48)">
+      <polygon points="-4,-10 4,-10 5,6 -5,6" fill="#3D2E20" opacity="0.9"/>
+      <polygon points="-4,8 4,8 3,14 -3,14" fill="#3D2E20" opacity="0.9"/>
+      <line x1="-3" y1="-6" x2="3" y2="-6" stroke="#1A120B" stroke-width="1"/>
+      <line x1="-3" y1="-2" x2="3" y2="-2" stroke="#1A120B" stroke-width="1"/>
+      <line x1="-3" y1="2" x2="3" y2="2" stroke="#1A120B" stroke-width="1"/>
+    </g>
+    <!-- Combat boot print 3 toward gate -->
+    <g transform="translate(150, 535) rotate(55)">
+      <polygon points="-4,-10 4,-10 5,6 -5,6" fill="#3D2E20" opacity="0.85"/>
+      <polygon points="-4,8 4,8 3,14 -3,14" fill="#3D2E20" opacity="0.85"/>
+    </g>
+  </g>
+
+  <!-- ==============================================
+       HOTSPOT 11: c4_letter_ashes (60%, 74% -> x:234, y:518)
+       Charred Secret Letter Fragments & Smoldering Ashes
+       ============================================== -->
+  <g id="art_c4_letter_ashes" transform="translate(215, 495)">
+    <!-- Soil bed curb -->
+    <path d="M-10 25 Q20 18 55 25" stroke="#5C4533" stroke-width="12" fill="none" opacity="0.7"/>
+
+    <!-- Heap of Charred Black Paper Ashes (c4_letter_ashes at 60%, 74%) -->
+    <ellipse cx="20" cy="24" rx="18" ry="8" fill="#1C1814" stroke="#1F1B16" stroke-width="1.2"/>
+    <ellipse cx="18" cy="22" rx="12" ry="5" fill="#2E2822"/>
+
+    <!-- Half-burned typed official letter fragment -->
+    <polygon points="12,14 30,12 28,24 8,22" fill="#FAF6EE" stroke="#1F1B16" stroke-width="0.8"/>
+    <!-- Charred curled black edges -->
+    <path d="M26 12 Q32 16 28 24 Q24 22 26 12 Z" fill="#1F1B16"/>
+    <!-- Typewriter text lines on fragment -->
+    <line x1="12" y1="16" x2="22" y2="15" stroke="#1F1B16" stroke-width="0.6"/>
+    <line x1="11" y1="19" x2="24" y2="18" stroke="#1F1B16" stroke-width="0.6"/>
+    <!-- Colonial Governor red wax seal fragment -->
+    <circle cx="16" cy="18" r="2.5" fill="#9A3B2C"/>
+    <!-- Glowing orange ember spark -->
+    <circle cx="28" cy="24" r="1.2" fill="#D35400"/>
+  </g>
+
+  <!-- Overall Archival Paper Border & Vignette Frame -->
+  <rect x="1" y="1" width="388" height="698" fill="none" stroke="#1F1B16" stroke-width="2"/>
+  <rect x="4" y="4" width="382" height="692" fill="none" stroke="#9A3B2C" stroke-width="0.8" opacity="0.6"/>
+</svg>

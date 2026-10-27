@@ -1,6 +1,17 @@
 {
   "projects": [
     {
+      "id": "harbour-casebook",
+      "title": "濠江疑案",
+      "subtitle": "Harbour Casebook",
+      "category": "推理遊戲",
+      "description": "1962 年澳門內港：逐格搜證、收集字詞、親手拼出真相的推理解謎遊戲。",
+      "accent": "#9A3B2C",
+      "path": "projects/harbour-casebook/",
+      "added": "2026-10-28",
+      "cover": "projects/harbour-casebook/cover/cover.webp"
+    },
+    {
       "id": "lantern-watch",
       "title": "燈影軍略",
       "subtitle": "Lantern Tactics",

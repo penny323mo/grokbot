@@ -1,0 +1,435 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 700" width="100%" height="100%" class="case-scene-svg">
+  <defs>
+    <!-- Paper grain wash -->
+    <linearGradient id="c1_wallWash" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E2D7C4"/>
+      <stop offset="60%" stop-color="#EDE2CF"/>
+      <stop offset="100%" stop-color="#DDCFBA"/>
+    </linearGradient>
+    <linearGradient id="c1_floorWash" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#C5B8A3"/>
+      <stop offset="100%" stop-color="#8F826E"/>
+    </linearGradient>
+    <!-- Portuguese Azulejos Pattern -->
+    <pattern id="c1_azulejos" width="20" height="20" patternUnits="userSpaceOnUse">
+      <rect width="20" height="20" fill="#F4EDE2" stroke="#2E4B66" stroke-width="0.7"/>
+      <circle cx="10" cy="10" r="5" fill="none" stroke="#2E4B66" stroke-width="0.7"/>
+      <polygon points="10,2 12,8 18,10 12,12 10,18 8,12 2,10 8,8" fill="#2E4B66" opacity="0.4"/>
+    </pattern>
+    <!-- Shadow Gradient -->
+    <radialGradient id="c1_dropShadow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1F1B16" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#1F1B16" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="c1_lampGlow" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#FFF5D6" stop-opacity="0.85"/>
+      <stop offset="40%" stop-color="#F4E8C1" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#1F1B16" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background Back Wall -->
+  <rect width="390" height="700" fill="url(#c1_wallWash)"/>
+
+  <!-- Timber Ceiling & Receding Joists (Perspective vanishing point near x:195, y:280) -->
+  <polygon points="0,0 390,0 390,105 0,105" fill="#3D2B1F"/>
+  <line x1="0" y1="105" x2="390" y2="105" stroke="#1F1B16" stroke-width="2.5"/>
+  <!-- Beams -->
+  <line x1="0" y1="20" x2="390" y2="20" stroke="#1F1B16" stroke-width="1.2"/>
+  <line x1="0" y1="50" x2="390" y2="50" stroke="#1F1B16" stroke-width="1.2"/>
+  <line x1="0" y1="80" x2="390" y2="80" stroke="#1F1B16" stroke-width="1.2"/>
+  <!-- Transverse rafter brackets -->
+  <g stroke="#1F1B16" stroke-width="1" fill="#2E1F16">
+    <rect x="30" y="80" width="16" height="25"/>
+    <rect x="90" y="80" width="16" height="25"/>
+    <rect x="284" y="80" width="16" height="25"/>
+    <rect x="344" y="80" width="16" height="25"/>
+  </g>
+
+  <!-- Portuguese Azulejos Frieze across upper wall -->
+  <rect x="0" y="105" width="390" height="20" fill="url(#c1_azulejos)"/>
+  <line x1="0" y1="125" x2="390" y2="125" stroke="#1F1B16" stroke-width="1.8"/>
+
+  <!-- Historic Pawnshop Signboard (德生大押) -->
+  <g transform="translate(125, 22)">
+    <!-- Bat-and-coin stylized frame -->
+    <rect x="0" y="0" width="140" height="68" rx="4" fill="#1F1B16" stroke="#9A3B2C" stroke-width="2.5"/>
+    <rect x="4" y="4" width="132" height="60" rx="2" fill="#352419" stroke="#C49B4B" stroke-width="1"/>
+    <!-- Bat wing silhouette accents -->
+    <path d="M10 10 Q25 4 40 10 L40 14 Q25 8 10 14 Z" fill="#C49B4B" opacity="0.8"/>
+    <path d="M130 10 Q115 4 100 10 L100 14 Q115 8 130 14 Z" fill="#C49B4B" opacity="0.8"/>
+    <text x="70" y="48" font-family="'Noto Serif CJK TC', 'Noto Serif TC', serif" font-size="28" font-weight="900" fill="#C49B4B" text-anchor="middle" letter-spacing="4">德生大押</text>
+    <text x="70" y="18" font-family="'Noto Sans TC', sans-serif" font-size="7.5" fill="#E8DEC8" text-anchor="middle" letter-spacing="1">光緒廿九年立 · 內港總號</text>
+  </g>
+
+  <!-- Ceiling Brass Chain & Green Enamel Pendant Lamp -->
+  <line x1="195" y1="0" x2="195" y2="140" stroke="#1F1B16" stroke-width="1.5"/>
+  <!-- Lamp shade -->
+  <path d="M170 152 L220 152 L212 140 L178 140 Z" fill="#2E4A3E" stroke="#1F1B16" stroke-width="1.5"/>
+  <ellipse cx="195" cy="152" rx="25" ry="5" fill="#FAF6EE" stroke="#1F1B16" stroke-width="1"/>
+  <!-- Golden light wash cone -->
+  <polygon points="170,152 220,152 350,560 40,560" fill="url(#c1_lampGlow)" opacity="0.6"/>
+
+  <!-- Left Side Wall (Perspective receding: x:0..90, y:125..700) -->
+  <polygon points="0,125 90,260 90,700 0,700" fill="#C5B7A0" stroke="#1F1B16" stroke-width="1.5"/>
+  <!-- Brick course hatching on side wall -->
+  <g stroke="#8A7A66" stroke-width="0.8" opacity="0.6">
+    <line x1="0" y1="160" x2="25" y2="198"/>
+    <line x1="0" y1="210" x2="55" y2="292"/>
+    <line x1="0" y1="260" x2="90" y2="395"/>
+    <line x1="0" y1="320" x2="90" y2="455"/>
+    <line x1="0" y1="390" x2="90" y2="525"/>
+    <line x1="0" y1="470" x2="90" y2="605"/>
+  </g>
+
+  <!-- Perspective Stone Tile Floor (Oblique 3/4 vanishing orthogonals) -->
+  <polygon points="90,260 390,260 390,700 90,700" fill="url(#c1_floorWash)"/>
+  <!-- Oblique 3/4 Floor Tile Lines (Angle matching desk & safe recession) -->
+  <g stroke="#1F1B16" stroke-width="0.9" opacity="0.45">
+    <!-- Orthogonals receding to vanishing point -->
+    <line x1="120" y1="260" x2="85" y2="700"/>
+    <line x1="170" y1="260" x2="145" y2="700"/>
+    <line x1="225" y1="260" x2="215" y2="700"/>
+    <line x1="280" y1="260" x2="285" y2="700"/>
+    <line x1="335" y1="260" x2="355" y2="700"/>
+    <!-- Angled Transverse Paver Joints in 3/4 Perspective -->
+    <line x1="90" y1="290" x2="390" y2="330"/>
+    <line x1="90" y1="340" x2="390" y2="395"/>
+    <line x1="90" y1="400" x2="390" y2="470"/>
+    <line x1="90" y1="475" x2="390" y2="560"/>
+    <line x1="90" y1="565" x2="390" y2="665"/>
+  </g>
+
+  <!-- ==============================================
+       HOTSPOT 7: c1_iron_window (16%, 22% -> x:62.4, y:154)
+       High Cast-Iron Barred Transom Window
+       ============================================== -->
+  <g id="art_c1_iron_window" transform="translate(28, 108)">
+    <!-- Granite masonry window arch -->
+    <path d="M10 85 L10 35 Q35 5 60 35 L60 85 Z" fill="#22282C" stroke="#1F1B16" stroke-width="2.2"/>
+    <path d="M16 83 L16 38 Q35 15 54 38 L54 83 Z" fill="#3D454A" stroke="#1F1B16" stroke-width="1.2"/>
+    <!-- Iron security bars -->
+    <line x1="26" y1="22" x2="26" y2="83" stroke="#1F1B16" stroke-width="2"/>
+    <line x1="35" y1="16" x2="35" y2="83" stroke="#1F1B16" stroke-width="2"/>
+    <line x1="44" y1="22" x2="44" y2="83" stroke="#1F1B16" stroke-width="2"/>
+    <!-- Horizontal tie bars -->
+    <line x1="16" y1="40" x2="54" y2="40" stroke="#1F1B16" stroke-width="2"/>
+    <line x1="16" y1="62" x2="54" y2="62" stroke="#1F1B16" stroke-width="2"/>
+    <!-- Moonlit window sill highlight -->
+    <rect x="8" y="85" width="54" height="6" fill="#8A9297" stroke="#1F1B16" stroke-width="1.2"/>
+  </g>
+
+  <!-- ==============================================
+       HOTSPOT 8: c1_counter_grille (62%, 28% -> x:241.8, y:196)
+       Soaring Rosewood Pawn Counter & Security Balusters
+       ============================================== -->
+  <g id="art_c1_counter_grille" transform="translate(180, 130)">
+    <!-- Back partition wall -->
+    <rect x="0" y="0" width="200" height="120" fill="#2E2017" stroke="#1F1B16" stroke-width="2"/>
+    <!-- Upper carved transom beam -->
+    <rect x="0" y="0" width="200" height="22" fill="#422E21" stroke="#1F1B16" stroke-width="1.5"/>
+    <!-- Gold filigree carving in frieze -->
+    <path d="M10 11 Q30 5 50 11 T90 11 T130 11 T170 11" fill="none" stroke="#C49B4B" stroke-width="1.2" opacity="0.7"/>
+    <!-- Vertical turned-wood balusters (turned grilles) -->
+    <g stroke="#1F1B16" stroke-width="1.5" fill="#5A3E2C">
+      <rect x="15" y="22" width="6" height="90"/>
+      <rect x="30" y="22" width="6" height="90"/>
+      <rect x="45" y="22" width="6" height="90"/>
+      <rect x="60" y="22" width="6" height="90"/>
+      <rect x="75" y="22" width="6" height="90"/>
+      <!-- Wicket window (pledge opening) -->
+      <rect x="90" y="45" width="45" height="67" fill="#1A130E" stroke="#C49B4B" stroke-width="1.5"/>
+      <rect x="144" y="22" width="6" height="90"/>
+      <rect x="159" y="22" width="6" height="90"/>
+      <rect x="174" y="22" width="6" height="90"/>
+      <rect x="189" y="22" width="6" height="90"/>
+    </g>
+    <!-- Turned wooden ring accents on balusters -->
+    <circle cx="18" cy="65" r="4" fill="#C49B4B"/>
+    <circle cx="33" cy="65" r="4" fill="#C49B4B"/>
+    <circle cx="48" cy="65" r="4" fill="#C49B4B"/>
+    <circle cx="63" cy="65" r="4" fill="#C49B4B"/>
+    <circle cx="78" cy="65" r="4" fill="#C49B4B"/>
+    <circle cx="147" cy="65" r="4" fill="#C49B4B"/>
+    <circle cx="162" cy="65" r="4" fill="#C49B4B"/>
+    <circle cx="177" cy="65" r="4" fill="#C49B4B"/>
+    <circle cx="192" cy="65" r="4" fill="#C49B4B"/>
+    <!-- Thick Rosewood Counter Shelf -->
+    <rect x="-10" y="112" width="220" height="15" fill="#4A3423" stroke="#1F1B16" stroke-width="2"/>
+    <rect x="-10" y="127" width="220" height="20" fill="#352417" stroke="#1F1B16" stroke-width="1.5"/>
+  </g>
+
+  <!-- ==============================================
+       HOTSPOT 3: c1_safe (24%, 42% -> x:93.6, y:294)
+       HOTSPOT 4: c1_handkerchief (27%, 48% -> x:105.3, y:336)
+       Massive Cast-Iron Wall Safe & Silk Handkerchief
+       ============================================== -->
+  <g id="art_c1_safe_group" transform="translate(45, 230)">
+    <!-- Drop Shadow on floor/wall -->
+    <polygon points="10,130 90,130 110,145 0,145" fill="#1F1B16" opacity="0.3"/>
+    <!-- Granite wall safe recess -->
+    <rect x="12" y="10" width="76" height="115" fill="#1F1B16" stroke="#4A3F35" stroke-width="2"/>
+    <!-- Safe Interior Shelves -->
+    <rect x="16" y="14" width="68" height="107" fill="#2E3336" stroke="#1F1B16" stroke-width="1.2"/>
+    <!-- Middle shelf -->
+    <line x1="16" y1="55" x2="84" y2="55" stroke="#1F1B16" stroke-width="2.5"/>
+    <!-- Lower shelf -->
+    <line x1="16" y1="88" x2="84" y2="88" stroke="#1F1B16" stroke-width="2.5"/>
+
+    <!-- Open Heavy Safe Door (swung outward in perspective) -->
+    <polygon points="12,10 12,125 -25,142 -25,28" fill="#3D454A" stroke="#1F1B16" stroke-width="2"/>
+    <!-- Door inner panel & locking bolts -->
+    <polygon points="8,18 8,118 -20,133 -20,34" fill="#505A60" stroke="#1F1B16" stroke-width="1.2"/>
+    <!-- Brass hinges -->
+    <rect x="8" y="24" width="8" height="14" fill="#C49B4B" stroke="#1F1B16" stroke-width="1"/>
+    <rect x="8" y="96" width="8" height="14" fill="#C49B4B" stroke="#1F1B16" stroke-width="1"/>
+    <!-- Brass Dial Tumbler Lock on door -->
+    <ellipse cx="-10" cy="80" rx="8" ry="12" fill="#C49B4B" stroke="#1F1B16" stroke-width="1.5"/>
+    <circle cx="-10" cy="80" r="3" fill="#1F1B16"/>
+
+    <!-- Bottom Shelf: Opened Lacquered Jewel Box -->
+    <g transform="translate(35, 90)">
+      <!-- Open jewel box -->
+      <polygon points="0,15 28,15 36,9 8,9" fill="#9A3B2C" stroke="#1F1B16" stroke-width="1.2"/>
+      <rect x="0" y="15" width="28" height="12" fill="#752619" stroke="#1F1B16" stroke-width="1.2"/>
+      <polygon points="28,15 36,9 36,21 28,27" fill="#5C1B10" stroke="#1F1B16" stroke-width="1.2"/>
+      <!-- Empty velvet ring groove -->
+      <ellipse cx="14" cy="15" rx="9" ry="3" fill="#1F1B16" opacity="0.6"/>
+      <!-- Spilled Embroidered Silk Handkerchief (c1_handkerchief at 27%, 48%) -->
+      <path d="M12 12 Q20 4 28 12 Q32 24 24 28 Q16 26 14 18 Z" fill="#FAF6EE" stroke="#1F1B16" stroke-width="1"/>
+      <!-- White Orchid embroidery -->
+      <circle cx="20" cy="18" r="2.5" fill="#4F6F5F" opacity="0.7"/>
+      <circle cx="23" cy="16" r="1.5" fill="#9A3B2C" opacity="0.8"/>
+    </g>
+  </g>
+
+  <!-- ==============================================
+       HOTSPOT 5: c1_desk_tea (62%, 48% -> x:241.8, y:336)
+       HOTSPOT 6: c1_ticket_ledger (72%, 46% -> x:280.8, y:322)
+       Carved Rosewood Desk, Ledger & Porcelain Tea Bowl
+       ============================================== -->
+  <g id="art_c1_desk_group" transform="translate(190, 275)">
+    <!-- Desk Drop Shadow on Floor -->
+    <polygon points="10,120 180,120 195,145 25,145" fill="#1F1B16" opacity="0.35"/>
+    <!-- Rosewood Desk Body in 3D perspective -->
+    <!-- Top Desk Surface -->
+    <polygon points="20,25 180,25 160,65 0,65" fill="#5C3F2B" stroke="#1F1B16" stroke-width="2"/>
+    <!-- Wood grain on desk -->
+    <line x1="30" y1="35" x2="160" y2="35" stroke="#422C1D" stroke-width="0.8"/>
+    <line x1="20" y1="48" x2="150" y2="48" stroke="#422C1D" stroke-width="0.8"/>
+    <!-- Front Apron & Drawers -->
+    <polygon points="0,65 160,65 160,95 0,95" fill="#422D1F" stroke="#1F1B16" stroke-width="2"/>
+    <!-- Side Panel -->
+    <polygon points="160,65 180,25 180,55 160,95" fill="#2E1E14" stroke="#1F1B16" stroke-width="2"/>
+    <!-- Drawer Frames & Brass Pull Handles -->
+    <rect x="15" y="70" width="58" height="20" fill="#4D3423" stroke="#1F1B16" stroke-width="1.2"/>
+    <ellipse cx="44" cy="80" rx="6" ry="3" fill="#C49B4B" stroke="#1F1B16" stroke-width="0.8"/>
+    <rect x="85" y="70" width="58" height="20" fill="#4D3423" stroke="#1F1B16" stroke-width="1.2"/>
+    <ellipse cx="114" cy="80" rx="6" ry="3" fill="#C49B4B" stroke="#1F1B16" stroke-width="0.8"/>
+    <!-- Carved Desk Legs -->
+    <rect x="5" y="95" width="12" height="40" fill="#3A271B" stroke="#1F1B16" stroke-width="1.5"/>
+    <rect x="145" y="95" width="12" height="40" fill="#3A271B" stroke="#1F1B16" stroke-width="1.5"/>
+
+    <!-- Desk Props: Tea Bowl & Brass Ruler (c1_desk_tea at 62%, 48%) -->
+    <g transform="translate(38, 38)">
+      <!-- Master's dry tea cup -->
+      <ellipse cx="0" cy="5" rx="6" ry="3" fill="#8A7A66" stroke="#1F1B16" stroke-width="0.8"/>
+      <!-- Guest's Celadon porcelain cup with vermilion lipstick -->
+      <ellipse cx="16" cy="6" rx="7" ry="4" fill="#E8F0EA" stroke="#4F6F5F" stroke-width="1.2"/>
+      <path d="M11 5 Q14 2 17 5" stroke="#9A3B2C" stroke-width="1.5" fill="none"/>
+      <!-- Brass measuring ruler -->
+      <polygon points="30,8 70,0 72,3 32,11" fill="#C49B4B" stroke="#1F1B16" stroke-width="0.9"/>
+    </g>
+
+    <!-- Pawn Ticket Ledger Book (c1_ticket_ledger at 72%, 46%) -->
+    <g transform="translate(85, 30)">
+      <!-- Bound string ledger book -->
+      <polygon points="0,15 35,5 55,14 20,24" fill="#FAF6EE" stroke="#1F1B16" stroke-width="1.2"/>
+      <polygon points="20,24 55,14 55,19 20,29" fill="#D3C5AE" stroke="#1F1B16" stroke-width="1"/>
+      <line x1="8" y1="13" x2="28" y2="22" stroke="#2E4B66" stroke-width="1.2"/>
+      <!-- Text lines on ledger -->
+      <line x1="12" y1="12" x2="32" y2="7" stroke="#1F1B16" stroke-width="0.7"/>
+      <line x1="16" y1="16" x2="38" y2="10" stroke="#1F1B16" stroke-width="0.7"/>
+      <line x1="22" y1="20" x2="44" y2="14" stroke="#1F1B16" stroke-width="0.7"/>
+      <!-- Vermilion seal stamped on ledger -->
+      <circle cx="34" cy="18" r="4" fill="#9A3B2C" opacity="0.8"/>
+    </g>
+  </g>
+
+  <!-- ==============================================
+       HOTSPOT 10: c1_apprentice_bunk (82%, 56% -> x:319.8, y:392)
+       Apprentice Cot tucked in corner
+       ============================================== -->
+  <g id="art_c1_apprentice_bunk" transform="translate(295, 350)">
+    <!-- Cot shadow -->
+    <polygon points="0,55 90,55 90,75 10,75" fill="#1F1B16" opacity="0.3"/>
+    <!-- Timber bunk frame -->
+    <polygon points="0,20 90,0 90,25 0,45" fill="#785E46" stroke="#1F1B16" stroke-width="1.5"/>
+    <polygon points="0,45 90,25 90,38 0,58" fill="#503E2E" stroke="#1F1B16" stroke-width="1.5"/>
+    <!-- Woven straw mat -->
+    <polygon points="4,22 86,3 86,22 4,41" fill="#C9B487" stroke="#1F1B16" stroke-width="0.8"/>
+    <!-- Folded indigo cotton blanket -->
+    <polygon points="40,15 84,6 84,18 40,27" fill="#2E445A" stroke="#1F1B16" stroke-width="1.2"/>
+    <!-- Bunk legs -->
+    <rect x="2" y="45" width="8" height="28" fill="#3D2E22" stroke="#1F1B16" stroke-width="1.2"/>
+    <rect x="80" y="25" width="8" height="28" fill="#3D2E22" stroke="#1F1B16" stroke-width="1.2"/>
+  </g>
+
+  <!-- ==============================================
+       HOTSPOT 2: c1_abacus (58%, 56% -> x:226.2, y:392)
+       Fallen Red Sandalwood Abacus with Blood
+       ============================================== -->
+  <g id="art_c1_abacus" transform="translate(205, 375)">
+    <!-- Drop shadow -->
+    <ellipse cx="25" cy="20" rx="28" ry="8" fill="#1F1B16" opacity="0.4"/>
+    <!-- Broken red sandalwood abacus frame (skewed on floor) -->
+    <polygon points="5,5 48,0 42,26 0,22" fill="#5A2318" stroke="#1F1B16" stroke-width="1.5"/>
+    <polygon points="8,8 44,4 39,22 4,19" fill="#752C1E" stroke="#1F1B16" stroke-width="0.8"/>
+    <!-- Horizontal dividing beam -->
+    <line x1="6" y1="13" x2="42" y2="9" stroke="#1F1B16" stroke-width="1.2"/>
+    <!-- Brass rods & wooden beads -->
+    <g stroke="#C49B4B" stroke-width="0.8">
+      <line x1="12" y1="6" x2="9" y2="20"/>
+      <line x1="18" y1="5" x2="15" y2="21"/>
+      <line x1="24" y1="4" x2="21" y2="22"/>
+      <line x1="30" y1="3" x2="27" y2="23"/>
+      <line x1="36" y1="2" x2="33" y2="24"/>
+    </g>
+    <!-- Bloodstain on corner corner -->
+    <path d="M35 15 Q44 18 40 25 Q32 24 35 15 Z" fill="#821C14" opacity="0.9"/>
+  </g>
+
+  <!-- ==============================================
+       HOTSPOT 1: c1_victim (48%, 62% -> x:187.2, y:434)
+       Pawnbroker Chen Tak-sang Prone Body in 3/4 Foreshortening
+       ============================================== -->
+  <g id="art_c1_victim" transform="translate(130, 400)">
+    <!-- Expanding Pool of Dark Blood spreading along floor seams -->
+    <path d="M10 46 Q35 28 80 34 Q115 38 126 54 Q118 76 72 72 Q20 74 10 46 Z" fill="#6A1812" opacity="0.85"/>
+    <path d="M20 48 Q45 34 75 38 Q100 42 108 52 Q98 65 65 64 Q28 66 20 48 Z" fill="#4A100C" opacity="0.95"/>
+
+    <!-- Fallen Prone Body in 3/4 Foreshortening (Dark Silk Changshan) -->
+    <!-- Lower body / Legs stretching back towards left -->
+    <path d="M8 52 Q18 48 35 44 L38 58 Q22 62 8 58 Z" fill="#1C1B19" stroke="#1F1B16" stroke-width="1.8"/>
+    <!-- Black cloth shoes with white soles -->
+    <polygon points="5,50 14,48 12,56 4,56" fill="#1F1B16"/>
+    <line x1="4" y1="56" x2="12" y2="56" stroke="#FAF6EE" stroke-width="1"/>
+
+    <!-- Foreshortened Changshan Torso (Slumped prone with shoulder turned) -->
+    <path d="M30 42 Q60 30 88 38 L95 56 Q65 64 34 56 Z" fill="#242220" stroke="#1F1B16" stroke-width="2"/>
+    <!-- Silk garment fold hatching in 3/4 perspective -->
+    <path d="M38 42 Q62 38 82 46" stroke="#48443F" stroke-width="1.2" fill="none"/>
+    <path d="M34 50 Q58 45 88 52" stroke="#48443F" stroke-width="1.2" fill="none"/>
+    <path d="M48 36 Q55 48 50 60" stroke="#1F1B16" stroke-width="1" fill="none"/>
+
+    <!-- Outstretched Right Arm reaching toward desk -->
+    <path d="M86 40 L118 30 L120 35 L90 48 Z" fill="#242220" stroke="#1F1B16" stroke-width="1.5"/>
+    <!-- Left Arm crumpled under chest -->
+    <path d="M52 56 Q58 64 68 62" stroke="#1F1B16" stroke-width="3" stroke-linecap="round"/>
+
+    <!-- Outstretched Hand with fingers -->
+    <circle cx="121" cy="33" r="4.5" fill="#D3C0A8" stroke="#1F1B16" stroke-width="1"/>
+    <!-- Torn Bloodstained Pawn Ticket Stub in fingers -->
+    <polygon points="122,31 136,24 140,30 126,35" fill="#FAF6EE" stroke="#1F1B16" stroke-width="0.8"/>
+    <path d="M126 31 L134 27" stroke="#9A3B2C" stroke-width="1.2"/>
+
+    <!-- Head prone facing floor with grey hair & queue knot -->
+    <ellipse cx="38" cy="40" rx="14" ry="11" fill="#D3C0A8" stroke="#1F1B16" stroke-width="1.5"/>
+    <path d="M25 36 Q32 28 46 34 Q38 44 25 36 Z" fill="#1F1B16"/>
+    <!-- Fatal blunt force fracture on back of skull -->
+    <path d="M36 32 L40 36 L38 40" stroke="#821C14" stroke-width="1.5" fill="none"/>
+
+    <!-- Tortoiseshell spectacles fallen beside head -->
+    <circle cx="26" cy="50" r="3.5" fill="none" stroke="#C49B4B" stroke-width="0.8"/>
+    <circle cx="34" cy="52" r="3.5" fill="none" stroke="#C49B4B" stroke-width="0.8"/>
+    <line x1="29" y1="51" x2="31" y2="52" stroke="#C49B4B" stroke-width="0.8"/>
+  </g>
+
+  <!-- ==============================================
+       HOTSPOT 11: c1_footprints (38%, 70% -> x:148.2, y:490)
+       Muddy Footprints Leading from Safe to Back Door
+       ============================================== -->
+  <g id="art_c1_footprints" stroke="#1F1B16" stroke-width="0.6">
+    <!-- Shoe print 1 near safe -->
+    <g transform="translate(115, 390) rotate(35)">
+      <ellipse cx="0" cy="0" rx="4" ry="9" fill="#5C4533" opacity="0.8"/>
+      <ellipse cx="0" cy="8" rx="3.2" ry="4" fill="#5C4533" opacity="0.8"/>
+    </g>
+    <!-- Shoe print 2 -->
+    <g transform="translate(138, 440) rotate(42)">
+      <ellipse cx="0" cy="0" rx="4" ry="9" fill="#5C4533" opacity="0.8"/>
+      <ellipse cx="0" cy="8" rx="3.2" ry="4" fill="#5C4533" opacity="0.8"/>
+    </g>
+    <!-- Shoe print 3 (c1_footprints hotspot) -->
+    <g transform="translate(148, 490) rotate(50)">
+      <ellipse cx="0" cy="0" rx="4.5" ry="10" fill="#4D3828" opacity="0.85"/>
+      <ellipse cx="0" cy="9" rx="3.5" ry="4.5" fill="#4D3828" opacity="0.85"/>
+      <!-- Ribbed tread marks -->
+      <line x1="-3" y1="-3" x2="3" y2="-3" stroke="#2B1D12" stroke-width="0.6"/>
+      <line x1="-3" y1="1" x2="3" y2="1" stroke="#2B1D12" stroke-width="0.6"/>
+    </g>
+    <!-- Shoe print 4 toward back door -->
+    <g transform="translate(110, 530) rotate(58)">
+      <ellipse cx="0" cy="0" rx="4" ry="9" fill="#5C4533" opacity="0.75"/>
+      <ellipse cx="0" cy="8" rx="3.2" ry="4" fill="#5C4533" opacity="0.75"/>
+    </g>
+    <!-- Shoe print 5 near door sill -->
+    <g transform="translate(85, 565) rotate(65)">
+      <ellipse cx="0" cy="0" rx="4" ry="8.5" fill="#5C4533" opacity="0.7"/>
+      <ellipse cx="0" cy="7.5" rx="3" ry="3.8" fill="#5C4533" opacity="0.7"/>
+    </g>
+  </g>
+
+  <!-- ==============================================
+       HOTSPOT 9: c1_backdoor_lock (18%, 72% -> x:70.2, y:504)
+       Heavy Camphor Wood Back Door Ajar & Broken Slide Bolt
+       ============================================== -->
+  <g id="art_c1_backdoor" transform="translate(15, 430)">
+    <!-- Doorway granite quoin jamb -->
+    <rect x="0" y="0" width="85" height="180" fill="#24282B" stroke="#1F1B16" stroke-width="2.5"/>
+    <!-- Glimpse of dark cobbled alley outside with rain sheen -->
+    <rect x="6" y="6" width="73" height="168" fill="#171A1C"/>
+    <!-- Cobalt blue alley paving lines -->
+    <line x1="10" y1="80" x2="40" y2="80" stroke="#34434D" stroke-width="1.2"/>
+    <line x1="20" y1="120" x2="50" y2="120" stroke="#34434D" stroke-width="1.2"/>
+
+    <!-- Door Leaf opened inward -->
+    <polygon points="6,6 45,28 45,178 6,174" fill="#4A3423" stroke="#1F1B16" stroke-width="2"/>
+    <!-- Iron strapping across door planks -->
+    <line x1="6" y1="35" x2="45" y2="52" stroke="#1F1B16" stroke-width="2.5"/>
+    <line x1="6" y1="125" x2="45" y2="142" stroke="#1F1B16" stroke-width="2.5"/>
+    <!-- Heavy Cast-Iron Slide Bolt Broken (c1_backdoor_lock) -->
+    <rect x="35" y="70" width="16" height="8" fill="#1F1B16" stroke="#8A9297" stroke-width="1"/>
+    <line x1="42" y1="74" x2="56" y2="74" stroke="#8A9297" stroke-width="2.5"/>
+    <!-- Broken keeper on jamb -->
+    <rect x="56" y="68" width="6" height="12" fill="#1F1B16" stroke="#8A9297" stroke-width="1"/>
+    <!-- Dropped pearl earring near threshold -->
+    <circle cx="52" cy="155" r="3" fill="#FAF6EE" stroke="#1F1B16" stroke-width="0.8"/>
+  </g>
+
+  <!-- ==============================================
+       HOTSPOT 12: c1_pot_plant (32%, 84% -> x:124.8, y:588)
+       Glazed Ceramic Planter & Overturned Soil
+       ============================================== -->
+  <g id="art_c1_pot_plant" transform="translate(100, 540)">
+    <!-- Spilled dark potting soil -->
+    <ellipse cx="28" cy="52" rx="22" ry="9" fill="#3D2B1F" stroke="#1F1B16" stroke-width="0.8"/>
+    <!-- Spilled soil pebbles -->
+    <circle cx="38" cy="50" r="2" fill="#6E533C"/>
+    <circle cx="18" cy="54" r="2.5" fill="#503D2C"/>
+    <circle cx="28" cy="56" r="1.8" fill="#6E533C"/>
+    <!-- Glazed celadon earthenware flower pot tilted -->
+    <polygon points="12,18 42,18 36,48 18,48" fill="#4F6F5F" stroke="#1F1B16" stroke-width="1.8"/>
+    <!-- Pot rim -->
+    <ellipse cx="27" cy="18" rx="16" ry="5" fill="#688F7D" stroke="#1F1B16" stroke-width="1.5"/>
+    <!-- Evergreen broadleaf foliage -->
+    <path d="M22 18 Q10 -2 4 10 Q14 16 22 18 Z" fill="#2E4A38" stroke="#1F1B16" stroke-width="1.2"/>
+    <path d="M27 18 Q27 -10 32 4 Q30 14 27 18 Z" fill="#3B5E48" stroke="#1F1B16" stroke-width="1.2"/>
+    <path d="M30 18 Q46 -4 48 8 Q38 16 30 18 Z" fill="#243D2E" stroke="#1F1B16" stroke-width="1.2"/>
+    <path d="M24 18 Q16 6 12 18 Z" fill="#4F6F5F" stroke="#1F1B16" stroke-width="1"/>
+  </g>
+
+  <!-- Overall Archival Paper Border & Vignette Frame -->
+  <rect x="1" y="1" width="388" height="698" fill="none" stroke="#1F1B16" stroke-width="2"/>
+  <rect x="4" y="4" width="382" height="692" fill="none" stroke="#9A3B2C" stroke-width="0.8" opacity="0.6"/>
+</svg>
