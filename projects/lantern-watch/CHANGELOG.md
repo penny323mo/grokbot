@@ -430,7 +430,90 @@
 
 ---
 
-## Round 3 fixes
+## Improve round 4
+
+### 1. Art & Board Readability (No Tile Lattice / Seams)
+- **Fog of War Feathered Radial Mask Overlay (`#fogOverlayCanvas`)**:
+  - Replaced per-cell dark square tiles with a continuous canvas mask layer.
+  - Per-cell vision is drawn with radial feathered gradient cutouts (radius 68px) and rendered with soft blur (`filter: blur(4px)`).
+  - Unseen and remembered terrain is shown dimmed and desaturated rather than blacked out by solid square blocks, completely eliminating stair-step tile borders.
+- **水淹 (Water Flood) Continuous Merged Water Body (`#floodOverlayCanvas`)**:
+  - Rendered flooded shallow cells as one continuous merged water body on canvas with edge-to-edge fill.
+  - Exterior perimeter stroked with soft glowing cyan shoreline foam (`lineWidth: 3.0; shadowBlur: 10;`), strictly omitting internal tile edges.
+  - Delicate painted wave ripple arcs drawn across the flooded region, eliminating all per-cell seams.
+- **Continuous Move Range & AoE Overlays (`#rangeOverlayCanvas`)**:
+  - Implemented cell-union contour calculation: fills reachable and AoE areas with a continuous translucent wash (`rgba(35, 175, 235, 0.26)`), and strokes only exterior perimeter edges with glowing feathered contours (`shadowBlur: 10; lineWidth: 2.5`).
+  - Gaps, interior seams, and separate rectangular boxes are 100% eliminated.
+  - Prominent red `阻` circular stop indicators appear on movement cells intercepted by enemy Zone of Control (ZOC).
+- **Unit Figures & Readability Enhancements**:
+  - Rescaled figures to 56px height (1.0–1.1 cell bounds), preventing any overlap with row figures or HP bars.
+  - Added soft ground shadow ellipses, faction-colored glowing base rings (azure glow for allies, vermilion for enemies).
+  - Added painted calligraphic class emblem badges next to HP bars (`劍`, `槍`, `弓`, `騎`, `術`, `醫`, `砲`, `盾`).
+
+### 2. Gameplay — Deeper Battle Decisions
+- **Directional Facing & Flanking**:
+  - Units retain facing after movement and actions.
+  - Flanking rules implemented in `js/engine/combat.js`:
+    - Attacks from the side: +15% damage.
+    - Attacks from behind: +30% damage and strictly prevent defender counter-attack.
+  - Direction marker displayed in attack preview: `【背刺偷襲】+30% 傷害 (無法反擊)`, `【側翼突襲】+15% 傷害`, `【正面交鋒】`.
+- **Zone of Control (ZOC)**:
+  - Implemented general ZOC in `js/engine/pathfinding.js`: enemy combatants halt foot soldiers entering adjacent cells.
+  - Light units (`cat_patrol`, `mist_scout`) and flying units (`crane_rider`) ignore ZOC.
+  - Visible in move-range preview with prominent `阻` stop badges.
+- **Rules & AI Unit Tests**:
+  - Added tests in `tests/rules.test.mjs` verifying general ZOC pathing, bypass by light/flying units, +15% side damage, +30% back damage, and counterattack prevention from behind.
+  - All 39 automated tests in `npm test` pass with 100% success.
+
+### 3. Art — Character Presence
+- **Camp Character Sheet (`#screenCamp`)**:
+  - Overhauled character profile with large painted half-body portrait (`por_moying_rich.webp`).
+  - Calligraphic title header with element, level, and class badge.
+  - Character backstory paragraph card (✦ 將士生平 ✦).
+  - Compact visual stat bars card (✦ 屬性修為 ✦: 氣血, 攻擊, 防禦, 速度, 仙法, 移動).
+  - Personal dialogue quote line: 「以身衛社稷，以智破暗夜。在暗夜裡，無人能逃過我的快劍。」
+  - Equipment slot with equipped `sword_yitian` (倚天古劍) and class promotion path.
+- **Combat Voice Bark Banner (`.combat-bark-banner`)**:
+  - Floating parchment banner with unit portrait, calligraphic title, and spoken quote line appearing whenever a skill, magic, or coordinated combo fires.
+- **Attack Preview Large Portraits**:
+  - Enlarged attacker and defender portraits to 48px with golden borders and drop shadows side-by-side.
+
+### 4. New Content — Archetype, Stratagem & Side Battle
+- **New Enemy Archetype: 妖術師 / 咒禁術士 (`curse_sorcerer`)**:
+  - Added to `js/data/units.js` with `fig_curse_sorcerer.webp` and `por_curse_sorcerer.webp`.
+  - Casts AoE curse mist and thunder magic (`curse_mist`).
+- **New Stratagem: 火攻 (`fire_attack`)**:
+  - Dynamic fire stratagem spreading on grass/forest tiles (`battle.burningTiles`), blocked by water and shallows.
+  - Rendered via continuous fiery amber-red wash with glowing flame contour and flickering flame tongues on `#fireOverlayCanvas`.
+- **New Optional Side Battle: 外傳 · 荒澤伏擊破咒禁 (`side_marsh`, id: 7)**:
+  - Custom painted marsh battlefield `assets/art/v4/map_side_marsh.webp` and panoramic banner `assets/art/v4/banner_side.webp`.
+  - Distinct objective: `survive_or_rout` (深入荒澤水寨，斬殺【妖術師】或全殲伏兵，12回合內).
+  - Integrated into World Map with dedicated cinnabar side-battle seal stamp (`seal_side.webp`).
+
+### 5. Polish
+- **Title Screen Foreground Vignette**:
+  - Extended title key art to bottom viewport, replacing dark fade with an illuminated lantern-lit foreground vignette highlighting the stone arch bridge, lantern patrols, and willow reflections.
+- **World Map Cinnabar Seal Stamps**:
+  - Added authentic painted seal stamps across all 7 nodes: `seal_cleared.webp` (捷), `seal_new.webp` (新), `seal_locked.webp` (鎖), and `seal_side.webp` (密).
+- **Post-Battle Victory MVP Overhaul**:
+  - Enlarged unit portraits (44-50px) across action XP rows with golden laurel crown and border on MVP.
+  - Bottom speaker banner featuring MVP portrait, name `墨影 · 本戰MVP`, and personal MVP victory dialogue line.
+
+### 6. Deliverables
+- **12 Fresh Deterministic 390px Screenshots (`screenshots/v8/`)**:
+  - `00-title.png`: Key-art title screen with illuminated lantern-lit foreground and mature buttons.
+  - `01-worldmap.png`: World map showing 7 nodes with painted seal stamps (`seal_cleared`, `seal_new`, `seal_locked`, `seal_side`).
+  - `02-camp-profile.png`: Camp character sheet with 墨影 half-body portrait, visual stat bars, quote, backstory, equipment, and promotion.
+  - `03-prebattle.png`: Pre-battle intel with `banner_side.webp`, objectives, stratagem picker, and 2×2 scout grid.
+  - `04-move-range.png`: Continuous merged cyan move range with single feathered contour, glowing path, and red `阻` ZOC indicator.
+  - `05-attack-preview.png`: Attack preview with `【背刺偷襲】+30% 傷害 (無法反擊)` direction marker, large portraits, and combo ally.
+  - `06-fog-of-war.png`: Chapter 5 board with soft painted feathered mist canvas overlay and silhouette enemies.
+  - `07-stratagem-flood.png`: 水淹 continuous merged water body on shallows with soft shoreline edge and wave ripples.
+  - `08-fire-spreading.png`: 火攻 spreading on reed marsh forest tiles, blocked by water.
+  - `09-new-sorcerer.png`: New enemy archetype 妖術師 with class badge, curse mist, and floating combat bark banner.
+  - `10-side-battle.png`: Full board view of side battle `side_marsh` on `map_side_marsh.webp`.
+  - `11-post-battle.png`: Post-battle victory screen with enlarged portraits, MVP laurels, and MVP victory dialogue line.
+
 
 ### Major Issues Resolved (Grok Review Round 3)
 - **MAJOR #1 (Adjacent-Row Figure Scaling & Clean HP Bar Visibility)**:
@@ -471,3 +554,65 @@
 
 
 
+
+
+## Round 1 fixes
+
+### Critical Fixes
+- **CRITICAL #1 (Side-Battle Boss `curse_sorcerer` AI & `curse_miasma` Tile Mechanics)**:
+  - Added dedicated AI handling for `curse_sorcerer` in `js/engine/ai.js`, evaluating cluster targets for AoE `幽冥咒縛` and 2-3 range `邪穢陰雷` (MAG 15 dark magic), eliminating default melee fallback.
+  - Resolved naming collision with `mist_sorcerer` by standardizing unit name to `咒禁術士` (title `大荒妖術師`), updating chapter intel, objectives, and dialog copy.
+  - Implemented `curse_miasma` as an active tile-effect system in `js/engine/battle.js`:
+    - Tiles impose a +1 step movement cost (MOV -1 penalty) for ground units in `pathfinding.js`.
+    - Deals 4 erosion damage per turn via `tickCursedTiles()`.
+    - Actively cleansed by fire attacks (`triggerFireAttack`, `tickBurningTiles`) and lantern illumination (`isTileLit`).
+  - Added unit test in `tests/ai.test.mjs` verifying sorcerer spell priority over melee, and rule test in `tests/rules.test.mjs` verifying movement penalty, 4 tick damage, and fire cleansing.
+  - Recaptured `09-new-sorcerer.png` and `10-side-battle.png` with `咒禁術士` on-screen casting `邪穢陰雷` surrounded by active cursed miasma tiles.
+
+### Major Fixes
+- **MAJOR #2 (Flanking Modifiers, Dynamic Preview Labels & Live Path Alignment)**:
+  - Aligned live combat calculation in `js/engine/combat.js` to SPEC §5 by default: back attack +50% damage and disables defender counterattack; side attack +20% damage; front attack 1.0x with counterattack.
+  - Cat patrol `cat_patrol` (`swift_shadow`) grants +100% back attack damage.
+  - Made `directionMarker` dynamically reflect exact damage multipliers (`【背刺偷襲】+50% 傷害 (無法反擊)`, `【疾影背刺】+100% 傷害 (無法反擊)`, `【側翼突襲】+20% 傷害`).
+  - Removed unused flags so the live path, preview cards, and tests execute identical combat formulas.
+  - Recaptured `05-attack-preview.png` displaying `【疾影背刺】+100% 傷害 (無法反擊)` and accurate damage forecast.
+- **MAJOR #3 (熊岳「槍林」ZOC Free Interception Hit & AI ZOC Pathing)**:
+  - Implemented the free interception hit in `js/engine/battle.js`: enemy cavalry entering an adjacent tile of a friendly unit with `spear_wall` (熊岳 `bear_guard`) immediately triggers a `zoc_strike` dealing uncounterable physical damage before the turn progresses.
+  - Passed `{ zoc: true, cursedTiles }` into AI reachable tile generation in `js/engine/ai.js`, ensuring enemy pathfinding respects player ZOC and routes around interception zones.
+  - Added unit test in `tests/rules.test.mjs` asserting cavalry HP reduction on ZOC entry and generation of `zoc_strike` battle event.
+- **MAJOR #4 (Bond-Restricted 合擊 Combo Attacks)**:
+  - Restricted combo attack assist in `js/engine/combat.js` strictly to defined `BOND_PAIRS`:
+    - 影燈 (`cat_patrol` + `lantern_crafter`)
+    - 雷火 (`tanuki_mage` + `fox_maiden`)
+    - 山泉 (`bear_guard` + `tea_master`)
+  - Adjacent non-bond allies no longer grant unintended free assist damage.
+  - Target preview card dynamically displays the authentic bond title: `【合擊 · 影燈/雷火/山泉】+<AllyName> (+<Dmg>)`.
+  - Added test in `tests/rules.test.mjs` verifying cat+bear adjacent does NOT combo, while valid bond partners successfully assist.
+- **MAJOR #5 (Class Promotion at Lv5 & 1-of-3 Level-Up Perk Cards)**:
+  - Corrected promotion requirement to Lv.5 per SPEC §7, removing premature auto-promotion at Lv.2 from `campaign.js:addExp`.
+  - Upgraded level-up modal in `js/render/ui.js` to offer 3 selectable perk cards on every level up:
+    - 銳意進取 (攻擊力 +3)
+    - 固若金湯 (防禦力 +2 · 氣血上限 +6)
+    - 神行百變 (移動力 +1)
+  - Camp profile sheet explicitly displays promotion unlock condition as Lv.5.
+- **MAJOR #6 (Mobile-First 390px Viewport Safe Insets & Fold Organization)**:
+  - Pinned the Stratagem selector chips (`.prebattle-pinned-stratagems`) inside `.prebattle-footer` directly above the launch CTA with safe padding `calc(60px + env(safe-area-inset-bottom, 16px))`, completely eliminating Grokbot occlusion.
+  - Restructured Camp profile view (`#campProfileDetails`) so that 【✦ 佩掛神兵寶具 ✦】 and 【✦ 破境晉升 ✦】 sit directly below the header, leaving both fully visible and actionable above the 390px fold.
+  - Fine-tuned battle camera centering (`centerCameraOn`) so that unit figures remain safely between the top HUD bar and bottom Grokbot banner.
+
+### Minor Fixes & Polish
+- **MINOR #7 (Continuous Flowing Canvas Overlays & Stratagem Restrictions)**:
+  - Upgraded `renderFloodOverlay` to draw a continuous undulating river body with feathered banks and ripple crests across flooded rows, eliminating per-cell elliptical glyphs. Restricted 水淹 in stratagem picker strictly to Chapter 4 (山道) dam break per SPEC §8.
+  - Upgraded `renderFireOverlay` to render merged flame contours and continuous fiery ink wash; fire spread checks both forest (`f`) and market (`m`), blocked by water (`w`) and stone (`#`).
+  - Added dark violet cursed miasma mist rendering with `咒` boundary runes on `fireOverlayCanvas`.
+- **MINOR #8 (3-Step Board Tutorial & Synchronized Nomenclature)**:
+  - Aligned tutorial overlay to a 3-step board flow matching SPEC §6.
+  - Dynamic header reads from `GAME.name` (`${GAME.name} · 基礎兵法`).
+  - Tutorial flanking copy teaches +50% back attack and +100% for 疾影劍客.
+- **MINOR #9 (SPEC Documentation Synchronization & Encounter Sim Expansion)**:
+  - Synchronized `SPEC.md` (§§3, 5, 7, 8, 9, 11) with shipped features: 56px unit figure scale, facing & ZOC mechanics, Lv.5 promotion, 3-perk card choices, bond pairs, all 6 main chapters plus 外傳 (`side_marsh`).
+  - Added heuristic simulation solutions and win assertions for Chapter 7 (`side_marsh`) in `tests/encounters.sim.test.mjs`.
+
+### Test & Visual Verification
+- `npm test`: **41/41 passing tests** across rules (21), ai (10), objectives (7), branding (2), and encounters simulation (1), verifying all 14 solution compositions win across Chapters 1-6 and 外傳, and naive bot fails.
+- All 12 screenshots in `screenshots/v8/` recaptured deterministically at 390×844 DPR 2 with 0 browser console errors.

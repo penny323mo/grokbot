@@ -347,5 +347,56 @@ export const CHAPTERS = [
       "...rrr....", // 11: Deployment zone
       "...rrr...."  // 12: Deployment zone
     ]
+  },
+  {
+    id: 7,
+    key: 'side_marsh',
+    isSideBattle: true,
+    title: '外傳 · 荒澤伏擊破咒禁',
+    mapName: '荒澤',
+    image: 'map_side_marsh.webp',
+    banner: 'banner_side.webp',
+    squadLimit: 5,
+    maxTurns: 12,
+    hasNightFog: true,
+    objectiveType: 'survive_or_rout',
+    objectiveDesc: '深入荒澤水寨，斬殺【咒禁術士】或全殲伏兵（12回合內）',
+    defeatDesc: '我方全軍覆沒 或 超過12回合',
+    bossId: 'curse_sorcerer',
+    lanterns: [
+      { x: 1, y: 11, radius: 2 },
+      { x: 7, y: 4, radius: 2 }
+    ],
+    deployTiles: [
+      { x: 1, y: 11 }, { x: 2, y: 11 }, { x: 3, y: 11 },
+      { x: 1, y: 12 }, { x: 2, y: 12 }, { x: 3, y: 12 }
+    ],
+    enemySpawns: [
+      { id: 'curse_sorcerer', x: 4, y: 2, facing: -1 }, // Sorcerer on northern stockade altar
+      { id: 'shadow_rat', x: 2, y: 6, facing: 1 },       // Ambush rat in reeds
+      { id: 'shadow_rat', x: 6, y: 7, facing: -1 },      // Ambush rat in reeds
+      { id: 'mist_scout', x: 5, y: 4, facing: -1 },      // Fast scout
+      { id: 'shield_guard', x: 4, y: 4, facing: -1 }     // Shield guard protecting sorcerer
+    ],
+    storyBefore: [
+      { speaker: 'cat_patrol', mood: 'calm', text: '「此處是大荒沼澤水寨，妖術師在前方祭壇布下咒禁之陣，沼澤水草深處更伏有刺客！」' },
+      { speaker: 'bear_guard', mood: 'angry', text: '「蘆葦水澤易燃，若用火攻火箭齊射，定可引燃蘆葦燒盡妖道與咒符！」' },
+      { speaker: 'lantern_crafter', mood: 'calm', text: '「水澤多水，若以水淹引洪流，亦能將伏兵沖入深水溺斃！」' }
+    ],
+    terrain: [
+      "##..rr..##", // 0: Marsh fort palisade
+      "#...rr...#", // 1: Palisade courtyard
+      "....rr....", // 2: Sorcerer altar (x=4, y=2)
+      "..ffff....", // 3: Reed marsh (forest terrain)
+      "..ffff....", // 4: Reed marsh
+      "ww...ffwww", // 5: Marsh shallows & water
+      "ww..bb.www", // 6: Boardwalk over marsh
+      "ww..bb.www", // 7: Boardwalk over marsh
+      "..ffff....", // 8: Reed marsh
+      "...rrr....", // 9: Muddy causeway
+      "...rrr....", // 10: Marsh approach
+      "...rrr....", // 11: Deployment zone
+      "...rrr...."  // 12: Deployment zone
+    ]
   }
 ];

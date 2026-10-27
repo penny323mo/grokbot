@@ -7,8 +7,10 @@ export const GUARDIAN_PROTOS = {
   cat_patrol: {
     id: 'cat_patrol',
     name: '墨影',
-    title: '夜行俠客',
+    title: '影刃劍客',
     cls: '劍客',
+    clsBadge: '劍',
+    richPortrait: 'assets/art/v4/por_moying_rich.webp',
     role: 'flanker',
     team: 'ally',
     mov: 5,
@@ -23,10 +25,11 @@ export const GUARDIAN_PROTOS = {
     spd: 14,
     range: 1,
     flyer: false,
+    isLight: true,
     trait: {
       id: 'swift_shadow',
       name: '疾影',
-      desc: '背擊傷害由+50%倍增至+100%，且不受反擊'
+      desc: '背擊傷害由+30%提升至+100%，且無視敵方ZOC控制領域'
     },
     skill: {
       id: 'shadow_strike',
@@ -47,8 +50,9 @@ export const GUARDIAN_PROTOS = {
       desc: '投擲迷煙，使目標防禦-3並提升自身迴避',
       bark: '「捉摸不透，方為刺客之道。」'
     },
-    bark: '「刀已在手，迷霧盡散！」',
-    backstory: '軍中獨行俠，身手矯健，習慣於暗處一擊制敵。'
+    quote: '以身衛社稷，以智破暗夜。在暗夜裡，無人能逃過我的快劍。',
+    bark: '「劍隨心動，一葉斬秋水。在暗夜裡，無人能逃過我的快劍。」',
+    backstory: '原為江南名門劍客，家破後隱姓埋名浪跡天涯。身負三尺青鋒與暗夜疾行絕技，專破敵陣重圍與伏兵首領。'
   },
 
   lantern_crafter: {
@@ -724,6 +728,48 @@ export const ENEMY_PROTOS = {
     tacticalHint: '雄關主將 · 需破城攻門或側翼飛騎突入斬首',
     bark: '「此城乃天險雄關，任爾等如何攻打也是徒勞！」',
     backstory: '鎮守關隘的百戰宿將，熟諳攻防陣列，率親衛死守關內大廳。'
+  },
+
+  curse_sorcerer: {
+    id: 'curse_sorcerer',
+    name: '咒禁術士',
+    title: '大荒妖術師',
+    cls: '術士',
+    clsBadge: '術',
+    role: 'curse_sorcerer',
+    team: 'enemy',
+    element: 'dark',
+    mov: 3,
+    hp: 34,
+    maxHp: 34,
+    mp: 10,
+    maxMp: 10,
+    atk: 6,
+    def: 4,
+    mag: 15,
+    res: 10,
+    spd: 8,
+    range: [1, 2],
+    flyer: false,
+    trait: {
+      id: 'curse_miasma',
+      name: '幽冥咒縛',
+      desc: '施展妖霧與咒縛沼澤；凡踏足咒蝕之地者移動力-1且每回合受4點侵蝕傷害；忌憚烈火焚灼與靈燈破除'
+    },
+    magic: {
+      id: 'curse_strike',
+      name: '邪穢陰雷',
+      power: 14,
+      cost: 4,
+      range: [1, 2],
+      type: 'magic',
+      element: 'dark',
+      desc: '召喚陰煞邪雷打擊目標，附帶咒縛減速效果',
+      bark: '「陰煞聽令，邪雷破魄！」'
+    },
+    tacticalHint: '施展幽冥咒縛與妖霧 · 懼怕火攻燃燒與神燈照耀',
+    bark: '「陰陽失序，幽冥咒縛，化為泥淖吧！」',
+    backstory: '深居大荒幽澤的咒禁術士，操弄符咒陰煞，能召喚幽霧並詛咒沼澤地脈，唯有以火攻焚木或神燈法光方能破除。'
   }
 };
 
@@ -927,7 +973,7 @@ export const STRATAGEMS = [
   { id: 'fire_attack', name: '火攻', icon: '火', desc: '第1回合向指定3×3林地/市集降下烈焰，造成10點傷害（水相無效）' },
   { id: 'ambush', name: '伏兵', icon: '伏', desc: '戰鬥開始時，一名我方隊友可直接部署於任意樹林深處' },
   { id: 'feint', name: '佯攻', icon: '計', desc: '第1回合吸引敵方騎兵朝誘餌方向移動' },
-  { id: 'flood', name: '水淹', icon: '水', desc: '引大河或山隘之水淹沒淺灘2回合，使淺灘化為深水，造成12點水傷並擊退陸行單位（墜水溺斃）' },
+  { id: 'flood', name: '水淹', icon: '水', mapReq: 4, desc: '第4章山道專屬：引大河或山隘之水淹沒淺灘2回合，造成15點水傷並擊退陸行單位（墜水溺斃）' },
   { id: 'night_raid', name: '夜襲', icon: '夜', desc: '借夜色急襲，敵方全體第1回合無法行動' },
   { id: 'inspire', name: '鼓舞', icon: '鼓', desc: '號角齊鳴，我方全體第1與第2回合傷害提升20%' }
 ];

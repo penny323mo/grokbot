@@ -137,6 +137,20 @@ export function checkBattleStatus(chapter, battleState) {
       break;
     }
 
+    case 'survive_or_rout': {
+      const boss = enemies.find(u => u.id === (chapter.bossId || 'curse_sorcerer'));
+      if (boss && boss.hp <= 0) {
+        return { finished: true, victory: true, reason: '荒澤妖術師已被斬殺，邪霧妖咒徹底消散！' };
+      }
+      if (livingEnemies.length === 0) {
+        return { finished: true, victory: true, reason: '全殲荒澤伏兵，水寨迷霧盡散！' };
+      }
+      if (currentTurn > chapter.maxTurns) {
+        return { finished: true, victory: false, reason: '大荒泥淖迷失路徑，耗盡回合未能生還！' };
+      }
+      break;
+    }
+
     default: {
       if (livingEnemies.length === 0) {
         return { finished: true, victory: true, reason: '全殲敵軍，大獲全勝！' };

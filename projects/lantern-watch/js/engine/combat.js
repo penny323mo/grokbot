@@ -5,6 +5,7 @@
  */
 
 import { Board } from './board.js';
+import { BOND_PAIRS } from '../data/units.js';
 
 /**
  * Determine attack orientation relative to defender's facing
@@ -90,16 +91,19 @@ export function calculateCombat(attacker, defender, board, options = {}) {
   // Damage modifiers calculation
   let damageMod = 1.0;
 
-  // 1. Facing modifier
+  // 1. Facing modifier (SPEC §5: Back +50%, Side +20%, 墨影 +100%)
+  const flankRateBack = options.flankRateBack ?? 1.5;
+  const flankRateSide = options.flankRateSide ?? 1.2;
+
   if (isBackAttack) {
-    // cat_patrol swift_shadow trait: +100% instead of +50%
+    // cat_patrol swift_shadow trait: +100% instead of standard back bonus
     if (attacker.trait?.id === 'swift_shadow' || attacker.id === 'cat_patrol') {
       damageMod *= 2.0;
     } else {
-      damageMod *= 1.5;
+      damageMod *= flankRateBack;
     }
   } else if (isSideAttack) {
-    damageMod *= 1.2;
+    damageMod *= flankRateSide;
   } else if (isFrontAttack) {
     // iron_general and shield_guard trait: frontal damage -70%
     if (defender.trait?.id === 'iron_shield_wall' || defender.trait?.id === 'shield_block' || defender.role === 'shield_guard' || defender.id === 'iron_general') {
@@ -201,21 +205,25 @@ export function calculateCombat(attacker, defender, board, options = {}) {
     }
   }
 
-  // 8. Combo / 協力攻擊 check (adjacent ally assists attack)
+  // 8. Combo / 合擊 check (restricted to valid BOND_PAIRS partner adjacent to defender)
   let comboAlly = null;
   let comboDamage = 0;
+  let bondName = null;
   if (attacker.team === 'ally' && options.allies) {
-    const adjAllies = options.allies.filter(a =>
-      a.id !== attacker.id &&
-      a.hp > 0 &&
-      a.role !== 'npc' &&
-      a.role !== 'objective' &&
-      Board.manhattan(a.x, a.y, defenderPos.x, defenderPos.y) === 1
-    );
-    if (adjAllies.length > 0) {
-      comboAlly = adjAllies[0];
-      const rawCombo = Math.max(2, Math.round((comboAlly.atk || 10) * 0.5 - ((defender.def || 0) + defBonus) * 0.25));
-      comboDamage = rawCombo;
+    const validBond = BOND_PAIRS.find(b => b.pair.includes(attacker.id));
+    if (validBond) {
+      const partnerId = validBond.pair.find(id => id !== attacker.id);
+      const partner = options.allies.find(a =>
+        a.id === partnerId &&
+        a.hp > 0 &&
+        Board.manhattan(a.x, a.y, defenderPos.x, defenderPos.y) === 1
+      );
+      if (partner && (!options.battle || !options.battle.usedBondPairThisBattle)) {
+        comboAlly = partner;
+        bondName = validBond.name;
+        const rawCombo = Math.max(2, Math.round((comboAlly.atk || 10) * 0.5 - ((defender.def || 0) + defBonus) * 0.25));
+        comboDamage = rawCombo;
+      }
     }
   }
 
@@ -245,11 +253,23 @@ export function calculateCombat(attacker, defender, board, options = {}) {
     }
   }
 
+  let directionMarker = '【正面交鋒】';
+  if (isBackAttack) {
+    if (attacker.trait?.id === 'swift_shadow' || attacker.id === 'cat_patrol') {
+      directionMarker = '【疾影背刺】+100% 傷害 (無法反擊)';
+    } else {
+      directionMarker = `【背刺偷襲】+${Math.round((flankRateBack - 1) * 100)}% 傷害 (無法反擊)`;
+    }
+  } else if (isSideAttack) {
+    directionMarker = `【側翼突襲】+${Math.round((flankRateSide - 1) * 100)}% 傷害`;
+  }
+
   return {
     attacker,
     defender,
     distance: dist,
     direction,
+    directionMarker,
     isBackAttack,
     isSideAttack,
     isFrontAttack,
@@ -264,6 +284,7 @@ export function calculateCombat(attacker, defender, board, options = {}) {
     counterHitRate,
     knockbackResult,
     comboAlly,
+    bondName,
     comboDamage
   };
 }
@@ -306,12 +327,13 @@ export function executeCombat(attacker, defender, board, rng, options = {}) {
     defenderHp: defender.hp
   });
 
-  // Check Combo / 協力攻擊 from adjacent ally
+  // Check Combo / 合擊 from adjacent valid bond ally
   if (preview.comboAlly && defender.hp > 0) {
     defender.hp = Math.max(0, defender.hp - preview.comboDamage);
     events.push({
       type: 'combo_hit',
       ally: preview.comboAlly,
+      bondName: preview.bondName,
       damage: preview.comboDamage,
       target: defender.id,
       defenderHp: defender.hp

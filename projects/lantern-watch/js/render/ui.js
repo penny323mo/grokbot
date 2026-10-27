@@ -113,12 +113,13 @@ export class UIRenderer {
 
     // Relative node positions fitting inside 390px world map frame
     const nodeCoords = {
-      1: { left: '28%', top: '72%', name: '第一回 · 河橋' },
-      2: { left: '70%', top: '52%', name: '第二回 · 城門' },
+      1: { left: '26%', top: '74%', name: '第一回 · 河橋' },
+      2: { left: '70%', top: '54%', name: '第二回 · 城門' },
       3: { left: '72%', top: '78%', name: '第三回 · 市集' },
-      4: { left: '58%', top: '20%', name: '第四回 · 山道' },
-      5: { left: '40%', top: '38%', name: '第五回 · 竹海' },
-      6: { left: '80%', top: '24%', name: '第六回 · 攻城' }
+      4: { left: '58%', top: '22%', name: '第四回 · 山道' },
+      5: { left: '38%', top: '40%', name: '第五回 · 竹海' },
+      6: { left: '80%', top: '24%', name: '第六回 · 攻城' },
+      7: { left: '18%', top: '28%', name: '外傳 · 荒澤' }
     };
 
     CHAPTERS.forEach(ch => {
@@ -129,13 +130,23 @@ export class UIRenderer {
       const isUnlocked = campaign.isChapterUnlocked(ch.id);
 
       const pin = document.createElement('div');
-      pin.className = `map-route-pin ${isCleared ? 'cleared' : (isUnlocked ? 'available' : 'locked')}`;
+      pin.className = `map-route-pin ${isCleared ? 'cleared' : (isUnlocked ? 'available' : 'locked')} ${ch.isSideBattle ? 'side-battle' : ''}`;
       pin.style.left = coord.left;
       pin.style.top = coord.top;
 
+      let sealSrc = 'assets/art/v4/seal_locked.webp';
+      let sealAlt = '未解鎖';
+      if (isCleared) {
+        sealSrc = 'assets/art/v4/seal_cleared.webp';
+        sealAlt = '已通關';
+      } else if (isUnlocked) {
+        sealSrc = ch.isSideBattle ? 'assets/art/v4/seal_side.webp' : 'assets/art/v4/seal_new.webp';
+        sealAlt = ch.isSideBattle ? '外傳密境' : '新戰役';
+      }
+
       pin.innerHTML = `
         <div class="pin-medallion">
-          ${isCleared ? '✓' : (isUnlocked ? ch.id : '密')}
+          <img src="${sealSrc}" class="pin-seal-stamp" alt="${sealAlt}">
         </div>
         <div class="pin-label-pill">${coord.name}</div>
       `;
@@ -156,7 +167,8 @@ export class UIRenderer {
     // Painted Chapter Banner
     const bannerArt = document.getElementById('preBannerArt');
     if (bannerArt) {
-      bannerArt.style.backgroundImage = `url('assets/art/v4/banner_ch${chapter.id}.webp')`;
+      const bannerFile = chapter.banner || `banner_ch${chapter.id}.webp`;
+      bannerArt.style.backgroundImage = `url('assets/art/v4/${bannerFile}')`;
     }
 
     document.getElementById('preChapterTitle').textContent = chapter.title;
@@ -291,6 +303,7 @@ export class UIRenderer {
       battle.chapter.objectiveType === 'hold_gate' ? '守護城門' :
       battle.chapter.objectiveType === 'protect_lantern' ? '保護神燈' :
       battle.chapter.objectiveType === 'reach_shrine_or_rout' ? '佔領神壇' :
+      battle.chapter.objectiveType === 'survive_or_rout' ? '破咒誅妖' :
       battle.chapter.objectiveType === 'breach_gate_or_rout' ? '破關斬將' : '討伐鐵將';
     document.getElementById('hudObjectiveTicker').textContent = `${battle.chapter.mapName} · ${shortObj}`;
 
@@ -349,11 +362,6 @@ export class UIRenderer {
           tileDiv.classList.add('selected');
         }
 
-        // Fog of war shroud
-        if (isFog && visionMap && !visionMap.has(key)) {
-          tileDiv.classList.add('fog-shrouded');
-        }
-
         // Active flooded water VFX
         if (battle.floodedTiles && battle.floodedTiles.has(key)) {
           tileDiv.classList.add('flooded-water');
@@ -396,6 +404,12 @@ export class UIRenderer {
         gridEl.appendChild(tileDiv);
       }
     }
+
+    // Render Continuous Merged Canvas Layers (Water flood, fire attack, move & AoE ranges, soft fog mist)
+    this.renderFloodOverlay(battle);
+    this.renderFireOverlay(battle);
+    this.renderRangeOverlay(handlers);
+    this.renderFogOverlay(battle, visionMap);
 
     // Render Placed Lanterns Layer
     const lanternsLayer = document.getElementById('lanternsLayer');
@@ -441,10 +455,13 @@ export class UIRenderer {
          <img src="assets/art/v4/fig_${u.id}.webp" alt="${u.name}" class="unit-fig-img" style="animation-delay: -${delay}s;">` :
         `<img src="assets/art/v4/fig_${u.id}.webp" alt="${u.name}" class="unit-fig-img" style="animation-delay: -${delay}s;">`;
 
+      const classChar = u.clsBadge || (u.cls ? u.cls[0] : (u.role === 'tank' ? '盾' : '兵'));
+
       figWrap.innerHTML = `
         <div class="unit-ground-shadow"></div>
         <div class="unit-team-ring"></div>
         ${figContent}
+        <div class="unit-class-badge">${classChar}</div>
         <div class="unit-hp-bar">
           <div class="unit-hp-fill" style="width: ${Math.max(0, Math.min(100, Math.round((u.hp / u.maxHp) * 100)))}%;"></div>
         </div>
@@ -470,6 +487,419 @@ export class UIRenderer {
     if (selectedUnit) {
       this.updateBottomStrip(selectedUnit.x, selectedUnit.y, battle.board, selectedUnit);
     }
+  }
+
+  // Continuous Flood Water Overlay Canvas (merged continuous water body, gentle wave animation, soft shoreline edge)
+  renderFloodOverlay(battle) {
+    const canvas = document.getElementById('floodOverlayCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, 640, 832);
+
+    const flooded = battle.floodedTiles;
+    if (!flooded || flooded.size === 0) return;
+
+    const tilePx = 64;
+    const keys = Array.from(flooded.keys ? flooded.keys() : flooded);
+    const keySet = new Set(keys);
+
+    // 1. Fill continuous merged water body (no gaps, edge-to-edge)
+    ctx.save();
+    ctx.fillStyle = 'rgba(10, 52, 92, 0.78)';
+    for (const key of keys) {
+      const [c, r] = key.split(',').map(Number);
+      ctx.fillRect(c * tilePx, r * tilePx, tilePx, tilePx);
+    }
+    ctx.restore();
+
+    // 2. Soft shoreline edge - ONLY outer perimeter boundaries where neighbor is not flooded!
+    ctx.save();
+    ctx.beginPath();
+    for (const key of keys) {
+      const [c, r] = key.split(',').map(Number);
+      const x0 = c * tilePx;
+      const y0 = r * tilePx;
+      const x1 = (c + 1) * tilePx;
+      const y1 = (r + 1) * tilePx;
+
+      // North edge
+      if (!keySet.has(`${c},${r - 1}`)) {
+        ctx.moveTo(x0, y0);
+        ctx.lineTo(x1, y0);
+      }
+      // South edge
+      if (!keySet.has(`${c},${r + 1}`)) {
+        ctx.moveTo(x0, y1);
+        ctx.lineTo(x1, y1);
+      }
+      // West edge
+      if (!keySet.has(`${c - 1},${r}`)) {
+        ctx.moveTo(x0, y0);
+        ctx.lineTo(x0, y1);
+      }
+      // East edge
+      if (!keySet.has(`${c + 1},${r}`)) {
+        ctx.moveTo(x1, y0);
+        ctx.lineTo(x1, y1);
+      }
+    }
+
+    ctx.strokeStyle = 'rgba(90, 220, 255, 0.9)';
+    ctx.lineWidth = 3.0;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.shadowColor = 'rgba(0, 200, 255, 0.85)';
+    ctx.shadowBlur = 10;
+    ctx.stroke();
+    ctx.restore();
+
+    // 3. Continuous sweeping wave currents across the merged water body (no per-cell isolated glyphs)
+    ctx.save();
+    ctx.beginPath();
+    for (const key of keys) {
+      const [c, r] = key.split(',').map(Number);
+      ctx.rect(c * tilePx, r * tilePx, tilePx, tilePx);
+    }
+    ctx.clip();
+
+    ctx.strokeStyle = 'rgba(180, 240, 255, 0.4)';
+    ctx.lineWidth = 2.0;
+    ctx.lineCap = 'round';
+
+    const rows = Array.from(new Set(keys.map(k => Number(k.split(',')[1])))).sort((a, b) => a - b);
+    for (const r of rows) {
+      const yBase = r * tilePx + 22;
+      ctx.beginPath();
+      ctx.moveTo(0, yBase);
+      for (let x = 0; x <= 640; x += 40) {
+        ctx.quadraticCurveTo(x + 20, yBase + 8, x + 40, yBase);
+      }
+      ctx.stroke();
+
+      const yBase2 = r * tilePx + 46;
+      ctx.beginPath();
+      ctx.moveTo(20, yBase2);
+      for (let x = 20; x <= 640; x += 48) {
+        ctx.quadraticCurveTo(x + 24, yBase2 + 8, x + 48, yBase2);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // Continuous Fire Inferno Overlay Canvas (merged continuous flame body, fiery ink wash, glowing perimeter contour, flame tongues)
+  renderFireOverlay(battle) {
+    const canvas = document.getElementById('fireOverlayCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, 640, 832);
+
+    const tilePx = 64;
+    const burning = battle.burningTiles;
+    if (burning && burning.size > 0) {
+      const keys = Array.from(burning);
+      const keySet = new Set(keys);
+
+      // 1. Merged fiery amber-red wash inside
+      ctx.save();
+      ctx.fillStyle = 'rgba(220, 60, 20, 0.35)';
+      for (const key of keys) {
+        const [c, r] = key.split(',').map(Number);
+        ctx.fillRect(c * tilePx, r * tilePx, tilePx, tilePx);
+      }
+      ctx.restore();
+
+      // 2. Feathered flame contour around exterior edges
+      ctx.save();
+      ctx.beginPath();
+      for (const key of keys) {
+        const [c, r] = key.split(',').map(Number);
+        const x0 = c * tilePx;
+        const y0 = r * tilePx;
+        const x1 = (c + 1) * tilePx;
+        const y1 = (r + 1) * tilePx;
+
+        if (!keySet.has(`${c},${r - 1}`)) {
+          ctx.moveTo(x0, y0);
+          ctx.lineTo(x1, y0);
+        }
+        if (!keySet.has(`${c},${r + 1}`)) {
+          ctx.moveTo(x0, y1);
+          ctx.lineTo(x1, y1);
+        }
+        if (!keySet.has(`${c - 1},${r}`)) {
+          ctx.moveTo(x0, y0);
+          ctx.lineTo(x0, y1);
+        }
+        if (!keySet.has(`${c + 1},${r}`)) {
+          ctx.moveTo(x1, y0);
+          ctx.lineTo(x1, y1);
+        }
+      }
+      ctx.strokeStyle = 'rgba(255, 170, 30, 0.95)';
+      ctx.lineWidth = 3.0;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.shadowColor = 'rgba(255, 60, 0, 0.9)';
+      ctx.shadowBlur = 12;
+      ctx.stroke();
+      ctx.restore();
+
+      // 3. Merged billowing warmth across zone (no per-cell isolated stair-step stamps)
+      ctx.save();
+      ctx.beginPath();
+      for (const key of keys) {
+        const [c, r] = key.split(',').map(Number);
+        ctx.rect(c * tilePx, r * tilePx, tilePx, tilePx);
+      }
+      ctx.clip();
+
+      for (const key of keys) {
+        const [c, r] = key.split(',').map(Number);
+        const cx = c * tilePx + 32;
+        const cy = r * tilePx + 32;
+
+        const grad = ctx.createRadialGradient(cx, cy, 6, cx, cy, 38);
+        grad.addColorStop(0, 'rgba(255, 235, 150, 0.7)');
+        grad.addColorStop(0.5, 'rgba(255, 110, 20, 0.45)');
+        grad.addColorStop(1, 'rgba(220, 40, 10, 0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(c * tilePx - 4, r * tilePx - 4, tilePx + 8, tilePx + 8);
+      }
+
+      ctx.strokeStyle = 'rgba(255, 220, 90, 0.85)';
+      ctx.lineWidth = 2.2;
+      ctx.lineCap = 'round';
+      for (const key of keys) {
+        const [c, r] = key.split(',').map(Number);
+        const x0 = c * tilePx;
+        const y0 = r * tilePx;
+        ctx.beginPath();
+        ctx.moveTo(x0 + 12, y0 + 52);
+        ctx.quadraticCurveTo(x0 + 26, y0 + 28, x0 + 36, y0 + 10);
+        ctx.quadraticCurveTo(x0 + 44, y0 + 24, x0 + 50, y0 + 50);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+  // Render Cursed Miasma (幽冥咒縛沼澤)
+  const cursed = battle.cursedTiles;
+  if (cursed && cursed.size > 0) {
+    const cKeys = Array.from(cursed);
+    const cKeySet = new Set(cKeys);
+
+    // Deep violet-black ink mist
+    ctx.save();
+    ctx.fillStyle = 'rgba(68, 16, 92, 0.38)';
+    for (const k of cKeys) {
+      const [c, r] = k.split(',').map(Number);
+      ctx.fillRect(c * tilePx, r * tilePx, tilePx, tilePx);
+    }
+    ctx.restore();
+
+    // Violet feathered boundary
+    ctx.save();
+    ctx.beginPath();
+    for (const k of cKeys) {
+      const [c, r] = k.split(',').map(Number);
+      const x0 = c * tilePx;
+      const y0 = r * tilePx;
+      const x1 = (c + 1) * tilePx;
+      const y1 = (r + 1) * tilePx;
+
+      if (!cKeySet.has(`${c},${r - 1}`)) { ctx.moveTo(x0, y0); ctx.lineTo(x1, y0); }
+      if (!cKeySet.has(`${c},${r + 1}`)) { ctx.moveTo(x0, y1); ctx.lineTo(x1, y1); }
+      if (!cKeySet.has(`${c - 1},${r}`)) { ctx.moveTo(x0, y0); ctx.lineTo(x0, y1); }
+      if (!cKeySet.has(`${c + 1},${r}`)) { ctx.moveTo(x1, y0); ctx.lineTo(x1, y1); }
+    }
+    ctx.strokeStyle = 'rgba(180, 80, 240, 0.85)';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.shadowColor = 'rgba(140, 40, 220, 0.9)';
+    ctx.shadowBlur = 10;
+    ctx.stroke();
+    ctx.restore();
+
+    // Cursed miasma indicator
+    ctx.save();
+    ctx.fillStyle = 'rgba(215, 145, 255, 0.75)';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center';
+    for (const k of cKeys) {
+      const [c, r] = k.split(',').map(Number);
+      ctx.fillText('咒', c * tilePx + 32, r * tilePx + 20);
+    }
+    ctx.restore();
+  }
+  }
+
+  // Continuous Movement Range & AoE Footprints Overlay Canvas (merged contour outline, translucent wash, no separate boxes)
+  renderRangeOverlay(handlers) {
+    const canvas = document.getElementById('rangeOverlayCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, 640, 832);
+
+    const reachable = handlers.reachableTiles || new Map();
+    const aoeTiles = handlers.aoeTiles || new Set();
+    const tilePx = 64;
+
+    // Helper to draw merged region with translucent wash & single feathered perimeter contour
+    const drawMergedRegion = (cellsMapOrSet, fillColor, strokeColor, shadowColor, isZoc = false) => {
+      const keys = cellsMapOrSet.keys ? Array.from(cellsMapOrSet.keys()) : Array.from(cellsMapOrSet);
+      if (keys.length === 0) return;
+      const keySet = new Set(keys);
+
+      // 1. Translucent wash inside (seamless fill, no gaps)
+      ctx.save();
+      ctx.fillStyle = fillColor;
+      for (const key of keys) {
+        const [c, r] = key.split(',').map(Number);
+        ctx.fillRect(c * tilePx, r * tilePx, tilePx, tilePx);
+      }
+      ctx.restore();
+
+      // 2. Single feathered outline (contour of cell union - exterior edges ONLY)
+      ctx.save();
+      ctx.beginPath();
+      for (const key of keys) {
+        const [c, r] = key.split(',').map(Number);
+        const x0 = c * tilePx;
+        const y0 = r * tilePx;
+        const x1 = (c + 1) * tilePx;
+        const y1 = (r + 1) * tilePx;
+
+        if (!keySet.has(`${c},${r - 1}`)) {
+          ctx.moveTo(x0, y0);
+          ctx.lineTo(x1, y0);
+        }
+        if (!keySet.has(`${c},${r + 1}`)) {
+          ctx.moveTo(x0, y1);
+          ctx.lineTo(x1, y1);
+        }
+        if (!keySet.has(`${c - 1},${r}`)) {
+          ctx.moveTo(x0, y0);
+          ctx.lineTo(x0, y1);
+        }
+        if (!keySet.has(`${c + 1},${r}`)) {
+          ctx.moveTo(x1, y0);
+          ctx.lineTo(x1, y1);
+        }
+      }
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.shadowColor = shadowColor;
+      ctx.shadowBlur = 10;
+      ctx.stroke();
+      ctx.restore();
+
+      // 3. If move range, mark ZOC intercepted stop tiles with prominent indicator
+      if (isZoc && reachable.size > 0) {
+        ctx.save();
+        for (const [key, info] of reachable.entries()) {
+          if (info.zocStopped) {
+            const [c, r] = key.split(',').map(Number);
+            const cx = c * tilePx + 32;
+            const cy = r * tilePx + 32;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 9, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(235, 50, 65, 0.9)';
+            ctx.shadowColor = 'rgba(255, 60, 80, 0.85)';
+            ctx.shadowBlur = 6;
+            ctx.fill();
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 1.6;
+            ctx.stroke();
+
+            // Tiny ZOC stop label
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 9px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('阻', cx, cy);
+          }
+        }
+        ctx.restore();
+      }
+    };
+
+    // 1. Move Range: Azure wash + cyan feathered contour
+    if (reachable.size > 0) {
+      drawMergedRegion(
+        reachable,
+        'rgba(35, 175, 235, 0.26)',
+        'rgba(80, 225, 255, 0.92)',
+        'rgba(50, 200, 255, 0.85)',
+        true
+      );
+    }
+
+    // 2. AoE / Bombardment: Vermilion/Amber wash + gold feathered contour
+    if (aoeTiles.size > 0) {
+      drawMergedRegion(
+        aoeTiles,
+        'rgba(245, 140, 30, 0.28)',
+        'rgba(255, 200, 60, 0.95)',
+        'rgba(255, 160, 30, 0.85)',
+        false
+      );
+    }
+  }
+
+  // Soft Painted Fog of War Mask Overlay Canvas (soft ink mist, feathered radial cutouts around vision tiles, dimmed remembered terrain)
+  renderFogOverlay(battle, visionMap) {
+    const canvas = document.getElementById('fogOverlayCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, 640, 832);
+
+    const isFog = battle.isFogActive ? battle.isFogActive() : false;
+    if (!isFog || !visionMap) return;
+
+    ctx.save();
+    // Fill stage with smooth nocturnal ink mist (dimmed/desaturated, NOT solid pitch black)
+    ctx.fillStyle = 'rgba(10, 14, 26, 0.82)';
+    ctx.fillRect(0, 0, 640, 832);
+
+    // Clear vision tiles with soft radial feathered mask
+    ctx.globalCompositeOperation = 'destination-out';
+    for (const key of visionMap) {
+      const [c, r] = key.split(',').map(Number);
+      const cx = c * 64 + 32;
+      const cy = r * 64 + 32;
+      const rad = 68;
+      const grad = ctx.createRadialGradient(cx, cy, 22, cx, cy, rad);
+      grad.addColorStop(0, 'rgba(0, 0, 0, 1.0)');
+      grad.addColorStop(0.65, 'rgba(0, 0, 0, 0.88)');
+      grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  showCombatBark(unit, title, text) {
+    const banner = document.getElementById('combatBarkBanner');
+    if (!banner) return;
+    const por = document.getElementById('barkPortrait');
+    const hdr = document.getElementById('barkHeader');
+    const quote = document.getElementById('barkQuote');
+
+    if (por) por.src = `assets/art/v4/por_${unit.id}.webp`;
+    if (hdr) hdr.textContent = title || `【${unit.name}】`;
+    if (quote) quote.textContent = text || unit.bark || '「破陣！」';
+
+    banner.style.display = 'flex';
+    clearTimeout(this._barkTimer);
+    this._barkTimer = setTimeout(() => {
+      banner.style.display = 'none';
+    }, 2400);
   }
 
   updateBottomStrip(x, y, board, unit = null) {
@@ -601,28 +1031,31 @@ export class UIRenderer {
       vp.scrollTo({ left: sx, top: sy, behavior: 'auto' });
     }
 
-    // Combo badge
+    // Combo badge (restricted to valid bond pairs)
     const comboEl = document.getElementById('prevComboBadge');
     if (comboEl) {
-      if (comboAlly) {
+      if (comboAlly && preview.bondName) {
         comboEl.style.display = 'inline-block';
-        comboEl.textContent = `【協力合擊】+${comboAlly.name} (+${comboDamage})`;
+        comboEl.textContent = `【合擊 · ${preview.bondName}】+${comboAlly.name} (+${comboDamage})`;
+      } else if (comboAlly) {
+        comboEl.style.display = 'inline-block';
+        comboEl.textContent = `【合擊】+${comboAlly.name} (+${comboDamage})`;
       } else {
         comboEl.style.display = 'none';
       }
     }
 
-    // Badges & texts
+    // Badges & texts (matching live SPEC flanking multipliers: Back +50% / Cat +100%, Side +20%)
     const dirBadge = document.getElementById('prevDirectionBadge');
-    if (isBackAttack) {
-      dirBadge.className = 'preview-direction-badge back';
-      dirBadge.textContent = '背擊 (+50% 無反擊)';
-    } else if (isSideAttack) {
-      dirBadge.className = 'preview-direction-badge';
-      dirBadge.textContent = '側擊 (+20%)';
-    } else {
-      dirBadge.className = 'preview-direction-badge';
-      dirBadge.textContent = '正面交鋒';
+    if (dirBadge) {
+      dirBadge.textContent = preview.directionMarker || (isBackAttack ? '【背刺偷襲】+50% 傷害 (無法反擊)' : (isSideAttack ? '【側翼突襲】+20% 傷害' : '【正面交鋒】'));
+      if (isBackAttack) {
+        dirBadge.className = 'preview-direction-badge back';
+      } else if (isSideAttack) {
+        dirBadge.className = 'preview-direction-badge side';
+      } else {
+        dirBadge.className = 'preview-direction-badge front';
+      }
     }
 
     // Attacker
@@ -796,30 +1229,29 @@ export class UIRenderer {
     if (!modal) return;
     modal.style.display = 'flex';
 
+    const headerTitle = document.getElementById('tutorialHeaderTitle');
+    if (headerTitle) {
+      headerTitle.textContent = `${GAME.name} · 基礎兵法`;
+    }
+
     const steps = [
       {
-        num: '第 1 / 4 步',
+        num: '第 1 / 3 步',
         icon: '⚑',
-        title: '【步法前進 · 靈活走位】',
-        text: '點選我方將士，腳下藍色格子為合法移動範圍。再次點選藍格，將士即可調兵遣將挺進目標位置。'
+        title: '【步法前進 · 藍格移動】',
+        text: '點選我方將士，腳下藍色格子為合法移動範圍。點選藍格即可率軍行進至該位置（點選自身即原地待命）。'
       },
       {
-        num: '第 2 / 4 步',
+        num: '第 2 / 3 步',
         icon: '⚔',
-        title: '【戰術指令 · 四維謀略】',
-        text: '移動後喚出軍略指令選單：常規「攻擊」、扣除MP之專屬「技能」、屬性剋制之「魔法」，或原地堅守「待命」。'
+        title: '【軍略指令 · 行動四選】',
+        text: '移動後彈出軍略選單：常規「攻擊」、專屬「技能」、屬性剋制「魔法」或原地「待命」（確認前可悔棋重走）。'
       },
       {
-        num: '第 3 / 4 步',
+        num: '第 3 / 3 步',
         icon: '🎯',
-        title: '【射程預覽 · 克制背擊】',
-        text: '紅色格子為打擊射程。點選目標即可查看命中率、傷害與敵方反擊預測；繞至敵後發動「背擊」可享+50%（劍客+100%）巨額傷害！'
-      },
-      {
-        num: '第 4 / 4 步',
-        icon: '⛰',
-        title: '【地形兵法 · 結束回合】',
-        text: '石橋為隘口通道，河道深水不可涉足，樹林具掩體防禦加成。全員行動完畢點擊「結束回合」，輪至敵軍進犯。'
+        title: '【射程預覽 · 側翼與背刺】',
+        text: '紅色格子為攻擊射程，點選目標可查看傷害與反擊預測。背刺+50%傷害且敵方無法反擊（墨影「疾影」+100%），側擊+20%傷害！'
       }
     ];
 
@@ -1177,11 +1609,12 @@ export class UIRenderer {
       por.alt = unitInst.name;
     }
 
-    document.getElementById('levelUpUnitPrompt').textContent = `【${unitInst.name}】晉升至 Lv.${newLevel}！請選取一項突破（二選一）：`;
+    document.getElementById('levelUpUnitPrompt').textContent = `【${unitInst.name}】晉升至 Lv.${newLevel}！請選取一項突破（三選一）：`;
 
     const choices = [
-      { type: 'atk', name: '銳意進取', boost: '攻擊力 +3 · 破甲暴擊' },
-      { type: 'def_hp', name: '固若金湯', boost: '防禦 +2 · 氣血上限 +6' }
+      { type: 'atk', name: '銳意進取', boost: '攻擊力 +3 · 鋒芒畢露' },
+      { type: 'def_hp', name: '固若金湯', boost: '防禦 +2 · 氣血上限 +6' },
+      { type: 'mov', name: '神行百變', boost: '移動力 +1 · 馳騁戰場' }
     ];
 
     const grid = document.getElementById('levelUpChoicesGrid');
@@ -1277,10 +1710,20 @@ export class UIRenderer {
       const speakerName = document.getElementById('resultSpeakerName');
       const speakerText = document.getElementById('resultSpeakerText');
       if (speakerPor && speakerName && speakerText) {
-        const leader = (squad && squad[0]) || { id: 'cat_patrol', name: '墨影' };
-        speakerPor.src = `assets/art/v4/por_${leader.id}.webp`;
-        speakerName.textContent = leader.name;
-        speakerText.textContent = '「長夜終有盡，迷霧隨燈散。全軍稍作整頓，繼續進軍！」';
+        const awards = rewards?.awards || [];
+        const mvpInfo = awards.find(a => a.isMvp) || (squad && squad[0]) || { id: 'cat_patrol', name: '墨影' };
+        speakerPor.src = `assets/art/v4/por_${mvpInfo.id}.webp`;
+        speakerName.textContent = `${mvpInfo.name} · 本戰MVP`;
+
+        const mvpQuotes = {
+          cat_patrol: '「暗夜之中，劍鋒所向披靡。敵酋已斬，長夜將明！」',
+          bear_guard: '「鐵甲如磐，固若金湯！隨我乘勝破敵！」',
+          crane_rider: '「雲海縱橫，長空無敵！敵陣破綻已盡在掌中！」',
+          tea_master: '「品茗笑談間，檣櫓灰飛煙滅。全軍且進熱茶！」',
+          tanuki_mage: '「雷霆破霄，天威莫測！妖霧豈能擋我玄門道法！」',
+          fox_maiden: '「靈狐引火，照破十方。這漫漫黑夜，該退了！」'
+        };
+        speakerText.textContent = mvpQuotes[mvpInfo.id] || '「長夜終有盡，迷霧隨燈散。全軍稍作整頓，繼續進軍！」';
       }
     } else {
       card.className = 'result-card defeat';
@@ -1335,15 +1778,16 @@ export class UIRenderer {
     const proto = GUARDIAN_PROTOS[activeUnitId];
     const promo = PROMOTIONS[activeUnitId];
     const equippedRelic = unit.relic ? RELICS.find(r => r.id === unit.relic) : null;
-    const canPromote = !unit.promoted && promo && unit.level >= 2;
+    const canPromote = !unit.promoted && promo && unit.level >= 5;
 
     const elementNames = { water: '水相 · 潤澤', fire: '火相 · 熾烈', thunder: '雷相 · 迅破', wind: '風相 · 凌厲' };
     const elText = elementNames[unit.element] || '兵家 · 鋒芒';
+    const halfBodySrc = proto.richPortrait || (activeUnitId === 'cat_patrol' ? 'assets/art/v4/por_moying_rich.webp' : `assets/art/v4/por_${activeUnitId}.webp`);
 
     profileDetails.innerHTML = `
       <div class="camp-profile-header">
-        <div class="camp-profile-por-box">
-          <img src="assets/art/v4/por_${activeUnitId}.webp" class="camp-profile-portrait" alt="${unit.name}">
+        <div class="camp-profile-por-box rich">
+          <img src="${halfBodySrc}" class="camp-profile-portrait rich-portrait" alt="${unit.name}">
           ${unit.promoted ? '<div class="camp-promo-laurel">✦ 破境高階 ✦</div>' : ''}
         </div>
         <div class="camp-profile-title-block">
@@ -1359,18 +1803,6 @@ export class UIRenderer {
             <div class="camp-exp-track"><div class="camp-exp-fill" style="width: ${unit.exp % 100}%;"></div></div>
           </div>
         </div>
-      </div>
-
-      <div class="camp-lore-quote">
-        「${proto.quote || proto.desc || '以身衛社稷，以智破暗夜。'}」
-      </div>
-
-      <!-- Attributes Grid -->
-      <div class="camp-stats-grid">
-        <div class="camp-stat-pill"><span class="k">氣血</span><strong class="v">${unit.maxHp}</strong></div>
-        <div class="camp-stat-pill"><span class="k">攻擊</span><strong class="v">${unit.atk}</strong></div>
-        <div class="camp-stat-pill"><span class="k">防禦</span><strong class="v">${unit.def}</strong></div>
-        <div class="camp-stat-pill"><span class="k">移動</span><strong class="v">${unit.mov}</strong></div>
       </div>
 
       <!-- Equipment Slot -->
@@ -1412,7 +1844,7 @@ export class UIRenderer {
       </div>
 
       <!-- Class Promotion -->
-      <div class="camp-section-card">
+      <div class="camp-section-card camp-promo-card">
         <div class="camp-card-heading">✦ 破境晉升 ✦</div>
         ${unit.promoted ? `
           <div class="camp-promo-box done">
@@ -1435,11 +1867,55 @@ export class UIRenderer {
             <span class="p-lock-badge">修煉進階</span>
             <div class="p-info">
               <strong>下一階破境：【${promo?.newClass || '高階'}】</strong>
-              <p>須修煉至 2 級方可開啟破境進階（當前 Lv.${unit.level}，尚缺 ${100 - (unit.exp % 100)} EXP）。</p>
+              <p>須修煉至 Lv.5 方可開啟破境進階（當前 Lv.${unit.level}）。</p>
             </div>
           </div>
         `}
       </div>
+
+      <!-- Attributes with Visual Stat Bars -->
+      <div class="camp-section-card camp-stat-bars-card">
+        <div class="camp-card-heading">✦ 屬性修為 ✦</div>
+        <div class="camp-stat-bar-row">
+          <span class="sb-label">氣血</span>
+          <div class="sb-track"><div class="sb-fill hp" style="width: ${Math.min(100, Math.round((unit.maxHp / 50) * 100))}%;"></div></div>
+          <strong class="sb-val">${unit.maxHp}</strong>
+        </div>
+        <div class="camp-stat-bar-row">
+          <span class="sb-label">攻擊</span>
+          <div class="sb-track"><div class="sb-fill atk" style="width: ${Math.min(100, Math.round((unit.atk / 25) * 100))}%;"></div></div>
+          <strong class="sb-val">${unit.atk}</strong>
+        </div>
+        <div class="camp-stat-bar-row">
+          <span class="sb-label">防禦</span>
+          <div class="sb-track"><div class="sb-fill def" style="width: ${Math.min(100, Math.round((unit.def / 20) * 100))}%;"></div></div>
+          <strong class="sb-val">${unit.def}</strong>
+        </div>
+        <div class="camp-stat-bar-row">
+          <span class="sb-label">速度</span>
+          <div class="sb-track"><div class="sb-fill spd" style="width: ${Math.min(100, Math.round((unit.spd / 20) * 100))}%;"></div></div>
+          <strong class="sb-val">${unit.spd}</strong>
+        </div>
+        <div class="camp-stat-bar-row">
+          <span class="sb-label">仙法</span>
+          <div class="sb-track"><div class="sb-fill mag" style="width: ${Math.min(100, Math.round(((unit.mag || 0) / 20) * 100))}%;"></div></div>
+          <strong class="sb-val">${unit.mag || 0}</strong>
+        </div>
+        <div class="camp-stat-bar-row">
+          <span class="sb-label">移動</span>
+          <div class="sb-track"><div class="sb-fill mov" style="width: ${Math.min(100, Math.round((unit.mov / 6) * 100))}%;"></div></div>
+          <strong class="sb-val">${unit.mov}</strong>
+        </div>
+      </div>
+
+      <!-- Backstory & Quote (Collapsible) -->
+      <details class="camp-section-card camp-backstory-card">
+        <summary class="camp-card-heading" style="cursor:pointer;">✦ 將士生平與語錄 ✦（點擊展開）</summary>
+        <div class="camp-lore-quote" style="margin-top:6px;">
+          「${proto.quote || proto.bark || '以身衛社稷，以智破暗夜。在暗夜裡，無人能逃過我的快劍。'}」
+        </div>
+        <p class="camp-backstory-p" style="margin-top:6px;">${proto.backstory || '生平詳傳收錄於軍略密卷。'}</p>
+      </details>
 
       <!-- Skills & Trait -->
       <div class="camp-section-card">

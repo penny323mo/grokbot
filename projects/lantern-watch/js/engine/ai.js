@@ -29,8 +29,8 @@ export function decideEnemyTurn(enemy, battleState, rng) {
     }
   }
 
-  // Calculate reachable movement tiles
-  const reachable = getReachableTiles(board, enemy, allUnits);
+  // Calculate reachable movement tiles (respecting ZOC and cursed miasma)
+  const reachable = getReachableTiles(board, enemy, allUnits, { zoc: true, cursedTiles: battleState?.cursedTiles });
   const reachableList = Array.from(reachable.values());
 
   const role = enemy.role || 'fighter';
@@ -54,6 +54,7 @@ export function decideEnemyTurn(enemy, battleState, rng) {
     case 'siege_engine':
       return decideSiegeEngineAction(enemy, reachableList, playerUnits, board, rng);
     case 'sorcerer':
+    case 'curse_sorcerer':
       return decideSorcererAction(enemy, reachableList, playerUnits, board, rng);
     case 'boss':
       return decideBossAction(enemy, reachableList, playerUnits, board, rng);
@@ -507,9 +508,15 @@ function decideShieldGuardAction(enemy, reachableList, playerUnits, board, rng) 
 }
 
 /**
- * Sorcerer: Casts AoE thunder spell when >=2 players cluster within range, else magic attack
+ * Sorcerer: Casts AoE spell when >=2 players cluster within range, else magic attack
  */
 function decideSorcererAction(enemy, reachableList, playerUnits, board, rng) {
+  const isCurse = enemy.role === 'curse_sorcerer' || enemy.id === 'curse_sorcerer';
+  const aoeCost = enemy.magic?.cost || 4;
+  const aoeDamage = isCurse ? 12 : 10;
+  const spellElement = enemy.element || (isCurse ? 'dark' : 'thunder');
+  const aoeName = isCurse ? '幽冥咒縛' : '五雷正法';
+
   // Check for clusters of >= 2 units within range 2
   let bestClusterMove = null;
   let maxClusterCount = 0;
@@ -525,14 +532,15 @@ function decideSorcererAction(enemy, reachableList, playerUnits, board, rng) {
   }
 
   // If cluster of >= 2 units and MP available (>= 4), unleash AoE magic
-  if (maxClusterCount >= 2 && enemy.mp >= 4) {
+  if (maxClusterCount >= 2 && enemy.mp >= aoeCost) {
     return {
       type: 'aoe',
       move: bestClusterMove,
       targets: bestClusterTargets,
-      damage: 10,
-      element: 'thunder',
-      mpCost: 4
+      damage: aoeDamage,
+      element: spellElement,
+      magicName: aoeName,
+      mpCost: aoeCost
     };
   }
 
@@ -566,7 +574,8 @@ function decideSorcererAction(enemy, reachableList, playerUnits, board, rng) {
             type: 'magic',
             move: m,
             target: p,
-            element: 'thunder',
+            element: spellElement,
+            magicName: enemy.magic?.name || (isCurse ? '邪穢陰雷' : '雷法'),
             newFacing: p.x < m.x ? -1 : 1
           };
         }

@@ -434,3 +434,51 @@ test('AI: Scout prioritizes lantern cart objective target', () => {
   assert.strictEqual(decision.type, 'attack');
   assert.strictEqual(decision.target.id, 'lantern_cart', 'Scout must prioritize attacking lantern cart over tank');
 });
+
+test('AI: Curse Sorcerer (咒禁術士) with MAG 15 casts AoE when clustered and magic at range', () => {
+  const terrain = Array(13).fill("..........");
+  const board = new Board(terrain);
+  const rng = new RNG(999);
+
+  const curseSorcerer = {
+    id: 'curse_sorcerer',
+    role: 'curse_sorcerer',
+    team: 'enemy',
+    element: 'dark',
+    x: 5,
+    y: 5,
+    hp: 34,
+    atk: 6,
+    def: 4,
+    mag: 15,
+    mp: 10,
+    mov: 3,
+    range: [1, 2],
+    magic: { id: 'curse_strike', name: '邪穢陰雷', power: 14, cost: 4 }
+  };
+
+  // Case 1: Clustered targets -> AoE curse spell
+  const ally1 = { id: 'ally_1', team: 'ally', x: 4, y: 5, hp: 25, def: 4 };
+  const ally2 = { id: 'ally_2', team: 'ally', x: 5, y: 6, hp: 25, def: 4 };
+
+  const aoeDecision = decideEnemyTurn(curseSorcerer, {
+    board,
+    allies: [ally1, ally2],
+    enemies: [curseSorcerer]
+  }, rng);
+
+  assert.strictEqual(aoeDecision.type, 'aoe', 'Curse sorcerer must cast AoE when players cluster');
+  assert.strictEqual(aoeDecision.element, 'dark');
+  assert.ok(aoeDecision.targets.length >= 2);
+
+  // Case 2: Single target at distance 2 -> magic attack (not default melee!)
+  const singleAlly = { id: 'ally_single', team: 'ally', x: 5, y: 7, hp: 25, def: 4 };
+  const singleDecision = decideEnemyTurn(curseSorcerer, {
+    board,
+    allies: [singleAlly],
+    enemies: [curseSorcerer]
+  }, rng);
+
+  assert.strictEqual(singleDecision.type, 'magic', 'Curse sorcerer must use magic spell at range 2, not default melee');
+  assert.strictEqual(singleDecision.element, 'dark');
+});

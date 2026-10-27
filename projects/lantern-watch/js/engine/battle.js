@@ -33,6 +33,8 @@ export class Battle {
     this.actionScores = {};
     this.floodedTiles = new Map();
     this.originalTerrain = new Map();
+    this.burningTiles = new Set();
+    this.cursedTiles = new Set();
 
     this.initUnits(squadUnits, this.options);
     this.applyStratagemAtStart();
@@ -95,6 +97,17 @@ export class Battle {
           });
         }
       });
+    }
+
+    // Initialize cursed tiles in side_marsh or if chapter has curse_sorcerer
+    if (this.chapter.key === 'side_marsh' || this.chapter.id === 7 || this.enemies.some(e => e.id === 'curse_sorcerer' || e.role === 'curse_sorcerer')) {
+      const initialCursed = ['3,3', '4,3', '5,3', '6,3', '3,4', '4,4', '5,4', '6,4', '4,2', '5,2'];
+      for (const t of initialCursed) {
+        const [cx, cy] = t.split(',').map(Number);
+        if (!this.isTileLit(cx, cy)) {
+          this.cursedTiles.add(t);
+        }
+      }
     }
   }
 
@@ -173,6 +186,9 @@ export class Battle {
         const terrain = this.board.getTerrain(c, r);
         if (terrain.char === 'f' || terrain.char === 'm') {
           this.burningTiles.add(`${c},${r}`);
+          if (this.cursedTiles) {
+            this.cursedTiles.delete(`${c},${r}`); // Fire cleanses cursed miasma
+          }
         }
       }
     }
@@ -192,6 +208,9 @@ export class Battle {
     const spreadCandidates = [];
     for (const key of this.burningTiles) {
       const [tx, ty] = key.split(',').map(Number);
+      if (this.cursedTiles) {
+        this.cursedTiles.delete(key);
+      }
       const unit = this.getUnitAt(tx, ty);
       if (unit && unit.hp > 0 && unit.element !== 'water') {
         unit.hp = Math.max(0, unit.hp - 4);
@@ -203,7 +222,8 @@ export class Battle {
       ];
       for (const a of adj) {
         if (this.board.inBounds(a.x, a.y) && !this.burningTiles.has(`${a.x},${a.y}`)) {
-          if (this.board.getTerrain(a.x, a.y).char === 'f') {
+          const char = this.board.getTerrain(a.x, a.y).char;
+          if (char === 'f' || char === 'm') { // Spread onto forest and market tiles
             spreadCandidates.push(`${a.x},${a.y}`);
           }
         }
@@ -212,6 +232,9 @@ export class Battle {
     if (spreadCandidates.length > 0 && this.currentTurn <= 3) {
       const pick = spreadCandidates[0];
       this.burningTiles.add(pick);
+      if (this.cursedTiles) {
+        this.cursedTiles.delete(pick);
+      }
       this.eventLog.push({ type: 'fire_spread', tile: pick, msg: '風助火勢，烈焰蔓延至相鄰竹林！' });
     }
   }
@@ -261,6 +284,17 @@ export class Battle {
         this.floodedTiles.set(key, turns - 1);
       }
     }
+  }
+
+  isTileLit(x, y) {
+    const allLanterns = [...(this.board?.placedLanterns || []), ...(this.chapter?.lanterns || [])];
+    for (const lantern of allLanterns) {
+      const rad = lantern.radius || 2;
+      if (Math.abs(lantern.x - x) <= rad && Math.abs(lantern.y - y) <= rad) {
+        return true;
+      }
+    }
+    return false;
   }
 
   isFogActive() {
@@ -400,15 +434,17 @@ export class Battle {
     return this.getAllLivingUnits().find(u => u.x === x && u.y === y);
   }
 
-  getReachableFor(unit) {
+  getReachableFor(unit, options = {}) {
     if (unit.acted) return new Map();
-    return getReachableTiles(this.board, unit, this.getAllLivingUnits());
+    return getReachableTiles(this.board, unit, this.getAllLivingUnits(), { cursedTiles: this.cursedTiles, ...options });
   }
 
   moveUnit(unit, toX, toY) {
     if (unit.acted) return false;
     unit.turnStartX = unit.x;
     unit.turnStartY = unit.y;
+
+    const moved = (toX !== unit.x || toY !== unit.y);
 
     if (toX !== unit.x) {
       unit.facing = toX > unit.x ? 1 : -1;
@@ -417,6 +453,29 @@ export class Battle {
     unit.x = toX;
     unit.y = toY;
     unit.moved = true;
+
+    // MAJOR 3: Cavalry entering spear_wall ZOC suffers free intercept hit
+    const isCavalry = unit.role === 'cavalry' || unit.cls === '騎兵';
+    if (moved && isCavalry) {
+      const opposingUnits = unit.team === 'ally' ? this.enemies : this.allies;
+      const spearHostile = opposingUnits.find(u =>
+        u.hp > 0 &&
+        (u.trait?.id === 'spear_wall' || u.id === 'bear_guard') &&
+        Board.manhattan(toX, toY, u.x, u.y) === 1
+      );
+      if (spearHostile) {
+        const dmg = Math.max(1, (spearHostile.atk || 12) - (unit.def || 0));
+        unit.hp = Math.max(0, unit.hp - dmg);
+        this.eventLog.push({
+          type: 'zoc_strike',
+          attacker: spearHostile.id,
+          target: unit.id,
+          damage: dmg,
+          msg: `【槍林截擊】${spearHostile.name}長槍如林，對突入之${unit.name}造成${dmg}點截擊傷害！`
+        });
+      }
+    }
+
     return true;
   }
 
@@ -496,7 +555,15 @@ export class Battle {
           const tx = options.tileX ?? unit.x;
           const ty = options.tileY ?? unit.y;
           this.board.addPlacedLantern(tx, ty, 2, 3);
-          result.events.push({ type: 'placed_lantern', x: tx, y: ty, msg: '引魂明燈已置放，照亮四周迷霧！' });
+          if (this.cursedTiles) {
+            for (const key of [...this.cursedTiles]) {
+              const [cx, cy] = key.split(',').map(Number);
+              if (Board.manhattan(tx, ty, cx, cy) <= 2) {
+                this.cursedTiles.delete(key);
+              }
+            }
+          }
+          result.events.push({ type: 'placed_lantern', x: tx, y: ty, msg: '引魂明燈已置放，照亮四周迷霧並驅散咒蝕！' });
           unit.acted = true;
           unit.moved = false;
         } else if (skill?.isHeal && target) {
@@ -695,11 +762,20 @@ export class Battle {
 
       // Execute enemy action
       if (decision.move) {
-        enemy.x = decision.move.x;
-        enemy.y = decision.move.y;
+        this.moveUnit(enemy, decision.move.x, decision.move.y);
       }
       if (decision.newFacing) {
         enemy.facing = decision.newFacing;
+      }
+
+      // If enemy was eliminated by ZOC intercept strike during move, skip attack
+      if (enemy.hp <= 0) {
+        this.status = checkBattleStatus(this.chapter, this);
+        if (this.status.finished) {
+          this.phase = 'finished';
+          break;
+        }
+        continue;
       }
 
       if ((decision.type === 'attack' || decision.type === 'magic') && decision.target) {
@@ -708,6 +784,9 @@ export class Battle {
           element: decision.element || null,
           movedTiles: decision.movedTiles || 0
         });
+        if (enemy.role === 'curse_sorcerer' || enemy.id === 'curse_sorcerer') {
+          this.applyCurseTiles(decision.target.x, decision.target.y);
+        }
       } else if (decision.type === 'heal' && decision.target) {
         decision.target.hp = Math.min(decision.target.maxHp, decision.target.hp + (decision.healAmount || 8));
       } else if ((decision.type === 'aoe' || decision.type === 'aoe_skill') && decision.targets) {
@@ -716,6 +795,9 @@ export class Battle {
         }
         for (const t of decision.targets) {
           t.hp = Math.max(0, t.hp - (decision.damage || 10));
+        }
+        if (enemy.role === 'curse_sorcerer' || enemy.id === 'curse_sorcerer') {
+          this.applyCurseTiles(enemy.x, enemy.y);
         }
       }
 
@@ -729,6 +811,43 @@ export class Battle {
 
     this.lastEnemyActions = enemyActions;
     this.endEnemyPhase();
+  }
+
+  applyCurseTiles(cx, cy) {
+    if (!this.cursedTiles) this.cursedTiles = new Set();
+    const area = [
+      { x: cx, y: cy },
+      { x: cx + 1, y: cy },
+      { x: cx - 1, y: cy },
+      { x: cx, y: cy + 1 },
+      { x: cx, y: cy - 1 }
+    ];
+    for (const c of area) {
+      if (this.board.inBounds(c.x, c.y) && !this.isTileLit(c.x, c.y) && (!this.burningTiles || !this.burningTiles.has(`${c.x},${c.y}`))) {
+        this.cursedTiles.add(`${c.x},${c.y}`);
+      }
+    }
+  }
+
+  tickCursedTiles() {
+    if (!this.cursedTiles || this.cursedTiles.size === 0) return;
+    for (const key of [...this.cursedTiles]) {
+      const [tx, ty] = key.split(',').map(Number);
+      if (this.isTileLit(tx, ty) || (this.burningTiles && this.burningTiles.has(key))) {
+        this.cursedTiles.delete(key);
+        continue;
+      }
+      const unit = this.getUnitAt(tx, ty);
+      if (unit && unit.hp > 0 && unit.team === 'ally') {
+        unit.hp = Math.max(0, unit.hp - 4);
+        this.eventLog.push({
+          type: 'curse_damage',
+          target: unit.id,
+          damage: 4,
+          msg: `【幽冥咒縛】${unit.name}踏足咒蝕之地，受陰煞侵蝕損失4點氣血！`
+        });
+      }
+    }
   }
 
   endEnemyPhase() {
@@ -760,6 +879,7 @@ export class Battle {
 
     this.tickBurningTiles();
     this.tickFloodedTiles();
+    this.tickCursedTiles();
 
     for (const a of this.allies) {
       a.acted = false;

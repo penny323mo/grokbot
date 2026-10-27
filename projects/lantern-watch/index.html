@@ -158,18 +158,14 @@
             </div>
             <div class="squad-roster-grid" id="squadRosterGrid"></div>
           </div>
-
-          <!-- Strategem (計策) Selection -->
-          <div class="prebattle-panel">
-            <div class="panel-section-title">
-              <span>戰前軍略計策 (選填 1 項)</span>
-            </div>
-            <div class="stratagem-picker" id="stratagemPicker"></div>
-          </div>
         </div>
 
-        <!-- Deploy / Launch Button -->
+        <!-- Deploy / Launch Button & Stratagem Selector pinned above CTA -->
         <div class="prebattle-footer">
+          <div class="prebattle-pinned-stratagems">
+            <div class="stratagem-bar-heading">✦ 戰前軍略計策 (點選 1 項) ✦</div>
+            <div class="stratagem-picker" id="stratagemPicker"></div>
+          </div>
           <button type="button" class="btn-brush-main" id="btnLaunchBattle">
             <span>排兵布陣 · 開戰</span>
           </button>
@@ -202,11 +198,25 @@
           </div>
         </div>
 
+        <!-- Floating Combat Voice Bark Banner -->
+        <div class="combat-bark-banner" id="combatBarkBanner" style="display:none;">
+          <img src="" class="bark-portrait" id="barkPortrait" alt="發動者">
+          <div class="bark-textbox">
+            <div class="bark-header" id="barkHeader">【墨影 · 影步突刺】</div>
+            <div class="bark-quote" id="barkQuote">「劍隨心動，一葉斬秋水！」</div>
+          </div>
+        </div>
+
         <!-- Scrollable & Panned Battle Viewport -->
         <div class="battle-viewport" id="battleViewport">
           <div class="battle-board-stage" id="battleBoardStage">
             <!-- Background Painted Top-Down Map -->
             <img src="" alt="戰鬥地圖" class="battle-map-bg" id="battleMapBg">
+            <!-- Continuous Canvas Overlays (Merged regions, soft shoreline water, feathered mist, fiery inferno) -->
+            <canvas class="board-canvas-layer" id="floodOverlayCanvas" width="640" height="832"></canvas>
+            <canvas class="board-canvas-layer" id="fireOverlayCanvas" width="640" height="832"></canvas>
+            <canvas class="board-canvas-layer" id="rangeOverlayCanvas" width="640" height="832"></canvas>
+            <canvas class="board-canvas-layer" id="fogOverlayCanvas" width="640" height="832"></canvas>
             <!-- 10x13 Grid Tiles Overlay -->
             <div class="tactics-grid" id="tacticsGrid"></div>
             <!-- Dynamic 2.5D Figures Layer -->
@@ -316,7 +326,7 @@
         <div class="tutorial-board-overlay" id="tutorialBoardOverlay" style="display:none;">
           <div class="tutorial-board-card">
             <div class="tutorial-card-header">
-              <span class="tutorial-pill-badge" id="boardTutorialTitle">軍略指引 · 基礎兵法</span>
+              <span class="tutorial-pill-badge" id="boardTutorialTitle">燈影軍略 · 基礎兵法</span>
               <span class="tutorial-step-pill" id="boardTutorialStep">1 / 3</span>
             </div>
             <div class="tutorial-card-body">
@@ -354,13 +364,13 @@
       </div>
     </div>
 
-    <!-- MODAL 2: CONCISE TACTICS TUTORIAL (4 STEPS) -->
+    <!-- MODAL 2: CONCISE TACTICS TUTORIAL (3 STEPS) -->
     <div class="modal-overlay" id="modalTutorial" style="display:none;">
       <div class="tutorial-card">
         <div class="tutorial-header">
           <div class="tutorial-title-row">
-            <h3 class="tutorial-title" id="tutorialHeaderTitle">軍略指引 · 基礎兵法</h3>
-            <span class="tutorial-step-indicator" id="tutorialStepIndicator">第 1 / 4 步</span>
+            <h3 class="tutorial-title" id="tutorialHeaderTitle">燈影軍略 · 基礎兵法</h3>
+            <span class="tutorial-step-indicator" id="tutorialStepIndicator">第 1 / 3 步</span>
           </div>
           <button type="button" class="btn-tutorial-close" id="btnCloseTutorialModal" aria-label="關閉">✕</button>
         </div>

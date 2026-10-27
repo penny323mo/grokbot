@@ -1,4 +1,4 @@
-# 燈籠小鎮守夜人 — DESIGN (draft for Penny's review)
+# 燈影軍略 · Lantern Tactics — DESIGN (draft for Penny's review)
 
 ## Concept
 Cozy lantern-town defense. Each night fog creatures (霧怪) creep across a 5x6 grid toward the town's 3 lanterns. You command cute guardians with a small card deck. Tactics + deckbuilding + cozy town building. No football/odds.

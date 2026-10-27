@@ -1,14 +1,14 @@
 # 燈影軍略 — orchestrator report
 
-- Generated: 2026-10-27 05:03 (Macau, UTC+8)
+- Generated: 2026-10-27 06:33 (Macau, UTC+8)
 - Live: https://penny323mo.github.io/grokbot/projects/lantern-watch/ (HTTP 200)
-- Rounds: 1  ·  Started: 2026-10-27T03:38:55+08:00
+- Rounds: 1  ·  Started: 2026-10-27T05:10:59+08:00
 
 ## Phases
-- build finished 2026-10-27T04:29:58+08:00
-- review-1 finished 2026-10-27T04:33:40+08:00
-- fix-1 finished 2026-10-27T05:02:56+08:00
-- publish finished 2026-10-27T05:03:09+08:00
+- build finished 2026-10-27T06:08:15+08:00
+- review-1 finished 2026-10-27T06:11:57+08:00
+- fix-1 finished 2026-10-27T06:33:15+08:00
+- publish finished 2026-10-27T06:33:26+08:00
 
 ## Reviews
 - orch-r1-grok.md: VERDICT: NOT READY
@@ -23,7 +23,7 @@
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 131.797145
+# duration_ms 100.899517
 ```
 ### tests-fix-1
 ```
@@ -34,7 +34,7 @@
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 146.232642
+# duration_ms 113.399255
 ```
 
 ## Screenshots
@@ -45,31 +45,31 @@
 - screenshots/orch/live-title.png
 
 ## Changelog (tail)
-  - Enhanced camera clamping in `centerCameraOn`: when focusing on southern ranks (`y >= 10`), ensures unit figures stay ≥64px above the viewport bottom, leaving a safe buffer above the 52px Grokbot button.
-  - Verified in `08-new-chapter-board.png`: 墨影 at `(3, 11)` is 100% visible from head to toe, and Grokbot sits over empty dark stone in the bottom-left corner with zero figure overlap.
-- **MAJOR #2 (Expansive 2.6×2.6 Cell Fire Spell VFX)**:
-  - Replaced the narrow 275×768 fire strip with a new high-impact 512×512 1:1 Guofeng painted sprite asset (`assets/art/v4/vfx_fire.webp`).
-  - Sized `.vfx-fire-burst` to 170×170px (covering 2.65×2.65 cells) with radial vermilion/golden flame tongues, orbiting embers, fiery ink splatters, and charred ground scorch.
-  - Held `vfxFire` animation at peak scale (1.15) and full opacity (0.98–1.0) through 70% duration.
-  - Recaptured `05-spell-vfx-fire.png` demonstrating an expansive 42,800+ pixel explosion centered on the target.
-- **MAJOR #3 (Attack Preview Board Buffer & Clean Upper Framing)**:
-  - Overhauled camera auto-pan in `showTargetPreview`: calculates the union bounding box of attacker, defender, and combo ally, centering them in the upper 45–55% of `#battleViewport` (`sy = midY - 140`).
-  - In `03-attack-preview.png`, staged non-attacking squad members adjacent in rows 2–4; zero unit rings peek from under the compact `.target-preview-card`.
-- **MAJOR #4 (Pre-Battle Squad Wrapping Grid & Fold Visibility)**:
-  - Replaced horizontal scroller with a 4-column wrapping grid (`.squad-roster-grid { display: grid; grid-template-columns: repeat(4, 1fr); }`).
-  - Streamlined pre-battle banner height to 90px and updated body scrolling so that all squad members (including 熊岳) and all stratagems (including 鼓舞) are fully visible without horizontal slicing or bottom fold occlusion.
-- **MAJOR #5 (Accurate Chapter 5 HUD Objective Ticker)**:
-  - Added explicit objective mapping in `js/render/ui.js` for `reach_shrine_or_rout`: displays `竹海 · 佔領神壇` on Bamboo Pass rather than defaulting to `討伐鐵將`.
+  - Replaced horizontal roster grid with a sleek, compact horizontal scroll strip, saving >120px of vertical space.
+  - Shortened Camp subtitle to 「名冊 · 寶具 · 破境」 with `white-space: nowrap` to prevent header line wraps on 390px viewports.
+  - Recaptured `02-camp-profile.png` showing 墨影 portrait, stats, equipped 倚天古劍 (`item_sword.webp`) with 【卸下】 button, and locked 【劍聖】 class promotion path (Lv.2 requirement, +4 ATK, +2 DEF, +1 MOV, 【萬劍歸宗】) all readable and fully visible above Grokbot.
+- **MAJOR #4 (Chapter 6 Scouting Intel 2×2 Grid Above the Fold)**:
+  - Fixed pre-battle scroll offset to start at `scrollTop = 0` so the 2×2 enemy scout intel grid sits prominently at the top of the body fold.
+  - Streamlined weakness text in `WEAKNESS_ZH`: `siege_engine` (盲區1-2格·弱飛騎近攻) and `citadel_warlord` (防禦極高·弱法術背刺).
+  - Recaptured `03-prebattle.png` displaying painted siege banner, chapter objectives, and all 4 enemy types (鎮關將領, 霹靂砲車, 影弓, 盾衛) without scrolling.
 
-### Minor Fixes
-- **MINOR #9 (影弓 Intel Weakness Tag)**: Added `shadow_archer` entry to `WEAKNESS_ZH` in `ui.js`: `高地狙擊·近身不能反擊`.
-- **MINOR #10 (Post-Battle XP Filter)**: Filtered out NPC and objective units (`role === 'npc'`, `role === 'objective'`, `id === 'lantern_cart'`) from the victory XP progress list; recaptured `10-post-battle.png` displaying Chapter 5 victory with guardian progression and `item_tome.webp`.
-- **MINOR #11 (Combo Floating Badge)**: Refined screenshot timing to 400ms in `07-combo-attack.png` to capture the `【協力合擊！】 -6` floating badge and combo slash trail mid-strike.
-- **MINOR #12 (River Water Terrain & Grid Alignment)**: Updated `isWalkable` in `ui.js` to strictly exclude shallows (`s`) and deep water (`w`) from `.walkable` gold hairline borders, eliminating all lattice lines across river surfaces.
-- **MINOR #13 (Promotion Documentation Sync)**: Updated CHANGELOG to accurately describe `連弩手` and `連弩驟雨` matching in-game code.
+### Minor Issues Resolved
+- **MINOR #5 (Painted Flood Water Wave VFX & Accurate Stratagem Text)**:
+  - Overhauled `.grid-tile.flooded-water` from a flat radial CSS gradient to authentic painted azure water ripples using `assets/art/v4/vfx_water.webp` with animated ripple surge.
+  - Updated `STRATAGEMS.flood` copy in `js/data/units.js` to accurately describe the 2-turn shallow-to-deep-water conversion, 12 damage, push, and drowning KO effects.
+- **MINOR #6 (Softened Catapult AoE Range Footprint)**:
+  - Softened `.grid-tile.aoe-preview` into a painterly translucent gold ink wash with feathered rounded borders (`border-radius: 12px; border: 1px solid rgba(255, 190, 50, 0.45);`).
+  - In `08-archetype-siege.png`, restricted bombardment footprint strictly to passable ground cells, eliminating debug lattices over impassable night sky and solid cliff faces.
+- **MINOR #7 (Eliminated Residual Emoji & Unified Chinese Nomenclature in Camp)**:
+  - Replaced `r.icon` emoji in relic selector chips with painted item raster thumbnails (`assets/art/v4/item_sword.webp`, `item_armor.webp`, `item_tome.webp`).
+  - Replaced `🔒` emoji in promotion lock box with stylized Chinese badge `【修煉進階】`.
+  - Replaced fallback element label `天元 · 調和` with authentic martial archetype tag `兵家 · 鋒芒`.
+- **MINOR #8 (Coordinated Directional Combo Lunge Proof)**:
+  - In `05-attack-preview.png`, applied directional lunge classes to both primary attacker (`lunge-right` on 墨影) and combo assist ally (`lunge-down` on 熊岳), visually proving the synchronized combo strike mechanic in the final contact sheet.
+
 
 
 
 
 ## Improve loop changelog
-- 2026-10-27 05:11 (Asia/Macau): Improve round 2 DONE 05:03 (grok review NOT READY before fix-1; fix-1 addressed grokbot clearance, 2.6-cell fire VFX, preview auto-pan, wrapping squad grid, Ch5 objective label), live 200. Strict 390px review of screenshots/v6: move-range highlight is flat opaque blue debug squares; figures in adjacent rows overlap (heads over HP bars); faint permanent grid lattice; Ch5 fog vision never implemented and 水淹 is still a damage pulse; post-battle XP is a flat +50 for all. Launched improve round 3 (prompts/improve-3.txt): painted range highlights + path preview and figure scaling/z-sort, real fog-of-war + flooding + new enemy archetype, per-action XP/MVP and camp screen with profile/equipment/promotion, Ch6 siege map, title flag and lunge/idle polish. Previous state in .orch-prev-3, old prompts/reviews in prompts/prev-3 and reviews/prev-3.
+- 2026-10-27 06:35 (Asia/Macau): Improve round 3 DONE 06:33 (grok review NOT READY before fix-1; fix-1 addressed row overlap, grokbot/HUD clearance, camp equip/promotion fold, Ch6 intel grid, painted flood/AoE wash, emoji cleanup), live 200. Strict 390px review of screenshots/v7: fog of war is hard-edged black squares, flood is per-cell repeated water tiles with seams, move range and 砲車 AoE still look like separate boxes, figures small and hard to read, camp profile has empty areas and a small portrait. Launched improve round 4 (prompts/improve-4.txt): soft painted fog mask, merged flood/range regions, clearer figures with base rings and class badges, facing/flanking + zone of control + AI use, rich character sheet with large portraits and barks, 火攻 stratagem vs 妖術師 enemy in a new side battle, title/world-map/post-battle polish. Previous state in .orch-prev-4, old prompts/reviews in prompts/prev-4 and reviews/prev-4.

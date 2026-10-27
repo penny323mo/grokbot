@@ -21,7 +21,7 @@ Keep the ink-wash palette, gold hairline grid, parchment panels, lantern tokens,
 Write CREDITS.md noting AI-generated art.
 
 ## 3. Units on the grid (2.5D figures)
-Each unit renders as its figure image standing on its tile, feet at tile bottom, figure ~1.6x tile height overflowing upward (z-index by row so lower rows draw in front). Elliptical soft ground shadow under feet. Warm amber `drop-shadow` rim light for guardians, cold violet for enemies. Facing: CSS `scaleX(-1)` to face left/right based on last move/attack direction. Idle: subtle breathing (scaleY 1→1.015, 3s) + sway, desynced per unit. Attack: lunge toward target 120ms; hurt: red flash + shake; KO: fade + sink + desaturate. Small HP bar under feet; team colour ring (gold ally / crimson enemy). Units that have acted this turn are greyed (filter: grayscale .7).
+Each unit renders as its figure image standing on its tile, feet at tile bottom, figure CSS height ~56px in a 64px cell (source figure aspect ratio ~1.6x, overflowing upward with z-index by row so lower rows draw in front). Elliptical soft ground shadow under feet. Warm amber `drop-shadow` rim light for guardians, cold violet for enemies. Facing: CSS `scaleX(-1)` to face left/right based on last move/attack direction. Idle: subtle breathing (scaleY 1→1.015, 3s) + sway, desynced per unit. Attack: lunge toward target 120ms; hurt: red flash + shake; KO: fade + sink + desaturate. Small HP bar under feet; team colour ring (gold ally / crimson enemy). Units that have acted this turn are greyed (filter: grayscale .7).
 Portrait expression variant: in dialogue/detail, portrait gets CSS mood class (`.mood-angry` red tint+slight zoom, `.mood-hurt` desat, `.mood-calm` normal).
 
 ## 4. Maps, camera, terrain
@@ -46,7 +46,8 @@ Tap an empty tile (or long-press any) → bottom info strip shows terrain name, 
 3. Action menu pops next to the unit (big 56px buttons): **攻擊 / 技能 / 魔法 / 待命**, plus small **取消** (undo move; allowed until an action is confirmed). Buttons disabled (greyed with reason) if no target/MP.
 4. 攻擊/技能/魔法 → range tiles red; area shapes (line/cross/cone) previewed in orange following the tapped direction/target. Tapping a target shows **preview card**: attacker → defender portraits, damage numbers, hit %, crit, counter-attack yes/no, terrain bonus, "KO!" marker. Buttons 確認 / 返回.
 5. After all allies acted or 結束回合 pressed → banner **敵方回合** (ink-brush sweep, 1.2s) → enemies act one by one with camera follow + animations → banner **我方回合**.
-Back attack: attacking from the tile opposite the defender's facing = +50% dmg and no counter (show "背擊" in preview). Side = +20%.
+Back attack: attacking from the tile opposite defender's facing = +50% dmg and no counter (cat_patrol with 「疾影」deals +100% and no counter). Preview shows 【背刺偷襲】+50% 傷害 (無法反擊) or 【疾影背刺】+100%. Side attack = +20% dmg (defender can counter if melee in range), preview shows 【側翼突襲】+20% 傷害. Frontal attack = 1.0x damage.
+General ZOC: Hostile combatants project Zone of Control onto adjacent tiles stopping foot soldiers ({ zoc: true }), showing '阻' badge. Light units and flyers ignore general ZOC. Cavalry entering adjacent tile of a spear wall (bear_guard 熊岳「槍林」) is intercepted and takes an immediate free hit (zoc_strike).
 Counter-attack: melee defenders hit back once if attacker in range and defender survives.
 
 ## 6. Tutorial (3 steps, first launch + replayable via 「?」)
@@ -63,13 +64,13 @@ Overlay with dimmed screen and pulsing spotlight: ① 「撳角色 → 藍格係
 | fox_maiden | 狐火 緋 | 術士 | magic AoE | 「狐火」cross-shaped fire (x0 vs water-type) |
 | bear_guard | 熊岳 | 槍盾 | tank MOV 3 | 「槍林」ZOC: cavalry entering adjacent tile is stopped and takes a free hit |
 | crane_rider | 鶴羽 | 飛騎 | flyer MOV 6 | ignores terrain; 「俯衝」+30% vs archers |
-Enemies: fog_rider 霧騎 (cavalry MOV 6, charge +40% after moving ≥3), shadow_archer 影弓 (range 2–3, +hill), paper_ghost 傘魂 (water-type, fire immune, thunder x2), shadow_rat 匿鼠 (shrouded: invisible/untargetable unless within light or adjacent), mist_shaman 霧巫 (heals 8 to an ally in 3), iron_general 鐵將 (front shield: frontal dmg -70%, back attack full; on bridge can be knocked into water by bear_guard 「推」), mother_of_mist 霧母 (boss).
-Progression: EXP per action; level-up shows **1-of-3 choice** cards (e.g. +3 ATK / +1 MOV / new passive). **Relic slot** ×1 per unit (relics from victories, e.g. 鐵護符 +2 DEF). **Bond pairs** (cat_patrol+lantern_crafter 「影燈」, tanuki_mage+fox_maiden 「雷火」, bear_guard+tea_master 「山泉」): when adjacent, the actor gets a 合擊 option in the menu (one free extra hit from partner, once per battle). **Promotion** at Lv5: class name upgrades (劍客→劍豪 etc.) + stat bump + figure gets gold aura class. **Detail sheet**: tap portrait/long-press unit → modal with large portrait, stats, terrain, trait, skills, relic, bond, lore.
+Enemies: fog_rider 霧騎 (cavalry MOV 6, charge +40% after moving ≥3), shadow_archer 影弓 (range 2–3, +hill), paper_ghost 傘魂 (water-type, fire immune, thunder x2), shadow_rat 匿鼠 (shrouded: invisible/untargetable unless within light or adjacent), mist_shaman 霧巫 (heals 8 to an ally in 3), iron_general 鐵將 (front shield: frontal dmg -70%, back attack full; on bridge can be knocked into water by bear_guard 「推」), siege_engine 霹靂砲車 (long-range bombardment 3–6 range, blind zone <3 range), curse_sorcerer 咒禁術士 (大荒妖術師: MAG 15, role curse_sorcerer, AoE 幽冥咒縛, magic 邪穢陰雷, trait 「咒蝕之霧」curse_miasma creating cursed tiles: MOV -1, 4 tick dmg/turn, cleansed by fire or lantern), mother_of_mist 霧母 (boss).
+Progression: EXP per action; level-up shows **1-of-3 choice** cards (e.g. +3 ATK / +2 DEF & +6 HP / +1 MOV 神行百變). **Relic slot** ×1 per unit (relics from victories, e.g. 倚天古劍 +4 ATK, 鐵護符 +2 DEF). **Bond pairs** (cat_patrol+lantern_crafter 「影燈」, tanuki_mage+fox_maiden 「雷火」, bear_guard+tea_master 「山泉」): when adjacent to designated partner, the actor gets a 合擊 option in the menu (one free extra hit from partner, once per battle; preview displays 【合擊 · 影燈/雷火/山泉】). Adjacent non-bond allies do not trigger extra hits. **Promotion** at Lv5: class name upgrades (劍客→劍聖 etc.) + stat bump + figure gets gold aura class, unlocked via camp 破境晉升 button. **Detail sheet**: tap portrait/long-press unit → modal with large portrait, stats, terrain, trait, skills, relic, bond, lore.
 Persist roster progress in localStorage.
 
 ## 8. Campaign flow
-Title → World map (`world_map.webp`, 4 route nodes, locked until previous cleared; chapter 2 & 3 can be chosen in either order = route choice) → Story intro (2–4 dialogue lines with portraits, mood) → **Pre-battle**: scout panel (enemy list with portraits + roles, tap map tiles for terrain), **pick squad** (limit per battle), **deploy** onto highlighted deployment tiles (tap unit then tile), choose optional **計策** (one per battle) → Battle → Victory (EXP, level-ups, relic, bark) / Defeat (retry) → World map.
-計策 list: 火攻 (fire on a 3x3 forest/market area at turn 1: 10 dmg, x0 water), 伏兵 (one ally deploys anywhere hidden in forest), 佯攻 (enemy cavalry turn 1 moves toward a decoy tile), 水淹 (map 4 only: dam break floods the lower path, 15 dmg to units in shallows/road rows ≥9), 夜襲 (enemies skip turn 1), 鼓舞 (+20% dmg for allies turns 1–2).
+Title → World map (`world_map.webp`, 6 main route nodes + 1 外傳 node with 捷/新/鎖/密 seals, locked until previous cleared; chapter 2 & 3 can be chosen in either order = route choice) → Story intro (2–4 dialogue lines with portraits, mood) → **Pre-battle**: scout panel (enemy list with portraits + roles, tap map tiles for terrain), **pick squad** (limit per battle), **deploy** onto highlighted deployment tiles (tap unit then tile), choose optional **計策** (one per battle, pinned above CTA button with safe margin) → Battle → Victory (EXP, level-ups, relic, bark, MVP portrait) / Defeat (retry) → World map.
+計策 list: 火攻 (fire on a 3x3 forest/market area at turn 1: 10 dmg, x0 water; spreads to adjacent forest/market tiles unless blocked by water/stone), 伏兵 (one ally deploys anywhere hidden in forest), 佯攻 (enemy cavalry turn 1 moves toward a decoy tile), 水淹 (map 4 only: dam break floods the lower path, 15 dmg to units in shallows/road rows ≥9), 夜襲 (enemies skip turn 1), 鼓舞 (+20% dmg for allies turns 1–2).
 
 ## 9. Encounter design table
 | # | Map | Objective | Enemy mix | Intended counters | Solution A | Solution B |
@@ -78,7 +79,10 @@ Title → World map (`world_map.webp`, 4 route nodes, locked until previous clea
 | 2 | 城門 gate | 守門 hold the gate tile area for 8 turns | 3 paper_ghost (water) + 2 fog_rider + 1 mist_shaman | thunder chain vs water spirits, focus healer | tanuki_mage chains ghosts that bunch at gate, bear blocks gate | cat_patrol/crane dive mist_shaman first, then grind; fox useless vs ghosts (teaches counter) |
 | 3 | 市集 market | 保護燈柱 protect the central lantern (destroyed at 0 HP) 10 turns or rout | 4 shadow_rat (shrouded) + 2 shadow_archer on rooftops-edge | light placement reveals rats, alleys as chokepoints | lantern_crafter 掛燈 around the square + fox AoE | 火攻 on market stalls turn 1 + tight ring of tank/healer adjacent to lantern (rats reveal when adjacent) |
 | 4 | 山道 mountain | 擊破鐵將 defeat iron_general (or reach the shrine exit) | iron_general (shield, holds dam bridge) + 2 mist_shaman + 2 shadow_archer high ground + mother_of_mist appears turn 5 at shrine | back attack, knock off bridge, focus healers, 水淹 | cat_patrol/crane get behind general for back attack, healers killed first | bear_guard 推 general into reservoir from bridge; or 水淹 + rush exit |
-Squad limits: 4, 5, 5, 6. Different comps must win (see tests).
+| 5 | 竹海關隘 bamboo_pass | 抵達祭壇或殲滅敵軍 reach shrine or rout all enemies | 3 shadow_rat + 2 shadow_archer + 2 mist_shaman | light reveals stealth rats, AoE clears bamboo groves | lantern_crafter + bear_guard push central road; crane_rider snipes archers | cat_patrol + tanuki_mage + fox_maiden clear bamboo flank with fire/thunder |
+| 6 | 總壇攻城 citadel_siege | 破壞城門或擊敗總壇首領 breach gate or defeat citadel warlord | siege_engine (3-6 range) + iron_general + 2 shadow_archer + mist_shaman | rush siege engine blind zone (<3 range), flank heavy shields | bear_guard + crane_rider rush siege engine blind zone; fox AoE on gate | cat_patrol flanks general; tanuki + lantern destroy siege engine from cover |
+| 外傳 | 幽澤迷陣 side_marsh | 抵達祭壇或擊破咒禁術士 survive 5 turns or rout curse_sorcerer | curse_sorcerer (MAG 15) + 3 paper_ghost + 2 shadow_rat + cursed miasma tiles | cleanse cursed miasma with fire/lantern, rush boss, thunder vs water | bear_guard + tea_master + lantern_crafter cleanse path with lanterns/fire and burst boss | cat_patrol + fox_maiden + tanuki_mage flank and exploit elemental thunder/fire weaknesses |
+Squad limits: 4, 5, 5, 6, 6, 6, 5. Different comps must win (see tests).
 
 ## 10. Enemy role AI (`js/engine/ai.js`)
 - archer: stay at max range, prefer hill tiles, retreat (kite) if an ally is adjacent.
@@ -87,6 +91,7 @@ Squad limits: 4, 5, 5, 6. Different comps must win (see tests).
 - commander: hold position (guard tile) facing nearest threat; attack only adjacent.
 - shrouded: move through alleys/forest to attack lowest-DEF unit; untargetable unless lit/adjacent.
 - boss: AoE mist on clusters of ≥2.
+- curse_sorcerer: cast AoE 幽冥咒縛 on clusters, or range 2-3 邪穢陰雷; spreads cursed tiles.
 AI must be deterministic given a seeded RNG (for tests).
 
 ## 11. Engine & tests
@@ -95,8 +100,9 @@ Pure engine (`js/engine/*.js`) independent of DOM: map/terrain, pathfinding, com
 - rules: movement costs, impassable, flyer, ZOC stop, back-attack mods, counter, water immunity/weakness, shrouded targeting, knockback into water.
 - ai: archer kites, healer stays back, cavalry targets backline, commander holds.
 - objectives: escort/hold/protect/defeat win & lose conditions.
-- **sim**: `tests/encounters.sim.test.mjs` — a scripted heuristic player bot with comp + 計策 parameter. For each of the 4 battles assert ≥2 distinct comps (from the table) win with seed set; assert no single comp wins all 4 battles with the *same* naive "charge nearest" bot (i.e. naive brute force fails at least one), so strategy matters. Print a win table.
+- **sim**: `tests/encounters.sim.test.mjs` — a scripted heuristic player bot with comp + 計策 parameter. For each of the 6 main battles + 外傳 assert ≥2 distinct comps (from the table) win with seed set; assert no single comp wins all battles with the *same* naive "charge nearest" bot (i.e. naive brute force fails at least one), so strategy matters. Print a win table.
 - name: config GAME.name === '燈影軍略' and no old name in js/ & index.html.
+Keep tests fast (<60s).
 Keep tests fast (<60s).
 
 ## 12. Screenshots

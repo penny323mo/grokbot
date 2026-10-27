@@ -1,20 +1,21 @@
 /**
  * scripts/capture_screenshots.mjs
- * Captures fresh deterministic screenshots at 390x844 (deviceScaleFactor: 2) into screenshots/v7/
+ * Captures fresh deterministic screenshots at 390x844 (deviceScaleFactor: 2) into screenshots/v8/
  * Uses Puppeteer-core + Google Chrome.
  *
  * Screenshots list:
- * - 00-title.png (Full-bleed painted key-art title screen with lantern crest, drifting mist)
- * - 01-worldmap-camp.png (World map with 6 chapter nodes & Camp button)
- * - 02-camp-profile.png (Camp screen with character profile, equipment slots, promotion option)
- * - 03-prebattle.png (Chapter 6 Citadel Siege pre-battle with banner, intel, objectives)
- * - 04-move-range.png (Soft ink-wash movement range highlight & glowing dotted path preview)
- * - 05-attack-preview.png (Compact attack preview panel with combo ally assistance)
- * - 06-fog-of-war.png (Chapter 5 Bamboo Pass night fog board with hidden silhouette enemies)
- * - 07-stratagem-flood.png (水淹 flood terrain conversion with active water wave VFX)
- * - 08-archetype-siege.png (New archetype 霹靂砲車 with [3, 5] bombardment & blind zone)
- * - 09-ch6-siege-board.png (Chapter 6 Citadel Siege board with walls, moat, bridge, iron gate)
- * - 10-post-battle-mvp.png (Post-battle victory with varied action XP & MVP gold laurels badge)
+ * - 00-title.png (Key-art title screen with lantern-lit foreground vignette and calligraphy)
+ * - 01-worldmap.png (World map showing 7 nodes with painted seal stamps: cleared, new, side, locked)
+ * - 02-camp-profile.png (Camp character sheet with rich half-body portrait, visual stat bars, quote, backstory, equipment)
+ * - 03-prebattle.png (Chapter 7 Side marsh pre-battle with banner_side, intel, and objectives)
+ * - 04-move-range.png (Continuous merged move range with single feathered contour, glowing path & ZOC indicator)
+ * - 05-attack-preview.png (Attack preview panel with facing/flank marker, large portraits, combo ally)
+ * - 06-fog-of-war.png (Bamboo pass board with soft feathered ink-cloud mask canvas overlay & silhouette enemies)
+ * - 07-stratagem-flood.png (水淹 flood continuous merged water body on shallows with soft shoreline & ripples)
+ * - 08-fire-spreading.png (火攻 fire stratagem spreading on forest tiles, blocked by water)
+ * - 09-new-sorcerer.png (New enemy archetype 妖術師 with class badge, curse mist & floating combat bark banner)
+ * - 10-side-battle.png (Side battle 荒澤伏擊 board on map_side_marsh.webp)
+ * - 11-post-battle.png (Post-battle victory screen with enlarged portraits, MVP laurels & MVP victory line)
  */
 
 import http from "node:http";
@@ -29,8 +30,8 @@ const puppeteer = require("/workspace/nightly/shotkit/node_modules/puppeteer-cor
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, "..");
-const SCREENSHOT_DIR = path.resolve(ROOT_DIR, "screenshots/v7");
-const PORT = 8892;
+const SCREENSHOT_DIR = path.resolve(ROOT_DIR, "screenshots/v8");
+const PORT = 8894;
 
 fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
 
@@ -52,6 +53,9 @@ function startServer() {
         fs.createReadStream(sharedPath).pipe(res);
         return;
       }
+      res.writeHead(200, { "Content-Type": "application/javascript" });
+      res.end("/* mock back.js */");
+      return;
     }
 
     const filePath = path.join(ROOT_DIR, reqPath);
@@ -86,7 +90,7 @@ function startServer() {
 
 async function closeAllModals(page) {
   await page.evaluate(() => {
-    ['modalDialogue', 'modalTutorial', 'modalDetailSheet', 'modalLevelUp', 'modalBattleResult', 'tutorialBoardOverlay', 'deployTrayBar'].forEach(id => {
+    ['modalDialogue', 'modalTutorial', 'modalDetailSheet', 'modalLevelUp', 'modalBattleResult', 'tutorialBoardOverlay', 'deployTrayBar', 'combatBarkBanner'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.style.display = 'none';
     });
@@ -107,38 +111,46 @@ async function capture() {
 
   const consoleErrors = [];
   page.on("console", (msg) => {
+    console.log(`[Browser Console ${msg.type()}]:`, msg.text());
     if (msg.type() === "error") {
       consoleErrors.push(msg.text());
     }
+  });
+  page.on("pageerror", (err) => {
+    console.error(`[Browser PageError]:`, err);
+    consoleErrors.push(String(err));
   });
 
   await page.evaluateOnNewDocument(() => {
     localStorage.setItem('lt_tutorial_seen', '1');
   });
 
-  await page.goto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: "networkidle0" });
-  await page.waitForFunction(() => !!window.__lt);
+  await page.goto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => !!window.__lt, { timeout: 10000 });
 
-  console.log("Ready to capture screenshots into screenshots/v7/...");
+  console.log("Ready to capture fresh screenshots into screenshots/v8/...");
 
-  // 1. 00-title.png (Full-bleed painted key art title screen with lantern crest)
+  // 1. 00-title.png (Key-art title screen with illuminated lantern-lit foreground and mature buttons)
   await closeAllModals(page);
   await page.evaluate(() => {
     window.__lt.showScreen('screenTitle');
   });
-  await new Promise(r => setTimeout(r, 400));
+  await new Promise(r => setTimeout(r, 450));
   await page.screenshot({ path: path.join(SCREENSHOT_DIR, "00-title.png") });
   console.log("Captured 00-title.png");
 
-  // 2. 01-worldmap-camp.png (World map with Camp button)
+  // 2. 01-worldmap.png (World map with 7 nodes showing cleared/new/side/locked cinnabar seal stamps)
   await page.evaluate(() => {
+    const app = window.__lt.app;
+    app.campaign.clearedChapters = [1, 2];
+    app.campaign.unlockedChapters = [1, 2, 3, 7];
     window.__lt.openWorldMap();
   });
-  await new Promise(r => setTimeout(r, 400));
-  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "01-worldmap-camp.png") });
-  console.log("Captured 01-worldmap-camp.png");
+  await new Promise(r => setTimeout(r, 450));
+  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "01-worldmap.png") });
+  console.log("Captured 01-worldmap.png");
 
-  // 3. 02-camp-profile.png (Camp screen with character profile, equipment, promotion)
+  // 3. 02-camp-profile.png (Camp screen with large half-body portrait, visual stat bars, quote, backstory, equipment)
   await page.evaluate(() => {
     const app = window.__lt.app;
     app.campaign.equipRelic('cat_patrol', 'sword_yitian');
@@ -148,85 +160,123 @@ async function capture() {
       scrollEl.scrollTop = 110;
     }
   });
-  await new Promise(r => setTimeout(r, 400));
+  await new Promise(r => setTimeout(r, 450));
   await page.screenshot({ path: path.join(SCREENSHOT_DIR, "02-camp-profile.png") });
   console.log("Captured 02-camp-profile.png");
 
-  // 4. 03-prebattle.png (Chapter 6 Siege pre-battle with banner_ch6 and 2x2 intel)
+  // 4. 03-prebattle.png (Chapter 7 Side marsh pre-battle with banner_side, intel, and objectives)
   await page.evaluate(() => {
-    window.__lt.openPreBattle(6);
+    window.__lt.openPreBattle(7);
     const scrollEl = document.querySelector('.prebattle-body-scroll');
     if (scrollEl) {
       scrollEl.scrollTop = 0;
     }
   });
-  await new Promise(r => setTimeout(r, 400));
+  await new Promise(r => setTimeout(r, 450));
   await page.screenshot({ path: path.join(SCREENSHOT_DIR, "03-prebattle.png") });
   console.log("Captured 03-prebattle.png");
   await closeAllModals(page);
 
-  // 5. 04-move-range.png (Move range with soft ink-wash highlight & dotted path preview)
+  // 5. 04-move-range.png (Continuous merged move range with single feathered contour, glowing path & ZOC indicator)
   await page.evaluate(() => {
+    const app = window.__lt.app;
+    app.selectedSquadIds = ['bear_guard', 'cat_patrol', 'tea_master', 'lantern_crafter'];
     window.__lt.launchBattle(1);
-    window.__lt.selectUnit('cat_patrol');
-    // Hover on destination tile (1, 8) to preview dotted ink path
-    const destTile = document.querySelector('.grid-tile[data-x="1"][data-y="8"]');
-    if (destTile) {
-      destTile.dispatchEvent(new PointerEvent('pointerenter', { bubbles: true }));
+    const battle = app.battle;
+    app.ui.hideActionMenu();
+
+    // Position bear_guard (mov 3, footman) on open causeway at (4, 8)
+    const bear = battle.allies.find(a => a.id === 'bear_guard');
+    // Position enemy cavalry at (4, 6) directly ahead, exerting ZOC on (4, 7)
+    const enemy = battle.enemies[0];
+    if (bear && enemy) {
+      bear.x = 4;
+      bear.y = 8;
+      bear.turnStartX = 4;
+      bear.turnStartY = 8;
+      enemy.x = 4;
+      enemy.y = 6;
+
+      // Position other allies safely between y=7 and y=9 away from bottom edge
+      const others = battle.allies.filter(a => a !== bear);
+      const allyCoords = [{ x: 3, y: 9 }, { x: 5, y: 9 }, { x: 2, y: 8 }, { x: 6, y: 8 }];
+      others.forEach((u, i) => {
+        const c = allyCoords[i] || { x: 3, y: 8 };
+        u.x = c.x;
+        u.y = c.y;
+        u.turnStartX = u.x;
+        u.turnStartY = u.y;
+      });
+
+      // Position other enemies safely between y=3 and y=5 away from top HUD
+      const otherEnemies = battle.enemies.filter(e => e !== enemy);
+      const enemyCoords = [{ x: 3, y: 5 }, { x: 5, y: 5 }, { x: 2, y: 4 }, { x: 6, y: 4 }, { x: 7, y: 5 }];
+      otherEnemies.forEach((e, i) => {
+        const c = enemyCoords[i] || { x: 3, y: 4 };
+        e.x = c.x;
+        e.y = c.y;
+      });
+
+      app.refreshBattleUI();
+      window.__lt.selectUnit('bear_guard');
+
+      // Hover on adjacent tile (4, 7) to show glowing dotted ink path leading to ZOC intercept
+      const destTile = document.querySelector('.grid-tile[data-x="4"][data-y="7"]');
+      if (destTile) {
+        destTile.dispatchEvent(new PointerEvent('pointerenter', { bubbles: true }));
+      }
+      app.ui.centerCameraOn(4.5, 7.0);
     }
   });
   await new Promise(r => setTimeout(r, 500));
   await page.screenshot({ path: path.join(SCREENSHOT_DIR, "04-move-range.png") });
   console.log("Captured 04-move-range.png");
+  await closeAllModals(page);
 
-  // 6. 05-attack-preview.png (Compact attack preview panel with combo ally assistance & lunge proof)
+  // 6. 05-attack-preview.png (Attack preview with back-attack direction marker, portraits, combo ally)
   await page.evaluate(() => {
-    window.__lt.launchBattle(1);
     const app = window.__lt.app;
+    // Include cat_patrol and its bond partner lantern_crafter (影燈)!
+    app.selectedSquadIds = ['cat_patrol', 'lantern_crafter', 'bear_guard', 'tea_master'];
+    window.__lt.launchBattle(1);
     app.ui.hideActionMenu();
     const battle = app.battle;
     const cat = battle.allies.find(a => a.id === 'cat_patrol');
-    const bear = battle.allies.find(a => a.id === 'bear_guard');
+    const lantern = battle.allies.find(a => a.id === 'lantern_crafter');
     const enemy = battle.enemies[0];
     if (cat && enemy) {
+      // Facing East (+1): attacking from West (x=3) deals back-attack (+100% swift_shadow no counter)
       enemy.x = 4;
       enemy.y = 5;
-      enemy.facing = -1;
+      enemy.facing = 1;
       cat.x = 3;
       cat.y = 5;
       cat.turnStartX = 3;
       cat.turnStartY = 5;
       cat.facing = 1;
-      if (bear) {
-        bear.x = 4;
-        bear.y = 4;
-        bear.turnStartX = 4;
-        bear.turnStartY = 4;
-        bear.facing = 1;
+      if (lantern) {
+        lantern.x = 3;
+        lantern.y = 4;
+        lantern.turnStartX = 3;
+        lantern.turnStartY = 4;
+        lantern.facing = 1;
       }
-      const others = battle.allies.filter(a => a.id !== 'cat_patrol' && a.id !== 'bear_guard');
-      if (others[0]) { others[0].x = 2; others[0].y = 5; others[0].turnStartX = 2; others[0].turnStartY = 5; }
-      if (others[1]) { others[1].x = 3; others[1].y = 6; others[1].turnStartX = 3; others[1].turnStartY = 6; }
-      if (others[2]) { others[2].x = 4; others[2].y = 6; others[2].turnStartX = 4; others[2].turnStartY = 6; }
-      if (others[3]) { others[3].x = 5; others[3].y = 6; others[3].turnStartX = 5; others[3].turnStartY = 6; }
-
+      // Keep other allies and enemies safely placed
+      const others = battle.allies.filter(a => a.id !== 'cat_patrol' && a.id !== 'lantern_crafter');
+      others.forEach((u, idx) => { u.x = 2; u.y = 7 + idx; u.turnStartX = u.x; u.turnStartY = u.y; });
       const otherEnemies = battle.enemies.filter(e => e !== enemy);
-      if (otherEnemies[0]) { otherEnemies[0].x = 5; otherEnemies[0].y = 5; }
-      if (otherEnemies[1]) { otherEnemies[1].x = 6; otherEnemies[1].y = 5; }
-      if (otherEnemies[2]) { otherEnemies[2].x = 5; otherEnemies[2].y = 4; }
-      if (otherEnemies[3]) { otherEnemies[3].x = 6; otherEnemies[3].y = 4; }
-      if (otherEnemies[4]) { otherEnemies[4].x = 7; otherEnemies[4].y = 4; }
+      otherEnemies.forEach((e, idx) => { e.x = 6 + (idx % 2); e.y = 4 + Math.floor(idx / 2); });
 
       app.refreshBattleUI();
       app.selectedUnit = cat;
       app.activeActionType = 'attack';
       app.evaluateTargetPreview(enemy);
 
-      // Add directional lunges to both attacker and combo ally
+      // Add directional lunges to attacker and combo ally
       const catFig = document.querySelector('.unit-figure[data-id="cat_patrol"]');
       if (catFig) catFig.classList.add('lunge-right');
-      const bearFig = document.querySelector('.unit-figure[data-id="bear_guard"]');
-      if (bearFig) bearFig.classList.add('lunge-down');
+      const lanternFig = document.querySelector('.unit-figure[data-id="lantern_crafter"]');
+      if (lanternFig) lanternFig.classList.add('lunge-down');
 
       const vp = document.getElementById('battleViewport');
       if (vp) {
@@ -239,124 +289,192 @@ async function capture() {
   console.log("Captured 05-attack-preview.png");
   await closeAllModals(page);
 
-  // 7. 06-fog-of-war.png (Chapter 5 Bamboo Pass with nocturnal fog & silhouette enemies)
+  // 7. 06-fog-of-war.png (Chapter 5 Bamboo Pass with soft feathered ink-cloud mask canvas overlay)
   await page.evaluate(() => {
     window.__lt.launchBattle(5);
     const app = window.__lt.app;
-    app.ui.centerCameraOn(4.5, 7.0);
+    const battle = app.battle;
+
+    // Position south allies on rows 8-9 safely above grokbot button
+    const allies = battle.allies;
+    allies.forEach((u, idx) => {
+      u.x = 3 + (idx % 3);
+      u.y = 8 + Math.floor(idx / 3);
+      u.turnStartX = u.x;
+      u.turnStartY = u.y;
+    });
+
+    app.refreshBattleUI();
+    app.ui.centerCameraOn(4.5, 6.2);
   });
   await new Promise(r => setTimeout(r, 500));
   await page.screenshot({ path: path.join(SCREENSHOT_DIR, "06-fog-of-war.png") });
   console.log("Captured 06-fog-of-war.png");
   await closeAllModals(page);
 
-  // 8. 07-stratagem-flood.png (水淹 flood terrain conversion & authentic water wave VFX)
+  // 8. 07-stratagem-flood.png (水淹 continuous merged water body on shallows with soft shoreline & wave ripples)
   await page.evaluate(() => {
-    window.__lt.launchBattle(1);
+    // Must be captured on Chapter 4 (山道), per SPEC §8!
+    window.__lt.launchBattle(4);
     const app = window.__lt.app;
     const battle = app.battle;
 
-    // Reposition combatants engaging around the river bridge:
-    // Enemies held on north bank (rows 4-5), allies formed on south bank (rows 9-10)
-    if (battle.enemies[0]) { battle.enemies[0].x = 4; battle.enemies[0].y = 5; }
-    if (battle.enemies[1]) { battle.enemies[1].x = 5; battle.enemies[1].y = 5; }
-    if (battle.enemies[2]) { battle.enemies[2].x = 6; battle.enemies[2].y = 4; }
-    if (battle.enemies[3]) { battle.enemies[3].x = 3; battle.enemies[3].y = 4; }
-    if (battle.enemies[4]) { battle.enemies[4].x = 7; battle.enemies[4].y = 4; }
+    // Reposition enemies on rows 8-9 (flooded dam zone)
+    battle.enemies.forEach((e, idx) => {
+      e.x = 3 + (idx % 4);
+      e.y = 8 + Math.floor(idx / 4);
+    });
 
-    const allies = battle.allies;
-    if (allies[0]) { allies[0].x = 3; allies[0].y = 9; }
-    if (allies[1]) { allies[1].x = 4; allies[1].y = 9; }
-    if (allies[2]) { allies[2].x = 5; allies[2].y = 9; }
-    if (allies[3]) { allies[3].x = 3; allies[3].y = 10; }
-    if (allies[4]) { allies[4].x = 4; allies[4].y = 10; }
-    if (allies[5]) { allies[5].x = 5; allies[5].y = 10; }
+    // Position allies on safe high ground rows 5-6
+    battle.allies.forEach((a, idx) => {
+      a.x = 3 + (idx % 3);
+      a.y = 5 + Math.floor(idx / 3);
+      a.turnStartX = a.x;
+      a.turnStartY = a.y;
+    });
 
     battle.triggerWaterFlood(6, 8);
     app.refreshBattleUI();
-    app.ui.centerCameraOn(4.5, 6.5);
+    app.ui.centerCameraOn(4.5, 7.0);
   });
   await new Promise(r => setTimeout(r, 500));
   await page.screenshot({ path: path.join(SCREENSHOT_DIR, "07-stratagem-flood.png") });
   console.log("Captured 07-stratagem-flood.png");
   await closeAllModals(page);
 
-  // 9. 08-archetype-siege.png (Siege engine bombardment [3, 5] and blind zone rush)
+  // 9. 08-fire-spreading.png (火攻 fire stratagem spreading on forest tiles, blocked by water)
   await page.evaluate(() => {
-    window.__lt.launchBattle(6);
-    const app = window.__lt.app;
-    const battle = app.battle;
-    const siege = battle.enemies.find(e => e.id === 'siege_engine');
-    if (siege) {
-      // Position allies actively rushing the siege engine's blind zone (range 1-2)
-      const allies = battle.allies;
-      if (allies[0]) { allies[0].x = 2; allies[0].y = 3; } // Cat right in front of catapult (blind zone!)
-      if (allies[1]) { allies[1].x = 3; allies[1].y = 2; } // Crane flanking catapult (blind zone!)
-      if (allies[2]) { allies[2].x = 3; allies[2].y = 4; }
-      if (allies[3]) { allies[3].x = 4; allies[3].y = 4; }
-      if (allies[4]) { allies[4].x = 5; allies[4].y = 4; }
-      if (allies[5]) { allies[5].x = 4; allies[5].y = 5; }
-
-      app.refreshBattleUI();
-      app.ui.centerCameraOn(3.5, 3.5);
-
-      // Highlight range [3, 5] strictly on valid passable cells
-      const rangeTiles = [];
-      for (let r = 0; r < 13; r++) {
-        for (let c = 0; c < 10; c++) {
-          const d = Math.abs(c - siege.x) + Math.abs(r - siege.y);
-          if (d >= 3 && d <= 5 && !battle.board.isImpassable(c, r, false)) {
-            rangeTiles.push(`${c},${r}`);
-          }
-        }
-      }
-      document.querySelectorAll('.grid-tile').forEach(el => {
-        const key = `${el.dataset.x},${el.dataset.y}`;
-        if (rangeTiles.includes(key)) el.classList.add('aoe-preview');
-      });
-    }
-  });
-  await new Promise(r => setTimeout(r, 500));
-  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "08-archetype-siege.png") });
-  console.log("Captured 08-archetype-siege.png");
-  await closeAllModals(page);
-
-  // 10. 09-ch6-siege-board.png (Chapter 6 Citadel Siege full board view)
-  await page.evaluate(() => {
-    window.__lt.launchBattle(6);
+    window.__lt.launchBattle(7); // Side marsh has reed forest tiles right beside water!
     const app = window.__lt.app;
     const battle = app.battle;
 
-    // Stage player squad deployed on the bridge approach (rows 8-9)
-    const allies = battle.allies;
-    if (allies[0]) { allies[0].x = 3; allies[0].y = 8; }
-    if (allies[1]) { allies[1].x = 4; allies[1].y = 8; }
-    if (allies[2]) { allies[2].x = 5; allies[2].y = 8; }
-    if (allies[3]) { allies[3].x = 3; allies[3].y = 9; }
-    if (allies[4]) { allies[4].x = 4; allies[4].y = 9; }
-    if (allies[5]) { allies[5].x = 5; allies[5].y = 9; }
+    // Trigger fire on reed marsh forest tiles at (3, 4) and tick spread
+    battle.triggerFireAttack(3, 4);
+    battle.tickBurningTiles();
+
+    // Position allies approaching from south causeway (cols 3-5, rows 6-7), safely away from edges
+    battle.allies.forEach((a, idx) => {
+      a.x = 3 + (idx % 3);
+      a.y = 6 + Math.floor(idx / 3);
+      a.turnStartX = a.x;
+      a.turnStartY = a.y;
+    });
+
+    // Reposition enemies safely in middle rows (cols 3-6, rows 3-4)
+    battle.enemies.forEach((e, idx) => {
+      e.x = 4 + (idx % 3);
+      e.y = 3 + Math.floor(idx / 3);
+    });
 
     app.refreshBattleUI();
-    app.ui.centerCameraOn(4.5, 5.2);
+    app.ui.centerCameraOn(4.5, 5.0);
   });
   await new Promise(r => setTimeout(r, 500));
-  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "09-ch6-siege-board.png") });
-  console.log("Captured 09-ch6-siege-board.png");
+  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "08-fire-spreading.png") });
+  console.log("Captured 08-fire-spreading.png");
   await closeAllModals(page);
 
-  // 11. 10-post-battle-mvp.png (Post-battle victory with varied XP & MVP highlight badge)
+  // 10. 09-new-sorcerer.png (New enemy archetype 咒禁術士 with class badge, curse mist & combat bark)
   await page.evaluate(() => {
-    window.__lt.launchBattle(6);
+    window.__lt.launchBattle(7);
     const app = window.__lt.app;
-    app.battle.actionScores['cat_patrol'] = 88;
-    app.battle.actionScores['bear_guard'] = 55;
-    app.battle.actionScores['tea_master'] = 45;
-    app.battle.actionScores['crane_rider'] = 62;
-    window.__lt.showBattleResultModal(true, 6);
+    const battle = app.battle;
+
+    // Add lantern at northern altar (4, 3) to reveal curse_sorcerer
+    battle.board.lanterns.push({ x: 4, y: 3, radius: 2 });
+
+    const sorcerer = battle.enemies.find(e => e.id === 'curse_sorcerer');
+    const guard = battle.enemies.find(e => e.id === 'shield_guard');
+    if (sorcerer) {
+      sorcerer.x = 4;
+      sorcerer.y = 3;
+    }
+    if (guard) {
+      guard.x = 3;
+      guard.y = 4;
+    }
+
+    // Position cat advancing to challenge sorcerer
+    const cat = battle.allies.find(a => a.id === 'cat_patrol') || battle.allies[0];
+    if (cat) {
+      cat.x = 4;
+      cat.y = 5;
+    }
+
+    // Add cursed miasma tiles around targets
+    battle.cursedTiles.add('4,4');
+    battle.cursedTiles.add('4,5');
+    battle.cursedTiles.add('3,4');
+
+    app.refreshBattleUI();
+    if (sorcerer) {
+      app.ui.showCombatBark(
+        sorcerer,
+        '【咒禁術士 · 邪穢陰雷】',
+        '「大荒幽冥，萬靈伏誅！咒禁鎖魂！」'
+      );
+    }
+    app.ui.centerCameraOn(4.5, 4.2);
   });
   await new Promise(r => setTimeout(r, 500));
-  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "10-post-battle-mvp.png") });
-  console.log("Captured 10-post-battle-mvp.png");
+  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "09-new-sorcerer.png") });
+  console.log("Captured 09-new-sorcerer.png");
+  await closeAllModals(page);
+
+  // 11. 10-side-battle.png (Side battle 荒澤伏擊 board on map_side_marsh.webp)
+  await page.evaluate(() => {
+    window.__lt.launchBattle(7);
+    const app = window.__lt.app;
+    const battle = app.battle;
+
+    // Place lantern at (4, 4) with radius 3 so the entire central battle zone including curse_sorcerer is illuminated
+    battle.board.lanterns.push({ x: 4, y: 4, radius: 3 });
+
+    const sorcerer = battle.enemies.find(e => e.id === 'curse_sorcerer');
+    const guard = battle.enemies.find(e => e.id === 'shield_guard');
+    if (sorcerer) {
+      sorcerer.x = 4;
+      sorcerer.y = 3;
+    }
+    if (guard) {
+      guard.x = 4;
+      guard.y = 4;
+    }
+
+    // Position allies advancing along causeway (rows 6-7) safely on-screen
+    battle.allies.forEach((a, idx) => {
+      a.x = 3 + (idx % 3);
+      a.y = 6 + Math.floor(idx / 3);
+      a.turnStartX = a.x;
+      a.turnStartY = a.y;
+    });
+
+    // Cursed tiles visible on the marsh
+    battle.cursedTiles.add('4,3');
+    battle.cursedTiles.add('3,4');
+    battle.cursedTiles.add('5,4');
+
+    app.refreshBattleUI();
+    app.ui.centerCameraOn(4.5, 4.8);
+  });
+  await new Promise(r => setTimeout(r, 500));
+  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "10-side-battle.png") });
+  console.log("Captured 10-side-battle.png");
+  await closeAllModals(page);
+
+  // 12. 11-post-battle.png (Post-battle victory screen with enlarged portraits, MVP laurels & MVP victory line)
+  await page.evaluate(() => {
+    window.__lt.launchBattle(7);
+    const app = window.__lt.app;
+    app.battle.actionScores['cat_patrol'] = 92;
+    app.battle.actionScores['bear_guard'] = 60;
+    app.battle.actionScores['tea_master'] = 50;
+    app.battle.actionScores['crane_rider'] = 65;
+    window.__lt.showBattleResultModal(true, 7);
+  });
+  await new Promise(r => setTimeout(r, 500));
+  await page.screenshot({ path: path.join(SCREENSHOT_DIR, "11-post-battle.png") });
+  console.log("Captured 11-post-battle.png");
 
   await browser.close();
   server.close();
@@ -365,7 +483,7 @@ async function capture() {
     console.error(`[Screenshot Script] Errors detected during run (${consoleErrors.length}):`, consoleErrors);
     process.exit(1);
   } else {
-    console.log("[Screenshot Script] All 11 screenshots captured successfully into screenshots/v7/ with 0 console errors!");
+    console.log("[Screenshot Script] All 12 screenshots captured successfully into screenshots/v8/ with 0 console errors!");
     process.exit(0);
   }
 }

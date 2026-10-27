@@ -17,7 +17,7 @@ import { Board } from '../js/engine/board.js';
 import { getReachableTiles, getAttackRangeTiles } from '../js/engine/pathfinding.js';
 import { calculateCombat, canTargetUnit } from '../js/engine/combat.js';
 
-function executeAllyBotTurn(battle, botType, rng) {
+export function executeAllyBotTurn(battle, botType, rng) {
   const { chapter, board } = battle;
   const combatAllies = battle.allies.filter(u => u.hp > 0 && !u.acted && u.id !== 'lantern_cart' && u.role !== 'objective');
   const npcAllies = battle.allies.filter(u => u.hp > 0 && !u.acted && (u.id === 'lantern_cart' || u.role === 'objective'));
@@ -38,10 +38,10 @@ function executeAllyBotTurn(battle, botType, rng) {
         const bear = battle.allies.find(a => a.id === 'bear_guard' && a.hp > 0);
 
         let candidates = reachableList;
-        // While cavalry is active, cart holds safely on the western approach (x <= 2) behind Bear Guard
+        // While cavalry is active, cart holds safely on the western approach (x <= 2) behind Bear Guard (y >= bear.y)
         const livingCavalry = battle.enemies.filter(e => e.hp > 0 && e.role === 'cavalry');
         if (livingCavalry.length > 0) {
-          const westCandidates = reachableList.filter(m => m.x <= 2);
+          const westCandidates = reachableList.filter(m => m.x <= 2 && (!bear || m.y >= bear.y));
           candidates = westCandidates.length > 0 ? westCandidates : [{ x: ally.x, y: ally.y }];
         }
 
@@ -232,7 +232,9 @@ function executeAllyBotTurn(battle, botType, rng) {
           });
 
           let score = combat.expectedDamage * 2;
-          if (combat.isBackAttack) score += 35; // Prioritize back attack!
+          if (combat.isBackAttack) score += 40; // Prioritize back attack!
+          if (combat.isSideAttack) score += 20; // Prioritize flank attack!
+          if (combat.isFrontAttack && (e.role === 'shield_guard' || e.trait?.id === 'shield_block')) score -= 30; // Strongly avoid hitting shield guard from front
           if (combat.willKill) score += 60;
           if (combat.knockbackResult?.isInstaKill) score += 120; // Instant drown KO!
           if (e.role === 'cavalry' && chapter.id === 1) score += 45; // Escort priority
@@ -404,6 +406,7 @@ test('Simulation: Encounters heuristic bot test table & naive failure check', ()
   const ch4 = CHAPTERS.find(c => c.key === 'mountain');
   const ch5 = CHAPTERS.find(c => c.key === 'bamboo_pass');
   const ch6 = CHAPTERS.find(c => c.key === 'siege');
+  const chSide = CHAPTERS.find(c => c.key === 'side_marsh');
 
   console.log('\n================ ENCOUNTER SIMULATION RESULTS ================');
   console.log('| Chapter | Comp Name | Squad | Stratagem | Result | Turns |');
@@ -454,10 +457,10 @@ test('Simulation: Encounters heuristic bot test table & naive failure check', ()
   console.log(`| Ch 4    | Solution B | 鶴羽+墨影+熊岳+茶翁+狐火+雷狸 | 水淹 | ${b4B.status.victory ? 'WIN ' : 'FAIL'} | ${b4B.currentTurn} 回合 |`);
 
   // Chapter 5: Bamboo Pass
-  // Solution A: Lantern Crafter + Bear + Tea + Cat + Tanuki, Stratagem: 鼓舞
-  const b5A = runBotBattle(ch5, ['lantern_crafter', 'bear_guard', 'tea_master', 'cat_patrol', 'tanuki_mage'], 'inspire', 501, 'heuristic');
+  // Solution A: Lantern Crafter + Bear + Tea + Cat + Tanuki + Crane, Stratagem: 鼓舞
+  const b5A = runBotBattle(ch5, ['lantern_crafter', 'bear_guard', 'tea_master', 'cat_patrol', 'tanuki_mage', 'crane_rider'], 'inspire', 501, 'heuristic');
   assert.strictEqual(b5A.status.victory, true, 'Chapter 5 Solution A must win');
-  console.log(`| Ch 5    | Solution A | 燈娘+熊岳+茶翁+墨影+雷狸 | 鼓舞 | ${b5A.status.victory ? 'WIN ' : 'FAIL'} | ${b5A.currentTurn} 回合 |`);
+  console.log(`| Ch 5    | Solution A | 燈娘+熊岳+茶翁+墨影+雷狸+鶴羽 | 鼓舞 | ${b5A.status.victory ? 'WIN ' : 'FAIL'} | ${b5A.currentTurn} 回合 |`);
 
   // Solution B: Cat + Crane + Bear + Tea + Fox + Tanuki, Stratagem: 火攻
   const b5B = runBotBattle(ch5, ['cat_patrol', 'crane_rider', 'bear_guard', 'tea_master', 'fox_maiden', 'tanuki_mage'], 'fire_attack', 502, 'heuristic');
@@ -474,6 +477,17 @@ test('Simulation: Encounters heuristic bot test table & naive failure check', ()
   const b6B = runBotBattle(ch6, ['bear_guard', 'tea_master', 'crane_rider', 'fox_maiden', 'tanuki_mage', 'lantern_crafter'], 'night_raid', 602, 'heuristic');
   assert.strictEqual(b6B.status.victory, true, 'Chapter 6 Solution B must win');
   console.log(`| Ch 6    | Solution B | 熊岳+茶翁+鶴羽+狐火+雷狸+燈娘 | 夜襲 | ${b6B.status.victory ? 'WIN ' : 'FAIL'} | ${b6B.currentTurn} 回合 |`);
+
+  // Chapter 7: Side Battle (Marsh)
+  // Solution A: Bear + Tea + Cat + Lantern + Crane, Stratagem: 火攻
+  const bSideA = runBotBattle(chSide, ['bear_guard', 'tea_master', 'cat_patrol', 'lantern_crafter', 'crane_rider'], 'fire_attack', 701, 'heuristic');
+  assert.strictEqual(bSideA.status.victory, true, 'Side Battle Solution A must win');
+  console.log(`| 外傳    | Solution A | 熊岳+茶翁+墨影+燈娘+鶴羽 | 火攻 | ${bSideA.status.victory ? 'WIN ' : 'FAIL'} | ${bSideA.currentTurn} 回合 |`);
+
+  // Solution B: Cat + Fox + Tanuki + Bear + Tea, Stratagem: 鼓舞
+  const bSideB = runBotBattle(chSide, ['cat_patrol', 'fox_maiden', 'tanuki_mage', 'bear_guard', 'tea_master'], 'inspire', 702, 'heuristic');
+  assert.strictEqual(bSideB.status.victory, true, 'Side Battle Solution B must win');
+  console.log(`| 外傳    | Solution B | 墨影+狐火+雷狸+熊岳+茶翁 | 鼓舞 | ${bSideB.status.victory ? 'WIN ' : 'FAIL'} | ${bSideB.currentTurn} 回合 |`);
 
   console.log('==============================================================\n');
 

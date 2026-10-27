@@ -196,3 +196,49 @@ test('Objectives: Siege chapter (breach gate or defeat citadel warlord)', () => 
   assert.strictEqual(status.finished, true);
   assert.strictEqual(status.victory, false);
 });
+
+test('Objectives: Side battle marsh chapter (survive or rout sorcerer)', () => {
+  const chapter = CHAPTERS.find(c => c.key === 'side_marsh');
+  assert.ok(chapter, 'Side battle chapter 7 should exist');
+
+  const ally = { id: 'cat_patrol', role: 'flanker', hp: 20, x: 2, y: 8 };
+  const sorcerer = { id: 'curse_sorcerer', hp: 30, x: 4, y: 2 };
+  const rat = { id: 'shadow_rat', hp: 16, x: 2, y: 6 };
+
+  // Case 1: In progress
+  let status = checkBattleStatus(chapter, {
+    currentTurn: 3,
+    allies: [ally],
+    enemies: [sorcerer, rat]
+  });
+  assert.strictEqual(status.finished, false);
+
+  // Case 2: Sorcerer boss defeated -> WIN!
+  const sorcererDead = { id: 'curse_sorcerer', hp: 0, x: 4, y: 2 };
+  status = checkBattleStatus(chapter, {
+    currentTurn: 5,
+    allies: [ally],
+    enemies: [sorcererDead, rat]
+  });
+  assert.strictEqual(status.finished, true);
+  assert.strictEqual(status.victory, true);
+  assert.ok(status.reason.includes('荒澤妖術師已被斬殺'));
+
+  // Case 3: All enemies routed -> WIN!
+  status = checkBattleStatus(chapter, {
+    currentTurn: 6,
+    allies: [ally],
+    enemies: []
+  });
+  assert.strictEqual(status.finished, true);
+  assert.strictEqual(status.victory, true);
+
+  // Case 4: Turn limit exceeded -> LOSE!
+  status = checkBattleStatus(chapter, {
+    currentTurn: 13, // max 12
+    allies: [ally],
+    enemies: [sorcerer, rat]
+  });
+  assert.strictEqual(status.finished, true);
+  assert.strictEqual(status.victory, false);
+});

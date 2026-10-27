@@ -9,11 +9,17 @@ export function getReachableTiles(board, unit, allUnits = [], options = {}) {
   const mov = unit.mov ?? 4;
   const isFlyer = !!unit.flyer;
   const isCavalry = unit.role === 'cavalry' || unit.cls === '騎兵';
+  const isLight = unit.isLight || unit.role === 'assassin' || unit.role === 'scout' ||
+    unit.id === 'cat_patrol' || unit.id === 'mist_scout' || unit.role === 'npc' ||
+    unit.id === 'lantern_cart' || unit.id === 'market_lantern' ||
+    unit.trait?.id === 'swift_shadow' || unit.trait?.id === 'light_foot' || unit.ignoreZoc;
+  const ignoresZoc = isFlyer || isLight;
 
   // Build occupancy maps
   const allyTiles = new Set();
   const enemyTiles = new Set();
   const enemyZocCenters = [];
+  const enemyCombatants = [];
 
   for (const u of allUnits) {
     if (u.hp <= 0) continue;
@@ -23,20 +29,38 @@ export function getReachableTiles(board, unit, allUnits = [], options = {}) {
       allyTiles.add(key);
     } else {
       enemyTiles.add(key);
-      // Check if enemy exerts ZOC (e.g. bear_guard spear_wall)
+      if (u.role !== 'npc' && u.role !== 'objective' && u.id !== 'lantern_cart' && u.id !== 'market_lantern') {
+        enemyCombatants.push(u);
+      }
       if (u.trait?.id === 'spear_wall' || u.id === 'bear_guard') {
         enemyZocCenters.push(u);
       }
     }
   }
 
-  // Helper to test if a tile is in enemy ZOC for cavalry
+  // ZOC rule: when options.zoc === true (or preview mode), general ZOC stops non-light/non-flyers at any enemy combatant
+  const generalZoc = options.zoc === true || options.generalZoc === true;
+
+  // Helper to test if a tile is in enemy ZOC
   function isInEnemyZoc(x, y) {
-    if (!isCavalry) return false;
-    for (const ez of enemyZocCenters) {
-      if (Board.manhattan(x, y, ez.x, ez.y) === 1) {
-        return true;
+    if (ignoresZoc) return false;
+    // Cavalry is stopped by spear_wall / bear_guard
+    if (isCavalry) {
+      for (const ez of enemyZocCenters) {
+        if (Board.manhattan(x, y, ez.x, ez.y) === 1) {
+          return true;
+        }
       }
+      return false;
+    }
+    // General ZOC: stops foot soldiers at any enemy combatant
+    if (generalZoc) {
+      for (const ez of enemyCombatants) {
+        if (Board.manhattan(x, y, ez.x, ez.y) === 1) {
+          return true;
+        }
+      }
+      return false;
     }
     return false;
   }
@@ -95,7 +119,10 @@ export function getReachableTiles(board, unit, allUnits = [], options = {}) {
       // Check terrain passability
       if (!isFlyer && board.isImpassable(n.x, n.y, false)) continue;
 
-      const stepCost = isFlyer ? 1 : board.getMoveCost(n.x, n.y, false);
+      let stepCost = isFlyer ? 1 : board.getMoveCost(n.x, n.y, false);
+      if (options.cursedTiles && options.cursedTiles.has(nKey) && !isFlyer) {
+        stepCost += 1; // Cursed miasma tile: movement cost +1 (MOV -1)
+      }
       const newCost = curr.cost + stepCost;
 
       if (newCost > mov) continue;

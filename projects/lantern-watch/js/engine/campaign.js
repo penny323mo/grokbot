@@ -152,16 +152,11 @@ export class CampaignManager {
     let leveledUp = false;
     let newLevel = u.level;
 
-    if (u.exp >= 100) {
+    while (u.exp >= 100) {
       u.exp -= 100;
       u.level += 1;
       leveledUp = true;
       newLevel = u.level;
-
-      // Check promotion at Lv2+
-      if (u.level >= 2 && !u.promoted) {
-        u.promoted = true;
-      }
     }
 
     this.save();
@@ -191,6 +186,7 @@ export class CampaignManager {
     const u = this.roster[unitId];
     if (!u) return false;
     if (u.promoted) return true;
+    if (u.level < 5) return false; // SPEC §7: Promotion requires Lv.5
     if (PROMOTIONS[unitId]) {
       u.promoted = true;
       this.save();

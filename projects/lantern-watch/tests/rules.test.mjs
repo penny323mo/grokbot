@@ -65,21 +65,27 @@ test('Rules: Cavalry ZOC interception by bear_guard (spear_wall)', () => {
   // bear_guard stands at (3, 2)
   const bear = {
     id: 'bear_guard',
+    name: '熊岳',
     team: 'ally',
     x: 3,
     y: 2,
     hp: 36,
+    atk: 12,
+    def: 8,
     trait: { id: 'spear_wall' }
   };
 
   // Cavalry moves from (0, 2) East towards bear
   const cavalry = {
     id: 'fog_rider',
+    name: '霧騎',
     role: 'cavalry',
     team: 'enemy',
     x: 0,
     y: 2,
     mov: 6,
+    def: 4,
+    hp: 20,
     flyer: false
   };
 
@@ -90,6 +96,16 @@ test('Rules: Cavalry ZOC interception by bear_guard (spear_wall)', () => {
   const tile22 = reachable.get('2,2');
   assert.ok(tile22, 'Cavalry can reach adjacent tile (2,2)');
   assert.strictEqual(tile22.zocStopped, true, 'Tile (2,2) must be flagged as ZOC stopped');
+
+  // Live battle: moving into ZOC deals free intercept hit to cavalry HP!
+  const battle = new Battle({ id: 1, terrain, deployTiles: [{ x: 3, y: 2 }] }, [bear]);
+  battle.enemies = [cavalry];
+  const initialHp = cavalry.hp;
+  battle.moveUnit(cavalry, 2, 2);
+  assert.ok(cavalry.hp < initialHp, 'Cavalry must take free hit damage upon entering spear_wall ZOC');
+  const zocEvent = battle.eventLog.find(e => e.type === 'zoc_strike');
+  assert.ok(zocEvent, 'Must record zoc_strike event');
+  assert.strictEqual(zocEvent.damage, 8, 'Damage should be bear.atk (12) - cavalry.def (4) = 8');
 });
 
 test('Rules: Facing and Back-attack damage modifiers', () => {
@@ -488,25 +504,11 @@ test('Rules: Fire archer inflicts bonus burn damage on targets in forest', () =>
   assert.strictEqual(forestCombat.expectedDamage, 11, 'Fire archer attacking forest target gains +4 burning damage');
 });
 
-test('Rules: Combo attack (協力攻擊) triggered by adjacent ally', () => {
-  const terrain = [
-    "..........",
-    "..........",
-    "..........",
-    "..........",
-    "..........",
-    "..........",
-    "..........",
-    "..........",
-    "..........",
-    "..........",
-    "..........",
-    "..........",
-    ".........."
-  ];
+test('Rules: Combo attack (合擊) restricted to valid BOND_PAIRS', () => {
+  const terrain = Array(13).fill('..........');
   const board = new Board(terrain);
 
-  const attacker = {
+  const catAttacker = {
     id: 'cat_patrol',
     name: '墨影',
     team: 'ally',
@@ -527,29 +529,56 @@ test('Rules: Combo attack (協力攻擊) triggered by adjacent ally', () => {
     facing: 1
   };
 
-  const adjacentAlly = {
+  const bearAlly = {
     id: 'bear_guard',
     name: '熊岳',
     team: 'ally',
     x: 4,
-    y: 4, // Adjacent to defender (dist = 1)
+    y: 4, // Adjacent to defender
     hp: 30,
     atk: 11
   };
 
-  const allies = [attacker, adjacentAlly];
+  // 1. Cat + Bear are NOT a valid bond pair -> NO combo
+  const nonBondCombat = calculateCombat(catAttacker, defender, board, { allies: [catAttacker, bearAlly] });
+  assert.strictEqual(nonBondCombat.comboAlly, null, 'Non-bond pair (cat+bear) must NOT trigger combo hit');
 
-  const combat = calculateCombat(attacker, defender, board, { allies });
-  assert.ok(combat.comboAlly, 'Should detect adjacent ally for combo');
-  assert.strictEqual(combat.comboAlly.id, 'bear_guard');
-  assert.ok(combat.comboDamage > 0, 'Combo should deal bonus damage');
+  // 2. Cat + Lantern Crafter form 「影燈」 bond -> Combo triggers!
+  const lanternAlly = {
+    id: 'lantern_crafter',
+    name: '燈娘',
+    team: 'ally',
+    x: 4,
+    y: 4,
+    hp: 22,
+    atk: 10
+  };
+  const bondCombat = calculateCombat(catAttacker, defender, board, { allies: [catAttacker, lanternAlly] });
+  assert.ok(bondCombat.comboAlly, 'Should trigger combo with valid bond partner (lantern_crafter)');
+  assert.strictEqual(bondCombat.bondName, '影燈', 'Bond name should be 影燈');
+  assert.ok(bondCombat.comboDamage > 0, 'Combo should deal bonus damage');
 
   // Execute combat with combo
   const rng = new RNG(42);
-  const res = executeCombat(attacker, defender, board, rng, { allies });
+  const res = executeCombat(catAttacker, defender, board, rng, { allies: [catAttacker, lanternAlly] });
   const comboEvent = res.events.find(e => e.type === 'combo_hit');
   assert.ok(comboEvent, 'executeCombat should generate combo_hit event');
-  assert.strictEqual(comboEvent.ally.id, 'bear_guard');
+  assert.strictEqual(comboEvent.ally.id, 'lantern_crafter');
+  assert.strictEqual(comboEvent.bondName, '影燈');
+
+  // 3. Bear + Tea Master form 「山泉」 bond -> Combo triggers!
+  const teaAlly = {
+    id: 'tea_master',
+    name: '茶翁',
+    team: 'ally',
+    x: 4,
+    y: 4,
+    hp: 24,
+    atk: 9
+  };
+  const bearTeaCombat = calculateCombat(bearAlly, defender, board, { allies: [bearAlly, teaAlly] });
+  assert.ok(bearTeaCombat.comboAlly, 'Should trigger combo with valid bond partner (tea_master)');
+  assert.strictEqual(bearTeaCombat.bondName, '山泉', 'Bond name should be 山泉');
 });
 
 test('Rules: Fire attack persistent burn and forest fire spread', () => {
@@ -597,10 +626,19 @@ test('Rules: Class promotion stat bonuses and upgraded skill (劍客→劍聖 �
   const cat = campaign.getUnitInstance('cat_patrol');
   assert.strictEqual(cat.cls, '劍客');
 
-  // Level up to Lv2
+  // Level up to Lv4 (requires Lv5 for promotion per SPEC §7)
+  campaign.addExp('cat_patrol', 300);
+  assert.strictEqual(campaign.roster['cat_patrol'].level, 4);
+  assert.strictEqual(campaign.promoteUnit('cat_patrol'), false, 'Cannot promote before Lv5');
+
+  // Level up to Lv5 and manually promote in camp
   campaign.addExp('cat_patrol', 100);
+  assert.strictEqual(campaign.roster['cat_patrol'].level, 5);
+  const success = campaign.promoteUnit('cat_patrol');
+  assert.strictEqual(success, true, 'Can promote at Lv5');
+
   const promotedCat = campaign.getUnitInstance('cat_patrol');
-  assert.strictEqual(promotedCat.cls, '劍聖', 'Cat should promote to 劍聖 at Lv2+');
+  assert.strictEqual(promotedCat.cls, '劍聖', 'Cat should promote to 劍聖 at Lv5');
   assert.ok(promotedCat.atk >= 16, 'ATK should receive promotion bonus');
   assert.ok(promotedCat.promotedSkill, 'Should unlock promoted skill');
   assert.strictEqual(promotedCat.promotedSkill.name, '萬劍歸宗');
@@ -708,4 +746,111 @@ test('Rules: Varied action XP and MVP calculation', () => {
   assert.strictEqual(mvpAward.isMvp, true);
   assert.ok(mvpAward.expGained > normalAward.expGained, 'MVP should receive significantly more EXP than other units');
   assert.ok(mvpAward.reason.includes('MVP'), 'Award should highlight MVP accomplishment');
+});
+
+test('Rules: General Zone of Control (ZOC) stops foot soldiers while light and flying units ignore ZOC', () => {
+  const terrain = new Array(13).fill('..........');
+  const board = new Board(terrain);
+
+  // Enemy standing at (3, 2)
+  const enemy = { id: 'shield_guard', team: 'enemy', x: 3, y: 2, hp: 30 };
+
+  // 1. Standard foot warrior moving from (0, 2) East towards enemy (3, 2) with general ZOC
+  const footUnit = { id: 'warrior', role: 'fighter', team: 'ally', x: 0, y: 2, mov: 5, flyer: false };
+  const footReachable = getReachableTiles(board, footUnit, [footUnit, enemy], { zoc: true });
+
+  // Entering tile (2, 2) is adjacent to enemy (3, 2) -> intercepted by ZOC!
+  const tile22 = footReachable.get('2,2');
+  assert.ok(tile22, 'Foot unit can reach adjacent tile (2, 2)');
+  assert.strictEqual(tile22.zocStopped, true, 'Tile (2, 2) must be flagged as ZOC stopped');
+  // Since movement stopped at (2, 2), foot unit cannot move past enemy to (4, 2)
+  assert.strictEqual(footReachable.has('4,2'), false, 'Foot unit cannot bypass enemy to reach (4, 2)');
+
+  // 2. Light unit (cat_patrol) moving from (0, 2) ignores ZOC and can move through and beyond
+  const lightUnit = { id: 'cat_patrol', role: 'assassin', team: 'ally', x: 0, y: 2, mov: 5, flyer: false, isLight: true };
+  const lightReachable = getReachableTiles(board, lightUnit, [lightUnit, enemy], { zoc: true });
+  const light22 = lightReachable.get('2,2');
+  assert.ok(light22, 'Light unit can reach (2, 2)');
+  assert.strictEqual(light22.zocStopped, false, 'Light unit must ignore ZOC stop');
+
+  // 3. Flying unit (crane_rider) also ignores ZOC
+  const flyUnit = { id: 'crane_rider', role: 'cavalry', team: 'ally', x: 0, y: 2, mov: 5, flyer: true };
+  const flyReachable = getReachableTiles(board, flyUnit, [flyUnit, enemy], { zoc: true });
+  const fly22 = flyReachable.get('2,2');
+  assert.ok(fly22, 'Flying unit can reach (2, 2)');
+  assert.strictEqual(fly22.zocStopped, false, 'Flying unit must ignore ZOC stop');
+});
+
+test('Rules: Flanking modifiers (+20% side, +50% back, +100% swift_shadow) and no counterattack from behind', () => {
+  const terrain = new Array(13).fill('..........');
+  const board = new Board(terrain);
+
+  // Target facing East (facing = 1) at (3, 3)
+  const defender = {
+    id: 'target',
+    team: 'enemy',
+    x: 3,
+    y: 3,
+    hp: 50,
+    def: 4,
+    spd: 10,
+    atk: 12,
+    facing: 1
+  };
+
+  // Attacker ATK = 14. Base damage = 14 - 4 = 10.
+  // 1. Side attack (North at 3, 2 attacking South into 3, 3)
+  const sideAttacker = { id: 'ally_side', team: 'ally', x: 3, y: 2, atk: 14, spd: 10 };
+  const sideCombat = calculateCombat(sideAttacker, defender, board);
+  assert.strictEqual(sideCombat.direction, 'side');
+  assert.strictEqual(sideCombat.isSideAttack, true);
+  // Damage: 10 * 1.2 = 12
+  assert.strictEqual(sideCombat.expectedDamage, 12, 'Side attack must deal +20% damage');
+  assert.strictEqual(sideCombat.canCounter, true, 'Defender can still counter melee side attack');
+  assert.ok(sideCombat.directionMarker.includes('側翼突襲'));
+  assert.ok(sideCombat.directionMarker.includes('+20%'));
+
+  // 2. Standard back attack (West at 2, 3 attacking East into 3, 3)
+  const backAttacker = { id: 'ally_back', team: 'ally', x: 2, y: 3, atk: 14, spd: 10 };
+  const backCombat = calculateCombat(backAttacker, defender, board);
+  assert.strictEqual(backCombat.direction, 'back');
+  assert.strictEqual(backCombat.isBackAttack, true);
+  // Damage: 10 * 1.50 = 15
+  assert.strictEqual(backCombat.expectedDamage, 15, 'Standard back attack must deal +50% damage');
+  assert.strictEqual(backCombat.canCounter, false, 'Back attack MUST prevent defender counter-attack');
+  assert.ok(backCombat.directionMarker.includes('背刺偷襲'));
+  assert.ok(backCombat.directionMarker.includes('+50%'));
+
+  // 3. Cat Patrol (swift_shadow) back attack (+100%)
+  const catAttacker = { id: 'cat_patrol', team: 'ally', x: 2, y: 3, atk: 14, spd: 10, trait: { id: 'swift_shadow' } };
+  const catCombat = calculateCombat(catAttacker, defender, board);
+  assert.strictEqual(catCombat.expectedDamage, 20, 'Cat patrol back attack must deal +100% damage');
+  assert.ok(catCombat.directionMarker.includes('疾影背刺'));
+  assert.ok(catCombat.directionMarker.includes('+100%'));
+});
+
+test('Rules: Curse miasma (幽冥咒縛) tile effect slows MOV, ticks 4 damage, and is cleansed by fire/lantern', () => {
+  const terrain = Array(13).fill('..........');
+  const board = new Board(terrain);
+
+  const footman = { id: 'footman', team: 'ally', x: 3, y: 5, mov: 3, hp: 20, flyer: false };
+  const cursedTiles = new Set(['3,6']);
+
+  // Movement cost into cursed tile is +1 (so step cost is 1 + 1 = 2)
+  const reachable = getReachableTiles(board, footman, [footman], { cursedTiles });
+  assert.strictEqual(reachable.get('3,6').cost, 2, 'Cursed tile should increase movement cost by +1');
+
+  // Battle tick damage: unit on cursed tile takes 4 damage
+  const battle = new Battle({ id: 7, terrain, deployTiles: [{ x: 3, y: 5 }] }, [footman]);
+  battle.cursedTiles = new Set(['3,5']);
+  const unitInBattle = battle.allies[0];
+  const startHp = unitInBattle.hp;
+  battle.tickCursedTiles();
+  assert.strictEqual(unitInBattle.hp, startHp - 4, 'Unit on cursed tile must suffer 4 damage per turn');
+  assert.ok(battle.eventLog.some(e => e.type === 'curse_damage'));
+
+  // Cleanse by fire:
+  battle.burningTiles.add('3,5');
+  battle.tickCursedTiles();
+  assert.strictEqual(battle.cursedTiles.has('3,5'), false, 'Cursed tile on fire must be cleansed');
 });

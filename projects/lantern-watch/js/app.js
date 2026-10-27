@@ -417,8 +417,8 @@ class LanternTacticsApp {
       this.ui.hideActionMenu();
       this.ui.hideTargetPreview();
 
-      // Calculate reachable tiles & attackable outline
-      this.reachableTiles = this.battle.getReachableFor(unit);
+      // Calculate reachable tiles & attackable outline with general ZOC
+      this.reachableTiles = this.battle.getReachableFor(unit, { zoc: true });
       this.attackableTiles = getAttackableTilesFromReachable(this.battle.board, unit, this.reachableTiles, this.battle.getAllLivingUnits());
 
       this.refreshBattleUI();
@@ -722,6 +722,16 @@ class LanternTacticsApp {
     const res = this.battle.confirmAction(actingUnit, actionType, target, options);
     this.sound?.playSfx('hit');
 
+    // Trigger voice bark banner on skill / magic / combo
+    if (actionType === 'skill' || actionType === 'magic') {
+      const skillName = options.skill?.name || (actionType === 'magic' ? actingUnit.magic?.name : actingUnit.skill?.name) || '絕技';
+      this.ui.showCombatBark(actingUnit, `【${actingUnit.name} · ${skillName}】`, actingUnit.bark || `「${skillName}，破陣！」`);
+    } else if (res.events?.some(e => e.type === 'combo_hit')) {
+      const comboEv = res.events.find(e => e.type === 'combo_hit');
+      const ally = this.battle.allies.find(a => a.id === comboEv.allyId) || actingUnit;
+      this.ui.showCombatBark(ally, `【${ally.name} · 協力攻擊】`, ally.bark || '「吾來助陣，同破頑敵！」');
+    }
+
     // Extract combat hit event
     const hitEv = res.events?.find(e => e.type === 'hit');
     const isMiss = res.events?.some(e => e.type === 'miss');
@@ -1009,7 +1019,11 @@ class LanternTacticsApp {
   }
 }
 
-// Instantiate on DOM load
-window.addEventListener('DOMContentLoaded', () => {
+// Instantiate on DOM load or immediately if already loaded
+if (document.readyState === 'loading') {
+  window.addEventListener('DOMContentLoaded', () => {
+    window.app = new LanternTacticsApp();
+  });
+} else {
   window.app = new LanternTacticsApp();
-});
+}
