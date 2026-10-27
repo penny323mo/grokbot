@@ -5,7 +5,7 @@
  */
 
 import { Board } from './board.js';
-import { BOND_PAIRS } from '../data/units.js';
+import { BOND_PAIRS, getClassSynergies } from '../data/units.js';
 
 /**
  * Fairness guard: a single enemy hit can take at most 30% of an ally's max HP,
@@ -162,6 +162,16 @@ export function calculateCombat(attacker, defender, board, options = {}) {
     damageMod *= 1.5;
   }
 
+  // Class synergies
+  const squadAllies = options.allies || (attacker.team === 'ally' ? attacker.squad : (defender.team === 'ally' ? defender.squad : null));
+  const activeSynergies = options.synergies || (squadAllies ? getClassSynergies(squadAllies) : []);
+  const hasSynergy = (id) => activeSynergies.some(s => (typeof s === 'string' ? s === id : s.id === id));
+
+  // spell_arrow: 法箭交輝 (+10% ranged / magic damage for allies)
+  if (attacker.team === 'ally' && hasSynergy('spell_arrow') && (isMagic || dist > 1 || attacker.role === 'archer' || attacker.role === 'mage' || attacker.cls === '弓手' || attacker.cls === '術士')) {
+    damageMod *= 1.1;
+  }
+
   // Calculate base damage
   let expectedDamage = 0;
   if (isMagic) {
@@ -169,7 +179,8 @@ export function calculateCombat(attacker, defender, board, options = {}) {
     const raw = Math.max(1, attackPower - res);
     expectedDamage = Math.max(0, Math.round(raw * damageMod));
   } else {
-    const def = (defender.def || 0) + defBonus;
+    const synergyDef = (defender.team === 'ally' && hasSynergy('iron_fortress')) ? 1 : 0;
+    const def = (defender.def || 0) + defBonus + synergyDef;
     const raw = Math.max(1, attackPower - def);
     expectedDamage = Math.max(0, Math.round(raw * damageMod));
 
@@ -217,7 +228,8 @@ export function calculateCombat(attacker, defender, board, options = {}) {
     if (dist >= defMinRange && dist <= defMaxRange && defender.atk > 0) {
       canCounter = true;
       const counterAtk = defender.atk || 8;
-      const atkDef = (attacker.def || 0) + (atkTerrain.defBonus || 0);
+      const synergyAtkDef = (attacker.team === 'ally' && hasSynergy('iron_fortress')) ? 1 : 0;
+      const atkDef = (attacker.def || 0) + (atkTerrain.defBonus || 0) + synergyAtkDef;
       counterDamage = capDamageToAlly(attacker, Math.max(1, counterAtk - atkDef));
       counterHitRate = Math.max(5, Math.min(100, 95 - (atkTerrain.evaBonus || 0)));
     }

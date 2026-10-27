@@ -251,7 +251,7 @@ export function reasonableTurn(battle) {
       let holdScore = (ter.def || 0) * 12 + (ter.eva || 0) * 0.5;
 
       // Strongly stay out of red threat zone when holding (unless pushing siege fortress)
-      if (inThreat) holdScore -= (ally.role === 'tank' || (chapter.key === 'siege' && m.y <= 9) ? 15 : 50);
+      if (inThreat) holdScore -= (ally.role === 'tank' || chapter.key === 'siege' ? 12 : 50);
       if (battle.cursedTiles && battle.cursedTiles.has(mKey)) holdScore -= 60;
 
       // Distance to choke anchor

@@ -2718,7 +2718,8 @@ html, body {
 }
 
 .btn-tutorial-ack {
-  width: 100%;
+  flex: 1 1 0;
+  min-width: 0;
   height: 44px;
   border-radius: 8px;
   background: linear-gradient(180deg, #E69D35 0%, #B8671B 100%);
@@ -2734,6 +2735,7 @@ html, body {
   justify-content: center;
   box-shadow: 0 4px 12px rgba(217, 130, 43, 0.35);
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .btn-tutorial-ack:active {
@@ -2747,7 +2749,8 @@ html, body {
 }
 
 .btn-tutorial-suggest {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   height: 44px;
   border-radius: 8px;
   background: linear-gradient(180deg, #3B82F6 0%, #1D4ED8 100%);
@@ -2762,6 +2765,7 @@ html, body {
   justify-content: center;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .btn-tutorial-suggest:active {
@@ -3830,9 +3834,54 @@ html, body {
 .deploy-unit-chip img { max-width: 40px; max-height: 40px; }
 .btn-confirm-deploy { padding: 8px !important; min-height: 0 !important; font-size: 15px; }
 .btn-deploy-mini { background: rgba(242,180,90,.15); color: var(--lantern-gold); border: 1px solid var(--lantern-gold); border-radius: 8px; font-size: 12px; padding: 3px 9px; font-weight: 700; }
-.deploy-tray-bar.scouting { flex-direction: row; align-items: center; }
-.deploy-tray-bar.scouting .deploy-tray-units { display: none; }
-.deploy-tray-bar.scouting .deploy-tray-header { flex: 1; }
-.deploy-tray-bar.scouting .btn-confirm-deploy { width: auto; padding: 6px 14px !important; }
-.grid-tile.threat { box-shadow: inset 0 0 0 2px rgba(230,60,60,.55); background-color: rgba(200,30,30,.18); }
+.deploy-tray-bar.scouting {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+}
+.deploy-tray-bar.scouting .deploy-tray-units,
+.deploy-tray-bar.scouting .deploy-synergy-strip,
+.deploy-tray-bar.scouting #deployStatusBadge {
+  display: none !important;
+}
+.deploy-tray-bar.scouting .deploy-tray-header {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.deploy-tray-bar.scouting .deploy-tray-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--lantern-gold);
+}
+.deploy-tray-bar.scouting .btn-deploy-mini {
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 14px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.deploy-tray-bar.scouting .btn-confirm-deploy {
+  width: auto;
+  min-height: 44px !important;
+  padding: 0 16px !important;
+  font-size: 14px;
+  white-space: nowrap;
+  margin: 0;
+  flex-shrink: 0;
+}
+.grid-tile.threat {
+  /* Softened since threat is painted as feathered contour region on canvas */
+  box-shadow: none;
+  background-color: transparent;
+}
 #btnThreatToggle.active { background: rgba(200,40,40,.45); border-color: #e66; }

@@ -50,8 +50,17 @@ Back attack: attacking from the tile opposite defender's facing = +50% dmg and n
 General ZOC: Hostile combatants project Zone of Control onto adjacent tiles stopping foot soldiers ({ zoc: true }), showing '阻' badge. Light units and flyers ignore general ZOC. Cavalry entering adjacent tile of a spear wall (bear_guard 熊岳「槍林」) is intercepted and takes an immediate free hit (zoc_strike).
 Counter-attack: melee defenders hit back once if attacker in range and defender survives.
 
-## 6. Tutorial (3 steps, first launch + replayable via 「?」)
-Overlay with dimmed screen and pulsing spotlight: ① 「撳角色 → 藍格係可以行嘅位」 ② 「撳藍格移動 → 揀 攻擊/技能/魔法/待命」 ③ 「紅格係攻擊範圍，睇清傷害預覽先確認」. Big 「明白」 button. localStorage `${GAME.storageKey}_tutorial`.
+## 6. Tutorial (7 beats across Ch 1 + replayable via 「?」)
+Live board overlay with dimmed screen and pulsing spotlight ring (`.spotlight-active`), one-line hints, 8s idle advice, and `💡 建議行動` suggested-move button:
+1. ① 移動走位 (Move): 點選將士【熊岳】，腳下藍格為合法移動範圍。
+2. ② 攻擊鎖定 (Attack): 移動後點擊【攻擊】，紅格為射程範圍，再次點擊目標或點確認執行。
+3. ③ 險要據守 (Terrain): 林木加防禦與閃避，高地享有居高臨下傷害加成。
+4. ④ 反擊與背刺 (Counter & Flank): 正面交鋒易遭反擊；側翼打出1.2倍，背面享受1.5倍背刺且不受反擊（墨影疾影雙倍）。
+5. ⑤ 燈火長明 (Lantern Light): 引路燈車向前挺進，長明燈光照破夜霧、驅散幽冥咒縛。
+6. ⑥ 奇術破陣 (Spell & Directional Skill): 消耗法力施展專屬「技能」或「法術」，支援直線貫穿推進或扇面覆蓋群敵。
+7. ⑦ 軍略妙算 (Stratagem): 戰場即時發動全軍軍略妙計（火攻、水淹、夜襲、鼓舞），逆轉戰局克敵制勝。
+Post-hit combat floating badges (`showFloatingDamage`) explain damage multipliers: `【背刺 ×1.5】`, `【側翼 ×1.2】`, `【居高臨下 ×1.2】`, `【正面護盾 -70%】`, `【地形防禦 -X】`, `【屬性相剋 ×2.0】`.
+Both the live Ch 1 overlay and the nav `?` help modal are in sync with all 7 beats. Persisted in localStorage `${GAME.storageKey}_tutorial`.
 
 ## 7. Characters & progression (scoped)
 `js/data/units.js`. Each guardian: id, name, title, class, backstory line, bark (shown in floating speech bubble on attack/skill), stats (HP, ATK, DEF, MAG, RES, SPD, MOV, range), one personal trait, 1 skill + 1 magic.

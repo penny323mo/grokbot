@@ -5,47 +5,8 @@
  */
 
 import { CHAPTERS, TERRAIN_INFO } from '../data/maps.js';
-import { GUARDIAN_PROTOS, ENEMY_PROTOS, STRATAGEMS, RELICS, BOND_PAIRS, PROMOTIONS } from '../data/units.js';
-
-export function getClassSynergies(squad) {
-  if (!squad || !squad.length) return [];
-  const roles = new Set(squad.map(u => {
-    if (!u) return null;
-    return typeof u === 'string' ? GUARDIAN_PROTOS[u]?.role : u.role;
-  }).filter(Boolean));
-  const hasFlyer = squad.some(u => {
-    if (!u) return false;
-    return typeof u === 'string' ? GUARDIAN_PROTOS[u]?.flyer : u.flyer;
-  });
-
-  const synergies = [];
-  if (roles.has('tank') && roles.has('healer')) {
-    synergies.push({
-      id: 'iron_fortress',
-      name: '金湯固若',
-      icon: '🛡️',
-      desc: '盾醫協守 · 全軍防禦+1'
-    });
-  }
-  if (roles.has('flanker') && (roles.has('cavalry') || hasFlyer)) {
-    synergies.push({
-      id: 'cavalry_coop',
-      name: '步騎協同',
-      icon: '⚡',
-      desc: '步騎呼應 · 首回合移動+1'
-    });
-  }
-  if (roles.has('mage') && roles.has('archer')) {
-    synergies.push({
-      id: 'spell_arrow',
-      name: '法箭交輝',
-      icon: '✦',
-      desc: '法箭呼應 · 遠程傷害+10%'
-    });
-  }
-
-  return synergies;
-}
+import { GUARDIAN_PROTOS, ENEMY_PROTOS, STRATAGEMS, RELICS, BOND_PAIRS, PROMOTIONS, getClassSynergies } from '../data/units.js';
+export { getClassSynergies };
 
 export class UIRenderer {
   constructor(soundEngine) {
@@ -446,9 +407,6 @@ export class UIRenderer {
           tileDiv.classList.add('walkable');
         }
 
-        if (handlers.threatTiles && handlers.threatTiles.has(key)) {
-          tileDiv.classList.add('threat');
-        }
         if (reachable.has(key)) {
           tileDiv.classList.add('reachable');
         }
@@ -957,6 +915,17 @@ export class UIRenderer {
         false
       );
     }
+
+    // 3. Enemy Threat Range: Feathered vermilion contour & translucent wash
+    if (handlers.threatTiles && handlers.threatTiles.size > 0) {
+      drawMergedRegion(
+        handlers.threatTiles,
+        'rgba(215, 45, 45, 0.18)',
+        'rgba(240, 60, 60, 0.88)',
+        'rgba(255, 50, 50, 0.8)',
+        false
+      );
+    }
   }
 
   // Soft Painted Fog of War Mask Overlay Canvas (soft ink mist, feathered radial cutouts around vision tiles, dimmed remembered terrain)
@@ -1058,9 +1027,9 @@ export class UIRenderer {
 
     const btnSkill = document.getElementById('btnActionSkill');
     btnSkill.disabled = !actions.skill;
-    btnSkill.title = actions.skill ? '施展專屬計策' : (actions.skillReason || 'MP不足');
+    btnSkill.title = actions.skill ? '施展專屬技能' : (actions.skillReason || 'MP不足');
     btnSkill.innerHTML = `
-      <span class="action-txt">計策</span>
+      <span class="action-txt">技能</span>
       <span class="action-cost-tag">${actions.skillCost ? `${actions.skillCost}MP` : ''}</span>
       ${!actions.skill ? `<span class="action-reason-chip">${actions.skillReason || 'MP不足'}</span>` : ''}
     `;
@@ -1408,22 +1377,46 @@ export class UIRenderer {
 
     const steps = [
       {
-        num: '第 1 / 3 步',
+        num: '第 1 / 7 步',
         icon: '⚑',
         title: '【步法前進 · 藍格移動】',
         text: '點選我方將士，腳下藍色格子為合法移動範圍。點選藍格即可率軍行進至該位置（點選自身即原地待命）。'
       },
       {
-        num: '第 2 / 3 步',
+        num: '第 2 / 7 步',
         icon: '⚔',
-        title: '【軍略指令 · 行動四選】',
-        text: '移動後彈出軍略選單：常規「攻擊」、專屬「技能」、屬性剋制「魔法」或原地「待命」（確認前可悔棋重走）。'
+        title: '【攻擊鎖定 · 陣前交鋒】',
+        text: '移動後點擊【攻擊】，紅格為射程範圍。再次點擊目標或點確認執行交鋒。'
       },
       {
-        num: '第 3 / 3 步',
+        num: '第 3 / 7 步',
+        icon: '🌲',
+        title: '【險要據守 · 地形生克】',
+        text: '進駐林木可獲防禦與迴避加成；山丘制高點居高臨下享有20%傷害增益與射程加成。'
+      },
+      {
+        num: '第 4 / 7 步',
         icon: '🎯',
-        title: '【射程預覽 · 側翼與背刺】',
-        text: '紅色格子為攻擊射程，點選目標可查看傷害與反擊預測。背刺+50%傷害且敵方無法反擊（墨影「疾影」+100%），側擊+20%傷害！'
+        title: '【反擊側翼 · 致命背刺】',
+        text: '正面交鋒易遭反擊；側翼突襲享受1.2倍傷害，背面偷襲更享1.5倍傷害且敵方無法反擊（墨影疾影享雙倍）。'
+      },
+      {
+        num: '第 5 / 7 步',
+        icon: '🏮',
+        title: '【燈火長明 · 破霧驅咒】',
+        text: '長明燈光照亮前方夜霧，驅散幽冥咒縛，令隱匿刺客與妖霧敵軍徹底現形。'
+      },
+      {
+        num: '第 6 / 7 步',
+        icon: '⚡',
+        title: '【奇術破陣 · 直線扇面】',
+        text: '消耗法力施展專屬「技能」或「法術」，支援直線貫穿推進或錐形烈焰覆蓋群敵。'
+      },
+      {
+        num: '第 7 / 7 步',
+        icon: '📜',
+        title: '【軍略妙算 · 運籌帷幄】',
+        text: '戰場即時發動全軍軍略妙計（火攻、水淹、夜襲、鼓舞），逆轉戰局克敵制勝！'
       }
     ];
 
@@ -1653,7 +1646,7 @@ export class UIRenderer {
     }
 
     vfxLayer.appendChild(floater);
-    setTimeout(() => floater.remove(), 800);
+    setTimeout(() => floater.remove(), 2500);
   }
 
   showDetailSheet(unitInst, campaign, onRelicChanged) {

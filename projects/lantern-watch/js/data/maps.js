@@ -276,6 +276,7 @@ export const CHAPTERS = [
       { x: 4, y: 12 }, { x: 5, y: 12 }
     ],
     enemySpawns: [
+      { id: 'shield_guard', x: 5, y: 2, facing: -1, aggro: 'guard', guardRadius: 2 },
       { id: 'shield_guard', x: 4, y: 4, facing: -1, aggro: 'guard', guardRadius: 3 },
       { id: 'mist_sorcerer', x: 5, y: 4, facing: -1, aggro: 'guard', guardRadius: 3 },
       { id: 'shadow_archer', x: 3, y: 6, facing: 1, aggro: 'guard', guardRadius: 4 },

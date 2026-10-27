@@ -964,3 +964,48 @@ test('Rules: Dynamic Chapter Twists (Ch5 weather fog change, Ch6 bridge collapse
   assert.strictEqual(b6.board.getTerrain(5, 8).char, 'w', 'Bridge (5, 8) must collapse into water');
   assert.ok(b6.eventLog.some(e => e.type === 'bridge_collapse'));
 });
+
+test('Rules: Class synergy bonuses (spell_arrow +10% ranged dmg, iron_fortress +1 def, cavalry_coop +1 turn 1 mov)', () => {
+  const terrain = Array(13).fill('..........');
+  const board = new Board(terrain);
+
+  // 1. spell_arrow (+10% ranged dmg when mage + archer in squad)
+  const archerAlly = { id: 'archer_unit', team: 'ally', role: 'archer', cls: '弓手', x: 2, y: 5, atk: 20, spd: 10 };
+  const mageAlly = { id: 'mage_unit', team: 'ally', role: 'mage', cls: '術士', x: 2, y: 6, mag: 15, spd: 10 };
+  const soloAlly = { id: 'solo_archer', team: 'ally', role: 'archer', cls: '弓手', x: 2, y: 5, atk: 20, spd: 10 };
+  const enemy = { id: 'target_foe', team: 'enemy', x: 4, y: 5, def: 0, hp: 50, spd: 10 };
+
+  // Solo archer (dist = 2, front attack, atk 20 - def 0 = 20)
+  const soloRes = calculateCombat(soloAlly, enemy, board, { allies: [soloAlly] });
+  assert.strictEqual(soloRes.expectedDamage, 20);
+
+  // With mage ally in squad -> spell_arrow active! +10% ranged damage = 20 * 1.1 = 22
+  const synergyRes = calculateCombat(archerAlly, enemy, board, { allies: [archerAlly, mageAlly] });
+  assert.strictEqual(synergyRes.expectedDamage, 22, 'spell_arrow synergy must grant +10% ranged damage');
+
+  // 2. iron_fortress (+1 DEF when tank + healer in squad)
+  const tankAlly = { id: 'bear_guard', team: 'ally', role: 'tank', x: 3, y: 5, def: 5, hp: 30, spd: 10, facing: 1 };
+  const healerAlly = { id: 'tea_master', team: 'ally', role: 'healer', x: 3, y: 6, def: 2, hp: 25, spd: 10 };
+  const attackerFoe = { id: 'foe_attacker', team: 'enemy', x: 4, y: 5, atk: 15, spd: 10 };
+
+  // Tank defending without healer: 15 - 5 = 10 dmg (front)
+  const noFortressRes = calculateCombat(attackerFoe, tankAlly, board, { allies: [tankAlly] });
+  assert.strictEqual(noFortressRes.expectedDamage, 10);
+
+  // Tank defending with healer in squad: def becomes 5 + 1 = 6, 15 - 6 = 9 dmg
+  const fortressRes = calculateCombat(attackerFoe, tankAlly, board, { allies: [tankAlly, healerAlly] });
+  assert.strictEqual(fortressRes.expectedDamage, 9, 'iron_fortress synergy must grant +1 defense to allies');
+
+  // 3. cavalry_coop (+1 MOV on turn 1 when flanker + (cavalry or flyer) in squad)
+  const catAlly = { ...GUARDIAN_PROTOS.cat_patrol, x: 2, y: 10 };
+  const craneAlly = { ...GUARDIAN_PROTOS.crane_rider, x: 3, y: 10 };
+  const ch = { id: 1, terrain, maxTurns: 10, deployTiles: [{ x: 2, y: 10 }, { x: 3, y: 10 }] };
+  const battle = new Battle(ch, [catAlly, craneAlly]);
+  assert.strictEqual(battle.currentTurn, 1);
+  assert.strictEqual(battle.allies.find(u => u.id === 'cat_patrol').mov, GUARDIAN_PROTOS.cat_patrol.mov + 1, 'Turn 1 cavalry_coop grants +1 MOV');
+
+  // Advances to turn 2
+  battle.endEnemyPhase();
+  assert.strictEqual(battle.currentTurn, 2);
+  assert.strictEqual(battle.allies.find(u => u.id === 'cat_patrol').mov, GUARDIAN_PROTOS.cat_patrol.mov, 'Turn 2 cavalry_coop bonus reverts to standard MOV');
+});

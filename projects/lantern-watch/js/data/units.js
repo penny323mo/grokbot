@@ -977,3 +977,43 @@ export const STRATAGEMS = [
   { id: 'night_raid', name: '夜襲', icon: '夜', desc: '借夜色急襲，敵方全體第1回合無法行動' },
   { id: 'inspire', name: '鼓舞', icon: '鼓', desc: '號角齊鳴，我方全體第1與第2回合傷害提升20%' }
 ];
+
+export function getClassSynergies(squad) {
+  if (!squad || !squad.length) return [];
+  const roles = new Set(squad.map(u => {
+    if (!u) return null;
+    return typeof u === 'string' ? (GUARDIAN_PROTOS[u]?.role || (u.includes('archer') ? 'archer' : null)) : (u.role || GUARDIAN_PROTOS[u.id]?.role);
+  }).filter(Boolean));
+  const hasFlyer = squad.some(u => {
+    if (!u) return false;
+    return typeof u === 'string' ? GUARDIAN_PROTOS[u]?.flyer : (u.flyer || GUARDIAN_PROTOS[u.id]?.flyer);
+  });
+
+  const synergies = [];
+  if (roles.has('tank') && roles.has('healer')) {
+    synergies.push({
+      id: 'iron_fortress',
+      name: '金湯固若',
+      icon: '🛡️',
+      desc: '盾醫協守 · 全軍防禦+1'
+    });
+  }
+  if (roles.has('flanker') && (roles.has('cavalry') || hasFlyer)) {
+    synergies.push({
+      id: 'cavalry_coop',
+      name: '步騎協同',
+      icon: '⚡',
+      desc: '步騎呼應 · 首回合移動+1'
+    });
+  }
+  if (roles.has('mage') && roles.has('archer')) {
+    synergies.push({
+      id: 'spell_arrow',
+      name: '法箭交輝',
+      icon: '✦',
+      desc: '法箭呼應 · 遠程傷害+10%'
+    });
+  }
+
+  return synergies;
+}

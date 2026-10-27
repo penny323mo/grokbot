@@ -289,6 +289,10 @@ class LanternTacticsApp {
       scoutBtn.onclick = () => {
         const on = tray.classList.toggle('scouting');
         scoutBtn.textContent = on ? '佈陣' : '偵察';
+        const titleEl = tray.querySelector('.deploy-tray-title');
+        if (titleEl) {
+          titleEl.textContent = on ? '偵察敵陣中 · 可拖曳縮放' : '排兵布陣 · 點選將士再點選金色部署格';
+        }
         if (on) {
           const foes = this.battle.enemies.filter(e => e.hp > 0);
           this.ui.frameTiles(foes.length ? foes : deployTiles, true);
@@ -308,10 +312,15 @@ class LanternTacticsApp {
     if (!this.battle) return set;
     for (const e of this.battle.enemies) {
       if (e.hp <= 0) continue;
-      const reach = getReachableTiles(this.battle.board, e, this.battle.getAllLivingUnits(), { zoc: true });
+      const reach = getReachableTiles(this.battle.board, e, this.battle.getAllLivingUnits(), { zoc: true, cursedTiles: this.battle.cursedTiles });
       reach.set(`${e.x},${e.y}`, { x: e.x, y: e.y });
       for (const pos of reach.values()) {
-        for (const t of getAttackRangeTiles(this.battle.board, e, pos.x, pos.y)) set.add(`${t.x},${t.y}`);
+        for (const t of getAttackRangeTiles(this.battle.board, e, pos.x, pos.y)) {
+          const char = this.battle.board.getTerrainChar(t.x, t.y);
+          if (char === '#' || (char === 'w' && !e.flying)) continue;
+          if (this.battle.board.isImpassable(t.x, t.y, e.flying)) continue;
+          set.add(`${t.x},${t.y}`);
+        }
       }
     }
     return set;
@@ -885,7 +894,8 @@ class LanternTacticsApp {
       skill,
       attackerX: unit.x,
       attackerY: unit.y,
-      allies: this.battle.allies
+      allies: this.battle.allies,
+      synergies: this.battle.synergies
     });
 
     const actionType = this.activeActionType;

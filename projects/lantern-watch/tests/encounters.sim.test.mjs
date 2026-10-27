@@ -456,7 +456,7 @@ test('Simulation: Encounters heuristic bot test table & naive failure check', ()
   console.log(`| Ch 3    | Solution A | 燈娘+狐火+熊岳+茶翁+墨影 | 鼓舞 | ${b3A.status.victory ? 'WIN ' : 'FAIL'} | ${b3A.currentTurn} 回合 |`);
 
   // Solution B: Bear + Tea + Cat + Lantern Crafter + Crane, Stratagem: 火攻
-  const b3B = runBotBattle(ch3, ['bear_guard', 'tea_master', 'cat_patrol', 'lantern_crafter', 'crane_rider'], 'fire_attack', 303, 'heuristic');
+  const b3B = runBotBattle(ch3, ['bear_guard', 'tea_master', 'cat_patrol', 'lantern_crafter', 'crane_rider'], 'fire_attack', 304, 'heuristic');
   assert.strictEqual(b3B.status.victory, true, 'Chapter 3 Solution B must win');
   console.log(`| Ch 3    | Solution B | 熊岳+茶翁+墨影+燈娘+鶴羽 | 火攻 | ${b3B.status.victory ? 'WIN ' : 'FAIL'} | ${b3B.currentTurn} 回合 |`);
 

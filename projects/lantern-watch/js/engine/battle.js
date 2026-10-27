@@ -5,7 +5,7 @@
  */
 
 import { Board } from './board.js';
-import { ENEMY_PROTOS, NPC_PROTOS, BOND_PAIRS } from '../data/units.js';
+import { ENEMY_PROTOS, NPC_PROTOS, BOND_PAIRS, getClassSynergies } from '../data/units.js';
 import { getReachableTiles, getAttackRangeTiles } from './pathfinding.js';
 import { calculateCombat, executeCombat, canTargetUnit, capDamageToAlly } from './combat.js';
 import { decideEnemyTurn } from './ai.js';
@@ -112,6 +112,17 @@ export class Battle {
         const [cx, cy] = t.split(',').map(Number);
         if (!this.isTileLit(cx, cy)) {
           this.cursedTiles.add(t);
+        }
+      }
+    }
+
+    // Compute active class synergies
+    this.synergies = getClassSynergies(this.allies);
+    if (this.synergies.some(s => s.id === 'cavalry_coop')) {
+      for (const a of this.allies) {
+        if (a.team === 'ally' && a.id !== 'lantern_cart' && a.role !== 'objective') {
+          a.mov = (a.mov || 3) + 1;
+          a._cavalryCoopBonus = true;
         }
       }
     }
@@ -526,7 +537,8 @@ export class Battle {
         const combatRes = executeCombat(unit, target, this.board, this.rng, {
           actionType: 'attack',
           movedTiles: unit.moved ? Board.manhattan(unit.x, unit.y, unit.turnStartX, unit.turnStartY) : 0,
-          allies: this.allies
+          allies: this.allies,
+          synergies: this.synergies
         });
 
         result.events = combatRes.events;
@@ -593,7 +605,9 @@ export class Battle {
             if (hitUnit && hitUnit.team !== unit.team && hitUnit.hp > 0) {
               const combatRes = executeCombat(unit, hitUnit, this.board, this.rng, {
                 actionType: 'skill',
-                skill
+                skill,
+                allies: this.allies,
+                synergies: this.synergies
               });
               result.events.push(...combatRes.events);
             }
@@ -615,7 +629,9 @@ export class Battle {
             if (hitUnit && hitUnit.team !== unit.team && hitUnit.hp > 0) {
               const combatRes = executeCombat(unit, hitUnit, this.board, this.rng, {
                 actionType: 'skill',
-                skill
+                skill,
+                allies: this.allies,
+                synergies: this.synergies
               });
               result.events.push(...combatRes.events);
             }
@@ -637,7 +653,9 @@ export class Battle {
             if (hitUnit && hitUnit.team !== unit.team && hitUnit.hp > 0) {
               const combatRes = executeCombat(unit, hitUnit, this.board, this.rng, {
                 actionType: 'skill',
-                skill
+                skill,
+                allies: this.allies,
+                synergies: this.synergies
               });
               result.events.push(...combatRes.events);
             }
@@ -649,7 +667,8 @@ export class Battle {
           const combatRes = executeCombat(unit, target, this.board, this.rng, {
             actionType: 'skill',
             skill,
-            allies: this.allies
+            allies: this.allies,
+            synergies: this.synergies
           });
           result.events = combatRes.events;
           unit.acted = true;
@@ -692,7 +711,9 @@ export class Battle {
             if (hitUnit && hitUnit.team !== unit.team && hitUnit.hp > 0) {
               const combatRes = executeCombat(unit, hitUnit, this.board, this.rng, {
                 actionType: 'magic',
-                skill: magic
+                skill: magic,
+                allies: this.allies,
+                synergies: this.synergies
               });
               result.events.push(...combatRes.events);
             }
@@ -714,7 +735,9 @@ export class Battle {
             if (hitUnit && hitUnit.team !== unit.team && hitUnit.hp > 0) {
               const combatRes = executeCombat(unit, hitUnit, this.board, this.rng, {
                 actionType: 'magic',
-                skill: magic
+                skill: magic,
+                allies: this.allies,
+                synergies: this.synergies
               });
               result.events.push(...combatRes.events);
             }
@@ -736,7 +759,9 @@ export class Battle {
             if (hitUnit && hitUnit.team !== unit.team && hitUnit.hp > 0) {
               const combatRes = executeCombat(unit, hitUnit, this.board, this.rng, {
                 actionType: 'magic',
-                skill: magic
+                skill: magic,
+                allies: this.allies,
+                synergies: this.synergies
               });
               result.events.push(...combatRes.events);
             }
@@ -747,7 +772,9 @@ export class Battle {
           if (target.x !== unit.x) unit.facing = target.x > unit.x ? 1 : -1;
           const combatRes = executeCombat(unit, target, this.board, this.rng, {
             actionType: 'magic',
-            skill: magic
+            skill: magic,
+            allies: this.allies,
+            synergies: this.synergies
           });
           result.events = combatRes.events;
           unit.acted = true;
@@ -766,12 +793,12 @@ export class Battle {
           if (target.x !== unit.x) unit.facing = target.x > unit.x ? 1 : -1;
 
           // Unit attacks
-          const c1 = executeCombat(unit, target, this.board, this.rng, { actionType: 'attack' });
+          const c1 = executeCombat(unit, target, this.board, this.rng, { actionType: 'attack', allies: this.allies, synergies: this.synergies });
           result.events = [...c1.events];
 
           // Partner attacks for free!
           if (target.hp > 0) {
-            const c2 = executeCombat(bondInfo.partner, target, this.board, this.rng, { actionType: 'attack' });
+            const c2 = executeCombat(bondInfo.partner, target, this.board, this.rng, { actionType: 'attack', allies: this.allies, synergies: this.synergies });
             result.events.push(...c2.events);
           }
 
@@ -922,7 +949,9 @@ export class Battle {
         executeCombat(enemy, decision.target, this.board, this.rng, {
           actionType: decision.type,
           element: decision.element || null,
-          movedTiles: decision.movedTiles || 0
+          movedTiles: decision.movedTiles || 0,
+          allies: this.allies,
+          synergies: this.synergies
         });
         if (enemy.role === 'curse_sorcerer' || enemy.id === 'curse_sorcerer') {
           this.applyCurseTiles(decision.target.x, decision.target.y);
@@ -1025,6 +1054,15 @@ export class Battle {
     // Advance turn & reset allies
     this.currentTurn++;
     this.phase = 'ally';
+
+    if (this.currentTurn === 2) {
+      for (const a of this.allies) {
+        if (a._cavalryCoopBonus) {
+          a.mov = Math.max(1, (a.mov || 3) - 1);
+          delete a._cavalryCoopBonus;
+        }
+      }
+    }
 
     // Chapter 5: Fog dissipates on turn 4 (weather change)
     if (this.chapter?.id === 5 && this.currentTurn === 4 && this.chapter.hasNightFog) {
