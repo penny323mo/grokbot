@@ -616,3 +616,9 @@
 ### Test & Visual Verification
 - `npm test`: **41/41 passing tests** across rules (21), ai (10), objectives (7), branding (2), and encounters simulation (1), verifying all 14 solution compositions win across Chapters 1-6 and 外傳, and naive bot fails.
 - All 12 screenshots in `screenshots/v8/` recaptured deterministically at 390×844 DPR 2 with 0 browser console errors.
+
+## v9 (2026-10-27)
+- Chapter 1 rebalanced into a gentle tutorial; enemy hit cap (≥4 hits to kill); opening-turn grace; guard aggro; last-stand bonus.
+- Manual tap-to-target with a pulse highlight, two-tap confirm and a cancel bar.
+- Compact deploy sheet, 偵察 scout mode, auto-framing camera with HUD safe area.
+- 敵域 threat-range toggle.

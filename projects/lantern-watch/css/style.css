@@ -3581,3 +3581,34 @@ html, body {
   font-size: 12px;
   text-shadow: 0 0 6px rgba(255, 213, 79, 0.6);
 }
+
+/* ---------- Manual targeting ---------- */
+.target-hint-bar {
+  position: absolute; top: calc(env(safe-area-inset-top, 0px) + 58px); left: 50%; transform: translateX(-50%);
+  z-index: 56; display: flex; align-items: center; gap: 10px;
+  background: rgba(14, 18, 44, 0.9); border: 1px solid var(--lantern-gold); border-radius: 999px;
+  padding: 5px 6px 5px 14px; font-family: var(--font-serif); font-size: 13px; color: #F5E6C8;
+  box-shadow: 0 4px 14px rgba(0,0,0,.6); white-space: nowrap; max-width: calc(100% - 24px);
+}
+.btn-target-cancel {
+  border: 1px solid rgba(245,230,200,.5); background: transparent; color: #F5E6C8;
+  border-radius: 999px; padding: 4px 12px; font-size: 12px;
+}
+.tile.target-valid { box-shadow: inset 0 0 0 2px rgba(255, 92, 72, .95); animation: targetPulse 1.2s ease-in-out infinite; }
+.tile.target-selected { box-shadow: inset 0 0 0 3px #FFD36B, 0 0 14px rgba(255, 211, 107, .9); animation: none; z-index: 3; }
+@keyframes targetPulse { 0%,100% { background-color: rgba(255, 80, 60, .12); } 50% { background-color: rgba(255, 80, 60, .32); } }
+
+/* v9: compact collapsible deploy sheet + scout + threat */
+.deploy-tray-bar { padding: 8px 10px; gap: 6px; }
+.deploy-tray-title { font-size: 12px; flex: 1; }
+.deploy-tray-header { gap: 6px; }
+.deploy-unit-chip { width: 50px; padding: 3px; }
+.deploy-unit-chip img { max-width: 40px; max-height: 40px; }
+.btn-confirm-deploy { padding: 8px !important; min-height: 0 !important; font-size: 15px; }
+.btn-deploy-mini { background: rgba(242,180,90,.15); color: var(--lantern-gold); border: 1px solid var(--lantern-gold); border-radius: 8px; font-size: 12px; padding: 3px 9px; font-weight: 700; }
+.deploy-tray-bar.scouting { flex-direction: row; align-items: center; }
+.deploy-tray-bar.scouting .deploy-tray-units { display: none; }
+.deploy-tray-bar.scouting .deploy-tray-header { flex: 1; }
+.deploy-tray-bar.scouting .btn-confirm-deploy { width: auto; padding: 6px 14px !important; }
+.grid-tile.threat { box-shadow: inset 0 0 0 2px rgba(230,60,60,.55); background-color: rgba(200,30,30,.18); }
+#btnThreatToggle.active { background: rgba(200,40,40,.45); border-color: #e66; }

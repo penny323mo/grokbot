@@ -192,6 +192,7 @@
             <button type="button" class="btn-hud-action" id="btnUndoMove" style="display:none;" title="悔棋撤銷移動">
               <span>悔棋</span>
             </button>
+            <button type="button" class="btn-hud-action" id="btnThreatToggle" title="顯示全部敵軍威脅範圍"><span>敵域</span></button>
             <button type="button" class="btn-hud-action end-turn" id="btnEndTurn">
               <span>結束回合</span>
             </button>
@@ -250,6 +251,12 @@
               </button>
             </div>
           </div>
+        </div>
+
+        <!-- Targeting hint bar -->
+        <div class="target-hint-bar" id="targetHintBar" style="display:none;">
+          <span class="target-hint-text" id="targetHintText">點選紅框內的敵人</span>
+          <button type="button" class="btn-target-cancel" id="btnTargetCancel">取消</button>
         </div>
 
         <!-- Target Combat Preview Card -->
@@ -315,6 +322,7 @@
           <div class="deploy-tray-header">
             <span class="deploy-tray-title">排兵布陣 · 點選將士再點選金色部署格</span>
             <span class="badge-tag highlight" id="deployStatusBadge">已就位</span>
+            <button type="button" class="btn-deploy-mini" id="btnDeployScout" title="收起面板，拖曳地圖偵察敵軍">偵察</button>
           </div>
           <div class="deploy-tray-units" id="deployTrayUnits"></div>
           <button type="button" class="btn-confirm-deploy" id="btnConfirmDeploy">

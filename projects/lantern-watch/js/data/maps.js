@@ -43,12 +43,10 @@ export const CHAPTERS = [
       { id: 'lantern_cart', x: 1, y: 10 }
     ],
     enemySpawns: [
-      { id: 'fog_rider', x: 4, y: 3, facing: -1 },
+      // Tutorial: 3 light enemies, spaced so they arrive one at a time
       { id: 'fog_rider', x: 5, y: 1, facing: -1 },
-      { id: 'fog_rider', x: 6, y: 2, facing: -1 },
-      { id: 'fog_rider', x: 7, y: 3, facing: -1 },
-      { id: 'shadow_archer', x: 7, y: 9, facing: -1 }, // on hill
-      { id: 'shadow_archer', x: 8, y: 10, facing: -1 } // on hill
+      { id: 'shadow_archer', x: 7, y: 3, facing: -1 },
+      { id: 'shadow_archer', x: 8, y: 9, facing: -1, aggro: 'guard', guardRadius: 4 } // on hill, holds until approached
     ],
     storyBefore: [
       { speaker: 'lantern_crafter', mood: 'calm', text: '「夜霧漸濃，前面的石橋是通往鎮上的唯一通路。」' },

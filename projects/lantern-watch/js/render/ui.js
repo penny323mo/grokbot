@@ -105,6 +105,43 @@ export class UIRenderer {
     vp.scrollTo({ left: scrollX, top: scrollY, behavior: smooth ? 'smooth' : 'auto' });
   }
 
+  /** Pixels of the battle viewport hidden by bottom overlays (sheets, menus, preview cards). */
+  measureBottomInset() {
+    const vp = document.getElementById('battleViewport');
+    if (!vp) return 0;
+    const vr = vp.getBoundingClientRect();
+    let top = vr.bottom;
+    const els = ['deployTrayBar', 'targetPreviewCard'].map(id => document.getElementById(id));
+    els.push(document.querySelector('#tutorialBoardOverlay .tutorial-board-card'));
+    els.forEach(el => {
+      if (!el || el.offsetParent === null) return;
+      const r = el.getBoundingClientRect();
+      if (r.height > 0 && r.top < vr.bottom && r.bottom > vr.top + vr.height * 0.4) top = Math.min(top, r.top);
+    });
+    return Math.max(0, vr.bottom - top);
+  }
+
+  /** Scroll so every tile in `tiles` sits inside the uncovered part of the viewport (HUD safe area). */
+  frameTiles(tiles, smooth = false) {
+    const vp = document.getElementById('battleViewport');
+    const stage = vp?.querySelector('.battle-board-stage');
+    if (!vp || !tiles || !tiles.length) return;
+    const inset = this.measureBottomInset();
+    if (stage) stage.style.height = (940 + inset) + 'px';
+    const xs = tiles.map(t => t.x), ys = tiles.map(t => t.y);
+    const minX = Math.min(...xs) * 64, maxX = Math.max(...xs) * 64 + 64;
+    const minY = Math.min(...ys) * 64, maxY = Math.max(...ys) * 64 + 64;
+    const w = vp.clientWidth || 390, h = Math.max(160, (vp.clientHeight || 520) - inset);
+    let sx = (minX + maxX) / 2 - w / 2;
+    let sy = (minY + maxY) / 2 - h / 2;
+    // if box is bigger than band, prioritise keeping the bottom (player side) visible
+    if (maxY - minY > h - 24) sy = maxY - h + 12;
+    if (maxX - minX > w - 16) sx = minX - 8;
+    sx = Math.max(0, Math.min(vp.scrollWidth - vp.clientWidth, sx));
+    sy = Math.max(0, Math.min(vp.scrollHeight - vp.clientHeight, sy));
+    vp.scrollTo({ left: sx, top: sy, behavior: smooth ? 'smooth' : 'auto' });
+  }
+
   // ================= WORLD MAP RENDERING =================
   renderWorldMap(campaign, onSelectChapter) {
     const nodesLayer = document.getElementById('worldMapNodes');
@@ -346,6 +383,9 @@ export class UIRenderer {
           tileDiv.classList.add('walkable');
         }
 
+        if (handlers.threatTiles && handlers.threatTiles.has(key)) {
+          tileDiv.classList.add('threat');
+        }
         if (reachable.has(key)) {
           tileDiv.classList.add('reachable');
         }
@@ -354,6 +394,12 @@ export class UIRenderer {
         }
         if (aoeTiles.has(key)) {
           tileDiv.classList.add('aoe-preview');
+        }
+        if (handlers.validTargetKeys && handlers.validTargetKeys.has(key)) {
+          tileDiv.classList.add('target-valid');
+        }
+        if (handlers.selectedTargetKey === key) {
+          tileDiv.classList.add('target-selected');
         }
         if (deploySlots.has(key)) {
           tileDiv.classList.add('deploy-slot');
@@ -996,39 +1042,11 @@ export class UIRenderer {
 
     const { attacker, defender, direction, isBackAttack, isSideAttack, expectedDamage, hitRate, critRate, canCounter, counterDamage, counterHitRate, willKill, comboAlly, comboDamage } = preview;
 
-    // Auto-pan camera so attacker, defender, and combo ally are all in clear upper 55% of viewport above preview panel
-    const vp = document.getElementById('battleViewport');
-    if (vp) {
-      const tilePx = 64;
+    // Auto-frame attacker, defender (and combo ally) inside the area not covered by the preview card
+    {
       const unitsToFrame = [attacker, defender];
       if (comboAlly) unitsToFrame.push(comboAlly);
-
-      const minX = Math.min(...unitsToFrame.map(u => u.x));
-      const maxX = Math.max(...unitsToFrame.map(u => u.x));
-      const minY = Math.min(...unitsToFrame.map(u => u.y));
-      const maxY = Math.max(...unitsToFrame.map(u => u.y));
-
-      const midX = ((minX + maxX) / 2) * tilePx + 32;
-      const midY = ((minY + maxY) / 2) * tilePx + 32;
-      const vpWidth = vp.clientWidth || 390;
-      const vpHeight = vp.clientHeight || 520;
-      const maxScrollX = Math.max(0, 704 - vpWidth);
-      const maxScrollY = Math.max(0, 940 - vpHeight);
-
-      let sx = midX - vpWidth / 2;
-      // Position midY so units comfortably sit in upper 45-55% of viewport with safe clearance from top HUD
-      let sy = Math.max(0, (minY - 0.4) * tilePx);
-      if (midY - sy > 160) {
-        sy = midY - 140;
-      }
-      sy = Math.min(sy, Math.max(0, (minY - 0.25) * tilePx));
-
-      if (Math.max(...unitsToFrame.map(u => u.x)) >= 4) {
-        sx = Math.max(sx, 160);
-      }
-      sx = Math.max(0, Math.min(maxScrollX, sx));
-      sy = Math.max(0, Math.min(maxScrollY, sy));
-      vp.scrollTo({ left: sx, top: sy, behavior: 'auto' });
+      requestAnimationFrame(() => this.frameTiles(unitsToFrame, true));
     }
 
     // Combo badge (restricted to valid bond pairs)
@@ -1088,6 +1106,20 @@ export class UIRenderer {
       this.hideTargetPreview();
       onBack();
     };
+  }
+
+  /** One-line targeting hint bar (top of map) with a cancel button. */
+  showTargetHint(text, onCancel) {
+    let bar = document.getElementById('targetHintBar');
+    if (!bar) return;
+    bar.style.display = 'flex';
+    document.getElementById('targetHintText').textContent = text;
+    document.getElementById('btnTargetCancel').onclick = () => onCancel && onCancel();
+  }
+
+  hideTargetHint() {
+    const bar = document.getElementById('targetHintBar');
+    if (bar) bar.style.display = 'none';
   }
 
   hideTargetPreview() {

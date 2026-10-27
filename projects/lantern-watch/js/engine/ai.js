@@ -203,7 +203,7 @@ function decideArcherAction(enemy, reachableList, playerUnits, board, rng) {
       if (!canTargetUnit(enemy, p, board)) continue;
       const inRange = rangeTiles.some(t => t.x === p.x && t.y === p.y);
       if (inRange) {
-        const combat = calculateCombat(enemy, p, board, { attackerX: m.x, attackerY: m.y });
+        const combat = calculateCombat(enemy, p, board, { aiEval: true, attackerX: m.x, attackerY: m.y });
         let score = combat.expectedDamage * 2;
         if (isHill) score += 15; // Prefers hill制高點
         if (combat.willKill) score += 50;
@@ -263,7 +263,7 @@ function decideSiegeEngineAction(enemy, reachableList, playerUnits, board, rng) 
       if (!canTargetUnit(enemy, p, board)) continue;
       const inRange = rangeTiles.some(t => t.x === p.x && t.y === p.y);
       if (inRange) {
-        const combat = calculateCombat(enemy, p, board, { attackerX: m.x, attackerY: m.y });
+        const combat = calculateCombat(enemy, p, board, { aiEval: true, attackerX: m.x, attackerY: m.y });
         let score = combat.expectedDamage * 2;
         let clusterCount = 0;
         for (const other of playerUnits) {
@@ -312,7 +312,7 @@ function decideCavalryAction(enemy, reachableList, playerUnits, board, rng) {
           }
         }
 
-        const combat = calculateCombat(enemy, p, board, {
+        const combat = calculateCombat(enemy, p, board, { aiEval: true,
           attackerX: m.x,
           attackerY: m.y,
           movedTiles
@@ -370,7 +370,7 @@ function decideShroudedAction(enemy, reachableList, playerUnits, board, rng) {
       if (!canTargetUnit(enemy, p, board)) continue;
       const dist = Board.manhattan(m.x, m.y, p.x, p.y);
       if (dist === 1) {
-        const combat = calculateCombat(enemy, p, board, { attackerX: m.x, attackerY: m.y });
+        const combat = calculateCombat(enemy, p, board, { aiEval: true, attackerX: m.x, attackerY: m.y });
         let score = combat.expectedDamage * 2;
         if (combat.isBackAttack) score += 20; // 背擊
         if (combat.willKill) score += 50;
@@ -470,7 +470,7 @@ function decideShieldGuardAction(enemy, reachableList, playerUnits, board, rng) 
       if (!canTargetUnit(enemy, p, board)) continue;
       const dist = Board.manhattan(m.x, m.y, p.x, p.y);
       if (dist === 1) {
-        const combat = calculateCombat(enemy, p, board, { attackerX: m.x, attackerY: m.y });
+        const combat = calculateCombat(enemy, p, board, { aiEval: true, attackerX: m.x, attackerY: m.y });
         let score = combat.expectedDamage;
         if (combat.willKill) score += 50;
         // Face the attacked target
@@ -559,7 +559,7 @@ function decideSorcererAction(enemy, reachableList, playerUnits, board, rng) {
       if (!canTargetUnit(enemy, p, board)) continue;
       const dist = Board.manhattan(m.x, m.y, p.x, p.y);
       if (dist >= 1 && dist <= 2) {
-        const combat = calculateCombat(enemy, p, board, {
+        const combat = calculateCombat(enemy, p, board, { aiEval: true,
           attackerX: m.x,
           attackerY: m.y,
           actionType: 'magic'
@@ -616,7 +616,7 @@ function decideFireArcherAction(enemy, reachableList, playerUnits, board, rng) {
       const dist = Board.manhattan(m.x, m.y, p.x, p.y);
       if (dist >= 2 && dist <= 3) {
         const defTerrain = board.getTerrain(p.x, p.y);
-        const combat = calculateCombat(enemy, p, board, {
+        const combat = calculateCombat(enemy, p, board, { aiEval: true,
           attackerX: m.x,
           attackerY: m.y,
           actionType: 'attack'
@@ -657,7 +657,7 @@ function decideScoutAction(enemy, reachableList, playerUnits, board, rng) {
       if (!canTargetUnit(enemy, p, board)) continue;
       const dist = Board.manhattan(m.x, m.y, p.x, p.y);
       if (dist === 1) {
-        const combat = calculateCombat(enemy, p, board, { attackerX: m.x, attackerY: m.y });
+        const combat = calculateCombat(enemy, p, board, { aiEval: true, attackerX: m.x, attackerY: m.y });
         let score = combat.expectedDamage * 2;
         if (p.id === 'lantern_cart' || p.role === 'objective' || p.role === 'npc') {
           score += 80; // High priority: attack lantern cart / objective
@@ -710,7 +710,7 @@ function decideDefaultAction(enemy, reachableList, playerUnits, board, rng) {
       if (!canTargetUnit(enemy, p, board)) continue;
       const dist = Board.manhattan(m.x, m.y, p.x, p.y);
       if (dist === 1) {
-        const combat = calculateCombat(enemy, p, board, { attackerX: m.x, attackerY: m.y });
+        const combat = calculateCombat(enemy, p, board, { aiEval: true, attackerX: m.x, attackerY: m.y });
         let score = combat.expectedDamage;
         if (combat.willKill) score += 50;
         if (score > bestScore) {

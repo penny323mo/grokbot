@@ -8,6 +8,17 @@ import { Board } from './board.js';
 import { BOND_PAIRS } from '../data/units.js';
 
 /**
+ * Fairness guard: a single enemy hit can take at most 30% of an ally's max HP,
+ * so any player unit always survives at least 3 hits (design rule: 3-5 hits to KO).
+ */
+export const ALLY_HIT_CAP_RATIO = 0.3;
+export function capDamageToAlly(defender, dmg) {
+  if (!defender || defender.team !== 'ally' || defender.role === 'objective' || !defender.maxHp) return dmg;
+  const maxHp = defender.maxHp;
+  return Math.min(dmg, Math.max(1, Math.ceil(maxHp * ALLY_HIT_CAP_RATIO)));
+}
+
+/**
  * Determine attack orientation relative to defender's facing
  * Returns 'back', 'side', or 'front'
  */
@@ -141,6 +152,11 @@ export function calculateCombat(attacker, defender, board, options = {}) {
     damageMod *= 1.2;
   }
 
+  // 6b. Outnumbered morale (背水一戰)
+  if (attacker.team === 'ally' && attacker.lastStand) {
+    damageMod *= 1.2;
+  }
+
   // 7. Ambush surprise attack bonus (+50% dmg on first strike)
   if (attacker.isAmbushed || attacker.surpriseAttack) {
     damageMod *= 1.5;
@@ -162,6 +178,8 @@ export function calculateCombat(attacker, defender, board, options = {}) {
       expectedDamage += 4;
     }
   }
+
+  if (!options.aiEval) expectedDamage = capDamageToAlly(defender, expectedDamage);
 
   // If immune, damage is strictly 0
   if (isDefenderWater && element === 'fire') {
@@ -200,7 +218,7 @@ export function calculateCombat(attacker, defender, board, options = {}) {
       canCounter = true;
       const counterAtk = defender.atk || 8;
       const atkDef = (attacker.def || 0) + (atkTerrain.defBonus || 0);
-      counterDamage = Math.max(1, counterAtk - atkDef);
+      counterDamage = capDamageToAlly(attacker, Math.max(1, counterAtk - atkDef));
       counterHitRate = Math.max(5, Math.min(100, 95 - (atkTerrain.evaBonus || 0)));
     }
   }
@@ -315,7 +333,7 @@ export function executeCombat(attacker, defender, board, rng, options = {}) {
   // Crit roll
   const critRoll = rng ? rng.nextInt(1, 100) : 50;
   const isCrit = critRoll <= preview.critRate;
-  const finalDamage = isCrit ? Math.round(preview.expectedDamage * 1.5) : preview.expectedDamage;
+  const finalDamage = capDamageToAlly(defender, isCrit ? Math.round(preview.expectedDamage * 1.5) : preview.expectedDamage);
 
   defender.hp = Math.max(0, defender.hp - finalDamage);
   events.push({

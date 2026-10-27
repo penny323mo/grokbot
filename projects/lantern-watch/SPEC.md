@@ -110,3 +110,19 @@ Keep tests fast (<60s).
 
 ## 13. Docs
 REPORT.md (v4 summary, controls, weak spots), CHANGELOG.md, CREDITS.md. Old card-game docs moved to backup-v3b/.
+
+## v9 Balance Rationale (2026-10-27)
+
+Global rules: an enemy hit on a guardian is capped at ceil(maxHp × 30%) after crits, so it takes **≥4 hits** to kill anyone (AI planning sees uncapped numbers, so the AI isn't changed). On turn 1, no guardian can drop below 1 HP (opening grace). Enemies marked `aggro:'guard'` (and every boss) hold position until a guardian comes within `guardRadius` tiles or they get hit. When living foes outnumber the squad, **背水一戰 (last stand)** gives guardians ×1.2 damage. The **敵域** HUD toggle draws every enemy's move+attack threat in red, and **偵察** during deployment collapses the sheet and frames the enemy force before 開戰.
+
+| # | Battle | Force | Why it's fair | How to win | Naive-rush sim (50 seeds) |
+|---|---|---|---|---|---|
+| 1 | 孤舟燈影渡寒川 (escort, tutorial) | 4 v 3 (was 4 v 6) | Player outnumbers enemy. One rider, one archer, and one archer on guard near the far bank, so there's no turn-1 rush on the cart | Kill the rider first, then walk the cart over the bridge; the guarded archer only wakes when you get close | 49/50 win |
+| 2 | 鐵壁雄關鎮夜魘 (hold gate) | waves at the gate chokepoint | Gate chokepoint + ZOC; waves are staggered | Hold the 1-tile gate with your sturdiest unit, mage behind, heal on rotation | 0/50: rushing out of the gate loses, as designed |
+| 3 | 長街百肆明燈燃 (protect lantern) | market street | Shop stalls are cover; lantern is behind the deploy line | Screen the lantern, fight on the street choke | 49/50: **too easy for a rush, retune next** |
+| 4 | 雲海天池決戰峰 (boss / reach) | boss guards the summit (guard aggro) | Boss holds back until you climb; hill tiles give ×1.2 | Clear the flankers first, then gang the boss from the side or back | 24/50 |
+| 5 | 竹海夜霧斷魂隘 (shrine / rout) | fog pass | Fog hides enemies, but forest gives defence and the threat toggle shows ranges | Advance in pairs through bamboo, use light to reveal | 44/50: **retune next** |
+| 6 | 鐵甲雄關破重圍 (breach) | fortified gate | Gate HP objective + rout alternative | Shield unit takes the gate while ranged units clear the walls | 12/50 |
+| 7 | 荒澤伏擊破咒禁 (survive / rout) | ambush in the marsh | Cursed tiles are shown; surviving is enough to win | Turtle on dry ground, wait out the timer | 43/50: **retune next** |
+
+Invariant tests (`tests/balance.sim.test.mjs`): ch1 naive ≥45/50, ch1 ≤4 enemies, zero guardian deaths in the first enemy phase of every chapter (10 seeds), damage cap enforced.

@@ -144,6 +144,12 @@ class LanternTacticsApp {
     };
 
     // Battle Top HUD
+    const threatBtn = document.getElementById('btnThreatToggle');
+    if (threatBtn) threatBtn.onclick = () => {
+      this.showThreat = !this.showThreat;
+      threatBtn.classList.toggle('active', this.showThreat);
+      if (this.isDeploying) this.refreshDeployUI(); else this.refreshBattleUI();
+    };
     document.getElementById('btnEndTurn').onclick = () => {
       if (!this.battle || this.battle.phase !== 'ally') return;
       this.sound?.playSfx('tap');
@@ -275,9 +281,40 @@ class LanternTacticsApp {
     });
 
     this.refreshDeployUI();
-    if (deployTiles.length > 0) {
-      this.ui.centerCameraOn(deployTiles[0].x, deployTiles[0].y);
+    const tray = document.getElementById('deployTrayBar');
+    tray?.classList.remove('scouting');
+    const scoutBtn = document.getElementById('btnDeployScout');
+    if (scoutBtn) {
+      scoutBtn.textContent = '偵察';
+      scoutBtn.onclick = () => {
+        const on = tray.classList.toggle('scouting');
+        scoutBtn.textContent = on ? '佈陣' : '偵察';
+        if (on) {
+          const foes = this.battle.enemies.filter(e => e.hp > 0);
+          this.ui.frameTiles(foes.length ? foes : deployTiles, true);
+        } else this.frameDeploy(true);
+      };
     }
+    requestAnimationFrame(() => this.frameDeploy(false));
+  }
+
+  frameDeploy(smooth) {
+    const tiles = [...(this.activeChapter?.deployTiles || []), ...(this.deployPlacements || [])];
+    this.ui.frameTiles(tiles, smooth);
+  }
+
+  computeThreatTiles() {
+    const set = new Set();
+    if (!this.battle) return set;
+    for (const e of this.battle.enemies) {
+      if (e.hp <= 0) continue;
+      const reach = getReachableTiles(this.battle.board, e, this.battle.getAllLivingUnits(), { zoc: true });
+      reach.set(`${e.x},${e.y}`, { x: e.x, y: e.y });
+      for (const pos of reach.values()) {
+        for (const t of getAttackRangeTiles(this.battle.board, e, pos.x, pos.y)) set.add(`${t.x},${t.y}`);
+      }
+    }
+    return set;
   }
 
   refreshDeployUI() {
@@ -306,6 +343,7 @@ class LanternTacticsApp {
       attackableTiles: new Set(),
       aoeTiles: new Set(),
       deploySlots: this.deploySlots,
+      threatTiles: this.showThreat ? this.computeThreatTiles() : null,
       onUnitTap: (u) => {
         if (u.team === 'ally' && u.role !== 'npc' && u.role !== 'objective') {
           this.selectedDeployUnit = u;
@@ -344,7 +382,7 @@ class LanternTacticsApp {
 
     // Center camera on first ally
     if (this.battle.allies.length > 0) {
-      this.ui.centerCameraOn(this.battle.allies[0].x, this.battle.allies[0].y);
+      requestAnimationFrame(() => this.ui.frameTiles(this.battle.allies.filter(a => a.hp > 0)));
     }
   }
 
@@ -356,7 +394,10 @@ class LanternTacticsApp {
       reachableTiles: this.reachableTiles,
       attackableTiles: this.attackableTiles,
       aoeTiles: this.aoeTiles,
+      validTargetKeys: this.targetingMode ? this.validTargetKeys : null,
+      selectedTargetKey: this.targetingMode ? this.pendingTargetKey : null,
       deploySlots: this.deploySlots,
+      threatTiles: this.showThreat ? this.computeThreatTiles() : null,
       onUnitTap: (unit) => this.handleUnitTap(unit),
       onTileTap: (x, y) => this.handleTileTap(x, y)
     });
@@ -375,8 +416,50 @@ class LanternTacticsApp {
     this.targetingMode = null;
     this.activeActionType = null;
     this.stagedMoveTile = null;
+    this.resetTargeting();
     this.ui.hideActionMenu();
     this.ui.hideTargetPreview();
+  }
+
+  resetTargeting() {
+    this.pendingTargetKey = null;
+    this.pendingConfirm = null;
+    this.validTargetKeys = new Set();
+    this.ui.hideTargetHint?.();
+  }
+
+  /** Enter manual targeting: highlight valid targets, show hint, nothing auto-selected. */
+  beginTargeting(hint, validKeys) {
+    this.pendingTargetKey = null;
+    this.pendingConfirm = null;
+    this.validTargetKeys = validKeys;
+    const unit = this.selectedUnit;
+    this.ui.showTargetHint(hint, () => {
+      this.aoeTiles = new Set();
+      this.resetTargeting();
+      this.ui.hideTargetPreview();
+      this.activeActionType = null;
+      this.targetingMode = null;
+      if (unit) this.openActionMenuForUnit(unit);
+      this.refreshBattleUI();
+    });
+    const tiles = [...(validKeys || [])].map(k => { const [x, y] = k.split(',').map(Number); return { x, y }; });
+    if (unit) tiles.push(unit);
+    requestAnimationFrame(() => this.ui.frameTiles(tiles, true));
+  }
+
+  /** Tap on a target: first tap previews, tapping the same target again confirms. */
+  tapTarget(key, previewFn) {
+    if (this.pendingTargetKey === key && this.pendingConfirm) {
+      const fn = this.pendingConfirm;
+      this.ui.hideTargetPreview();
+      this.resetTargeting();
+      fn();
+      return;
+    }
+    this.pendingTargetKey = key;
+    previewFn();
+    this.refreshBattleUI();
   }
 
   handleUnitTap(unit) {
@@ -392,17 +475,26 @@ class LanternTacticsApp {
 
     // If unit is enemy and we are in target mode
     if (unit.team === 'enemy' && this.selectedUnit && this.activeActionType) {
+      const key = `${unit.x},${unit.y}`;
       if (this.targetingMode === 'aoe_cross') {
-        this.previewAoeCross(unit.x, unit.y, unit);
+        if (!this.attackableTiles.has(key)) return;
+        this.tapTarget(key, () => this.previewAoeCross(unit.x, unit.y, unit));
       } else {
-        this.evaluateTargetPreview(unit);
+        if (!this.validTargetKeys?.has(key)) {
+          const t = document.getElementById('targetHintText');
+          if (t) t.textContent = '此敵不在射程內 · 點選紅框內的敵人';
+          return;
+        }
+        this.tapTarget(key, () => this.evaluateTargetPreview(unit));
       }
       return;
     }
 
     // If unit is ally and we are in heal mode
     if (unit.team === 'ally' && this.targetingMode === 'heal') {
-      this.evaluateTargetPreview(unit);
+      const key = `${unit.x},${unit.y}`;
+      if (!this.attackableTiles.has(key)) return;
+      this.tapTarget(key, () => this.evaluateTargetPreview(unit));
       return;
     }
 
@@ -464,7 +556,16 @@ class LanternTacticsApp {
     if (this.targetingMode === 'fire_stratagem') {
       const ter = this.battle.board.getTerrain(x, y);
       if (ter.char === 'f' || ter.char === 'm') {
-        this.previewAoe3x3(x, y);
+        const key = `${x},${y}`;
+        if (this.pendingTargetKey !== key) {
+          // First tap: preview the 3x3 blaze; tap the same tile again to ignite
+          this.pendingTargetKey = key;
+          this.previewAoe3x3(x, y);
+          const t = document.getElementById('targetHintText');
+          if (t) t.textContent = '火攻範圍預覽 · 再點一次同一格點火';
+          return;
+        }
+        this.resetTargeting();
         this.battle.triggerFireAttack(x, y);
         this.targetingMode = null;
         setTimeout(() => {
@@ -487,10 +588,13 @@ class LanternTacticsApp {
     // AoE cross mode (狐火 緋)
     if (this.targetingMode === 'aoe_cross') {
       if (this.attackableTiles.has(`${x},${y}`)) {
-        this.previewAoeCross(x, y);
+        this.tapTarget(`${x},${y}`, () => this.previewAoeCross(x, y));
         return;
       }
     }
+
+    // In targeting mode, stray taps never deselect the unit
+    if (this.targetingMode) return;
 
     // Normal move: if unit selected and tap blue tile -> move there!
     if (this.selectedUnit && !this.stagedMoveTile) {
@@ -584,6 +688,7 @@ class LanternTacticsApp {
         this.refreshBattleUI();
       }
     );
+    requestAnimationFrame(() => this.ui.frameTiles([unit, ...enemiesInRange]));
   }
 
   handleActionMenuChoice(actionType) {
@@ -626,6 +731,7 @@ class LanternTacticsApp {
       this.reachableTiles = new Map();
       const rTiles = getAttackRangeTiles(this.battle.board, unit, unit.x, unit.y);
       this.attackableTiles = new Set(rTiles.map(t => `${t.x},${t.y}`));
+      this.beginTargeting('點選要治療的隊友 · 再點一次確認', new Set(this.battle.allies.filter(a => a.hp > 0 && this.attackableTiles.has(`${a.x},${a.y}`)).map(a => `${a.x},${a.y}`)));
       this.refreshBattleUI();
       return;
     }
@@ -639,10 +745,7 @@ class LanternTacticsApp {
       const rTiles = getAttackRangeTiles(this.battle.board, unit, unit.x, unit.y);
       this.attackableTiles = new Set(rTiles.map(t => `${t.x},${t.y}`));
 
-      const firstEnemy = this.battle.enemies.find(e => e.hp > 0 && rTiles.some(t => t.x === e.x && t.y === e.y));
-      if (firstEnemy) {
-        this.previewAoeCross(firstEnemy.x, firstEnemy.y, firstEnemy);
-      }
+      this.beginTargeting('點選範圍內任一格作中心 · 再點一次施放', new Set(this.battle.enemies.filter(e => e.hp > 0 && this.attackableTiles.has(`${e.x},${e.y}`)).map(e => `${e.x},${e.y}`)));
       this.refreshBattleUI();
       return;
     }
@@ -657,9 +760,8 @@ class LanternTacticsApp {
     const validTargets = this.battle.enemies.filter(e =>
       e.hp > 0 && rTiles.some(t => t.x === e.x && t.y === e.y) && canTargetUnit(unit, e, this.battle.board, vision)
     );
-    if (validTargets.length > 0) {
-      this.evaluateTargetPreview(validTargets[0]);
-    }
+    this.beginTargeting(validTargets.length > 1 ? '點選紅框內的敵人 · 可隨時換目標' : '點選紅框內的敵人 · 再點一次確認',
+      new Set(validTargets.map(e => `${e.x},${e.y}`)));
     this.refreshBattleUI();
   }
 
@@ -703,14 +805,21 @@ class LanternTacticsApp {
       allies: this.battle.allies
     });
 
+    const actionType = this.activeActionType;
+    this.pendingConfirm = () => this.confirmActionExecution(actionType, defender, options);
     this.ui.showTargetPreview(
       preview,
       () => {
-        this.confirmActionExecution(this.activeActionType, defender, options);
+        this.resetTargeting();
+        this.confirmActionExecution(actionType, defender, options);
       },
       () => {
         this.aoeTiles = new Set();
+        this.resetTargeting();
+        this.activeActionType = null;
+        this.targetingMode = null;
         this.openActionMenuForUnit(unit);
+        this.refreshBattleUI();
       }
     );
   }

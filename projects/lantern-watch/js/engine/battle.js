@@ -7,7 +7,7 @@
 import { Board } from './board.js';
 import { ENEMY_PROTOS, NPC_PROTOS, BOND_PAIRS } from '../data/units.js';
 import { getReachableTiles, getAttackRangeTiles } from './pathfinding.js';
-import { calculateCombat, executeCombat, canTargetUnit } from './combat.js';
+import { calculateCombat, executeCombat, canTargetUnit, capDamageToAlly } from './combat.js';
 import { decideEnemyTurn } from './ai.js';
 import { checkBattleStatus } from './objectives.js';
 
@@ -37,6 +37,7 @@ export class Battle {
     this.cursedTiles = new Set();
 
     this.initUnits(squadUnits, this.options);
+    this.updateLastStand();
     this.applyStratagemAtStart();
   }
 
@@ -93,7 +94,12 @@ export class Battle {
             x: conf.x,
             y: conf.y,
             facing: conf.facing ?? -1,
-            acted: false
+            acted: false,
+            // Aggression: 'guard' units hold position until a guardian enters guardRadius or they are hurt.
+            // Commanders (bosses) hold back by default.
+            aggro: conf.aggro || (proto.isBoss || proto.role === 'boss' ? 'guard' : 'rush'),
+            guardRadius: conf.guardRadius ?? 4,
+            alerted: false
           });
         }
       });
@@ -701,6 +707,15 @@ export class Battle {
     return result;
   }
 
+  /** Outnumbered morale: when living foes outnumber the squad, guardians fight harder (背水一戰 +20% dmg). */
+  updateLastStand() {
+    const squad = this.allies.filter(a => a.hp > 0 && a.role !== 'npc' && a.role !== 'objective').length;
+    const foes = this.enemies.filter(e => e.hp > 0).length;
+    const on = foes > squad;
+    for (const a of this.allies) a.lastStand = on;
+    this.lastStandActive = on;
+  }
+
   isAllyPhaseComplete() {
     return this.allies.filter(u => u.hp > 0 && u.role !== 'npc' && u.role !== 'objective').every(u => u.acted);
   }
@@ -757,6 +772,13 @@ export class Battle {
     for (const enemy of livingEnemies) {
       if (this.status.finished) break;
       if (enemy.acted) continue;
+      if (enemy.aggro === 'guard' && !enemy.alerted) {
+        const hurt = enemy.maxHp && enemy.hp < enemy.maxHp;
+        const near = this.allies.some(a => a.hp > 0 && a.role !== 'npc' && Board.manhattan(a.x, a.y, enemy.x, enemy.y) <= enemy.guardRadius);
+        if (!hurt && !near) continue;
+        enemy.alerted = true;
+        this.eventLog.push({ type: 'alert', msg: `${enemy.name}察覺到你的行蹤！` });
+      }
       const decision = decideEnemyTurn(enemy, this, this.rng);
       enemyActions.push({ enemy, decision });
 
@@ -794,11 +816,16 @@ export class Battle {
           enemy.mp = Math.max(0, enemy.mp - decision.mpCost);
         }
         for (const t of decision.targets) {
-          t.hp = Math.max(0, t.hp - (decision.damage || 10));
+          t.hp = Math.max(0, t.hp - capDamageToAlly(t, decision.damage || 10));
         }
         if (enemy.role === 'curse_sorcerer' || enemy.id === 'curse_sorcerer') {
           this.applyCurseTiles(enemy.x, enemy.y);
         }
+      }
+
+      // Opening grace: no player unit can fall during the very first enemy phase
+      if (this.currentTurn === 1) {
+        for (const a of this.allies) if (a.hp <= 0 && a.role !== 'objective') a.hp = 1;
       }
 
       // Check objective status after each enemy action
@@ -890,6 +917,7 @@ export class Battle {
     for (const e of this.enemies) {
       e.acted = false;
     }
+    this.updateLastStand();
 
     // Check final status for turn limit
     this.status = checkBattleStatus(this.chapter, this);
