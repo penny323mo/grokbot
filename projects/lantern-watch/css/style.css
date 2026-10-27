@@ -1020,7 +1020,7 @@ html, body {
   touch-action: pan-x pan-y;
   -webkit-overflow-scrolling: touch;
   cursor: grab;
-  background: #000;
+  background: #101424;
 }
 
 .battle-viewport:active {
@@ -1041,9 +1041,8 @@ html, body {
   top: 0;
   left: 0;
   width: 640px;
-  min-height: 832px;
-  height: 100%;
-  object-fit: cover;
+  height: 832px;
+  object-fit: fill;
   z-index: 1;
   pointer-events: none;
 }
@@ -2002,6 +2001,7 @@ html, body {
   font-weight: 700;
   color: #FBBF24;
   line-height: 1.2;
+  white-space: nowrap;
 }
 
 .forecast-rates {
@@ -2741,7 +2741,12 @@ html, body {
   flex-direction: column;
   justify-content: flex-end;
   padding: 16px 16px calc(64px + env(safe-area-inset-bottom, 12px));
-  transition: background 0.25s ease;
+  transition: background 0.25s ease, padding 0.2s ease;
+}
+
+.tutorial-board-overlay.card-at-top {
+  justify-content: flex-start;
+  padding-top: calc(96px + env(safe-area-inset-top, 0px));
 }
 
 .tutorial-board-card {
@@ -3897,9 +3902,9 @@ html, body {
 
 /* ---------- Manual targeting ---------- */
 .target-hint-bar {
-  position: absolute; top: calc(env(safe-area-inset-top, 0px) + 58px); left: 50%; transform: translateX(-50%);
+  position: absolute; top: calc(env(safe-area-inset-top, 0px) + 104px); left: 50%; transform: translateX(-50%);
   z-index: 56; display: flex; align-items: center; gap: 10px;
-  background: rgba(14, 18, 44, 0.9); border: 1px solid var(--lantern-gold); border-radius: 999px;
+  background: rgba(14, 18, 44, 0.96); border: 1px solid var(--lantern-gold); border-radius: 999px;
   padding: 5px 6px 5px 14px; font-family: var(--font-serif); font-size: 13px; color: #F5E6C8;
   box-shadow: 0 4px 14px rgba(0,0,0,.6); white-space: nowrap; max-width: calc(100% - 24px);
 }

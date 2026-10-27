@@ -77,17 +77,11 @@ export class UIRenderer {
     const vpWidth = vp.clientWidth || 390;
     const vpHeight = vp.clientHeight || 520;
 
-    const maxScrollX = Math.max(0, 704 - vpWidth);
-    const maxScrollY = Math.max(0, 940 - vpHeight);
+    const maxScrollX = Math.max(0, 640 - vpWidth);
+    const maxScrollY = Math.max(0, 832 - vpHeight);
 
     let scrollX = targetX - vpWidth / 2;
     let scrollY = targetY - vpHeight / 2;
-
-    // Right-edge protection: when focusing on units in middle/right columns (x >= 4),
-    // ensure rightmost units (up to col 7/8 + 48px margin) stay fully inside the viewport
-    if (x >= 4) {
-      scrollX = Math.max(scrollX, 160);
-    }
 
     // Bottom safe inset & Grokbot clearance:
     // When unit is near bottom (y >= 9), scroll down so unit's feet stay >=64px above viewport bottom
@@ -208,6 +202,9 @@ export class UIRenderer {
 
   // ================= PRE-BATTLE RENDERING =================
   renderPreBattle(chapter, campaign, selectedSquadIds, activeStratagemId, handlers) {
+    const badgeEl = document.getElementById('txtChapterBadge');
+    if (badgeEl) badgeEl.textContent = chapter.id === 7 ? '外傳' : `第${chapter.id}回`;
+
     // Painted Chapter Banner
     const bannerArt = document.getElementById('preBannerArt');
     if (bannerArt) {
@@ -355,6 +352,9 @@ export class UIRenderer {
 
   // ================= BATTLE BOARD RENDERING =================
   renderBattle(battle, handlers) {
+    const badgeEl = document.getElementById('txtChapterBadge');
+    if (badgeEl) badgeEl.textContent = battle.chapter.id === 7 ? '外傳' : `第${battle.chapter.id}回`;
+
     // Top HUD
     document.getElementById('hudTurnBadge').textContent = `第 ${battle.currentTurn} / ${battle.chapter.maxTurns} 回合`;
     const phasePill = document.getElementById('hudPhasePill');
@@ -1133,7 +1133,7 @@ export class UIRenderer {
     document.getElementById('prevDefenderPor').src = `assets/art/v4/por_${defender.id}.webp`;
     document.getElementById('prevDefenderName').textContent = defender.name;
     if (canCounter) {
-      document.getElementById('prevCounterVal').textContent = `反擊: ${counterDamage} 傷害`;
+      document.getElementById('prevCounterVal').textContent = `反擊 ${counterDamage}`;
       document.getElementById('prevDefenderRates').textContent = `反擊命中 ${counterHitRate}%`;
     } else {
       document.getElementById('prevCounterVal').textContent = '無反擊';
@@ -1317,6 +1317,9 @@ export class UIRenderer {
   }
 
   renderDeployPhase(chapter, squadUnits, deployTiles, placedMap, onSelectSquadUnit, onConfirmDeploy) {
+    const badgeEl = document.getElementById('txtChapterBadge');
+    if (badgeEl) badgeEl.textContent = chapter.id === 7 ? '外傳' : `第${chapter.id}回`;
+
     const tray = document.getElementById('deployTrayBar');
     if (!tray) return;
 

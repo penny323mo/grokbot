@@ -198,6 +198,8 @@ class LanternTacticsApp {
 
   openPreBattle(chapter) {
     this.activeChapter = chapter;
+    const badgeEl = document.getElementById('txtChapterBadge');
+    if (badgeEl) badgeEl.textContent = chapter.id === 7 ? '外傳' : `第${chapter.id}回`;
     if (chapter.id === 1) {
       this.selectedSquadIds = ['bear_guard', 'cat_patrol', 'lantern_crafter', 'tea_master'];
     } else {
@@ -391,6 +393,8 @@ class LanternTacticsApp {
     this.isDeploying = false;
     this.ui.hideDeployPhase();
     this.deploySlots = new Set();
+    const badgeEl = document.getElementById('txtChapterBadge');
+    if (badgeEl) badgeEl.textContent = chapter.id === 7 ? '外傳' : `第${chapter.id}回`;
 
     const squadInstances = this.selectedSquadIds.map(id => this.campaign.getUnitInstance(id));
     this.battle = new Battle(chapter, squadInstances, this.activeStratagemId, this.campaign, this.rng, {
@@ -1156,6 +1160,10 @@ class LanternTacticsApp {
 
   // ================= LIVE BOARD SPOTLIGHT TUTORIAL =================
   startTutorialFlow(startStep = 0) {
+    this.isDeploying = false;
+    this.ui.hideDeployPhase();
+    this.deploySlots = new Set();
+
     const isFromTitle = document.getElementById('screenTitle')?.classList.contains('active');
     const isFromMap = document.getElementById('screenWorldMap')?.classList.contains('active');
     const previousScreen = isFromTitle ? 'screenTitle' : (isFromMap ? 'screenWorldMap' : 'screenBattle');
@@ -1166,9 +1174,14 @@ class LanternTacticsApp {
     const savedPlacements = this.deployPlacements;
     const savedStratagem = this.activeStratagemId;
 
-    // Use a clean, isolated demo battle for tutorial steps so live battle is untouched
-    const squad = ['bear_guard', 'cat_patrol', 'lantern_crafter', 'tea_master'].map(id => this.campaign.getUnitInstance(id));
-    this.battle = new Battle(CHAPTERS[0], squad, 'inspire', this.campaign, this.rng);
+    const badgeEl = document.getElementById('txtChapterBadge');
+    if (badgeEl) badgeEl.textContent = '第1回';
+
+    // If already in live Ch1 battle, use it directly; otherwise instantiate clean Ch1 battle
+    if (!this.battle || this.battle.chapter?.id !== 1) {
+      const squad = ['bear_guard', 'cat_patrol', 'lantern_crafter', 'tea_master'].map(id => this.campaign.getUnitInstance(id));
+      this.battle = new Battle(CHAPTERS[0], squad, this.activeStratagemId || 'inspire', this.campaign, this.rng);
+    }
     this.ui.showScreen('screenBattle');
 
     const updateSpotlight = (targetEl) => {
@@ -1176,8 +1189,16 @@ class LanternTacticsApp {
       if (overlay && targetEl) {
         const r = targetEl.getBoundingClientRect();
         const or = overlay.getBoundingClientRect();
-        overlay.style.setProperty('--spotlight-x', `${r.left + r.width / 2 - or.left}px`);
-        overlay.style.setProperty('--spotlight-y', `${r.top + r.height / 2 - or.top}px`);
+        const cx = r.left + r.width / 2 - or.left;
+        const cy = r.top + r.height / 2 - or.top;
+        overlay.style.setProperty('--spotlight-x', `${cx}px`);
+        overlay.style.setProperty('--spotlight-y', `${cy}px`);
+        // If target is in lower portion of screen (rows >= 7), park card at top so unit and movement tiles remain bright and visible
+        if (cy > or.height * 0.45) {
+          overlay.classList.add('card-at-top');
+        } else {
+          overlay.classList.remove('card-at-top');
+        }
       }
     };
 
@@ -1361,6 +1382,8 @@ class LanternTacticsApp {
       localStorage.setItem(tutKey, '1');
       localStorage.setItem('lt_tutorial_seen', '1');
       document.querySelectorAll('.spotlight-active').forEach(el => el.classList.remove('spotlight-active'));
+      const overlay = document.getElementById('tutorialBoardOverlay');
+      if (overlay) overlay.classList.remove('card-at-top');
       this.clearSelection();
       this.ui.hideActionMenu();
       this.ui.hideTargetPreview();
@@ -1370,9 +1393,7 @@ class LanternTacticsApp {
         this.battle = savedBattle;
         this.ui.showScreen(previousScreen);
       } else {
-        // Restore player's live battle cleanly from saved deploy placements
-        this.activeStratagemId = savedStratagem;
-        this.launchBattleInstance(savedChapter, savedPlacements);
+        this.refreshBattleUI();
       }
     }, handleSuggest);
   }
@@ -1392,6 +1413,8 @@ class LanternTacticsApp {
       },
       openDeployPhase: (chId = 1) => {
         const ch = CHAPTERS.find(c => c.id === chId) || CHAPTERS[0];
+        const badgeEl = document.getElementById('txtChapterBadge');
+        if (badgeEl) badgeEl.textContent = ch.id === 7 ? '外傳' : `第${ch.id}回`;
         if (ch.id === 1) {
           this.selectedSquadIds = ['bear_guard', 'cat_patrol', 'lantern_crafter', 'tea_master'];
         } else {

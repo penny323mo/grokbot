@@ -1,5 +1,28 @@
 # Changelog
 
+## Round 1 fixes
+
+### MAJOR Fixes
+- **MAJOR #1: Tutorial Beat 1 Spotlight & Card Positioning**:
+  - `startTutorialFlow` now calls `this.ui.hideDeployPhase()` immediately upon opening, completely removing the deploy tray underneath.
+  - Tutorial overlay dynamically shifts `.tutorial-board-card` to the top (`.tutorial-board-overlay.card-at-top`, below `.battle-hud-top`) whenever the highlighted target is in the lower half of the screen (row ≥ 7), ensuring 熊岳 at `(1, 11)` and its blue movement tiles remain fully bright, visible, and unobscured in the 140px spotlight cutout.
+  - Live Chapter 1 battle is preserved and directly driven rather than discarded and re-instantiated.
+- **MAJOR #2: Chapter 8 390px Viewport Framing, Top Nav Badge & Painted Background**:
+  - Top navigation pill `#txtChapterBadge` dynamically displays `第${chapter.id}回` (and `外傳` for Ch7) across `renderBattle`, `renderPreBattle`, and `renderDeployPhase`, updating to **★ 第8回** for Chapter 8.
+  - Removed artificial 160px right scroll bias from `centerCameraOn`, allowing natural horizontal centering on the mountain pass road at (4, 4).
+  - Pinned `.battle-map-bg` to 640×832px with `object-fit: fill; height: 832px` to prevent distortion/cover-cropping against the stage.
+  - Repainted ink-wash mountain pass background `assets/art/v4/map_mountain_pass.webp` (640×832) with rich multi-layered ink crags, mountain pines, and stone road textures, completely eliminating pure black silhouettes or empty void.
+- **MAJOR #3: Target Hint Bar HUD Safe Clearance**:
+  - Adjusted `.target-hint-bar` top position to `calc(env(safe-area-inset-top, 0px) + 104px)` so it floats directly below `.battle-hud-top`, leaving the dual morale gauge (我軍 100 / 敵軍 100) completely visible and unobstructed during targeting.
+
+### MINOR Fixes
+- **MINOR #4: Forecast Counter Text Wrapping**:
+  - Added `white-space: nowrap` to `.forecast-counter` and formatted counter text as `反擊 ${counterDamage}`, preventing line wrapping ("1 傷 / 害").
+- **MINOR #5: SPEC Alignment**:
+  - Updated `SPEC.md` §7 (added `shield_phalanx` and `mountain_warlord`), §8 (8 total battles, `rolling_log` stratagem, Morale system), §9 (Chapter 8 pass encounter row and squad limits), §10 (shield phalanx & morale rout AI), and §11 (encounter sim validation across 8 battles).
+
+---
+
 ## v10.1.0 — 第一章連貫性修復、士氣潰逃系統、第8章山道伏兵與數值深度校準 (Round 7 / v10 Polish)
 
 ### 第一章連貫性與教學聚光修復 (Chapter 1 Coherence & Spotlight)
