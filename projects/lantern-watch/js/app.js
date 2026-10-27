@@ -1081,6 +1081,7 @@ class LanternTacticsApp {
     const preview = calculateCombat(unit, defender, this.battle.board, {
       actionType: this.activeActionType,
       skill,
+      noCounter: !!skill?.aoe,
       attackerX: unit.x,
       attackerY: unit.y,
       allies: this.battle.allies,
@@ -1137,9 +1138,10 @@ class LanternTacticsApp {
       isFrontBlocked: hitEv?.isFrontBlocked || (target?.role === 'shield_guard' && hitEv?.direction === 'front'),
       defBonus: hitEv?.defBonus || 0,
       isWeakness: hitEv?.elementWeakness || false,
-      isHeal: actionType === 'skill' && actingUnit.skill?.isHeal,
-      healAmount: 8,
-      isMiss
+      isHeal: !!res.events?.some(e => e.type === 'heal'),
+      healAmount: res.events?.find(e => e.type === 'heal')?.amount ?? 8,
+      isMiss,
+      events: res.events || []
     };
 
     if (target) {

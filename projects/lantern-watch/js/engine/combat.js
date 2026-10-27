@@ -237,7 +237,7 @@ export function calculateCombat(attacker, defender, board, options = {}) {
   let counterDamage = 0;
   let counterHitRate = 0;
 
-  if (!willKill && !isBackAttack) {
+  if (!willKill && !isBackAttack && !options.noCounter) {
     // Check defender range
     let defMinRange = 1;
     let defMaxRange = 1;
@@ -352,6 +352,10 @@ export function calculateCombat(attacker, defender, board, options = {}) {
  * Executes an attack or skill and applies HP changes and knockbacks
  */
 export function executeCombat(attacker, defender, board, rng, options = {}) {
+  // Damaging actions never resolve against the caster's own side (heals/buffs use their own paths)
+  if (!defender || defender === attacker || (attacker.team && attacker.team === defender.team)) {
+    return { preview: null, events: [{ type: 'friendly_blocked', target: defender?.id }], attackerAlive: attacker.hp > 0, defenderAlive: (defender?.hp ?? 0) > 0 };
+  }
   const preview = calculateCombat(attacker, defender, board, options);
   const events = [];
 

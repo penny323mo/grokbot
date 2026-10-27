@@ -45,7 +45,7 @@ export function getActionInfo(battle, unit, actionType) {
       if (e.hp <= 0 || !keys.has(`${e.x},${e.y}`)) continue;
       if (!canTargetUnit(unit, e, battle.board, vision)) continue;
       const pv = calculateCombat(unit, e, battle.board, {
-        actionType, skill: move, attackerX: unit.x, attackerY: unit.y, allies: battle.allies, synergies: battle.synergies
+        actionType, skill: move, noCounter: !!move?.aoe, attackerX: unit.x, attackerY: unit.y, allies: battle.allies, synergies: battle.synergies
       });
       const hit = Math.max(0, Math.min(100, Math.round(pv.hitRate ?? 100)));
       const crit = Math.max(0, Math.min(100, Math.round(pv.critRate ?? 0)));
@@ -68,10 +68,11 @@ export function getActionInfo(battle, unit, actionType) {
     power,
     element: ELEMENT_NAMES[move?.element || (actionType === 'attack' ? unit.element : null)] || '無',
     cost: actionType === 'attack' ? 0 : (move.cost || 0),
+    hpCost: move?.hpCost || 0, // shown as 「耗血 -N」 when a move deliberately costs HP
     mp: unit.mp ?? 0,
     range: mn === mx ? `${mx}` : `${mn}-${mx}`,
     aoe: move?.aoe ? (AOE_NAMES[move.aoe] || move.aoe) : '單體',
-    counterNote: isSupport ? '輔助 · 無反擊' : '正面可被反擊；背刺無反擊',
+    counterNote: isSupport ? '輔助 · 無反擊' : move?.aoe ? '範圍招式 · 不傷友軍 · 無反擊' : '正面可被反擊；背刺無反擊',
     baseHit: targets.length ? Math.round(targets.reduce((s, t) => s + t.hit, 0) / targets.length) : null,
     tiles,
     targets,

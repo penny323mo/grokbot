@@ -934,6 +934,7 @@ export class Battle {
             const hitUnit = this.getUnitAt(tile.x, tile.y);
             if (hitUnit && hitUnit.team !== unit.team && hitUnit.hp > 0) {
               const combatRes = executeCombat(unit, hitUnit, this.board, this.rng, {
+                noCounter: true, // AoE never provokes one counter per enemy caught in the area
                 actionType: 'skill',
                 skill,
                 allies: this.allies,
@@ -959,6 +960,7 @@ export class Battle {
             const hitUnit = this.getUnitAt(tile.x, tile.y);
             if (hitUnit && hitUnit.team !== unit.team && hitUnit.hp > 0) {
               const combatRes = executeCombat(unit, hitUnit, this.board, this.rng, {
+                noCounter: true, // AoE never provokes one counter per enemy caught in the area
                 actionType: 'skill',
                 skill,
                 allies: this.allies,
@@ -984,6 +986,7 @@ export class Battle {
             const hitUnit = this.getUnitAt(tile.x, tile.y);
             if (hitUnit && hitUnit.team !== unit.team && hitUnit.hp > 0) {
               const combatRes = executeCombat(unit, hitUnit, this.board, this.rng, {
+                noCounter: true, // AoE never provokes one counter per enemy caught in the area
                 actionType: 'skill',
                 skill,
                 allies: this.allies,
@@ -1049,6 +1052,7 @@ export class Battle {
             const hitUnit = this.getUnitAt(tile.x, tile.y);
             if (hitUnit && hitUnit.team !== unit.team && hitUnit.hp > 0) {
               const combatRes = executeCombat(unit, hitUnit, this.board, this.rng, {
+                noCounter: true, // AoE never provokes one counter per enemy caught in the area
                 actionType: 'magic',
                 skill: magic,
                 allies: this.allies,
@@ -1074,6 +1078,7 @@ export class Battle {
             const hitUnit = this.getUnitAt(tile.x, tile.y);
             if (hitUnit && hitUnit.team !== unit.team && hitUnit.hp > 0) {
               const combatRes = executeCombat(unit, hitUnit, this.board, this.rng, {
+                noCounter: true, // AoE never provokes one counter per enemy caught in the area
                 actionType: 'magic',
                 skill: magic,
                 allies: this.allies,
@@ -1099,6 +1104,7 @@ export class Battle {
             const hitUnit = this.getUnitAt(tile.x, tile.y);
             if (hitUnit && hitUnit.team !== unit.team && hitUnit.hp > 0) {
               const combatRes = executeCombat(unit, hitUnit, this.board, this.rng, {
+                noCounter: true, // AoE never provokes one counter per enemy caught in the area
                 actionType: 'magic',
                 skill: magic,
                 allies: this.allies,

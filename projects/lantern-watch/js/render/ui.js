@@ -35,72 +35,104 @@ export class UIRenderer {
     }
   }
 
+  // ---- Camera: transform-based fit / pinch-zoom / clamped pan (map is 640x832) ----
+  camState() { if (!this.cam) this.cam = { s: 1, tx: 0, ty: 0, fit: true }; return this.cam; }
+  fitScale() {
+    const vp = document.getElementById('battleViewport');
+    const w = vp?.clientWidth || 390, h = vp?.clientHeight || 520;
+    return Math.min(w / 640, h / 832);
+  }
+  applyCamera() {
+    const vp = document.getElementById('battleViewport');
+    const stage = document.getElementById('battleBoardStage');
+    if (!vp || !stage) return;
+    const c = this.camState();
+    const w = vp.clientWidth, h = vp.clientHeight, fit = this.fitScale();
+    c.s = Math.max(fit, Math.min(Math.max(fit * 3, 1.4), c.s));
+    const cw = 640 * c.s, ch = 832 * c.s;
+    c.tx = cw <= w ? (w - cw) / 2 : Math.min(0, Math.max(w - cw, c.tx));
+    c.ty = ch <= h ? (h - ch) / 2 : Math.min(0, Math.max(h - ch, c.ty));
+    stage.style.transform = `translate(${c.tx}px, ${c.ty}px) scale(${c.s})`;
+    stage.style.setProperty('--cam-inv', String(1 / c.s));
+  }
+  fitCamera() { const c = this.camState(); c.s = this.fitScale(); c.fit = true; this.applyCamera(); }
+
   setupViewportDrag() {
     const vp = document.getElementById('battleViewport');
     if (!vp) return;
-
+    const pts = new Map();
+    let pinch = null, lastTap = 0;
     vp.addEventListener('pointerdown', (e) => {
-      // Don't drag if clicking buttons or figures
-      if (e.target.closest('.action-menu-popover') || e.target.closest('.target-preview-card')) {
-        return;
-      }
-      this.isDraggingViewport = true;
-      this.hasDraggedBeyondThreshold = false;
-      this.dragStartX = e.clientX;
-      this.dragStartY = e.clientY;
-      this.scrollStartX = vp.scrollLeft;
-      this.scrollStartY = vp.scrollTop;
-    });
-
-    window.addEventListener('pointermove', (e) => {
-      if (!this.isDraggingViewport) return;
-      const dx = e.clientX - this.dragStartX;
-      const dy = e.clientY - this.dragStartY;
-      if (Math.hypot(dx, dy) > 6) {
+      if (e.target.closest('.action-menu-popover') || e.target.closest('.target-preview-card') || e.target.closest('.btn-cam-fit')) return;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const c = this.camState();
+      if (pts.size === 1) {
+        this.isDraggingViewport = true;
+        this.hasDraggedBeyondThreshold = false;
+        this.dragStartX = e.clientX; this.dragStartY = e.clientY;
+        this.scrollStartX = c.tx; this.scrollStartY = c.ty;
+        const now = Date.now();
+        if (now - lastTap < 300 && e.pointerType === 'touch' && !c.fit) { this.fitCamera(); this.hasDraggedBeyondThreshold = true; }
+        lastTap = now;
+      } else if (pts.size === 2) {
+        const [p1, p2] = [...pts.values()];
+        const r = vp.getBoundingClientRect();
+        const mx = (p1.x + p2.x) / 2 - r.left, my = (p1.y + p2.y) / 2 - r.top;
+        pinch = { d: Math.hypot(p1.x - p2.x, p1.y - p2.y) || 1, s: c.s, wx: (mx - c.tx) / c.s, wy: (my - c.ty) / c.s };
         this.hasDraggedBeyondThreshold = true;
       }
-      vp.scrollLeft = this.scrollStartX - dx;
-      vp.scrollTop = this.scrollStartY - dy;
     });
-
-    window.addEventListener('pointerup', () => {
-      this.isDraggingViewport = false;
+    vp.addEventListener('dblclick', () => this.fitCamera());
+    window.addEventListener('pointermove', (e) => {
+      if (!pts.has(e.pointerId)) return;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const c = this.camState();
+      if (pinch && pts.size >= 2) {
+        const [p1, p2] = [...pts.values()];
+        const r = vp.getBoundingClientRect();
+        const mx = (p1.x + p2.x) / 2 - r.left, my = (p1.y + p2.y) / 2 - r.top;
+        c.s = pinch.s * Math.hypot(p1.x - p2.x, p1.y - p2.y) / pinch.d;
+        c.fit = false;
+        c.tx = mx - pinch.wx * c.s; c.ty = my - pinch.wy * c.s;
+        this.applyCamera();
+        return;
+      }
+      if (!this.isDraggingViewport) return;
+      const dx = e.clientX - this.dragStartX, dy = e.clientY - this.dragStartY;
+      if (Math.hypot(dx, dy) > 6) this.hasDraggedBeyondThreshold = true;
+      if (!this.hasDraggedBeyondThreshold) return;
+      c.tx = this.scrollStartX + dx; c.ty = this.scrollStartY + dy;
+      this.applyCamera();
     });
+    const up = (e) => {
+      pts.delete(e.pointerId);
+      if (pts.size < 2) pinch = null;
+      if (pts.size === 0) this.isDraggingViewport = false;
+    };
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+    vp.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const c = this.camState(), r = vp.getBoundingClientRect();
+      const mx = e.clientX - r.left, my = e.clientY - r.top;
+      const wx = (mx - c.tx) / c.s, wy = (my - c.ty) / c.s;
+      c.s *= e.deltaY < 0 ? 1.1 : 1 / 1.1; c.fit = false;
+      c.tx = mx - wx * c.s; c.ty = my - wy * c.s;
+      this.applyCamera();
+    }, { passive: false });
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'btn-cam-fit'; btn.id = 'btnCamFit';
+    btn.title = '顯示全圖'; btn.setAttribute('aria-label', '顯示全圖'); btn.textContent = '全圖';
+    btn.addEventListener('click', (e) => { e.stopPropagation(); this.fitCamera(); });
+    vp.appendChild(btn);
+    const refit = () => { const c = this.camState(); if (c.fit) this.fitCamera(); else this.applyCamera(); };
+    window.addEventListener('resize', refit);
+    window.addEventListener('orientationchange', () => setTimeout(refit, 250));
+    if (window.ResizeObserver) new ResizeObserver(refit).observe(vp);
+    this.fitCamera();
   }
 
-  centerCameraOn(x, y, smooth = false) {
-    const vp = document.getElementById('battleViewport');
-    if (!vp) return;
-    const tilePx = 64;
-    const targetX = x * tilePx + 32;
-    const targetY = y * tilePx + 32;
-
-    const vpWidth = vp.clientWidth || 390;
-    const inset = this.measureBottomInset();
-    const vpHeight = Math.max(160, (vp.clientHeight || 520) - inset);
-
-    const maxScrollX = Math.max(0, 640 - vpWidth);
-    const maxScrollY = Math.max(0, 832 - vpHeight);
-
-    let scrollX = targetX - vpWidth / 2;
-    let scrollY = targetY - vpHeight / 2;
-
-    // Bottom safe inset & info bar clearance:
-    // When unit is near bottom (y >= 9), scroll down so unit's feet stay >=64px above visible bottom
-    if (y >= 9) {
-      scrollY = Math.max(scrollY, (y * tilePx + 64) - vpHeight + 32);
-    }
-
-    // Top safe inset: northern units must never be sliced by HUD (keep at least 16px clearance)
-    if (y <= 5) {
-      scrollY = Math.min(scrollY, Math.max(0, (y - 1.2) * tilePx));
-    }
-
-    scrollX = Math.max(0, Math.min(maxScrollX, scrollX));
-    scrollY = Math.max(0, Math.min(maxScrollY, scrollY));
-
-    vp.scrollTo({ left: scrollX, top: scrollY, behavior: smooth ? 'smooth' : 'auto' });
-  }
+  centerCameraOn(x, y, smooth = false) { this.frameTiles([{ x, y }], smooth); }
 
   /** Pixels of the battle viewport hidden by bottom overlays (sheets, menus, preview cards, info strip). */
   measureBottomInset() {
@@ -116,44 +148,39 @@ export class UIRenderer {
     els.forEach(el => {
       if (!el || el.offsetParent === null) return;
       const r = el.getBoundingClientRect();
-      // Must cover or touch the bottom edge of the viewport to be a bottom inset
-      if (r.height > 0 && r.bottom >= vr.bottom - 30 && r.top < vr.bottom) {
-        top = Math.min(top, r.top);
-      }
+      if (r.height > 0 && r.bottom >= vr.bottom - 30 && r.top < vr.bottom) top = Math.min(top, r.top);
     });
     return Math.max(0, vr.bottom - top);
   }
 
-  /** Scroll so every tile in `tiles` sits inside the uncovered part of the viewport (HUD safe area). */
+  /** Pan (never zoom) so tiles sit in the uncovered part of the viewport. At fit scale the whole map is already visible, except tiles hidden under a bottom overlay. */
   frameTiles(tiles, smooth = false, preferTop = false) {
     const vp = document.getElementById('battleViewport');
-    const stage = vp?.querySelector('.battle-board-stage');
     if (!vp || !tiles || !tiles.length) return;
+    const c = this.camState();
     const inset = this.measureBottomInset();
-    if (stage) {
-      stage.style.height = inset > 30 ? (940 + inset) + 'px' : '940px';
-    }
+    const w = vp.clientWidth, h = Math.max(120, vp.clientHeight - inset);
     const xs = tiles.map(t => t.x), ys = tiles.map(t => t.y);
-    const minX = Math.min(...xs) * 64, maxX = Math.max(...xs) * 64 + 64;
-    const minY = Math.min(...ys) * 64, maxY = Math.max(...ys) * 64 + 64;
-    const w = vp.clientWidth || 390, h = Math.max(160, (vp.clientHeight || 520) - inset);
-    let sx = (minX + maxX) / 2 - w / 2;
-    let sy = (minY + maxY) / 2 - h / 2;
-    // if preferTop is requested (for scouting or enemy reveal), anchor to top tiles
-    if (preferTop) {
-      sy = Math.max(0, minY - 24);
-    } else if (maxY - minY > h - 36) {
-      sy = Math.max(minY - 24, maxY - h + 42);
+    const minX = Math.min(...xs) * 64 * c.s, maxX = (Math.max(...xs) + 1) * 64 * c.s;
+    const minY = Math.min(...ys) * 64 * c.s, maxY = (Math.max(...ys) + 1) * 64 * c.s;
+    const fitsY = maxY - minY <= h - 8;
+    // Only move if a tile is out of the visible area
+    if (minX + c.tx < 0 || maxX + c.tx > w) c.tx = w / 2 - (minX + maxX) / 2;
+    if (minY + c.ty < 0 || maxY + c.ty > h) {
+      c.ty = preferTop || !fitsY ? 8 - minY : h / 2 - (minY + maxY) / 2;
+      if (!fitsY && !preferTop) c.ty = h - 8 - maxY;
+      // allow lifting the map above an overlay even when at fit scale
+      const stage = document.getElementById('battleBoardStage');
+      const ch = 832 * c.s;
+      const lo = Math.min(0, vp.clientHeight - ch) - inset;
+      c.ty = Math.min(Math.max(c.ty, lo), Math.max(0, (vp.clientHeight - ch) / 2));
+      if (stage) {
+        stage.style.transition = smooth ? 'transform 0.25s ease-out' : '';
+        stage.style.transform = `translate(${c.tx = (640 * c.s <= w ? (w - 640 * c.s) / 2 : Math.min(0, Math.max(w - 640 * c.s, c.tx)))}px, ${c.ty}px) scale(${c.s})`;
+      }
+      return;
     }
-    if (maxX - minX > w - 16) sx = minX - 8;
-
-    // Keep map in bounds (never scroll below map bottom 832px)
-    const maxSyMap = Math.max(0, 832 - h);
-    const maxSxMap = Math.max(0, 640 - w);
-    sx = Math.max(0, Math.min(maxSxMap, sx));
-    sy = Math.max(0, Math.min(maxSyMap, sy));
-
-    vp.scrollTo({ left: sx, top: sy, behavior: smooth ? 'smooth' : 'auto' });
+    this.applyCamera();
   }
 
   // ================= WORLD MAP RENDERING =================
@@ -1178,12 +1205,18 @@ export class UIRenderer {
 
     // Position menu near the unit tile within 640x832 stage
     const tilePx = 64;
-    let menuLeft = x * tilePx - 36;
-    let menuTop = y * tilePx - 135;
+    // Menu keeps its on-screen size at any zoom: counter-scale by 1/camera scale
+    const inv = 1 / (this.camState().s || 1);
+    const mw = (pop.offsetWidth || 146) * inv, mh = (pop.offsetHeight || 130) * inv;
+    let menuLeft = x * tilePx + 32 - mw / 2;
+    let menuTop = y * tilePx - mh - 6;
 
-    if (menuTop < 10) menuTop = y * tilePx + 70; // flip below if at top edge
-    if (menuLeft < 10) menuLeft = 10;
-    if (menuLeft > 640 - 146) menuLeft = 640 - 146;
+    if (menuTop < 4) menuTop = y * tilePx + 70; // flip below if at top edge
+    if (menuTop + mh > 828) menuTop = Math.max(4, 828 - mh);
+    if (menuLeft < 4) menuLeft = 4;
+    if (menuLeft > 636 - mw) menuLeft = 636 - mw;
+    pop.style.transformOrigin = '0 0';
+    pop.style.transform = `scale(${inv})`;
 
     pop.style.left = `${menuLeft}px`;
     pop.style.top = `${menuTop}px`;
@@ -1286,7 +1319,7 @@ export class UIRenderer {
         <span>威力 <b>${info.power ?? '—'}</b></span>
         <span>屬性 <b>${esc(info.element)}</b></span>
         <span>命中 <b>${info.baseHit != null ? info.baseHit + '%' : '—'}</b></span>
-        <span>MP <b>${info.cost}/${info.mp}</b></span>
+        <span>MP <b>${info.cost}/${info.mp}</b></span>${info.hpCost ? `<span class="aic-counter">耗血 -${info.hpCost}</span>` : ''}
         <span>射程 <b>${esc(info.range)}</b></span>
         <span>範圍 <b>${esc(info.aoe)}</b></span>
       </div>
@@ -1645,7 +1678,7 @@ export class UIRenderer {
     const tray = document.getElementById('deployTrayBar');
     if (tray) tray.style.display = 'none';
     const stage = document.querySelector('.battle-board-stage');
-    if (stage) stage.style.height = '940px';
+    this.applyCamera();
   }
 
   showTutorial(step = 0, onComplete) {
@@ -1973,8 +2006,21 @@ export class UIRenderer {
         setTimeout(() => vfx.remove(), 700 * durMult);
       }
 
-      // Show floating damage number & badges
-      this.showFloatingDamage(defender.x, defender.y, combatInfo);
+      // Floating numbers come from the resolved events, each drawn on the unit it actually hit
+      if (Array.isArray(combatInfo.events)) {
+        const ev = combatInfo.events;
+        const where = (id) => (() => { const b = window.__lt?.getBattle?.(); return b ? [...b.allies, ...b.enemies] : []; })().find(u => u.id === id) || (id === attacker.id ? attacker : id === defender.id ? defender : null);
+        ev.forEach(e => {
+          const u = where(e.target);
+          if (!u) return;
+          if (e.type === 'hit') this.showFloatingDamage(u.x, u.y, { ...combatInfo, ...e, isWeakness: e.elementWeakness, isHeal: false, isMiss: false, isCounter: false });
+          else if (e.type === 'miss') this.showFloatingDamage(u.x, u.y, { isMiss: true });
+          else if (e.type === 'heal') this.showFloatingDamage(u.x, u.y, { isHeal: true, healAmount: e.amount });
+          else if (e.type === 'counter') setTimeout(() => this.showFloatingDamage(u.x, u.y, { damage: e.damage, isCounter: true }), 260 * durMult);
+        });
+      } else {
+        this.showFloatingDamage(defender.x, defender.y, combatInfo);
+      }
 
       // Trigger Combo / 協力攻擊 if present
       if (combatInfo.comboAlly) {
