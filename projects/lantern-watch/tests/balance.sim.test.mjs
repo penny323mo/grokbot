@@ -26,15 +26,19 @@ assert.ok(naiveCh5 < 25, `Chapter 5 naive win rate ${naiveCh5}/50 should fail (<
 const naiveCh7 = [...Array(50)].filter((_, i) => play(CHAPTERS[6], i + 1).status?.victory).length;
 assert.ok(naiveCh7 < 25, `Chapter 7 naive win rate ${naiveCh7}/50 should fail (< 50%)`);
 
-// Reasonable bot: Generic bot asserting >= 70% win rate per chapter (70-90% target range)
+// Reasonable bot: Ch1 gentle tutorial 100%, Ch2-Ch8 landing in strategic 75-90% range
 for (const ch of CHAPTERS) {
   let wins = 0;
   for (let s = 1; s <= 50; s++) {
     if (playReasonable(ch, s).status?.victory) wins++;
   }
   const rate = wins / 50;
-  assert.ok(rate >= 0.70, `Chapter ${ch.id} (${ch.key}) reasonable win rate ${wins}/50 < 70%`);
+  if (ch.id === 1) {
+    assert.strictEqual(rate, 1.0, `Chapter 1 reasonable win rate ${wins}/50 must be 100%`);
+  } else {
+    assert.ok(rate >= 0.74 && rate <= 0.92, `Chapter ${ch.id} (${ch.key}) reasonable win rate ${wins}/50 (${Math.round(rate * 100)}%) outside 75-90% range`);
+  }
   console.log(`ch${ch.id} reasonable win: ${wins}/50 (${Math.round(rate * 100)}%)`);
 }
 
-console.log(`balance ok: ch1 naive win ${w1}/50, ch3/5/7 naive failed, all chapters reasonable >= 70%`);
+console.log(`balance ok: ch1 naive win ${w1}/50, ch3/5/7 naive failed, all mid chapters reasonable in 75-90% range`);

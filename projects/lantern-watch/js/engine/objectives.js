@@ -157,6 +157,20 @@ export function checkBattleStatus(chapter, battleState) {
       break;
     }
 
+    case 'break_phalanx_or_rout': {
+      const boss = enemies.find(u => u.id === (chapter.bossId || 'mountain_warlord'));
+      if (boss && boss.hp <= 0) {
+        return { finished: true, victory: true, reason: '斬殺伏兵統領！要塞伏兵軍心潰散，全線潰退！' };
+      }
+      if (livingEnemies.length === 0 && !hasPendingReinforcements) {
+        return { finished: true, victory: true, reason: '全殲山道伏兵，成功突破鐵壁峽谷！' };
+      }
+      if (currentTurn > chapter.maxTurns) {
+        return { finished: true, victory: false, reason: '山道峽谷被巨石徹底封死，耗盡回合未能突圍！' };
+      }
+      break;
+    }
+
     default: {
       if (livingEnemies.length === 0) {
         return { finished: true, victory: true, reason: '全殲敵軍，大獲全勝！' };

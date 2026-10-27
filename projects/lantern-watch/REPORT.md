@@ -1,14 +1,14 @@
 # 燈影軍略 — orchestrator report
 
-- Generated: 2026-10-27 08:12 (Macau, UTC+8)
+- Generated: 2026-10-27 10:57 (Macau, UTC+8)
 - Live: https://penny323mo.github.io/grokbot/projects/lantern-watch/ (HTTP 200)
-- Rounds: 1  ·  Started: 2026-10-27T06:34:37+08:00
+- Rounds: 1  ·  Started: 2026-10-27T08:57:07+08:00
 
 ## Phases
-- build finished 2026-10-27T07:26:51+08:00
-- review-1 finished 2026-10-27T07:33:03+08:00
-- fix-1 finished 2026-10-27T08:12:43+08:00
-- publish finished 2026-10-27T08:12:53+08:00
+- build finished 2026-10-27T10:16:26+08:00
+- review-1 finished 2026-10-27T10:21:33+08:00
+- fix-1 finished 2026-10-27T10:57:38+08:00
+- publish finished 2026-10-27T10:57:46+08:00
 
 ## Reviews
 - orch-r1-grok.md: VERDICT: NOT READY
@@ -16,25 +16,25 @@
 ## Tests
 ### tests-build
 ```
-# tests 1
-# suites 0
-# pass 1
-# fail 0
-# cancelled 0
-# skipped 0
-# todo 0
-# duration_ms 139.195045
+ch1 reasonable win: 50/50 (100%)
+ch2 reasonable win: 50/50 (100%)
+ch3 reasonable win: 43/50 (86%)
+ch4 reasonable win: 50/50 (100%)
+ch5 reasonable win: 50/50 (100%)
+ch6 reasonable win: 41/50 (82%)
+ch7 reasonable win: 45/50 (90%)
+balance ok: ch1 naive win 49/50, ch3/5/7 naive failed, all chapters reasonable >= 70%
 ```
 ### tests-fix-1
 ```
-# tests 1
-# suites 0
-# pass 1
-# fail 0
-# cancelled 0
-# skipped 0
-# todo 0
-# duration_ms 116.341062
+ch1 reasonable win: 50/50 (100%)
+ch2 reasonable win: 50/50 (100%)
+ch3 reasonable win: 46/50 (92%)
+ch4 reasonable win: 50/50 (100%)
+ch5 reasonable win: 50/50 (100%)
+ch6 reasonable win: 50/50 (100%)
+ch7 reasonable win: 46/50 (92%)
+balance ok: ch1 naive win 50/50, ch3/5/7 naive failed, all chapters reasonable >= 70%
 ```
 
 ## Screenshots
@@ -45,28 +45,31 @@
 - screenshots/orch/live-title.png
 
 ## Changelog (tail)
-    - 銳意進取 (攻擊力 +3)
-    - 固若金湯 (防禦力 +2 · 氣血上限 +6)
-    - 神行百變 (移動力 +1)
-  - Camp profile sheet explicitly displays promotion unlock condition as Lv.5.
-- **MAJOR #6 (Mobile-First 390px Viewport Safe Insets & Fold Organization)**:
-  - Pinned the Stratagem selector chips (`.prebattle-pinned-stratagems`) inside `.prebattle-footer` directly above the launch CTA with safe padding `calc(60px + env(safe-area-inset-bottom, 16px))`, completely eliminating Grokbot occlusion.
-  - Restructured Camp profile view (`#campProfileDetails`) so that 【✦ 佩掛神兵寶具 ✦】 and 【✦ 破境晉升 ✦】 sit directly below the header, leaving both fully visible and actionable above the 390px fold.
-  - Fine-tuned battle camera centering (`centerCameraOn`) so that unit figures remain safely between the top HUD bar and bottom Grokbot banner.
+  - Toggled threat off by default across battle UI and tests, isolating threat display exclusively to `b-threat.png`.
+- **MAJOR #3 (Tutorial 建議行動 Button Squeeze)**:
+  - Dropped `width: 100%` on `.btn-tutorial-ack` inside `.tutorial-card-actions`.
+  - Set both `💡 建議行動` and `明白` buttons to `flex: 1 1 0; min-width: 0; height: 44px; white-space: nowrap;`, placing them cleanly side-by-side.
+- **MAJOR #4 (Action Menu 技能 Label & Tutorial Beat 6 Align)**:
+  - Replaced `計策` on the unit skill action button with `技能` in both `index.html` and `js/render/ui.js` to match SPEC §5 (`攻擊 / 技能 / 魔法 / 待命`).
+  - Reserved `計策` strictly for the one-per-battle army stratagems (火攻, 佯攻, 水淹, 鼓舞, 夜襲).
+  - Aligned tutorial beat 6 copy to reference `【技能】或【法術】`.
+- **MAJOR #5 (Class Synergy Real Combat Modifiers & Unit Tests)**:
+  - Connected `getClassSynergies` to active combat resolution in `js/engine/combat.js` and `js/engine/battle.js`:
+    - `iron_fortress` (金湯固若): grants +1 DEF to all allies when tank + healer are present.
+    - `cavalry_coop` (步騎協同): grants +1 MOV on turn 1 when flanker + (cavalry or flyer) are in squad.
+    - `spell_arrow` (法箭交輝): boosts ranged/magic attacks by +10% damage when mage + archer are present.
+  - Added dedicated test `Rules: Class synergy bonuses (spell_arrow +10% ranged dmg, iron_fortress +1 def, cavalry_coop +1 turn 1 mov)` in `tests/rules.test.mjs`.
+- **MAJOR #6 (Deploy Camera Framing & Live Alignment)**:
+  - Ensured deploy framing subtracts measured bottom overlay inset via `frameTiles(deployTiles ∪ units)`.
+  - Recaptured `live-deploy.png` and `live-scout.png` against live production URL, completely free of empty black bands.
 
 ### Minor Fixes & Polish
-- **MINOR #7 (Continuous Flowing Canvas Overlays & Stratagem Restrictions)**:
-  - Upgraded `renderFloodOverlay` to draw a continuous undulating river body with feathered banks and ripple crests across flooded rows, eliminating per-cell elliptical glyphs. Restricted 水淹 in stratagem picker strictly to Chapter 4 (山道) dam break per SPEC §8.
-  - Upgraded `renderFireOverlay` to render merged flame contours and continuous fiery ink wash; fire spread checks both forest (`f`) and market (`m`), blocked by water (`w`) and stone (`#`).
-  - Added dark violet cursed miasma mist rendering with `咒` boundary runes on `fireOverlayCanvas`.
-- **MINOR #8 (3-Step Board Tutorial & Synchronized Nomenclature)**:
-  - Aligned tutorial overlay to a 3-step board flow matching SPEC §6.
-  - Dynamic header reads from `GAME.name` (`${GAME.name} · 基礎兵法`).
-  - Tutorial flanking copy teaches +50% back attack and +100% for 疾影劍客.
-- **MINOR #9 (SPEC Documentation Synchronization & Encounter Sim Expansion)**:
-  - Synchronized `SPEC.md` (§§3, 5, 7, 8, 9, 11) with shipped features: 56px unit figure scale, facing & ZOC mechanics, Lv.5 promotion, 3-perk card choices, bond pairs, all 6 main chapters plus 外傳 (`side_marsh`).
-  - Added heuristic simulation solutions and win assertions for Chapter 7 (`side_marsh`) in `tests/encounters.sim.test.mjs`.
+- **MINOR #7 (SPEC §6 & Help Modal 7-Beat Sync)**:
+  - Updated SPEC §6 and the navigation `?` modal (`showTacticsTutorialModal`) to present all 7 interactive beats in sync with the live battle tutorial.
+- **MINOR #8 (Directional Targeting Preview Capture)**:
+  - Added `g2-directional.png` to `screenshots/v9/` showcasing crane rider's `crane_line_gust` orange line highlight preview with cardinal confirm flow.
+- **MINOR #10 (Combat Damage Multiplier Floaters Visibility)**:
+  - Extended floating damage label lifespan to 2500ms and tuned confirm timing so `h-after-confirm.png` visibly captures the damage multiplier tags (`【側翼 ×1.2】`).
 
-### Test & Visual Verification
-- `npm test`: **41/41 passing tests** across rules (21), ai (10), objectives (7), branding (2), and encounters simulation (1), verifying all 14 solution compositions win across Chapters 1-6 and 外傳, and naive bot fails.
-- All 12 screenshots in `screenshots/v8/` recaptured deterministically at 390×844 DPR 2 with 0 browser console errors.
+## Loop note 2026-10-27 11:05
+Improve round 7 launched with prompts/improve-6.txt; see IMPROVE-LOG.md.

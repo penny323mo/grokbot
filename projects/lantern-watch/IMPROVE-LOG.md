@@ -43,3 +43,8 @@
 - Deploy/camera: compact sheet, 偵察 scout mode, camera frames the bounding box of the deploy tiles and units. Every pan uses `frameTiles()`, which subtracts the measured bottom-overlay inset (HUD safe area). The camera frames attacker+target for the preview and the unit+targets for the action menu.
 - 敵域 threat-range toggle.
 - Not done: naive rush still wins ch3/ch5/ch7, a generic 70–90% "reasonable" bot, the tutorial, map variety. See prompts/improve-next.txt.
+
+## 2026-10-27 11:05 · improve round 7 launched (prompts/improve-6.txt)
+- Round 6 (improve-5) finished 10:57. Live returns 200. npm test passes: ch1 naive 50/50; reasonable ch1/2/4/5/6 100%, ch3/ch7 92%; the naive rush fails ch3/5/7.
+- 390px review of screenshots/v9: the deploy gap and the objective clipping are fixed, and the attack preview is clean. New issues: the ch1 tutorial names 熊岳, who wasn't deployed, and undeployed 槍/飛 units appear; the info bar shows "河水 移∞" for a unit; the tutorial dims the whole map.
+- Brief: ch1 roster/tutorial coherence plus a spotlight; tune mid chapters to a 75–90% reasonable-bot win rate via composition (not stats); a 士氣 morale/rout system; ch8 山道伏兵 with a 盾陣 phalanx and a 滾木 stratagem; 1.25× figures with shadows and idle bob. Screenshots go to screenshots/v10. Old state is in .orch-prev-6.

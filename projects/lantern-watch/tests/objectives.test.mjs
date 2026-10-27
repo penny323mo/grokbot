@@ -138,8 +138,8 @@ test('Objectives: Bamboo Pass chapter (reach shrine or rout all enemies)', () =>
   const chapter = CHAPTERS.find(c => c.key === 'bamboo_pass');
   assert.ok(chapter, 'Chapter 5 should exist');
 
-  // Case 1: Ally reaches shrine altar (4, 1) -> WIN!
-  const allyAtShrine = { id: 'cat_patrol', role: 'flanker', hp: 20, x: 4, y: 1 };
+  // Case 1: Ally reaches shrine altar (4, 0) -> WIN!
+  const allyAtShrine = { id: 'cat_patrol', role: 'flanker', hp: 20, x: 4, y: 0 };
   const enemy = { id: 'shield_guard', hp: 30, x: 4, y: 5 };
   let status = checkBattleStatus(chapter, {
     currentTurn: 5,
@@ -238,6 +238,53 @@ test('Objectives: Side battle marsh chapter (survive or rout sorcerer)', () => {
     currentTurn: 13, // max 12
     allies: [ally],
     enemies: [sorcerer, rat]
+  });
+  assert.strictEqual(status.finished, true);
+  assert.strictEqual(status.victory, false);
+});
+
+test('Objectives: Mountain ambush chapter (defeat warlord or break phalanx)', () => {
+  const chapter = CHAPTERS.find(c => c.key === 'mountain_ambush');
+  assert.ok(chapter, 'Chapter 8 should exist');
+
+  const ally = { id: 'bear_guard', role: 'tank', hp: 30, x: 4, y: 7 };
+  const boss = { id: 'mountain_warlord', hp: 36, x: 4, y: 1 };
+  const phalanx = { id: 'shield_phalanx', hp: 28, x: 4, y: 3 };
+
+  // Case 1: In progress
+  let status = checkBattleStatus(chapter, {
+    currentTurn: 2,
+    allies: [ally],
+    enemies: [boss, phalanx]
+  });
+  assert.strictEqual(status.finished, false);
+
+  // Case 2: Mountain warlord boss defeated -> WIN!
+  const bossDead = { id: 'mountain_warlord', hp: 0, x: 4, y: 1 };
+  status = checkBattleStatus(chapter, {
+    currentTurn: 4,
+    allies: [ally],
+    enemies: [bossDead, phalanx]
+  });
+  assert.strictEqual(status.finished, true);
+  assert.strictEqual(status.victory, true);
+  assert.ok(status.reason.includes('斬殺伏兵統領'));
+
+  // Case 3: All enemies routed -> WIN!
+  status = checkBattleStatus(chapter, {
+    currentTurn: 5,
+    allies: [ally],
+    enemies: []
+  });
+  assert.strictEqual(status.finished, true);
+  assert.strictEqual(status.victory, true);
+  assert.ok(status.reason.includes('全殲山道伏兵'));
+
+  // Case 4: Turn limit exceeded -> LOSE!
+  status = checkBattleStatus(chapter, {
+    currentTurn: 8, // max 6
+    allies: [ally],
+    enemies: [boss, phalanx]
   });
   assert.strictEqual(status.finished, true);
   assert.strictEqual(status.victory, false);

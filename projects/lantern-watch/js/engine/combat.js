@@ -23,15 +23,23 @@ export function capDamageToAlly(defender, dmg) {
  * Returns 'back', 'side', or 'front'
  */
 export function getAttackDirection(attackerPos, defenderPos, defenderFacing) {
-  // defenderFacing: 1 (faces right/East), -1 (faces left/West)
+  // defenderFacing: 1 (East), -1 (West), 0 (North), 2 (South)
   const dx = attackerPos.x - defenderPos.x;
   const dy = attackerPos.y - defenderPos.y;
 
-  if (defenderFacing === 1) { // Faces East
+  if (defenderFacing === 2) { // Faces South
+    if (dy < 0) return 'back';  // Attacking from North is behind
+    if (dy > 0) return 'front'; // Attacking from South is front
+    return 'side';              // Same row is flank/side
+  } else if (defenderFacing === 0) { // Faces North
+    if (dy > 0) return 'back';  // Attacking from South is behind
+    if (dy < 0) return 'front'; // Attacking from North is front
+    return 'side';
+  } else if (defenderFacing === 1) { // Faces East
     if (dx < 0) return 'back';  // Attacking from West is behind
     if (dx > 0) return 'front'; // Attacking from East is front
     return 'side';              // Same column (North/South) is flank/side
-  } else {                      // Faces West
+  } else {                      // Faces West (-1 or default)
     if (dx > 0) return 'back';  // Attacking from East is behind
     if (dx < 0) return 'front'; // Attacking from West is front
     return 'side';              // Same column is flank/side
@@ -116,8 +124,11 @@ export function calculateCombat(attacker, defender, board, options = {}) {
   } else if (isSideAttack) {
     damageMod *= flankRateSide;
   } else if (isFrontAttack) {
-    // iron_general and shield_guard trait: frontal damage -70%
-    if (defender.trait?.id === 'iron_shield_wall' || defender.trait?.id === 'shield_block' || defender.role === 'shield_guard' || defender.id === 'iron_general') {
+    if (defender.trait?.id === 'phalanx_wall' || defender.role === 'shield_phalanx') {
+      if (!isMagic && !defender.phalanxBroken) {
+        damageMod *= 0.15; // Phalanx blocks 85% frontal physical damage
+      }
+    } else if (defender.trait?.id === 'iron_shield_wall' || defender.trait?.id === 'shield_block' || defender.role === 'shield_guard' || defender.id === 'iron_general') {
       damageMod *= 0.3;
     }
   }

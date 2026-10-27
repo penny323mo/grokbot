@@ -162,7 +162,8 @@ export class UIRenderer {
       4: { left: '58%', top: '22%', name: '第四回 · 山道' },
       5: { left: '38%', top: '40%', name: '第五回 · 竹海' },
       6: { left: '80%', top: '24%', name: '第六回 · 攻城' },
-      7: { left: '18%', top: '28%', name: '外傳 · 荒澤' }
+      7: { left: '18%', top: '28%', name: '外傳 · 荒澤' },
+      8: { left: '46%', top: '16%', name: '第八回 · 萬壑' }
     };
 
     CHAPTERS.forEach(ch => {
@@ -365,8 +366,22 @@ export class UIRenderer {
       battle.chapter.objectiveType === 'protect_lantern' ? '保護神燈' :
       battle.chapter.objectiveType === 'reach_shrine_or_rout' ? '佔領神壇' :
       battle.chapter.objectiveType === 'survive_or_rout' ? '破咒誅妖' :
-      battle.chapter.objectiveType === 'breach_gate_or_rout' ? '破關斬將' : '討伐鐵將';
+      battle.chapter.objectiveType === 'breach_gate_or_rout' ? '破關斬將' :
+      battle.chapter.objectiveType === 'break_phalanx_or_rout' ? '破陣斬將' : '討伐鐵將';
     document.getElementById('hudObjectiveTicker').textContent = `${battle.chapter.mapName} · ${shortObj}`;
+
+    // Update Morale HUD
+    const allyMorale = battle.allyMorale ?? 100;
+    const enemyMorale = battle.enemyMorale ?? 100;
+    const maxMorale = battle.maxMorale ?? 100;
+    const elAllyM = document.getElementById('hudAllyMorale');
+    if (elAllyM) elAllyM.textContent = allyMorale;
+    const elEnemyM = document.getElementById('hudEnemyMorale');
+    if (elEnemyM) elEnemyM.textContent = enemyMorale;
+    const elAllyFill = document.getElementById('hudAllyMoraleFill');
+    if (elAllyFill) elAllyFill.style.width = `${Math.max(0, Math.min(100, (allyMorale / maxMorale) * 100))}%`;
+    const elEnemyFill = document.getElementById('hudEnemyMoraleFill');
+    if (elEnemyFill) elEnemyFill.style.width = `${Math.max(0, Math.min(100, (enemyMorale / maxMorale) * 100))}%`;
 
     // Background Map Image
     const mapBg = document.getElementById('battleMapBg');
@@ -1244,8 +1259,8 @@ export class UIRenderer {
       {
         num: '6 / 7',
         title: '奇術 · 破陣絕技',
-        text: '⑥「奇術」消耗法力施展絕技，可直線貫穿或扇形烈焰覆蓋群敵',
-        idle: '✦ 8秒提示：點擊【計策】施展直線或扇形絕技，按【💡建議行動】發動！'
+        text: '⑥「奇術」消耗法力施展將士絕技，燈娘可放靈矢或置長明燈，茶翁烹茶療癒全軍',
+        idle: '✦ 8秒提示：點擊將士【技能】或【奇術】發動絕技，或點【💡建議行動】！'
       },
       {
         num: '7 / 7',
@@ -1645,6 +1660,20 @@ export class UIRenderer {
       floater.innerHTML = `${tagHtml}-${info.damage ?? 10}`;
     }
 
+    vfxLayer.appendChild(floater);
+    setTimeout(() => floater.remove(), 2500);
+  }
+
+  showFloatingMorale(x, y, text, isPositive = false) {
+    const vfxLayer = document.getElementById('vfxLayer') || document.getElementById('battleBoardStage');
+    if (!vfxLayer) return;
+
+    const floater = document.createElement('div');
+    const tilePx = 64;
+    floater.style.left = `${x * tilePx + 32}px`;
+    floater.style.top = `${y * tilePx - 38}px`;
+    floater.className = `floating-dmg-number ${isPositive ? 'heal' : 'crit'} floating-morale-text`;
+    floater.innerHTML = `<span class="floating-tag-badge ${isPositive ? 'heal' : 'crit'}">${text}</span>`;
     vfxLayer.appendChild(floater);
     setTimeout(() => floater.remove(), 2500);
   }

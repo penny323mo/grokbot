@@ -29,6 +29,9 @@ export class Battle {
     this.allies = [];
     this.enemies = [];
     this.eventLog = [];
+    this.allyMorale = 100;
+    this.enemyMorale = 100;
+    this.maxMorale = 100;
     this.usedBondPairThisBattle = false;
     this.actionScores = {};
     this.floodedTiles = new Map();
@@ -189,6 +192,88 @@ export class Battle {
         center = bestCenter;
       }
       this.triggerFireAttack(center.x, center.y);
+    } else if (this.stratagemId === 'rolling_log') {
+      this.triggerRollingLog();
+    }
+  }
+
+  modifyMorale(team, delta, reason = '') {
+    if (team === 'ally') {
+      this.allyMorale = Math.max(0, Math.min(this.maxMorale, this.allyMorale + delta));
+    } else {
+      this.enemyMorale = Math.max(0, Math.min(this.maxMorale, this.enemyMorale + delta));
+    }
+    const tag = team === 'ally' ? '我軍' : '敵軍';
+    const sign = delta > 0 ? `+${delta}` : `${delta}`;
+    const msg = `【${tag}士氣 ${sign}】${reason ? ' · ' + reason : ''}`;
+    this.eventLog.push({ type: 'morale', team, delta, reason, msg });
+  }
+
+  processCombatMorale(attacker, defender, combatRes) {
+    if (!combatRes || !combatRes.preview) return;
+    const { preview, attackerAlive, defenderAlive } = combatRes;
+
+    // Check flank attacks by allies against enemies
+    if (attacker.team === 'ally' && defender.team === 'enemy') {
+      if (preview.isBackAttack) {
+        this.modifyMorale('enemy', -5, '背刺重創');
+      } else if (preview.isSideAttack) {
+        this.modifyMorale('enemy', -2, '側翼奇襲');
+      }
+    }
+
+    // Check defeats
+    if (!defenderAlive && defender._moraleProcessed !== true) {
+      defender._moraleProcessed = true;
+      if (defender.team === 'enemy') {
+        const isCommander = defender.role === 'commander' || defender.isBoss || defender.id === this.chapter.bossId;
+        const delta = isCommander ? -25 : -8;
+        this.modifyMorale('enemy', delta, isCommander ? '主將陣亡' : '陣斬敵兵');
+      } else if (defender.team === 'ally') {
+        this.modifyMorale('ally', -15, '折損將士');
+      }
+    }
+
+    if (!attackerAlive && attacker._moraleProcessed !== true) {
+      attacker._moraleProcessed = true;
+      if (attacker.team === 'enemy') {
+        const isCommander = attacker.role === 'commander' || attacker.isBoss || attacker.id === this.chapter.bossId;
+        const delta = isCommander ? -25 : -8;
+        this.modifyMorale('enemy', delta, isCommander ? '主將陣亡' : '陣斬敵兵');
+      } else if (attacker.team === 'ally') {
+        this.modifyMorale('ally', -15, '折損將士');
+      }
+    }
+  }
+
+  triggerRollingLog(targetCols = [3, 4, 5]) {
+    this.eventLog.push({
+      type: 'stratagem',
+      name: '滾木',
+      msg: '【滾木傾瀉】擂木巨石自萬壑絕壁轟然滾落，重創峽道敵陣並砸碎重裝盾陣！'
+    });
+
+    for (const e of this.enemies) {
+      if (targetCols.includes(e.x) && e.y >= 2 && e.y <= 9) {
+        e.hp = Math.max(0, e.hp - 16);
+        if (e.trait?.id === 'phalanx_wall' || e.role === 'shield_phalanx') {
+          e.phalanxBroken = true;
+        }
+        const ny = Math.min(12, e.y + 1);
+        if (!this.board.isImpassable(e.x, ny, false) && !this.getUnitAt(e.x, ny)) {
+          e.y = ny;
+        }
+        this.eventLog.push({
+          type: 'rolling_log_hit',
+          target: e.id,
+          damage: 16,
+          msg: `滾木巨力轟擊【${e.name}】，造成16點傷害並破除盾陣！`
+        });
+        if (e.hp <= 0 && !e._moraleProcessed) {
+          e._moraleProcessed = true;
+          this.modifyMorale('enemy', -8, '滾木砸死敵兵');
+        }
+      }
     }
   }
 
@@ -232,6 +317,15 @@ export class Battle {
       if (unit && unit.hp > 0 && unit.element !== 'water') {
         unit.hp = Math.max(0, unit.hp - 4);
         this.eventLog.push({ type: 'fire_burn', target: unit.id, damage: 4 });
+        if (unit.hp <= 0 && !unit._moraleProcessed) {
+          unit._moraleProcessed = true;
+          if (unit.team === 'enemy') {
+            const isCommander = unit.role === 'commander' || unit.isBoss || unit.id === this.chapter.bossId;
+            this.modifyMorale('enemy', isCommander ? -25 : -8, isCommander ? '主將陣亡' : '火灼陣亡');
+          } else if (unit.team === 'ally') {
+            this.modifyMorale('ally', -15, '折損將士');
+          }
+        }
       }
       const adj = [
         { x: tx + 1, y: ty }, { x: tx - 1, y: ty },
@@ -540,6 +634,7 @@ export class Battle {
           allies: this.allies,
           synergies: this.synergies
         });
+        this.processCombatMorale(unit, target, combatRes);
 
         result.events = combatRes.events;
         unit.acted = true;
@@ -609,6 +704,7 @@ export class Battle {
                 allies: this.allies,
                 synergies: this.synergies
               });
+              this.processCombatMorale(unit, hitUnit, combatRes);
               result.events.push(...combatRes.events);
             }
           }
@@ -633,6 +729,7 @@ export class Battle {
                 allies: this.allies,
                 synergies: this.synergies
               });
+              this.processCombatMorale(unit, hitUnit, combatRes);
               result.events.push(...combatRes.events);
             }
           }
@@ -657,6 +754,7 @@ export class Battle {
                 allies: this.allies,
                 synergies: this.synergies
               });
+              this.processCombatMorale(unit, hitUnit, combatRes);
               result.events.push(...combatRes.events);
             }
           }
@@ -670,6 +768,7 @@ export class Battle {
             allies: this.allies,
             synergies: this.synergies
           });
+          this.processCombatMorale(unit, target, combatRes);
           result.events = combatRes.events;
           unit.acted = true;
           unit.moved = false;
@@ -715,6 +814,7 @@ export class Battle {
                 allies: this.allies,
                 synergies: this.synergies
               });
+              this.processCombatMorale(unit, hitUnit, combatRes);
               result.events.push(...combatRes.events);
             }
           }
@@ -739,6 +839,7 @@ export class Battle {
                 allies: this.allies,
                 synergies: this.synergies
               });
+              this.processCombatMorale(unit, hitUnit, combatRes);
               result.events.push(...combatRes.events);
             }
           }
@@ -763,6 +864,7 @@ export class Battle {
                 allies: this.allies,
                 synergies: this.synergies
               });
+              this.processCombatMorale(unit, hitUnit, combatRes);
               result.events.push(...combatRes.events);
             }
           }
@@ -776,6 +878,7 @@ export class Battle {
             allies: this.allies,
             synergies: this.synergies
           });
+          this.processCombatMorale(unit, target, combatRes);
           result.events = combatRes.events;
           unit.acted = true;
           unit.moved = false;
@@ -794,11 +897,13 @@ export class Battle {
 
           // Unit attacks
           const c1 = executeCombat(unit, target, this.board, this.rng, { actionType: 'attack', allies: this.allies, synergies: this.synergies });
+          this.processCombatMorale(unit, target, c1);
           result.events = [...c1.events];
 
           // Partner attacks for free!
           if (target.hp > 0) {
             const c2 = executeCombat(bondInfo.partner, target, this.board, this.rng, { actionType: 'attack', allies: this.allies, synergies: this.synergies });
+            this.processCombatMorale(bondInfo.partner, target, c2);
             result.events.push(...c2.events);
           }
 
@@ -917,6 +1022,31 @@ export class Battle {
     for (const enemy of livingEnemies) {
       if (this.status.finished) break;
       if (enemy.acted) continue;
+
+      // Check morale rout for weak enemies
+      const isWeak = !enemy.isBoss && enemy.role !== 'commander' && enemy.id !== this.chapter.bossId;
+      if (this.enemyMorale <= 35 && isWeak) {
+        const routRoll = this.rng ? this.rng.nextInt(1, 100) : 50;
+        const routThreshold = this.enemyMorale <= 20 ? 60 : 35;
+        if (routRoll <= routThreshold) {
+          const reachable = Array.from(this.getReachableFor(enemy).values());
+          if (reachable.length > 0) {
+            const livingAllies = this.allies.filter(a => a.hp > 0);
+            if (livingAllies.length > 0) {
+              reachable.sort((a, b) => {
+                const minDa = Math.min(...livingAllies.map(al => Board.manhattan(a.x, a.y, al.x, al.y)));
+                const minDb = Math.min(...livingAllies.map(al => Board.manhattan(b.x, b.y, al.x, al.y)));
+                return minDb - minDa;
+              });
+              this.moveUnit(enemy, reachable[0].x, reachable[0].y);
+            }
+          }
+          enemy.acted = true;
+          this.eventLog.push({ type: 'rout', target: enemy.id, msg: `【敵軍潰逃！】${enemy.name}軍心潰散，棄械倉皇逃竄！` });
+          continue;
+        }
+      }
+
       if (enemy.aggro === 'guard' && !enemy.alerted) {
         const hurt = enemy.maxHp && enemy.hp < enemy.maxHp;
         const near = this.allies.some(a => a.hp > 0 && a.role !== 'npc' && Board.manhattan(a.x, a.y, enemy.x, enemy.y) <= enemy.guardRadius);
@@ -946,13 +1076,14 @@ export class Battle {
       }
 
       if ((decision.type === 'attack' || decision.type === 'magic') && decision.target) {
-        executeCombat(enemy, decision.target, this.board, this.rng, {
+        const cRes = executeCombat(enemy, decision.target, this.board, this.rng, {
           actionType: decision.type,
           element: decision.element || null,
           movedTiles: decision.movedTiles || 0,
           allies: this.allies,
           synergies: this.synergies
         });
+        this.processCombatMorale(enemy, decision.target, cRes);
         if (enemy.role === 'curse_sorcerer' || enemy.id === 'curse_sorcerer') {
           this.applyCurseTiles(decision.target.x, decision.target.y);
         }
@@ -1020,6 +1151,10 @@ export class Battle {
           damage: 4,
           msg: `【幽冥咒縛】${unit.name}踏足咒蝕之地，受陰煞侵蝕損失4點氣血！`
         });
+        if (unit.hp <= 0 && !unit._moraleProcessed) {
+          unit._moraleProcessed = true;
+          this.modifyMorale('ally', -15, '折損將士');
+        }
       }
     }
   }
@@ -1081,6 +1216,17 @@ export class Battle {
       this.eventLog.push({
         type: 'bridge_collapse',
         msg: '【吊橋斷裂】要塞機關啟動！護城河吊橋踏板轟然崩塌，化為滾滾護城深水！'
+      });
+    }
+
+    // Chapter 8: Mountain pass rockslide on turn 3
+    if (this.chapter?.id === 8 && this.currentTurn === 3 && !this.mountainAmbushTriggered) {
+      this.mountainAmbushTriggered = true;
+      this.board.setTerrainChar(2, 6, '#');
+      this.board.setTerrainChar(7, 6, '#');
+      this.eventLog.push({
+        type: 'mountain_rockslide',
+        msg: '【落石封道】兩側懸崖巨石轟然滾落，狹道兩側被落石封阻，山道伏兵發動全面夾擊！'
       });
     }
 

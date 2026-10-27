@@ -1009,3 +1009,101 @@ test('Rules: Class synergy bonuses (spell_arrow +10% ranged dmg, iron_fortress +
   assert.strictEqual(battle.currentTurn, 2);
   assert.strictEqual(battle.allies.find(u => u.id === 'cat_patrol').mov, GUARDIAN_PROTOS.cat_patrol.mov, 'Turn 2 cavalry_coop bonus reverts to standard MOV');
 });
+
+test('Rules: Morale system (士氣) dynamics and drops', () => {
+  const terrain = Array(13).fill('..........');
+  const board = new Board(terrain);
+  const ch = { id: 8, terrain, maxTurns: 10, bossId: 'mountain_warlord', deployTiles: [{ x: 4, y: 8 }] };
+  const ally = { ...GUARDIAN_PROTOS.cat_patrol, x: 4, y: 8, atk: 20, spd: 10 };
+  const battle = new Battle(ch, [ally]);
+
+  assert.strictEqual(battle.allyMorale, 100, 'Initial ally morale must be 100');
+  assert.strictEqual(battle.enemyMorale, 100, 'Initial enemy morale must be 100');
+
+  // Spawn enemy facing East (1)
+  const enemy = { ...ENEMY_PROTOS.mountain_warlord, x: 4, y: 7, facing: 1, hp: 36, def: 0 };
+  battle.enemies = [enemy];
+
+  // Side attack from South (facing 1, attacking from south = side attack)
+  // modifying morale on side attack: -2
+  battle.modifyMorale('enemy', -2, '側翼奇襲');
+  assert.strictEqual(battle.enemyMorale, 98, 'Side attack lowers enemy morale by 2');
+
+  // Back attack from West (facing 1, attacking from west = back attack)
+  battle.modifyMorale('enemy', -5, '背刺重創');
+  assert.strictEqual(battle.enemyMorale, 93, 'Back attack lowers enemy morale by 5');
+
+  // Killing enemy commander lowers morale by 25
+  battle.modifyMorale('enemy', -25, '主將陣亡');
+  assert.strictEqual(battle.enemyMorale, 68, 'Defeating commander lowers enemy morale by 25');
+});
+
+test('Rules: Shield phalanx (鐵壁盾陣) 85% frontal physical damage reduction and rolling_log stratagem break', () => {
+  const terrain = Array(13).fill('..........');
+  const board = new Board(terrain);
+
+  // Phalanx enemy facing South (2), standing at (4, 4)
+  const phalanx = {
+    ...ENEMY_PROTOS.shield_phalanx,
+    x: 4,
+    y: 4,
+    facing: 2, // Facing South (down towards y=5)
+    def: 0,
+    hp: 28,
+    spd: 5
+  };
+
+  // Attacker at (4, 5) -> attacks from South -> FRONTAL attack!
+  const attackerFront = {
+    id: 'bear_guard',
+    team: 'ally',
+    x: 4,
+    y: 5,
+    atk: 20,
+    spd: 8
+  };
+
+  // 1. Frontal physical attack: raw damage = (20 - 0) = 20. 85% blocked -> expected 20 * 0.15 = 3
+  const frontRes = calculateCombat(attackerFront, phalanx, board);
+  assert.strictEqual(frontRes.expectedDamage, 3, 'Phalanx blocks 85% frontal physical damage (20 * 0.15 = 3)');
+
+  // 2. Back attack: attacker at (4, 3) -> attacks from North (behind facing 2)
+  const attackerBack = {
+    id: 'soldier_ally',
+    team: 'ally',
+    x: 4,
+    y: 3,
+    atk: 20,
+    spd: 8
+  };
+  const backRes = calculateCombat(attackerBack, phalanx, board);
+  // Back attack gets 1.5x damage and bypasses frontal shield wall: 20 * 1.5 = 30
+  assert.strictEqual(backRes.expectedDamage, 30, 'Back attack deals full 1.5x damage without frontal shield reduction');
+
+  // 3. Magic attack from front: magic bypasses frontal shield wall: (mag 20 - res 2) * 1.0 = 18
+  const magicAttacker = {
+    id: 'tanuki_mage',
+    team: 'ally',
+    role: 'mage',
+    x: 4,
+    y: 5,
+    mag: 20,
+    spd: 8
+  };
+  const magicRes = calculateCombat(magicAttacker, phalanx, board, { actionType: 'magic', skill: { isMagic: true, type: 'magic' } });
+  assert.strictEqual(magicRes.expectedDamage, 18, 'Magic attack bypasses frontal shield wall');
+
+  // 4. Rolling log stratagem shatters shield phalanx
+  const ch = { id: 8, terrain, maxTurns: 10, deployTiles: [{ x: 4, y: 11 }] };
+  const battle = new Battle(ch, [{ id: 'bear', team: 'ally', x: 4, y: 11 }]);
+  battle.enemies = [phalanx];
+
+  battle.triggerRollingLog([4]);
+  assert.strictEqual(phalanx.hp, 28 - 16, 'Rolling log deals 16 damage');
+  assert.strictEqual(phalanx.phalanxBroken, true, 'Rolling log shatters phalanx shield');
+
+  // Now frontal physical attack deals full damage because phalanxBroken is true!
+  // Phalanx was pushed down to y=5 by rolling log, so attacker attacks from (4, 6) (front south)
+  const brokenRes = calculateCombat({ ...attackerFront, y: 6 }, phalanx, board);
+  assert.strictEqual(brokenRes.expectedDamage, 20, 'Broken phalanx takes full frontal physical damage');
+});

@@ -36,11 +36,10 @@ export const CHAPTERS = [
       { x: 8, y: 1, radius: 2 }
     ],
     deployTiles: [
-      { x: 0, y: 11 }, { x: 1, y: 11 }, { x: 2, y: 11 }, { x: 3, y: 12 },
-      { x: 1, y: 12 }, { x: 2, y: 12 }
+      { x: 0, y: 11 }, { x: 1, y: 11 }, { x: 0, y: 12 }, { x: 1, y: 12 }
     ],
     npcSpawns: [
-      { id: 'lantern_cart', x: 1, y: 10 }
+      { id: 'lantern_cart', x: 2, y: 12 }
     ],
     enemySpawns: [
       // Tutorial: 3 light enemies, spaced so they arrive one at a time
@@ -95,6 +94,7 @@ export const CHAPTERS = [
       { x: 3, y: 8 }, { x: 6, y: 8 }, { x: 2, y: 8 }, { x: 7, y: 8 }
     ],
     reinforcements: [
+      { turn: 3, id: 'fog_rider', x: 1, y: 6, facing: 1, bark: '「側翼突擊！直撲關門！」' },
       { turn: 3, id: 'paper_ghost', x: 3, y: 1, facing: 1, bark: '「水影重重，陰魂不散！」' },
       { turn: 4, id: 'fog_rider', x: 4, y: 1, facing: 1, bark: '「精騎衝擊！踏平城門！」' },
       { turn: 5, id: 'mist_sorcerer', x: 5, y: 1, facing: -1 }
@@ -155,13 +155,17 @@ export const CHAPTERS = [
       { id: 'market_lantern', x: 4, y: 6 }
     ],
     enemySpawns: [
+      { id: 'shadow_rat', x: 1, y: 4, facing: 1, aggro: 'rush' },
+      { id: 'shadow_rat', x: 8, y: 4, facing: -1, aggro: 'rush' },
       { id: 'shield_guard', x: 5, y: 2, facing: -1, aggro: 'guard', guardRadius: 2 },
       { id: 'mist_sorcerer', x: 2, y: 2, facing: 1, aggro: 'guard', guardRadius: 2 },
       { id: 'shadow_archer', x: 7, y: 2, facing: -1, aggro: 'guard', guardRadius: 3 },
       { id: 'shadow_archer', x: 1, y: 2, facing: 1, aggro: 'guard', guardRadius: 3 }
     ],
     reinforcements: [
-      { turn: 3, id: 'fog_rider', x: 4, y: 8, facing: -1, aggro: 'rush', bark: '「精騎截殺！直取市集神燈！」' },
+      { turn: 2, id: 'fog_rider', x: 8, y: 7, facing: -1, aggro: 'rush', bark: '「精騎截殺！直取市集神燈！」' },
+      { turn: 3, id: 'mist_scout', x: 1, y: 5, facing: 1, aggro: 'rush' },
+      { turn: 3, id: 'fog_rider', x: 4, y: 8, facing: -1, aggro: 'rush' },
       { turn: 3, id: 'shadow_rat', x: 2, y: 8, facing: 1, aggro: 'rush' },
       { turn: 3, id: 'mist_scout', x: 6, y: 8, facing: -1, aggro: 'rush' },
       { turn: 4, id: 'fog_rider', x: 5, y: 9, facing: -1, aggro: 'rush', bark: '「放火燒街！斷其歸路！」' },
@@ -203,7 +207,7 @@ export const CHAPTERS = [
     defeatDesc: '我方全軍覆沒 或 超過16回合',
     bossId: 'iron_general',
     exitTiles: [
-      { x: 4, y: 0 }, { x: 5, y: 0 }, { x: 4, y: 1 }, { x: 5, y: 1 }
+      { x: 4, y: 0 }, { x: 5, y: 0 }
     ],
     reinforcements: [
       { turn: 5, id: 'mother_of_mist', x: 5, y: 1, facing: -1, bark: '「無知凡人，竟敢擾我清夢……夜霧將吞噬一切！」' }
@@ -216,6 +220,8 @@ export const CHAPTERS = [
       { x: 3, y: 12 }, { x: 4, y: 12 }, { x: 5, y: 12 }, { x: 6, y: 12 }
     ],
     enemySpawns: [
+      { id: 'shield_guard', x: 4, y: 0, facing: 2, aggro: 'guard', guardRadius: 2 },
+      { id: 'shield_guard', x: 5, y: 0, facing: 2, aggro: 'guard', guardRadius: 2 },
       { id: 'iron_general', x: 4, y: 2, facing: -1 }, // holds the dam bridge!
       { id: 'shield_guard', x: 5, y: 2, facing: -1 },
       { id: 'mist_sorcerer', x: 2, y: 2, facing: 1 },
@@ -253,15 +259,17 @@ export const CHAPTERS = [
     mapName: '竹海',
     image: 'map_bamboo_pass.webp',
     squadLimit: 6,
-    maxTurns: 12,
+    maxTurns: 8,
     hasNightFog: true,
     objectiveType: 'reach_shrine_or_rout',
     objectiveDesc: '突破幽谷竹海，佔領北端【封魔神壇】（或殲滅全體伏兵敵將）',
-    defeatDesc: '我方全軍覆沒 或 超過12回合',
+    defeatDesc: '我方全軍覆沒 或 超過8回合',
     shrineTiles: [
-      { x: 4, y: 1 }, { x: 5, y: 1 }, { x: 4, y: 2 }, { x: 5, y: 2 }
+      { x: 4, y: 0 }, { x: 5, y: 0 }
     ],
     reinforcements: [
+      { turn: 2, id: 'shadow_rat', x: 2, y: 7, facing: 1, aggro: 'rush' },
+      { turn: 2, id: 'shadow_rat', x: 7, y: 7, facing: -1, aggro: 'rush' },
       { turn: 3, id: 'fog_rider', x: 4, y: 10, facing: 1, bark: '「霧騎後軍已至！休放走一人！」' },
       { turn: 3, id: 'fog_rider', x: 5, y: 10, facing: -1 },
       { turn: 3, id: 'shadow_archer', x: 7, y: 5, facing: -1 },
@@ -276,6 +284,10 @@ export const CHAPTERS = [
       { x: 4, y: 12 }, { x: 5, y: 12 }
     ],
     enemySpawns: [
+      { id: 'shield_guard', x: 4, y: 0, facing: 2, aggro: 'guard', guardRadius: 2 },
+      { id: 'shield_guard', x: 5, y: 0, facing: 2, aggro: 'guard', guardRadius: 2 },
+      { id: 'shield_guard', x: 4, y: 1, facing: 2, aggro: 'guard', guardRadius: 2 },
+      { id: 'shield_guard', x: 5, y: 1, facing: 2, aggro: 'guard', guardRadius: 2 },
       { id: 'shield_guard', x: 5, y: 2, facing: -1, aggro: 'guard', guardRadius: 2 },
       { id: 'shield_guard', x: 4, y: 4, facing: -1, aggro: 'guard', guardRadius: 3 },
       { id: 'mist_sorcerer', x: 5, y: 4, facing: -1, aggro: 'guard', guardRadius: 3 },
@@ -314,11 +326,11 @@ export const CHAPTERS = [
     mapName: '攻城',
     image: 'map_siege.webp',
     squadLimit: 6,
-    maxTurns: 15,
+    maxTurns: 8,
     hasCollapsibleBridge: true,
     objectiveType: 'breach_gate_or_rout',
-    objectiveDesc: '強渡護城河擊破鐵門，或側翼飛騎奇襲斬殺【鎮關將領】（15回合內）',
-    defeatDesc: '我方全軍覆沒 或 超過15回合',
+    objectiveDesc: '強渡護城河擊破鐵門，或側翼飛騎奇襲斬殺【鎮關將領】（8回合內）',
+    defeatDesc: '我方全軍覆沒 或 超過8回合',
     bossId: 'citadel_warlord',
     gateTiles: [
       { x: 4, y: 5 }, { x: 5, y: 5 }
@@ -331,6 +343,7 @@ export const CHAPTERS = [
       { x: 4, y: 12 }, { x: 5, y: 12 }
     ],
     enemySpawns: [
+      { id: 'shield_guard', x: 4, y: 1, facing: 2, aggro: 'guard', guardRadius: 2 },
       { id: 'citadel_warlord', x: 4, y: 2, facing: -1 }, // Fortress Keep commander
       { id: 'siege_engine', x: 2, y: 2, facing: -1 },    // Artillery on ramparts
       { id: 'shadow_archer', x: 2, y: 4, facing: 1 },    // Wall archer
@@ -416,6 +429,62 @@ export const CHAPTERS = [
       "...rrr....", // 10: Marsh approach
       "...rrr....", // 11: Deployment zone
       "...rrr...."  // 12: Deployment zone
+    ]
+  },
+  {
+    id: 8,
+    key: 'mountain_ambush',
+    title: '第八回 · 萬壑松風伏兵隘',
+    mapName: '萬壑山隘',
+    image: 'map_mountain_pass.webp',
+    banner: 'banner_ch8.webp',
+    squadLimit: 6,
+    maxTurns: 6,
+    objectiveType: 'break_phalanx_or_rout',
+    objectiveDesc: '斬殺【伏兵統領】或擊潰重裝盾陣全殲敵軍（6回合內）',
+    defeatDesc: '我方全軍覆沒 或 超過6回合',
+    bossId: 'mountain_warlord',
+    lanterns: [
+      { x: 1, y: 11, radius: 2 },
+      { x: 8, y: 4, radius: 2 }
+    ],
+    deployTiles: [
+      { x: 3, y: 11 }, { x: 4, y: 11 }, { x: 5, y: 11 }, { x: 6, y: 11 },
+      { x: 3, y: 12 }, { x: 4, y: 12 }
+    ],
+    reinforcements: [
+      { turn: 3, id: 'fog_rider', x: 1, y: 5, facing: 1, bark: '「萬壑伏兵四起，截斷退路！」' },
+      { turn: 3, id: 'shadow_archer', x: 8, y: 3, facing: -1, bark: '「居高臨下，亂箭齊發！」' }
+    ],
+    enemySpawns: [
+      { id: 'mountain_warlord', x: 4, y: 1, facing: 2, aggro: 'guard', guardRadius: 3 },
+      { id: 'shield_phalanx', x: 3, y: 4, facing: 2, aggro: 'guard', guardRadius: 2 },
+      { id: 'shield_phalanx', x: 4, y: 3, facing: 2, aggro: 'guard', guardRadius: 2 },
+      { id: 'shield_phalanx', x: 5, y: 4, facing: 2, aggro: 'guard', guardRadius: 2 },
+      { id: 'shadow_archer', x: 2, y: 2, facing: 2 },
+      { id: 'shadow_archer', x: 7, y: 2, facing: 2 }
+    ],
+    storyBefore: [
+      { speaker: 'cat_patrol', mood: 'calm', text: '「前方是萬壑松風險隘！兩側峭壁如削，敵軍布下鐵壁盾陣，正面刀槍不入！」' },
+      { speaker: 'bear_guard', mood: 'angry', text: '「正面硬撼如同撞擊磐石！若能從側翼懸崖包抄，或以滾木自斜坡砸落，定能砸裂盾陣！」' },
+      { speaker: 'lantern_crafter', mood: 'calm', text: '「此外，盾陣不防奇術法術，以破煞靈矢或靈火轟擊亦能穿透大盾！」' }
+    ],
+    // 10 cols x 13 rows hand-aligned to map_mountain_pass.webp
+    // #: cliff wall, h: high ground cliff ridge, f: mountain pine forest, r: mountain road pass, .: scree
+    terrain: [
+      "####..####", // 0: Mountain pass entrance
+      "###.rr.###", // 1: Warlord redoubt (x=4, y=1)
+      "#hh.rr.hh#", // 2: High clifftops (archers on high ground)
+      "#hh.rr.hh#", // 3: High clifftops
+      "##..rr..##", // 4: Defile chokepoint (shield phalanx at x=3,5)
+      "##.ffff.##", // 5: Pine forest slope
+      "#..ffff..#", // 6: Pine forest flank trails
+      "#...rr...#", // 7: Valley floor
+      "...rrrr...", // 8: Road fork
+      "..rrrrrr..", // 9: Road pass
+      "..rrrrrr..", // 10: Mountain pass approach
+      "...rrrr...", // 11: Deployment zone
+      "...rrrr..."  // 12: Deployment zone
     ]
   }
 ];

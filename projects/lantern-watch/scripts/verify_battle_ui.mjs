@@ -12,5 +12,6 @@ const errs=[];pg.on('pageerror',e=>errs.push(String(e)));
 await pg.evaluateOnNewDocument(()=>localStorage.setItem('lt_tutorial_seen','1'));
 await pg.goto(url,{waitUntil:'networkidle2'}); await pg.waitForFunction(()=>!!window.__lt);
 const steps=JSON.parse(process.argv[2]||fs.readFileSync(new URL("./verify_battle_ui.steps.json",import.meta.url),"utf8"));
-for(const [name,js,wait] of steps){ const r=await pg.evaluate(js); if(r!==undefined)console.log(name,JSON.stringify(r)); await new Promise(r=>setTimeout(r,wait||900)); if(name[0]!=='_')await pg.screenshot({path:`screenshots/v9/${name}.png`}); }
+fs.mkdirSync(path.join(ROOT, 'screenshots/v10'), { recursive: true });
+for(const [name,js,wait] of steps){ const r=await pg.evaluate(js); if(r!==undefined)console.log(name,JSON.stringify(r)); await new Promise(r=>setTimeout(r,wait||900)); if(name[0]!=='_')await pg.screenshot({path:`screenshots/v10/${name}.png`}); }
 console.log('errors',errs); if(errs.length) process.exitCode=1; await b.close(); server?.close();

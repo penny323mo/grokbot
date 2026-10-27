@@ -770,6 +770,77 @@ export const ENEMY_PROTOS = {
     tacticalHint: '施展幽冥咒縛與妖霧 · 懼怕火攻燃燒與神燈照耀',
     bark: '「陰陽失序，幽冥咒縛，化為泥淖吧！」',
     backstory: '深居大荒幽澤的咒禁術士，操弄符咒陰煞，能召喚幽霧並詛咒沼澤地脈，唯有以火攻焚木或神燈法光方能破除。'
+  },
+
+  shield_phalanx: {
+    id: 'shield_phalanx',
+    name: '盾陣精兵',
+    title: '重裝盾陣',
+    cls: '盾衛',
+    clsBadge: '盾',
+    role: 'shield_phalanx',
+    team: 'enemy',
+    mov: 3,
+    hp: 28,
+    maxHp: 28,
+    mp: 4,
+    maxMp: 4,
+    atk: 12,
+    def: 6,
+    mag: 1,
+    res: 2,
+    spd: 6,
+    range: 1,
+    flyer: false,
+    trait: {
+      id: 'phalanx_wall',
+      name: '鐵壁盾陣',
+      desc: '正面防禦近乎無敵（減免85%正面物理傷害），必須自側翼、背刺、法術或滾木破陣'
+    },
+    tacticalHint: '正面減傷85% · 需從側翼背刺或用法術/滾木破除',
+    bark: '「盾陣合璧，固若金湯！」',
+    backstory: '身披玄鐵鱗甲並持重裝大盾的正規精兵，結成盾陣時正面固若金湯，必須尋隙繞襲或用法術自高空瓦解。'
+  },
+
+  mountain_warlord: {
+    id: 'mountain_warlord',
+    name: '伏兵統領',
+    title: '山道伏兵領袖',
+    cls: '統領',
+    clsBadge: '帥',
+    role: 'commander',
+    team: 'enemy',
+    isBoss: true,
+    mov: 4,
+    hp: 36,
+    maxHp: 36,
+    mp: 8,
+    maxMp: 8,
+    atk: 15,
+    def: 5,
+    mag: 4,
+    res: 4,
+    spd: 10,
+    range: 1,
+    flyer: false,
+    trait: {
+      id: 'mountain_ambush_leader',
+      name: '萬壑伏兵',
+      desc: '山地伏擊百戰首領，統領重裝盾陣阻截要道'
+    },
+    skill: {
+      id: 'gorge_slash',
+      name: '裂谷重斬',
+      power: 16,
+      cost: 3,
+      range: 1,
+      type: 'skill',
+      desc: '借地勢猛斬，重創敵陣前鋒',
+      bark: '「踏入萬壑，皆為甕中之鱉！」'
+    },
+    tacticalHint: '伏兵統領 · 擊殺可直接瓦解敵軍士氣致其潰散',
+    bark: '「萬壑松風，伏兵四起，破敵於狹道！」',
+    backstory: '常年扼守山道險隘的叛軍悍將，深諳山川地形與奇兵伏擊之道。'
   }
 };
 
@@ -975,7 +1046,8 @@ export const STRATAGEMS = [
   { id: 'feint', name: '佯攻', icon: '計', desc: '第1回合吸引敵方騎兵朝誘餌方向移動' },
   { id: 'flood', name: '水淹', icon: '水', mapReq: 4, desc: '第4章山道專屬：引大河或山隘之水淹沒淺灘2回合，造成15點水傷並擊退陸行單位（墜水溺斃）' },
   { id: 'night_raid', name: '夜襲', icon: '夜', desc: '借夜色急襲，敵方全體第1回合無法行動' },
-  { id: 'inspire', name: '鼓舞', icon: '鼓', desc: '號角齊鳴，我方全體第1與第2回合傷害提升20%' }
+  { id: 'inspire', name: '鼓舞', icon: '鼓', desc: '號角齊鳴，我方全體第1與第2回合傷害提升20%' },
+  { id: 'rolling_log', name: '滾木', icon: '木', mapReq: 8, desc: '第8章山道專屬：自上方滾落擂木，對整列路徑造成16點傷害並擊破盾陣' }
 ];
 
 export function getClassSynergies(squad) {

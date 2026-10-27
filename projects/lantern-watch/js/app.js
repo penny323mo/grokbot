@@ -26,7 +26,7 @@ class LanternTacticsApp {
 
     // State
     this.activeChapter = CHAPTERS[0];
-    this.selectedSquadIds = ['cat_patrol', 'lantern_crafter', 'bear_guard', 'tea_master'];
+    this.selectedSquadIds = ['bear_guard', 'cat_patrol', 'lantern_crafter', 'tea_master'];
     this.activeStratagemId = null;
     this.battle = null;
     this.battleSpeed = 1;
@@ -198,8 +198,20 @@ class LanternTacticsApp {
 
   openPreBattle(chapter) {
     this.activeChapter = chapter;
-    const allGuardianIds = Object.keys(GUARDIAN_PROTOS);
-    this.selectedSquadIds = allGuardianIds.slice(0, chapter.squadLimit);
+    if (chapter.id === 1) {
+      this.selectedSquadIds = ['bear_guard', 'cat_patrol', 'lantern_crafter', 'tea_master'];
+    } else {
+      const defaultComps = {
+        2: ['tanuki_mage', 'bear_guard', 'tea_master', 'cat_patrol', 'lantern_crafter'],
+        3: ['lantern_crafter', 'fox_maiden', 'bear_guard', 'tea_master', 'cat_patrol'],
+        4: ['bear_guard', 'cat_patrol', 'crane_rider', 'tea_master', 'tanuki_mage', 'lantern_crafter'],
+        5: ['lantern_crafter', 'bear_guard', 'tea_master', 'cat_patrol', 'tanuki_mage', 'crane_rider'],
+        6: ['bear_guard', 'tea_master', 'crane_rider', 'cat_patrol', 'fox_maiden', 'tanuki_mage'],
+        7: ['bear_guard', 'tea_master', 'cat_patrol', 'lantern_crafter', 'crane_rider'],
+        8: ['bear_guard', 'tea_master', 'cat_patrol', 'lantern_crafter', 'crane_rider', 'fox_maiden']
+      };
+      this.selectedSquadIds = defaultComps[chapter.id] || Object.keys(GUARDIAN_PROTOS).slice(0, chapter.squadLimit);
+    }
     this.activeStratagemId = null;
 
     this.ui.showScreen('screenPreBattle');
@@ -1155,9 +1167,19 @@ class LanternTacticsApp {
     const savedStratagem = this.activeStratagemId;
 
     // Use a clean, isolated demo battle for tutorial steps so live battle is untouched
-    const squad = ['bear_guard', 'cat_patrol', 'lantern_crafter', 'crane_rider', 'tea_master'].map(id => this.campaign.getUnitInstance(id));
+    const squad = ['bear_guard', 'cat_patrol', 'lantern_crafter', 'tea_master'].map(id => this.campaign.getUnitInstance(id));
     this.battle = new Battle(CHAPTERS[0], squad, 'inspire', this.campaign, this.rng);
     this.ui.showScreen('screenBattle');
+
+    const updateSpotlight = (targetEl) => {
+      const overlay = document.getElementById('tutorialBoardOverlay');
+      if (overlay && targetEl) {
+        const r = targetEl.getBoundingClientRect();
+        const or = overlay.getBoundingClientRect();
+        overlay.style.setProperty('--spotlight-x', `${r.left + r.width / 2 - or.left}px`);
+        overlay.style.setProperty('--spotlight-y', `${r.top + r.height / 2 - or.top}px`);
+      }
+    };
 
     const updateStepView = (step) => {
       document.querySelectorAll('.spotlight-active').forEach(el => el.classList.remove('spotlight-active'));
@@ -1169,12 +1191,15 @@ class LanternTacticsApp {
         this.ui.hideTargetPreview();
         const bear = this.battle.allies.find(a => a.id === 'bear_guard');
         if (bear) {
-          bear.x = 4; bear.y = 10;
-          bear.turnStartX = 4; bear.turnStartY = 10;
+          bear.x = 1; bear.y = 11;
+          bear.turnStartX = 1; bear.turnStartY = 11;
           this.handleUnitTap(bear);
           this.ui.centerCameraOn(bear.x, bear.y);
           const tileEl = document.querySelector(`.grid-tile[data-x="${bear.x}"][data-y="${bear.y}"]`);
-          if (tileEl) tileEl.classList.add('spotlight-active');
+          if (tileEl) {
+            tileEl.classList.add('spotlight-active');
+            updateSpotlight(tileEl);
+          }
         }
       } else if (step === 1) {
         // Beat 2: Attack (攻擊)
@@ -1190,7 +1215,10 @@ class LanternTacticsApp {
           this.refreshBattleUI();
           this.ui.centerCameraOn(bear.x, bear.y);
           const pop = document.getElementById('actionMenuPopover');
-          if (pop) pop.classList.add('spotlight-active');
+          if (pop) {
+            pop.classList.add('spotlight-active');
+            updateSpotlight(pop);
+          }
         }
       } else if (step === 2) {
         // Beat 3: Terrain (地形)
@@ -1205,7 +1233,10 @@ class LanternTacticsApp {
           this.refreshBattleUI();
           this.ui.centerCameraOn(cat.x, cat.y);
           const tileEl = document.querySelector(`.grid-tile[data-x="${cat.x}"][data-y="${cat.y}"]`);
-          if (tileEl) tileEl.classList.add('spotlight-active');
+          if (tileEl) {
+            tileEl.classList.add('spotlight-active');
+            updateSpotlight(tileEl);
+          }
         }
       } else if (step === 3) {
         // Beat 4: Counter / Flank (反擊與側翼背刺)
@@ -1222,7 +1253,10 @@ class LanternTacticsApp {
           this.evaluateTargetPreview(foe);
           this.ui.centerCameraOn(foe.x, foe.y);
           const card = document.getElementById('targetPreviewCard');
-          if (card) card.classList.add('spotlight-active');
+          if (card) {
+            card.classList.add('spotlight-active');
+            updateSpotlight(card);
+          }
         }
       } else if (step === 4) {
         // Beat 5: Light (引魂明燈)
@@ -1234,22 +1268,28 @@ class LanternTacticsApp {
           this.handleUnitTap(cart);
           this.ui.centerCameraOn(cart.x, cart.y);
           const tileEl = document.querySelector(`.grid-tile[data-x="${cart.x}"][data-y="${cart.y}"]`);
-          if (tileEl) tileEl.classList.add('spotlight-active');
+          if (tileEl) {
+            tileEl.classList.add('spotlight-active');
+            updateSpotlight(tileEl);
+          }
         }
       } else if (step === 5) {
-        // Beat 6: Spell (奇術/絕技 - directional line)
+        // Beat 6: Spell (奇術/絕技)
         this.clearSelection();
         this.ui.hideTargetPreview();
-        const crane = this.battle.allies.find(a => a.id === 'crane_rider');
-        if (crane) {
-          crane.x = 4; crane.y = 9;
-          crane.turnStartX = 4; crane.turnStartY = 9;
-          this.selectedUnit = crane;
-          this.openActionMenuForUnit(crane);
+        const caster = this.battle.allies.find(a => a.id === 'lantern_crafter') || this.battle.allies.find(a => a.id === 'tea_master');
+        if (caster) {
+          caster.x = 2; caster.y = 10;
+          caster.turnStartX = 2; caster.turnStartY = 10;
+          this.selectedUnit = caster;
+          this.openActionMenuForUnit(caster);
           this.refreshBattleUI();
-          this.ui.centerCameraOn(crane.x, crane.y);
+          this.ui.centerCameraOn(caster.x, caster.y);
           const btnSkill = document.getElementById('btnActionSkill');
-          if (btnSkill) btnSkill.classList.add('spotlight-active');
+          if (btnSkill) {
+            btnSkill.classList.add('spotlight-active');
+            updateSpotlight(btnSkill);
+          }
         }
       } else if (step === 6) {
         // Beat 7: Stratagem (軍略妙計)
@@ -1258,7 +1298,10 @@ class LanternTacticsApp {
         this.ui.hideTargetPreview();
         this.refreshBattleUI();
         const stratBtn = document.getElementById('btnStratagemTop');
-        if (stratBtn) stratBtn.classList.add('spotlight-active');
+        if (stratBtn) {
+          stratBtn.classList.add('spotlight-active');
+          updateSpotlight(stratBtn);
+        }
       }
     };
 
@@ -1301,10 +1344,10 @@ class LanternTacticsApp {
           this.refreshBattleUI();
         }
       } else if (step === 5) {
-        // Suggest spell: directional skill
-        const crane = this.battle.allies.find(a => a.id === 'crane_rider');
-        if (crane) {
-          this.selectedUnit = crane;
+        // Suggest spell: Lantern Crafter skill/magic
+        const caster = this.battle.allies.find(a => a.id === 'lantern_crafter') || this.battle.allies.find(a => a.id === 'tea_master');
+        if (caster) {
+          this.selectedUnit = caster;
           this.handleActionMenuChoice('skill');
         }
       } else if (step === 6) {
@@ -1349,8 +1392,20 @@ class LanternTacticsApp {
       },
       openDeployPhase: (chId = 1) => {
         const ch = CHAPTERS.find(c => c.id === chId) || CHAPTERS[0];
-        const allGuardianIds = Object.keys(GUARDIAN_PROTOS);
-        this.selectedSquadIds = allGuardianIds.slice(0, ch.squadLimit);
+        if (ch.id === 1) {
+          this.selectedSquadIds = ['bear_guard', 'cat_patrol', 'lantern_crafter', 'tea_master'];
+        } else {
+          const defaultComps = {
+            2: ['tanuki_mage', 'bear_guard', 'tea_master', 'cat_patrol', 'lantern_crafter'],
+            3: ['lantern_crafter', 'fox_maiden', 'bear_guard', 'tea_master', 'cat_patrol'],
+            4: ['bear_guard', 'cat_patrol', 'crane_rider', 'tea_master', 'tanuki_mage', 'lantern_crafter'],
+            5: ['lantern_crafter', 'bear_guard', 'tea_master', 'cat_patrol', 'tanuki_mage', 'crane_rider'],
+            6: ['bear_guard', 'tea_master', 'crane_rider', 'cat_patrol', 'fox_maiden', 'tanuki_mage'],
+            7: ['bear_guard', 'tea_master', 'cat_patrol', 'lantern_crafter', 'crane_rider'],
+            8: ['bear_guard', 'tea_master', 'cat_patrol', 'lantern_crafter', 'crane_rider', 'fox_maiden']
+          };
+          this.selectedSquadIds = defaultComps[ch.id] || Object.keys(GUARDIAN_PROTOS).slice(0, ch.squadLimit);
+        }
         this.startDeployPhase(ch);
       },
       launchBattle: (chId = 1) => {

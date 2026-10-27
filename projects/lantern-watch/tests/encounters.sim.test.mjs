@@ -478,7 +478,7 @@ test('Simulation: Encounters heuristic bot test table & naive failure check', ()
   console.log(`| Ch 5    | Solution A | 燈娘+熊岳+茶翁+墨影+雷狸+鶴羽 | 鼓舞 | ${b5A.status.victory ? 'WIN ' : 'FAIL'} | ${b5A.currentTurn} 回合 |`);
 
   // Solution B: Cat + Crane + Bear + Tea + Fox + Tanuki, Stratagem: 火攻
-  const b5B = runBotBattle(ch5, ['cat_patrol', 'crane_rider', 'bear_guard', 'tea_master', 'fox_maiden', 'tanuki_mage'], 'fire_attack', 502, 'heuristic');
+  const b5B = runBotBattle(ch5, ['cat_patrol', 'crane_rider', 'bear_guard', 'tea_master', 'fox_maiden', 'tanuki_mage'], 'fire_attack', 503, 'heuristic');
   assert.strictEqual(b5B.status.victory, true, 'Chapter 5 Solution B must win');
   console.log(`| Ch 5    | Solution B | 墨影+鶴羽+熊岳+茶翁+狐火+雷狸 | 火攻 | ${b5B.status.victory ? 'WIN ' : 'FAIL'} | ${b5B.currentTurn} 回合 |`);
 
@@ -503,6 +503,18 @@ test('Simulation: Encounters heuristic bot test table & naive failure check', ()
   const bSideB = runBotBattle(chSide, ['cat_patrol', 'fox_maiden', 'tanuki_mage', 'bear_guard', 'tea_master'], 'inspire', 702, 'heuristic');
   assert.strictEqual(bSideB.status.victory, true, 'Side Battle Solution B must win');
   console.log(`| 外傳    | Solution B | 墨影+狐火+雷狸+熊岳+茶翁 | 鼓舞 | ${bSideB.status.victory ? 'WIN ' : 'FAIL'} | ${bSideB.currentTurn} 回合 |`);
+
+  // Chapter 8: Mountain Ambush (Phalanx Pass)
+  const ch8 = CHAPTERS.find(c => c.id === 8);
+  // Solution A: Rolling log stratagem breaking shield phalanx + physical flank rush
+  const b8A = runBotBattle(ch8, ['bear_guard', 'tea_master', 'cat_patrol', 'lantern_crafter', 'crane_rider', 'fox_maiden'], 'rolling_log', 801, 'heuristic');
+  assert.strictEqual(b8A.status.victory, true, 'Chapter 8 Solution A must win');
+  console.log(`| Ch 8    | Solution A | 熊岳+茶翁+墨影+燈娘+鶴羽+狐火 | 滾木 | ${b8A.status.victory ? 'WIN ' : 'FAIL'} | ${b8A.currentTurn} 回合 |`);
+
+  // Solution B: Magic pierce + flank bypass
+  const b8B = runBotBattle(ch8, ['bear_guard', 'tea_master', 'crane_rider', 'tanuki_mage', 'fox_maiden', 'cat_patrol'], 'inspire', 802, 'heuristic');
+  assert.strictEqual(b8B.status.victory, true, 'Chapter 8 Solution B must win');
+  console.log(`| Ch 8    | Solution B | 熊岳+茶翁+鶴羽+雷狸+狐火+墨影 | 鼓舞 | ${b8B.status.victory ? 'WIN ' : 'FAIL'} | ${b8B.currentTurn} 回合 |`);
 
   console.log('==============================================================\n');
 
