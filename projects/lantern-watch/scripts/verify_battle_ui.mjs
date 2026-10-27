@@ -11,7 +11,24 @@ const pg=await b.newPage(); await pg.setViewport({width:390,height:844,deviceSca
 const errs=[];pg.on('pageerror',e=>errs.push(String(e)));
 await pg.evaluateOnNewDocument(()=>localStorage.setItem('lt_tutorial_seen','1'));
 await pg.goto(url,{waitUntil:'networkidle2'}); await pg.waitForFunction(()=>!!window.__lt);
-const steps=JSON.parse(process.argv[2]||fs.readFileSync(new URL("./verify_battle_ui.steps.json",import.meta.url),"utf8"));
-fs.mkdirSync(path.join(ROOT, 'screenshots/v10'), { recursive: true });
-for(const [name,js,wait] of steps){ const r=await pg.evaluate(js); if(r!==undefined)console.log(name,JSON.stringify(r)); await new Promise(r=>setTimeout(r,wait||900)); if(name[0]!=='_')await pg.screenshot({path:`screenshots/v10/${name}.png`}); }
+let targetDir = process.env.OUT_DIR || 'screenshots/v11';
+let stepsJson = null;
+if (process.argv[2]) {
+  if (process.argv[2].startsWith('[') || process.argv[2].startsWith('{')) {
+    stepsJson = process.argv[2];
+  } else {
+    targetDir = process.argv[2];
+  }
+}
+if (!stepsJson) {
+  stepsJson = fs.readFileSync(new URL("./verify_battle_ui.steps.json", import.meta.url), "utf8");
+}
+const steps = JSON.parse(stepsJson);
+fs.mkdirSync(path.join(ROOT, targetDir), { recursive: true });
+for (const [name, js, wait] of steps) {
+  const r = await pg.evaluate(js);
+  if (r !== undefined) console.log(name, JSON.stringify(r));
+  await new Promise(r => setTimeout(r, wait || 900));
+  if (name[0] !== '_') await pg.screenshot({ path: path.join(ROOT, targetDir, `${name}.png`) });
+}
 console.log('errors',errs); if(errs.length) process.exitCode=1; await b.close(); server?.close();

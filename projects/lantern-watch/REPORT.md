@@ -1,14 +1,14 @@
 # 燈影軍略 — orchestrator report
 
-- Generated: 2026-10-27 10:57 (Macau, UTC+8)
+- Generated: 2026-10-27 12:22 (Macau, UTC+8)
 - Live: https://penny323mo.github.io/grokbot/projects/lantern-watch/ (HTTP 200)
-- Rounds: 1  ·  Started: 2026-10-27T08:57:07+08:00
+- Rounds: 1  ·  Started: 2026-10-27T11:04:53+08:00
 
 ## Phases
-- build finished 2026-10-27T10:16:26+08:00
-- review-1 finished 2026-10-27T10:21:33+08:00
-- fix-1 finished 2026-10-27T10:57:38+08:00
-- publish finished 2026-10-27T10:57:46+08:00
+- build finished 2026-10-27T12:05:01+08:00
+- review-1 finished 2026-10-27T12:11:53+08:00
+- fix-1 finished 2026-10-27T12:22:38+08:00
+- publish finished 2026-10-27T12:22:47+08:00
 
 ## Reviews
 - orch-r1-grok.md: VERDICT: NOT READY
@@ -16,25 +16,25 @@
 ## Tests
 ### tests-build
 ```
-ch1 reasonable win: 50/50 (100%)
-ch2 reasonable win: 50/50 (100%)
-ch3 reasonable win: 43/50 (86%)
-ch4 reasonable win: 50/50 (100%)
-ch5 reasonable win: 50/50 (100%)
-ch6 reasonable win: 41/50 (82%)
-ch7 reasonable win: 45/50 (90%)
-balance ok: ch1 naive win 49/50, ch3/5/7 naive failed, all chapters reasonable >= 70%
+ch2 reasonable win: 43/50 (86%)
+ch3 reasonable win: 45/50 (90%)
+ch4 reasonable win: 44/50 (88%)
+ch5 reasonable win: 44/50 (88%)
+ch6 reasonable win: 45/50 (90%)
+ch7 reasonable win: 38/50 (76%)
+ch8 reasonable win: 38/50 (76%)
+balance ok: ch1 naive win 50/50, ch3/5/7 naive failed, all mid chapters reasonable in 75-90% range
 ```
 ### tests-fix-1
 ```
-ch1 reasonable win: 50/50 (100%)
-ch2 reasonable win: 50/50 (100%)
-ch3 reasonable win: 46/50 (92%)
-ch4 reasonable win: 50/50 (100%)
-ch5 reasonable win: 50/50 (100%)
-ch6 reasonable win: 50/50 (100%)
-ch7 reasonable win: 46/50 (92%)
-balance ok: ch1 naive win 50/50, ch3/5/7 naive failed, all chapters reasonable >= 70%
+ch2 reasonable win: 43/50 (86%)
+ch3 reasonable win: 45/50 (90%)
+ch4 reasonable win: 44/50 (88%)
+ch5 reasonable win: 44/50 (88%)
+ch6 reasonable win: 45/50 (90%)
+ch7 reasonable win: 38/50 (76%)
+ch8 reasonable win: 38/50 (76%)
+balance ok: ch1 naive win 50/50, ch3/5/7 naive failed, all mid chapters reasonable in 75-90% range
 ```
 
 ## Screenshots
@@ -71,5 +71,7 @@ balance ok: ch1 naive win 50/50, ch3/5/7 naive failed, all chapters reasonable >
 - **MINOR #10 (Combat Damage Multiplier Floaters Visibility)**:
   - Extended floating damage label lifespan to 2500ms and tuned confirm timing so `h-after-confirm.png` visibly captures the damage multiplier tags (`【側翼 ×1.2】`).
 
-## Loop note 2026-10-27 11:05
-Improve round 7 launched with prompts/improve-6.txt; see IMPROVE-LOG.md.
+## 2026-10-27 12:40 (Asia/Macau): improve round 8 launched (prompts/improve-7.txt)
+- Round 7 finished at 12:22. The live site returns 200. npm test passes: ch1 naive 50/50; reasonable ch2–8 76–90%; no first-phase deaths.
+- The 390px review of screenshots/v10 found several issues. The ch1 class badges and sprites don't match the names: the shield figure is badged 槍, and the tutorial says 熊岳 but the spotlight sits on the 劍 unit. All units are crammed into the bottom-left corner and clipped by the info bar, and no enemy is visible at battle start. The ch8 mountain-pass art is murky and unreadable.
+- Brief: make unit identity coherent (with name labels and a test); spread out the deploy area; add a battle-start camera pan that shows the enemies; repaint the ch8 map; give morale visible callouts, routing enemies and a 擂鼓 rally stratagem; keep all balance invariants. Screenshots go to screenshots/v11, and the old state is in .orch-prev-7.

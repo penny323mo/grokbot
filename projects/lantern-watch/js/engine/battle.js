@@ -192,9 +192,42 @@ export class Battle {
         center = bestCenter;
       }
       this.triggerFireAttack(center.x, center.y);
+    } else if (this.stratagemId === 'rally') {
+      this.triggerRally();
     } else if (this.stratagemId === 'rolling_log') {
       this.triggerRollingLog();
     }
+  }
+
+  triggerRally() {
+    this.modifyMorale('ally', 25, '擂鼓振威');
+    const leader = this.allies.find(a => a.hp > 0);
+    if (leader) {
+      for (const a of this.allies) {
+        if (a.hp > 0 && Board.manhattan(a.x, a.y, leader.x, leader.y) <= 2) {
+          a.mov = (a.mov || 3) + 1;
+          a.rallyBuffed = true;
+        }
+      }
+    }
+    this.eventLog.push({
+      type: 'stratagem',
+      name: '擂鼓',
+      msg: '【擂鼓振威】戰鼓如雷，我軍士氣提升25點，將士周圍2格友軍本回合移動力+1！'
+    });
+  }
+
+  awardBonusExp(unit, amount, reason = '擊潰逃敵') {
+    if (this.campaign) {
+      this.campaign.addExp(unit.id, amount);
+    }
+    this.eventLog.push({
+      type: 'bonus_xp',
+      unitId: unit.id,
+      amount,
+      reason,
+      msg: `【${reason} +${amount} XP】${unit.name}追擊潰逃敵兵，全軍士氣大振！`
+    });
   }
 
   modifyMorale(team, delta, reason = '') {
@@ -229,6 +262,9 @@ export class Battle {
         const isCommander = defender.role === 'commander' || defender.isBoss || defender.id === this.chapter.bossId;
         const delta = isCommander ? -25 : -8;
         this.modifyMorale('enemy', delta, isCommander ? '主將陣亡' : '陣斬敵兵');
+        if (defender.isRouted && attacker.team === 'ally') {
+          this.awardBonusExp(attacker, 5, '擊潰逃敵');
+        }
       } else if (defender.team === 'ally') {
         this.modifyMorale('ally', -15, '折損將士');
       }
@@ -1029,20 +1065,24 @@ export class Battle {
         const routRoll = this.rng ? this.rng.nextInt(1, 100) : 50;
         const routThreshold = this.enemyMorale <= 20 ? 60 : 35;
         if (routRoll <= routThreshold) {
+          enemy.isRouted = true;
           const reachable = Array.from(this.getReachableFor(enemy).values());
           if (reachable.length > 0) {
             const livingAllies = this.allies.filter(a => a.hp > 0);
             if (livingAllies.length > 0) {
+              // Flee towards map edge (min y or min/max x) away from living allies
               reachable.sort((a, b) => {
+                const distEdgeA = Math.min(a.x, 9 - a.x, a.y, 12 - a.y);
+                const distEdgeB = Math.min(b.x, 9 - b.x, b.y, 12 - b.y);
                 const minDa = Math.min(...livingAllies.map(al => Board.manhattan(a.x, a.y, al.x, al.y)));
                 const minDb = Math.min(...livingAllies.map(al => Board.manhattan(b.x, b.y, al.x, al.y)));
-                return minDb - minDa;
+                return (minDb * 2 - distEdgeB) - (minDa * 2 - distEdgeA);
               });
               this.moveUnit(enemy, reachable[0].x, reachable[0].y);
             }
           }
           enemy.acted = true;
-          this.eventLog.push({ type: 'rout', target: enemy.id, msg: `【敵軍潰逃！】${enemy.name}軍心潰散，棄械倉皇逃竄！` });
+          this.eventLog.push({ type: 'rout', target: enemy.id, x: enemy.x, y: enemy.y, msg: `【敵軍潰逃！】${enemy.name}軍心潰散，棄械倉皇逃竄！` });
           continue;
         }
       }
@@ -1189,6 +1229,13 @@ export class Battle {
     // Advance turn & reset allies
     this.currentTurn++;
     this.phase = 'ally';
+
+    for (const a of this.allies) {
+      if (a.rallyBuffed) {
+        a.mov = Math.max(1, (a.mov || 3) - 1);
+        delete a.rallyBuffed;
+      }
+    }
 
     if (this.currentTurn === 2) {
       for (const a of this.allies) {

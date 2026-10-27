@@ -309,7 +309,7 @@ class LanternTacticsApp {
         }
         if (on) {
           const foes = this.battle.enemies.filter(e => e.hp > 0);
-          this.ui.frameTiles(foes.length ? foes : deployTiles, true);
+          this.ui.frameTiles(foes.length ? foes : deployTiles, true, true);
         } else this.frameDeploy(true);
       };
     }
@@ -405,9 +405,19 @@ class LanternTacticsApp {
     this.ui.showScreen('screenBattle');
     this.refreshBattleUI();
 
-    // Center camera on first ally
-    if (this.battle.allies.length > 0) {
-      requestAnimationFrame(() => this.ui.frameTiles(this.battle.allies.filter(a => a.hp > 0)));
+    // Battle start camera pan: show enemies first, then return smoothly to player squad
+    const enemies = this.battle.enemies.filter(e => e.hp > 0);
+    const allies = this.battle.allies.filter(a => a.hp > 0);
+    if (enemies.length > 0) {
+      this.ui.frameTiles(enemies, false, true);
+      if (this.battleStartPanTimer) clearTimeout(this.battleStartPanTimer);
+      this.battleStartPanTimer = setTimeout(() => {
+        if (this.battle && this.battle.allies) {
+          this.ui.frameTiles(this.battle.allies.filter(a => a.hp > 0), true, false);
+        }
+      }, 1200);
+    } else if (allies.length > 0) {
+      requestAnimationFrame(() => this.ui.frameTiles(allies, false, false));
     }
   }
 
@@ -993,6 +1003,29 @@ class LanternTacticsApp {
     this.clearSelection();
     this.refreshBattleUI();
 
+    // Check events from action (morale drops, bonus XP, routs)
+    if (this.battle.eventLog) {
+      const recentEvents = this.battle.eventLog.slice(-5);
+      for (const ev of recentEvents) {
+        if (ev.type === 'morale' && ev.delta !== 0) {
+          const sign = ev.delta > 0 ? `+${ev.delta}` : `${ev.delta}`;
+          const tag = ev.team === 'ally' ? '我軍' : '敵軍';
+          const symbol = ev.delta > 0 ? '↑' : '↓';
+          const pos = actingUnit ? { x: actingUnit.x, y: actingUnit.y } : { x: 5, y: 5 };
+          this.ui.showFloatingMorale(pos.x, pos.y, `【${tag}士氣 ${symbol} ${sign}】`, ev.delta > 0);
+        } else if (ev.type === 'bonus_xp') {
+          const pos = actingUnit ? { x: actingUnit.x, y: actingUnit.y } : { x: 5, y: 5 };
+          this.ui.showFloatingMorale(pos.x, pos.y, `【擊潰逃敵 +${ev.amount} XP】`, true);
+        }
+      }
+    }
+
+    // Check first time morale drops below 50
+    if ((this.battle.enemyMorale < 50 || this.battle.allyMorale < 50) && !localStorage.getItem('lt_morale_hint_seen')) {
+      localStorage.setItem('lt_morale_hint_seen', '1');
+      this.ui.showMoraleNotice('【軍心動搖】士氣低於35時敵兵將潰散逃竄，追擊潰敵可獲額外戰功！');
+    }
+
     // Check battle victory / defeat
     if (this.battle.status.finished) {
       setTimeout(() => {
@@ -1134,6 +1167,16 @@ class LanternTacticsApp {
     this.ui.showTurnBanner('敵方回合', '夜霧湧動 · 敵軍進犯', () => {
       this.battle.endTurn();
       this.refreshBattleUI();
+
+      // Check rout events from enemy turn
+      if (this.battle.eventLog) {
+        const routEvs = this.battle.eventLog.filter(e => e.type === 'rout');
+        for (const ev of routEvs) {
+          if (ev.x !== undefined && ev.y !== undefined) {
+            this.ui.showFloatingMorale(ev.x, ev.y, '【敵軍潰逃！】', false);
+          }
+        }
+      }
 
       if (this.battle.status.finished) {
         this.ui.showBattleResult(this.battle.status, this.activeChapter, () => {

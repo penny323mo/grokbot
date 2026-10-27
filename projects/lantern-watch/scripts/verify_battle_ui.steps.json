@@ -1,9 +1,9 @@
 [
-  ["a-deploy", "window.__lt.openDeployPhase(1)", 1500],
-  ["b-tutorial-spotlight", "window.__lt.app.startTutorialFlow(0)", 1500],
-  ["_ack_tutorial", "(()=>{document.getElementById('tutorialBoardOverlay').style.display='none'; window.__lt.launchBattle(1); return true;})()", 1200],
-  ["c-battle-morale", "(()=>{window.__lt.app.refreshBattleUI(); window.__lt.app.ui.centerCameraOn(2, 10); return {allyM: window.__lt.getBattle().allyMorale, enemyM: window.__lt.getBattle().enemyMorale};})()", 800],
-  ["d-ch8-shield-wall", "(()=>{window.__lt.launchBattle(8); window.__lt.app.ui.centerCameraOn(4, 4); return {chapter: window.__lt.getBattle().chapter.title};})()", 1500],
-  ["_preview_phalanx", "(()=>{const b=window.__lt.getBattle(); const bear=b.allies.find(u=>u.id==='bear_guard'); const phx=b.enemies.find(u=>u.id==='shield_phalanx'); bear.x=phx.x; bear.y=phx.y+1; window.__lt.app.handleUnitTap(bear); window.__lt.app.handleActionMenuChoice('attack'); window.__lt.app.handleUnitTap(phx); return true;})()", 1200],
-  ["e-target-preview", "1", 600]
+  ["a-deploy", "window.__lt.openDeployPhase(1)", 1200],
+  ["b-tutorial-spotlight", "window.__lt.app.startTutorialFlow(0)", 1200],
+  ["_ack_tutorial", "(()=>{document.getElementById('tutorialBoardOverlay').style.display='none'; return true;})()", 500],
+  ["c-battle-start-pan", "(()=>{if(window.__lt.app.battleStartPanTimer)clearTimeout(window.__lt.app.battleStartPanTimer); window.__lt.launchBattle(1); if(window.__lt.app.battleStartPanTimer)clearTimeout(window.__lt.app.battleStartPanTimer); const enemies=window.__lt.getBattle().enemies.filter(e=>e.hp>0); window.__lt.app.ui.frameTiles(enemies,false,true); return {enemies:enemies.map(e=>e.name+'@('+e.x+','+e.y+')')};})()", 800],
+  ["d-morale-rout", "(()=>{if(window.__lt.app.battleStartPanTimer)clearTimeout(window.__lt.app.battleStartPanTimer); window.__lt.launchBattle(1); if(window.__lt.app.battleStartPanTimer)clearTimeout(window.__lt.app.battleStartPanTimer); const b=window.__lt.getBattle(); b.enemyMorale=20; const foe=b.enemies.find(e=>e.id==='shadow_archer')||b.enemies[0]; foe.isRouted=true; window.__lt.app.refreshBattleUI(); window.__lt.app.ui.centerCameraOn(foe.x, foe.y); window.__lt.app.ui.showFloatingMorale(foe.x, foe.y, '【敵軍士氣 ↓ -15】', false, -24); window.__lt.app.ui.showFloatingMorale(foe.x, foe.y, '【潰走逃亡！】', false, 4); window.__lt.app.ui.showMoraleNotice('【敵軍潰逃！】敵軍士氣崩潰，正向邊緣潰退！追擊可獲 +5 經驗'); return {enemyMorale:b.enemyMorale, foe:foe.name, isRouted:foe.isRouted};})()", 600],
+  ["_cleanup_toast", "(()=>{document.querySelectorAll('.morale-notice-toast').forEach(t=>t.remove()); return true;})()", 300],
+  ["e-ch8-mountain-pass", "(()=>{if(window.__lt.app.battleStartPanTimer)clearTimeout(window.__lt.app.battleStartPanTimer); window.__lt.launchBattle(8); if(window.__lt.app.battleStartPanTimer)clearTimeout(window.__lt.app.battleStartPanTimer); window.__lt.app.ui.centerCameraOn(4, 4); return {chapter: window.__lt.getBattle().chapter.title};})()", 1200]
 ]

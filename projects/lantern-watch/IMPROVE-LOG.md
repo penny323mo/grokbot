@@ -65,3 +65,30 @@
   - Battle figures scaled 1.25x (`height: 60px; max-width: 58px`) with 52px grounded contact shadows and `figureBob` idle breathing.
   - Clearer faction silhouettes and high-contrast ally (gold-cyan) and enemy (crimson) outline glows.
 - Deployment: Published to GitHub Pages (`/workspace/orchestrator/publish.sh .`), live URL returns HTTP 200.
+
+## 2026-10-27 13:20 (Asia/Macau): Improve round 8 DONE (prompts/orch-build.txt)
+- All test suites passing (`npm test`: 30 rules, 10 AI, 8 objectives, 2 branding, 16 encounter simulations, 8 balance simulations).
+- 390px mobile battle UI verified across 5 critical steps in `screenshots/v11/`:
+  - `screenshots/v11/a-deploy.png`: Chapter 1 deploy phase with spread tiles, 1-tile gap options, zero figure overlap, full clearance above bottom info bar, visible `.unit-name-tag` badges, and agreed class badges (熊岳=盾, 墨影=劍, 茶翁=醫, 燈娘=弓, 燈車=車).
+  - `screenshots/v11/b-tutorial-spotlight.png`: Tutorial Beat 1 with dynamic spotlight focused on 熊岳 at `(1, 11)` with 盾 badge, matching bottom info bar and prompt text.
+  - `screenshots/v11/c-battle-start-pan.png`: Battle start camera pan and 偵察 scout mode framing northern enemies (`霧騎` at north bridgehead, `影弓` in pine groves).
+  - `screenshots/v11/d-morale-rout.png`: Morale rout in battle with floating callouts `【敵軍士氣 ↓ -15】` and `【潰走逃亡！】`, toast alert, and enemy morale gauge at 20.
+  - `screenshots/v11/e-ch8-mountain-pass.png`: Chapter 8 (萬壑松風伏兵隘) with hand-painted `map_mountain_pass.webp` background matching river map ink-wash quality: sheer cliffs, high ground terraces, pine slopes, log chute for 滾木, and aligned 盾陣精兵 phalanx and 伏兵統領 boss.
+- Unit Identity & Name Labels:
+  - Added explicit `.unit-name-tag` above every figure (amber/gold for allies, crimson for enemies), hidden in fog of war.
+  - Explicit `clsBadge` mapped for every ally and enemy archetype; added rules unit test asserting badge-class agreement.
+- Rich Morale & Stratagem Gameplay:
+  - Added 擂鼓 (`rally`) stratagem (+25 ally morale, +1 MOV within radius 2).
+  - Routed enemies flee towards map edges away from player allies; chasing down routed enemies awards +5 bonus XP (`【擊潰逃敵 +5 經驗】`).
+  - First-time low morale (<50) triggers `showMoraleNotice` tutorial guidance toast.
+- Balance Calibration (Zero Stat Inflation):
+  - Ch1 naive win rate: 50/50 (100% >= 90%).
+  - Reasonable bot win rate: Ch1 100%, Ch2 86%, Ch3 90%, Ch4 88%, Ch5 84%, Ch6 90%, Ch7 80%, Ch8 76% (75–90% range across Ch2–Ch8).
+  - Naive rush fails tactically across Ch2, Ch3, Ch5, Ch6, Ch7, Ch8 (< 50%).
+  - Core invariants held: zero first-phase deaths, enemy hit cap at 30% maxHp.
+- Deployment: Published via `/workspace/orchestrator/publish.sh .`, live URL returns HTTP 200.
+
+## 2026-10-27 12:40 (Asia/Macau): improve round 8 launched (prompts/improve-7.txt)
+- Round 7 finished at 12:22. The live site returns 200. npm test passes: ch1 naive 50/50; reasonable ch2–8 76–90%; no first-phase deaths.
+- The 390px review of screenshots/v10 found several issues. The ch1 class badges and sprites don't match the names: the shield figure is badged 槍, and the tutorial says 熊岳 but the spotlight sits on the 劍 unit. All units are crammed into the bottom-left corner and clipped by the info bar, and no enemy is visible at battle start. The ch8 mountain-pass art is murky and unreadable.
+- Brief: make unit identity coherent (with name labels and a test); spread out the deploy area; add a battle-start camera pan that shows the enemies; repaint the ch8 map; give morale visible callouts, routing enemies and a 擂鼓 rally stratagem; keep all balance invariants. Screenshots go to screenshots/v11, and the old state is in .orch-prev-7.

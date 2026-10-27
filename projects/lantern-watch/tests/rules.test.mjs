@@ -11,6 +11,7 @@ import { Board } from '../js/engine/board.js';
 import { getReachableTiles, getAttackRangeTiles } from '../js/engine/pathfinding.js';
 import { calculateCombat, executeCombat, canTargetUnit } from '../js/engine/combat.js';
 import { GUARDIAN_PROTOS, ENEMY_PROTOS } from '../js/data/units.js';
+import { CHAPTERS } from '../js/data/maps.js';
 import { RNG } from '../js/engine/rng.js';
 import { Battle } from '../js/engine/battle.js';
 import { CampaignManager } from '../js/engine/campaign.js';
@@ -1106,4 +1107,54 @@ test('Rules: Shield phalanx (鐵壁盾陣) 85% frontal physical damage reduction
   // Phalanx was pushed down to y=5 by rolling log, so attacker attacks from (4, 6) (front south)
   const brokenRes = calculateCombat({ ...attackerFront, y: 6 }, phalanx, board);
   assert.strictEqual(brokenRes.expectedDamage, 20, 'Broken phalanx takes full frontal physical damage');
+});
+
+test('Rules: Class badges and Tutorial Beat 1 identity agreement', () => {
+  // 1. Verify every guardian has matching class badge
+  assert.strictEqual(GUARDIAN_PROTOS.bear_guard.clsBadge, '盾', 'Bear Guard (armoured tank) must have 盾 badge');
+  assert.strictEqual(GUARDIAN_PROTOS.cat_patrol.clsBadge, '劍', 'Cat Patrol (swordsman) must have 劍 badge');
+  assert.strictEqual(GUARDIAN_PROTOS.lantern_crafter.clsBadge, '弓', 'Lantern Crafter must have 弓 badge');
+  assert.strictEqual(GUARDIAN_PROTOS.tea_master.clsBadge, '醫', 'Tea Master must have 醫 badge');
+  assert.strictEqual(GUARDIAN_PROTOS.crane_rider.clsBadge, '飛', 'Crane Rider must have 飛 badge');
+
+  // 2. Verify Chapter 1 initial deployment and tutorial beat 1 tile
+  const ch1 = CHAPTERS[0];
+  const squad = ['bear_guard', 'cat_patrol', 'lantern_crafter', 'tea_master'].map(id => ({ ...GUARDIAN_PROTOS[id] }));
+  const battle = new Battle(ch1, squad);
+
+  // Unit placed on tile (1, 11) must be bear_guard
+  const unitAt1_11 = battle.getUnitAt(1, 11);
+  assert.ok(unitAt1_11, 'Unit must exist at (1, 11)');
+  assert.strictEqual(unitAt1_11.id, 'bear_guard', 'Unit at (1, 11) must be bear_guard');
+  assert.strictEqual(unitAt1_11.name, '熊岳', 'Unit at (1, 11) must be named 熊岳');
+  assert.strictEqual(unitAt1_11.clsBadge, '盾', 'Unit at (1, 11) must display 盾 badge');
+});
+
+test('Rules: Morale Rally (擂鼓) stratagem and routed enemy flee bonus XP', () => {
+  const terrain = new Array(13).fill('..........');
+  const ch = { id: 1, terrain, deployTiles: [{ x: 2, y: 5 }, { x: 3, y: 5 }, { x: 7, y: 5 }] };
+  const camp = new CampaignManager();
+
+  // Test 1: Rally stratagem (+25 morale, +1 MOV within radius 2)
+  const bear = { id: 'bear_guard', name: '熊岳', team: 'ally', x: 2, y: 5, hp: 30, maxHp: 30, mov: 3 };
+  const cat = { id: 'cat_patrol', name: '墨影', team: 'ally', x: 3, y: 5, hp: 28, maxHp: 28, mov: 5 }; // dist 1 <= 2
+  const farAlly = { id: 'far_ally', name: '遠衛', team: 'ally', x: 7, y: 5, hp: 20, maxHp: 20, mov: 4 }; // dist 5 > 2
+
+  const battle = new Battle(ch, [bear, cat, farAlly], 'rally', camp, new RNG(1));
+
+  const battleCat = battle.allies.find(a => a.id === 'cat_patrol');
+  const battleFar = battle.allies.find(a => a.id === 'far_ally');
+
+  assert.strictEqual(battle.allyMorale, 100, 'Rally stratagem adds +25 to ally morale (capped at maxMorale 100)');
+  assert.strictEqual(battleCat.mov, 6, 'Allies within radius 2 gain +1 MOV (5 -> 6)');
+  assert.strictEqual(battleFar.mov, 4, 'Allies outside radius 2 do not gain MOV');
+
+  // Test 2: Routed enemy defeat grants +5 bonus XP
+  const enemy = { id: 'shadow_rat', name: '匿鼠', team: 'enemy', x: 2, y: 4, hp: 1, maxHp: 16, isRouted: true };
+  battle.enemies = [enemy];
+
+  const prevExp = camp.getUnitInstance('cat_patrol').exp || 0;
+  // Cat defeats routed enemy
+  battle.processCombatMorale(battleCat, enemy, { preview: {}, attackerAlive: true, defenderAlive: false });
+  assert.strictEqual(camp.getUnitInstance('cat_patrol').exp, prevExp + 5, 'Defeating a routed enemy awards +5 bonus XP');
 });

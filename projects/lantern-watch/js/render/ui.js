@@ -75,7 +75,8 @@ export class UIRenderer {
     const targetY = y * tilePx + 32;
 
     const vpWidth = vp.clientWidth || 390;
-    const vpHeight = vp.clientHeight || 520;
+    const inset = this.measureBottomInset();
+    const vpHeight = Math.max(160, (vp.clientHeight || 520) - inset);
 
     const maxScrollX = Math.max(0, 640 - vpWidth);
     const maxScrollY = Math.max(0, 832 - vpHeight);
@@ -83,10 +84,10 @@ export class UIRenderer {
     let scrollX = targetX - vpWidth / 2;
     let scrollY = targetY - vpHeight / 2;
 
-    // Bottom safe inset & Grokbot clearance:
-    // When unit is near bottom (y >= 9), scroll down so unit's feet stay >=64px above viewport bottom
+    // Bottom safe inset & info bar clearance:
+    // When unit is near bottom (y >= 9), scroll down so unit's feet stay >=64px above visible bottom
     if (y >= 9) {
-      scrollY = Math.max(scrollY, (y * tilePx + 64) - vpHeight + 80);
+      scrollY = Math.max(scrollY, (y * tilePx + 64) - vpHeight + 32);
     }
 
     // Top safe inset: northern units must never be sliced by HUD (keep at least 16px clearance)
@@ -100,13 +101,13 @@ export class UIRenderer {
     vp.scrollTo({ left: scrollX, top: scrollY, behavior: smooth ? 'smooth' : 'auto' });
   }
 
-  /** Pixels of the battle viewport hidden by bottom overlays (sheets, menus, preview cards). */
+  /** Pixels of the battle viewport hidden by bottom overlays (sheets, menus, preview cards, info strip). */
   measureBottomInset() {
     const vp = document.getElementById('battleViewport');
     if (!vp) return 0;
     const vr = vp.getBoundingClientRect();
     let top = vr.bottom;
-    const els = ['deployTrayBar', 'targetPreviewCard'].map(id => document.getElementById(id));
+    const els = ['deployTrayBar', 'targetPreviewCard', 'bottomInfoStrip'].map(id => document.getElementById(id));
     els.push(document.querySelector('#tutorialBoardOverlay .tutorial-board-card'));
     els.forEach(el => {
       if (!el || el.offsetParent === null) return;
@@ -117,7 +118,7 @@ export class UIRenderer {
   }
 
   /** Scroll so every tile in `tiles` sits inside the uncovered part of the viewport (HUD safe area). */
-  frameTiles(tiles, smooth = false) {
+  frameTiles(tiles, smooth = false, preferTop = false) {
     const vp = document.getElementById('battleViewport');
     const stage = vp?.querySelector('.battle-board-stage');
     if (!vp || !tiles || !tiles.length) return;
@@ -129,13 +130,19 @@ export class UIRenderer {
     const w = vp.clientWidth || 390, h = Math.max(160, (vp.clientHeight || 520) - inset);
     let sx = (minX + maxX) / 2 - w / 2;
     let sy = (minY + maxY) / 2 - h / 2;
-    // if box is bigger than band, prioritise keeping the bottom (player side) visible
-    if (maxY - minY > h - 24) sy = maxY - h + 12;
+    // if preferTop is requested (for scouting or enemy reveal), anchor to top tiles
+    if (preferTop) {
+      sy = Math.max(0, minY - 24);
+    } else if (maxY - minY > h - 24) {
+      sy = maxY - h + 12;
+    }
     if (maxX - minX > w - 16) sx = minX - 8;
 
-    // Keep map bottom (832px) from pulling above the bottom overlay / deploy panel
+    // Keep map in bounds
     const maxSyMap = Math.max(0, 832 - h);
-    sy = Math.min(sy, maxSyMap);
+    const maxSxMap = Math.max(0, 640 - w);
+    sx = Math.max(0, Math.min(maxSxMap, sx));
+    sy = Math.max(0, Math.min(maxSyMap, sy));
 
     sx = Math.max(0, Math.min(vp.scrollWidth - vp.clientWidth, sx));
     sy = Math.max(0, Math.min(vp.scrollHeight - vp.clientHeight, sy));
@@ -542,6 +549,7 @@ export class UIRenderer {
       figWrap.innerHTML = `
         <div class="unit-ground-shadow"></div>
         <div class="unit-team-ring"></div>
+        <div class="unit-name-tag">${u.name}</div>
         ${figContent}
         <div class="unit-class-badge">${classChar}</div>
         <div class="unit-hp-bar">
@@ -1667,18 +1675,32 @@ export class UIRenderer {
     setTimeout(() => floater.remove(), 2500);
   }
 
-  showFloatingMorale(x, y, text, isPositive = false) {
+  showFloatingMorale(x, y, text, isPositive = false, offsetY = 0) {
     const vfxLayer = document.getElementById('vfxLayer') || document.getElementById('battleBoardStage');
     if (!vfxLayer) return;
 
     const floater = document.createElement('div');
     const tilePx = 64;
     floater.style.left = `${x * tilePx + 32}px`;
-    floater.style.top = `${y * tilePx - 38}px`;
+    floater.style.top = `${y * tilePx - 26 + offsetY}px`;
     floater.className = `floating-dmg-number ${isPositive ? 'heal' : 'crit'} floating-morale-text`;
     floater.innerHTML = `<span class="floating-tag-badge ${isPositive ? 'heal' : 'crit'}">${text}</span>`;
     vfxLayer.appendChild(floater);
     setTimeout(() => floater.remove(), 2500);
+  }
+
+  showMoraleNotice(text) {
+    const screen = document.getElementById('screenBattle');
+    if (!screen) return;
+    screen.querySelectorAll('.morale-notice-toast').forEach(t => t.remove());
+    const banner = document.createElement('div');
+    banner.className = 'morale-notice-toast';
+    banner.textContent = text;
+    screen.appendChild(banner);
+    setTimeout(() => {
+      banner.classList.add('fade-out');
+      setTimeout(() => banner.remove(), 400);
+    }, 3200);
   }
 
   showDetailSheet(unitInst, campaign, onRelicChanged) {
