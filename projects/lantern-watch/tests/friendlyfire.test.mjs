@@ -8,7 +8,7 @@ import { GUARDIAN_PROTOS, ENEMY_PROTOS, STRATAGEM_MOVES } from '../js/data/units
 import { RNG } from '../js/engine/rng.js';
 import { Battle } from '../js/engine/battle.js';
 import { getActionInfo } from '../js/engine/actioninfo.js';
-import { calculateCombat } from '../js/engine/combat.js';
+import { calculateCombat, canTargetUnit } from '../js/engine/combat.js';
 
 const moves = [];
 for (const [id, p] of Object.entries(GUARDIAN_PROTOS)) {
@@ -201,4 +201,71 @@ test('Stratagems: weather interactions - rain blocks fire stratagem, boosts wate
     weather: 'sunny'
   });
   assert.ok(rainCombatWater.expectedDamage > normalCombatWater.expectedDamage, 'Water stratagem should do more damage in rain');
+});
+
+test('Signature skills: 熊岳 「挑釁」 taunts adjacent enemies with zero friendly fire', () => {
+  const { battle, u } = arena('bear_guard', GUARDIAN_PROTOS.bear_guard);
+  const foe = { ...ENEMY_PROTOS.fog_rider, id: 'foe1', team: 'enemy', x: 5, y: 6, hp: 50, maxHp: 50 };
+  const allyFriend = battle.allies.find(a => a !== u);
+  allyFriend.x = 3; allyFriend.y = 6;
+  battle.enemies = [foe];
+  const oldAllyHp = allyFriend.hp;
+  const oldCasterHp = u.hp;
+
+  const res = battle.confirmAction(u, 'skill', null, { skill: GUARDIAN_PROTOS.bear_guard.signatureSkill });
+  assert.strictEqual(res.success, true);
+  assert.strictEqual(foe.isTaunted, true);
+  assert.strictEqual(foe.tauntTargetId, u.id);
+  assert.strictEqual(allyFriend.hp, oldAllyHp, 'Friend must take zero friendly fire');
+  assert.strictEqual(u.hp, oldCasterHp, 'Caster must take zero damage');
+});
+
+test('Signature skills: 墨影 「潛影」 makes caster stealthed and untargetable from range with zero friendly fire', () => {
+  const { battle, u } = arena('cat_patrol', GUARDIAN_PROTOS.cat_patrol);
+  const foe = { ...ENEMY_PROTOS.fog_rider, id: 'foe1', team: 'enemy', x: 7, y: 6, hp: 50, maxHp: 50 };
+  battle.enemies = [foe];
+  const allyFriend = battle.allies.find(a => a !== u);
+  allyFriend.x = 4; allyFriend.y = 7;
+  const oldAllyHp = allyFriend.hp;
+
+  const res = battle.confirmAction(u, 'skill', null, { skill: GUARDIAN_PROTOS.cat_patrol.signatureSkill });
+  assert.strictEqual(res.success, true);
+  assert.strictEqual(u.isStealthed, true);
+  assert.strictEqual(allyFriend.hp, oldAllyHp);
+
+  // Ranged enemy cannot target stealthed unit
+  const canTargetRanged = canTargetUnit(foe, u, battle.board);
+  assert.strictEqual(canTargetRanged, false, 'Stealthed unit must not be targetable when not adjacent');
+});
+
+test('Signature skills: 茶翁 「清心」 cleanses debuffs and heals target with zero friendly fire', () => {
+  const { battle, u } = arena('tea_master', GUARDIAN_PROTOS.tea_master);
+  const allyFriend = battle.allies.find(a => a !== u);
+  allyFriend.x = 5; allyFriend.y = 6;
+  allyFriend.hp = 20; allyFriend.maxHp = 40;
+  allyFriend.isConfused = true;
+  allyFriend.isBurned = true;
+
+  const res = battle.confirmAction(u, 'skill', allyFriend, { skill: GUARDIAN_PROTOS.tea_master.signatureSkill });
+  assert.strictEqual(res.success, true);
+  assert.strictEqual(allyFriend.isConfused, false, 'Confuse must be cleansed');
+  assert.strictEqual(allyFriend.isBurned, false, 'Burn must be cleansed');
+  assert.ok(allyFriend.hp > 20, 'Friend must be healed');
+});
+
+test('單挑 (Duel): 3-round 攻/守/必殺 rock-paper-scissors resolution with zero friendly fire', async () => {
+  const { resolveDuelRound, resolveDuel } = await import('../js/engine/combat.js');
+  // 攻 beats 必殺
+  assert.strictEqual(resolveDuelRound('strike', 'crit').outcome, 'win');
+  // 必殺 beats 守
+  assert.strictEqual(resolveDuelRound('crit', 'defend').outcome, 'win');
+  // 守 beats 攻
+  assert.strictEqual(resolveDuelRound('defend', 'strike').outcome, 'win');
+  // Same ties
+  assert.strictEqual(resolveDuelRound('strike', 'strike').outcome, 'tie');
+
+  // Full duel
+  const duelRes = resolveDuel(['strike', 'crit', 'defend'], ['crit', 'defend', 'strike']);
+  assert.strictEqual(duelRes.overall, 'victory');
+  assert.strictEqual(duelRes.playerWins, 3);
 });

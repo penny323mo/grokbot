@@ -629,11 +629,24 @@ class LanternTacticsApp {
     if (!this.autoEndTurnEnabled || !this.battle || this.battle.phase !== 'ally') return;
     const livingAllies = this.battle.allies.filter(a => a.hp > 0 && a.role !== 'npc' && a.role !== 'objective');
     if (livingAllies.length > 0 && livingAllies.every(a => a.acted)) {
-      setTimeout(() => {
+      const toast = document.getElementById('autoEndTurnToast');
+      const btnCancel = document.getElementById('btnCancelAutoEnd');
+      if (this._autoEndTurnTimer) clearTimeout(this._autoEndTurnTimer);
+      if (toast) {
+        toast.style.display = 'flex';
+        if (btnCancel) {
+          btnCancel.onclick = () => {
+            if (this._autoEndTurnTimer) clearTimeout(this._autoEndTurnTimer);
+            toast.style.display = 'none';
+          };
+        }
+      }
+      this._autoEndTurnTimer = setTimeout(() => {
+        if (toast) toast.style.display = 'none';
         if (this.battle && this.battle.phase === 'ally') {
           this.handleEndTurn();
         }
-      }, 450);
+      }, 1000);
     }
   }
 
@@ -707,6 +720,8 @@ class LanternTacticsApp {
         stratBtn.style.display = 'none';
       }
     }
+
+    this.ui.renderBattleRosterDock?.(this.battle, (ally) => this.handleUnitTap(ally));
   }
 
   handleUseStratagem() {
@@ -1479,20 +1494,19 @@ class LanternTacticsApp {
   }
 
   afterActionResolved(res, actingUnit) {
-    // Check level up
-    if (res.levelUp?.leveledUp) {
-      const uId = actingUnit.id;
-      const uInst = this.campaign.getUnitInstance(uId);
-      setTimeout(() => {
-        this.ui.showLevelUpModal(uInst, (perkType) => {
-          this.campaign.applyPerkChoice(uId, perkType);
-        });
-      }, 500);
+    if (res?.expGained && actingUnit) {
+      this.ui.showFloatingDamage(actingUnit.x, actingUnit.y, { text: `EXP +${res.expGained}`, type: 'exp' });
+    }
+
+    // Check level up card
+    if (res?.levelUp?.leveledUp && actingUnit) {
+      this.ui.showLevelUpCard(actingUnit, res.levelUp);
     }
 
     this.clearSelection();
     this.refreshBattleUI();
     this.checkAutoEndTurn();
+    this.checkDuelOpportunity(actingUnit);
 
     // First kill dialogue bark
     if (!this.firstKillBarkPlayed && res?.events?.some(e => e.type === 'defeat' || e.type === 'kill' || (e.type === 'hit' && e.targetDead))) {
@@ -1567,6 +1581,37 @@ class LanternTacticsApp {
       setTimeout(() => {
         this.triggerEnemyTurn();
       }, 400);
+    }
+  }
+
+  checkDuelOpportunity(actingUnit = null) {
+    if (!this.battle || (this.battle.chapter?.id ?? 1) < 4 || this._duelTriggered) return;
+    const boss = this.battle.enemies.find(e => e.hp > 0 && (e.role === 'commander' || e.isBoss || e.id === this.battle.chapter?.bossId));
+    if (!boss) return;
+    const alliesToCheck = actingUnit ? [actingUnit] : this.battle.allies.filter(a => a.hp > 0 && a.role !== 'npc');
+    const challenger = alliesToCheck.find(a => Math.abs(a.x - boss.x) + Math.abs(a.y - boss.y) === 1);
+    if (challenger) {
+      this._duelTriggered = true;
+      this.ui.showDuelModal({
+        player: challenger,
+        enemy: boss,
+        onResolve: (res) => {
+          if (res.overall === 'victory') {
+            boss.hp = Math.max(0, boss.hp - 20);
+            this.battle.modifyMorale('enemy', -25, '單挑折辱');
+            if (this.campaign) this.campaign.addExp(challenger.id, 50);
+            this.ui.showFloatingDamage(boss.x, boss.y, { text: '-20 單挑', type: 'crit' });
+          } else if (res.overall === 'defeat') {
+            challenger.hp = Math.max(1, challenger.hp - 10);
+            this.battle.modifyMorale('ally', -15, '單挑受挫');
+            this.ui.showFloatingDamage(challenger.x, challenger.y, { text: '-10 挫傷', type: 'hurt' });
+          }
+          this.refreshBattleUI();
+        },
+        onDecline: () => {
+          this.refreshBattleUI();
+        }
+      });
     }
   }
 
@@ -1731,8 +1776,13 @@ class LanternTacticsApp {
           phasePill.textContent = '我方回合';
           phasePill.className = 'battle-phase-pill ally';
         }
-        if (this.isGuidedTutorial && this.battle?.turn > 1) {
-          this.ui.collapseTutorialToChip(this.tutorialStep);
+        if (this.isGuidedTutorial && (this.battle?.currentTurn ?? 1) >= 2) {
+          this.isGuidedTutorial = false;
+          this.ui.hideBoardTutorial();
+          const tutKey = `${GAME.storageKey}_tutorial`;
+          localStorage.setItem(tutKey, '1');
+          localStorage.setItem('lt_tutorial_seen', '1');
+          document.querySelectorAll('.spotlight-active').forEach(el => el.classList.remove('spotlight-active'));
         }
         this.refreshBattleUI();
 

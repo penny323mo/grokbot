@@ -120,11 +120,18 @@ export function getReachableTiles(board, unit, allUnits = [], options = {}) {
       if (!isFlyer && board.isImpassable(n.x, n.y, false)) continue;
 
       let stepCost = isFlyer ? 1 : board.getMoveCost(n.x, n.y, false);
+      const nTer = board.getTerrain(n.x, n.y);
+      if (unit.terrainAptitude && nTer && !isFlyer) {
+        if (nTer.char === 'f' && unit.terrainAptitude.forest != null) {
+          stepCost = unit.terrainAptitude.forest;
+        } else if (nTer.char === 'h' && unit.terrainAptitude.mountain != null) {
+          stepCost = unit.terrainAptitude.mountain;
+        }
+      }
       if (options.cursedTiles && options.cursedTiles.has(nKey) && !isFlyer) {
         stepCost += 1; // Cursed miasma tile: movement cost +1 (MOV -1)
       }
-      if (isCavalry && !isFlyer) {
-        const nTer = board.getTerrain(n.x, n.y);
+      if (isCavalry && !isFlyer && (!unit.terrainAptitude || unit.terrainAptitude.forest == null)) {
         if (nTer && (nTer.char === 'f' || nTer.char === 'h')) {
           stepCost += 1; // Cavalry movement slowed in forest/mountain
         }

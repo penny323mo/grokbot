@@ -57,6 +57,18 @@ export const GUARDIAN_PROTOS = {
       desc: '投擲迷煙，使目標防禦-3並提升自身迴避',
       bark: '「捉摸不透，方為刺客之道。」'
     },
+    signatureSkill: {
+      id: 'hero_stealth',
+      name: '潛影',
+      icon: '👤',
+      cost: 2,
+      type: 'skill',
+      range: 0,
+      selfBuff: { stealth: true, duration: 1 },
+      isStealth: true,
+      desc: '遁入陰影：進入潛影狀態1回合。只要不與敵人相鄰，敵軍無法鎖定墨影！',
+      bark: '「身隨影動，融入夜幕……」'
+    },
     quote: '以身衛社稷，以智破暗夜。在暗夜裡，無人能逃過我的快劍。',
     bark: '「劍隨心動，一葉斬秋水。在暗夜裡，無人能逃過我的快劍。」',
     backstory: '原為江南名門劍客，家破後隱姓埋名浪跡天涯。身負三尺青鋒與暗夜疾行絕技，專破敵陣重圍與伏兵首領。'
@@ -64,7 +76,7 @@ export const GUARDIAN_PROTOS = {
 
   lantern_crafter: {
     id: 'lantern_crafter',
-    name: '燈娘 小螢',
+    name: '小螢',
     title: '持燈使',
     cls: '弓手',
     clsBadge: '弓',
@@ -94,6 +106,18 @@ export const GUARDIAN_PROTOS = {
       id: 'hang_lantern',
       name: '照夜破霧',
       desc: '置放引魂燈照亮半徑2格破除匿霧，攻擊距離遠且超遠視野'
+    },
+    signatureSkill: {
+      id: 'hero_light_lantern',
+      name: '點燈',
+      icon: '🏮',
+      cost: 2,
+      type: 'skill',
+      range: 3,
+      isLightRadius: true,
+      lightRadius: 3,
+      desc: '明燈破煞：照亮半徑3格範圍，驅散夜霧並勘破匿蹤伏兵！',
+      bark: '「明燈照徹，諸邪退散！」'
     },
     skill: {
       id: 'place_lantern',
@@ -213,6 +237,20 @@ export const GUARDIAN_PROTOS = {
       name: '清心回春',
       desc: '2格範圍治療隊友並清除異常狀態，相鄰友軍每回合回血'
     },
+    signatureSkill: {
+      id: 'hero_cleanse',
+      name: '清心',
+      icon: '🍵',
+      cost: 2,
+      type: 'skill',
+      range: 2,
+      heal: 12,
+      isHeal: true,
+      isCleanse: true,
+      isSupport: true,
+      desc: '清心靈茗：驅散目標身上所有異常狀態（混亂/灼燒/挑釁等），並恢復12點生命。',
+      bark: '「清茗滌塵，萬念歸真。」'
+    },
     skill: {
       id: 'healing_brew',
       name: '回春靈茶',
@@ -331,6 +369,17 @@ export const GUARDIAN_PROTOS = {
       name: '槍林鐵壁',
       desc: '阻截領域(ZOC)：騎兵進入相鄰格子立即止步；相鄰隊友受傷減免'
     },
+    signatureSkill: {
+      id: 'hero_taunt',
+      name: '挑釁',
+      icon: '💢',
+      cost: 2,
+      type: 'skill',
+      range: 1,
+      isTaunt: true,
+      desc: '怒吼挑釁：周圍相鄰敵軍下回合必須鎖定熊岳為攻擊目標！',
+      bark: '「看這邊！爾等宵小，有膽便衝俺熊岳來！」'
+    },
     skill: {
       id: 'shield_push',
       name: '巨盾推擊',
@@ -415,6 +464,118 @@ export const GUARDIAN_PROTOS = {
 };
 
 export const ENEMY_PROTOS = {
+  enemy_strategist: {
+    id: 'enemy_strategist',
+    name: '策士',
+    title: '奇謀策士',
+    cls: '策士',
+    clsBadge: '策',
+    role: 'sorcerer',
+    team: 'enemy',
+    element: 'thunder',
+    mov: 3,
+    hp: 16,
+    maxHp: 16,
+    mp: 10,
+    maxMp: 10,
+    atk: 8,
+    def: 4,
+    mag: 13,
+    res: 9,
+    spd: 8,
+    range: [2, 3],
+    flyer: false,
+    stats: { ldr: 60, war: 45, int: 88, agi: 72, luk: 75 },
+    terrainAptitude: { forest: 2, mountain: 2 },
+    stratagems: ['stratagem_fire', 'stratagem_confuse', 'stratagem_water'],
+    skill: {
+      id: 'stratagem_volley',
+      name: '奇謀遠略',
+      cost: 2,
+      type: 'magic',
+      range: [2, 3],
+      power: 11,
+      isStratagem: true,
+      desc: '超遠距施展五行策略計謀',
+      bark: '「運籌帷幄，決勝千里之外！」'
+    }
+  },
+
+  enemy_medic: {
+    id: 'enemy_medic',
+    name: '醫者',
+    title: '隨軍醫者',
+    cls: '醫者',
+    clsBadge: '醫',
+    role: 'healer',
+    team: 'enemy',
+    mov: 3,
+    hp: 18,
+    maxHp: 18,
+    mp: 8,
+    maxMp: 8,
+    atk: 6,
+    def: 5,
+    mag: 11,
+    res: 8,
+    spd: 8,
+    range: 1,
+    flyer: false,
+    stats: { ldr: 55, war: 40, int: 85, agi: 70, luk: 80 },
+    terrainAptitude: { forest: 2, mountain: 2 },
+    skill: {
+      id: 'medic_field_heal',
+      name: '回春急救',
+      cost: 2,
+      type: 'skill',
+      range: [1, 2],
+      heal: 10,
+      isHeal: true,
+      isSupport: true,
+      desc: '為受傷敵軍施以急救包紮恢復10點生命',
+      bark: '「休慌！醫官在此救治！」'
+    }
+  },
+
+  enemy_shield: {
+    id: 'enemy_shield',
+    name: '盾兵',
+    title: '玄甲盾兵',
+    cls: '盾兵',
+    clsBadge: '盾',
+    role: 'shield_guard',
+    team: 'enemy',
+    mov: 3,
+    hp: 24,
+    maxHp: 24,
+    mp: 4,
+    maxMp: 4,
+    atk: 10,
+    def: 10,
+    mag: 3,
+    res: 5,
+    spd: 5,
+    range: 1,
+    flyer: false,
+    stats: { ldr: 78, war: 75, int: 55, agi: 50, luk: 65 },
+    terrainAptitude: { forest: 3, mountain: 3 },
+    trait: {
+      id: 'shield_block',
+      name: '大盾護衛',
+      desc: '格擋正面70%傷害，掩護相鄰友軍'
+    },
+    skill: {
+      id: 'shield_bash',
+      name: '重盾猛擊',
+      cost: 2,
+      type: 'skill',
+      range: 1,
+      power: 9,
+      desc: '重盾猛砸，造成物理傷害',
+      bark: '「盾陣在前，堅不可摧！」'
+    }
+  },
+
   fog_rider: {
     id: 'fog_rider',
     name: '霧騎',
@@ -782,8 +943,8 @@ export const ENEMY_PROTOS = {
     role: 'commander',
     team: 'enemy',
     mov: 3,
-    hp: 42,
-    maxHp: 42,
+    hp: 45,
+    maxHp: 45,
     mp: 8,
     maxMp: 8,
     atk: 16,

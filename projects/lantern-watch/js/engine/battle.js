@@ -886,9 +886,21 @@ export class Battle {
           }
         }
         if (this.campaign && unit.team === 'ally' && unit.role !== 'npc' && unit.role !== 'objective') {
-          const expRes = this.campaign.addExp(unit.id, 30);
-          result.expGained = 30;
+          const expGain = target?.hp <= 0 ? 25 : 12;
+          const expRes = this.campaign.addExp(unit.id, expGain);
+          result.expGained = expGain;
           result.levelUp = expRes;
+          if (expRes.leveledUp) {
+            unit.level = expRes.newLevel;
+            result.events.push({
+              type: 'levelup',
+              unitId: unit.id,
+              unitName: unit.name,
+              newLevel: expRes.newLevel,
+              statGains: expRes.statGains,
+              msg: `【等級提升】${unit.name} 升至 Lv.${expRes.newLevel}！生命+${expRes.statGains.hp} 武力+${expRes.statGains.atk} 防禦+${expRes.statGains.def}！`
+            });
+          }
         }
         break;
       }
@@ -898,7 +910,78 @@ export class Battle {
         const cost = skill?.cost || 0;
         unit.mp = Math.max(0, (unit.mp ?? 6) - cost);
 
-        if (skill?.isLightPlacement) {
+        if (skill?.isTaunt) {
+          let tauntCount = 0;
+          for (const e of this.enemies) {
+            if (e.hp > 0 && Board.manhattan(unit.x, unit.y, e.x, e.y) === 1) {
+              e.isTaunted = true;
+              e.tauntTargetId = unit.id;
+              tauntCount++;
+            }
+          }
+          result.events.push({
+            type: 'taunt',
+            source: unit.id,
+            count: tauntCount,
+            msg: `【怒吼挑釁】熊岳怒吼震懾！相鄰 ${tauntCount} 名敵軍被激怒，下回合強制攻擊熊岳！`
+          });
+          unit.acted = true;
+          unit.moved = false;
+        } else if (skill?.isStealth || skill?.selfBuff?.stealth) {
+          unit.isStealthed = true;
+          result.events.push({
+            type: 'stealth',
+            source: unit.id,
+            msg: '【潛影潛行】墨影遁入夜幕暗影！敵軍非相鄰不可鎖定，持續一回合！'
+          });
+          unit.acted = true;
+          unit.moved = false;
+        } else if (skill?.isLightRadius || skill?.id === 'hero_light_lantern') {
+          const tx = options.tileX ?? unit.x;
+          const ty = options.tileY ?? unit.y;
+          this.board.addPlacedLantern(tx, ty, 3, 3);
+          let revealed = 0;
+          for (const e of this.enemies) {
+            if (e.hp > 0 && Board.manhattan(tx, ty, e.x, e.y) <= 3) {
+              if (e.isAmbushed || e.isShrouded) {
+                e.isAmbushed = false;
+                e.isShrouded = false;
+                revealed++;
+              }
+            }
+          }
+          result.events.push({
+            type: 'placed_lantern',
+            x: tx,
+            y: ty,
+            revealed,
+            msg: `【明燈破煞】照亮半徑3格迷霧，勘破 ${revealed} 名匿影伏兵！`
+          });
+          unit.acted = true;
+          unit.moved = false;
+        } else if (skill?.isCleanse) {
+          const healTarget = target || unit;
+          healTarget.isConfused = false;
+          healTarget.isBurned = false;
+          healTarget.isTaunted = false;
+          healTarget.isPoisoned = false;
+          const healAmt = skill.heal || 12;
+          const oldHp = healTarget.hp;
+          healTarget.hp = Math.min(healTarget.maxHp, healTarget.hp + healAmt);
+          const actualHeal = healTarget.hp - oldHp;
+          if (unit.team === 'ally') {
+            const st = (this.unitStats[unit.id] = this.unitStats[unit.id] || { damageDealt: 0, kills: 0, heals: 0 });
+            st.heals += actualHeal;
+          }
+          result.events.push({
+            type: 'cleanse',
+            target: healTarget.id,
+            amount: actualHeal,
+            msg: `【清心靈茗】驅散 ${healTarget.name} 身上一切異常狀態，恢復 +${actualHeal} HP！`
+          });
+          unit.acted = true;
+          unit.moved = false;
+        } else if (skill?.isLightPlacement) {
           // Lantern crafter placement
           const tx = options.tileX ?? unit.x;
           const ty = options.tileY ?? unit.y;
@@ -1168,6 +1251,24 @@ export class Battle {
           unit.moved = false;
         }
         break;
+      }
+    }
+
+    if (result.expGained === undefined && this.campaign && unit.team === 'ally' && unit.role !== 'npc' && unit.role !== 'objective' && actionType !== 'wait') {
+      const expGain = 12;
+      const expRes = this.campaign.addExp(unit.id, expGain);
+      result.expGained = expGain;
+      result.levelUp = expRes;
+      if (expRes.leveledUp) {
+        unit.level = expRes.newLevel;
+        result.events.push({
+          type: 'levelup',
+          unitId: unit.id,
+          unitName: unit.name,
+          newLevel: expRes.newLevel,
+          statGains: expRes.statGains,
+          msg: `【等級提升】${unit.name} 升至 Lv.${expRes.newLevel}！生命+${expRes.statGains.hp} 武力+${expRes.statGains.atk} 防禦+${expRes.statGains.def}！`
+        });
       }
     }
 
@@ -1473,6 +1574,17 @@ export class Battle {
 
     // Advance turn & reset allies
     this.currentTurn++;
+    for (const e of this.enemies) {
+      if (e.isTaunted) {
+        e.isTaunted = false;
+        delete e.tauntTargetId;
+      }
+    }
+    for (const a of this.allies) {
+      if (a.isStealthed) {
+        a.isStealthed = false;
+      }
+    }
     for (const u of [...this.allies, ...this.enemies]) {
       if (u._fortress && --u._fortress.turns <= 0) { u.def -= u._fortress.def; u._fortress = null; }
     }

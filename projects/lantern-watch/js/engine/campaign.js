@@ -148,19 +148,25 @@ export class CampaignManager {
     const u = this.roster[unitId];
     if (!u) return { leveledUp: false };
 
-    u.exp += amount;
+    u.exp = (u.exp || 0) + amount;
     let leveledUp = false;
-    let newLevel = u.level;
+    let newLevel = u.level || 1;
+    let statGains = null;
 
     while (u.exp >= 100) {
       u.exp -= 100;
-      u.level += 1;
+      u.level = (u.level || 1) + 1;
       leveledUp = true;
       newLevel = u.level;
+      if (!u.bonusStats) u.bonusStats = { atk: 0, def: 0, mag: 0, res: 0, maxHp: 0, mov: 0 };
+      u.bonusStats.maxHp = (u.bonusStats.maxHp || 0) + 2;
+      u.bonusStats.atk = (u.bonusStats.atk || 0) + 1;
+      u.bonusStats.def = (u.bonusStats.def || 0) + 1;
+      statGains = { hp: 2, atk: 1, def: 1 };
     }
 
     this.save();
-    return { leveledUp, newLevel, promoted: u.promoted };
+    return { leveledUp, newLevel, statGains, promoted: u.promoted };
   }
 
   applyPerkChoice(unitId, perkType) {

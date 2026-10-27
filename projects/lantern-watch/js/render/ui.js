@@ -669,6 +669,82 @@ export class UIRenderer {
 
       const classChar = u.clsBadge || (u.cls ? u.cls[0] : (u.role === 'tank' ? '盾' : '兵'));
 
+      if (u.isStealthed) figWrap.classList.add('is-stealthed');
+      else figWrap.classList.remove('is-stealthed');
+
+      let weaponOverlayHtml = '';
+      if (u.team === 'ally') {
+        if (u.id === 'bear_guard') {
+          weaponOverlayHtml = `
+            <div class="hero-weapon-overlay bear-shield" title="玄鐵巨盾">
+              <svg viewBox="0 0 32 32" width="28" height="28" class="weapon-svg shield-svg">
+                <defs>
+                  <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#D97706"/><stop offset="50%" stop-color="#78350F"/><stop offset="100%" stop-color="#292524"/>
+                  </linearGradient>
+                  <filter id="shieldGlow"><feDropShadow dx="0" dy="1.5" stdDeviation="1.5" flood-color="#F59E0B" flood-opacity="0.8"/></filter>
+                </defs>
+                <path d="M16 2 L28 6 L26 20 C24 26 18 30 16 31 C14 30 8 26 6 20 L4 6 Z" fill="url(#shieldGrad)" stroke="#FDE047" stroke-width="1.8" filter="url(#shieldGlow)"/>
+                <circle cx="16" cy="15" r="4" fill="#F59E0B" stroke="#FEF08A" stroke-width="1.2"/>
+                <line x1="16" y1="6" x2="16" y2="27" stroke="#FDE047" stroke-width="1" stroke-dasharray="2 1"/>
+              </svg>
+            </div>`;
+        } else if (u.id === 'cat_patrol') {
+          weaponOverlayHtml = `
+            <div class="hero-weapon-overlay cat-blades" title="疾影雙刃">
+              <svg viewBox="0 0 32 32" width="28" height="28" class="weapon-svg blades-svg">
+                <defs>
+                  <linearGradient id="bladeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#E0F2FE"/><stop offset="60%" stop-color="#38BDF8"/><stop offset="100%" stop-color="#0369A1"/>
+                  </linearGradient>
+                  <filter id="bladeGlow"><feDropShadow dx="0" dy="0" stdDeviation="1.8" flood-color="#38BDF8" flood-opacity="0.9"/></filter>
+                </defs>
+                <path d="M6 26 L12 20 L24 5 C26 4 28 5 27 8 L18 20 L12 26 Z" fill="url(#bladeGrad)" stroke="#BAE6FD" stroke-width="1" filter="url(#bladeGlow)"/>
+                <path d="M26 26 L20 20 L8 5 C6 4 4 5 5 8 L14 20 L20 26 Z" fill="url(#bladeGrad)" stroke="#BAE6FD" stroke-width="1" filter="url(#bladeGlow)"/>
+              </svg>
+            </div>`;
+        } else if (u.id === 'lantern_crafter') {
+          weaponOverlayHtml = `
+            <div class="hero-weapon-overlay lantern-bow" title="引靈神弓">
+              <svg viewBox="0 0 32 32" width="28" height="28" class="weapon-svg bow-svg">
+                <defs>
+                  <linearGradient id="bowGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#FDE047"/><stop offset="50%" stop-color="#B45309"/><stop offset="100%" stop-color="#FDE047"/>
+                  </linearGradient>
+                  <filter id="bowGlow"><feDropShadow dx="0" dy="0" stdDeviation="1.8" flood-color="#F59E0B" flood-opacity="0.9"/></filter>
+                </defs>
+                <path d="M10 2 C22 8 22 24 10 30" fill="none" stroke="url(#bowGrad)" stroke-width="2.2" stroke-linecap="round" filter="url(#bowGlow)"/>
+                <line x1="10" y1="2" x2="10" y2="30" stroke="#FEF08A" stroke-width="0.8" stroke-dasharray="3 1"/>
+                <line x1="6" y1="16" x2="26" y2="16" stroke="#FEF08A" stroke-width="1.8"/>
+                <polygon points="26,16 21,13 22,16 21,19" fill="#FBBF24"/>
+              </svg>
+            </div>`;
+        } else if (u.id === 'tea_master') {
+          weaponOverlayHtml = `
+            <div class="hero-weapon-overlay tea-staff" title="青玉靈杖">
+              <svg viewBox="0 0 32 32" width="28" height="28" class="weapon-svg staff-svg">
+                <defs>
+                  <linearGradient id="staffWood" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#A7F3D0"/><stop offset="40%" stop-color="#047857"/><stop offset="100%" stop-color="#064E3B"/>
+                  </linearGradient>
+                  <radialGradient id="jadeOrb" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#A7F3D0"/><stop offset="70%" stop-color="#10B981"/><stop offset="100%" stop-color="#065F46"/>
+                  </radialGradient>
+                  <filter id="staffGlow"><feDropShadow dx="0" dy="0" stdDeviation="2.5" flood-color="#34D399" flood-opacity="0.95"/></filter>
+                </defs>
+                <path d="M22 6 L8 30" stroke="url(#staffWood)" stroke-width="2.5" stroke-linecap="round"/>
+                <circle cx="23" cy="6" r="4.5" fill="url(#jadeOrb)" stroke="#D1FAE5" stroke-width="1.2" filter="url(#staffGlow)"/>
+                <path d="M26 3 C27 1 29 2 28 4 C27 6 25 5 26 3 Z" fill="#6EE7B7"/>
+              </svg>
+            </div>`;
+        }
+      }
+
+      let signatureBadgeHtml = '';
+      if (u.isTaunted) signatureBadgeHtml = `<div class="signature-status-badge taunt">挑釁中</div>`;
+      else if (u.tauntActive) signatureBadgeHtml = `<div class="signature-status-badge taunting">強勢挑釁</div>`;
+      else if (u.isStealthed) signatureBadgeHtml = `<div class="signature-status-badge stealth">潛影隱匿</div>`;
+
       const routHtml = u.isRouted ? `
         <div class="unit-rout-flag"><span class="rout-flag-icon">⚑</span><span class="rout-flag-text">潰</span></div>
         <div class="unit-rout-dust"></div>
@@ -678,7 +754,7 @@ export class UIRenderer {
       const targetTagsHtml = (tags && tags.length > 0) ? `
         <div class="target-tags-container">
           ${tags.map(t => {
-            const cls = t.includes('克制') ? 'tag-advantage' : (t.includes('擊破') ? 'tag-kill' : 'tag-counter');
+            const cls = (t.includes('成功率') || t.includes('無法')) ? 'tag-stratagem' : (t.includes('克制') ? 'tag-advantage' : (t.includes('擊破') ? 'tag-kill' : 'tag-counter'));
             return `<span class="target-map-tag ${cls}">${t}</span>`;
           }).join('')}
         </div>
@@ -691,9 +767,11 @@ export class UIRenderer {
         <div class="unit-team-ring"></div>
         ${autoBadgeHtml}
         ${targetTagsHtml}
+        ${signatureBadgeHtml}
         <div class="unit-name-tag">${u.name}</div>
         ${guardBadgeHtml}
         ${figContent}
+        ${weaponOverlayHtml}
         ${routHtml}
         <div class="unit-class-badge">${classChar}</div>
         <div class="unit-hp-bar">
@@ -1336,6 +1414,9 @@ export class UIRenderer {
     const pop = document.getElementById('actionMenuPopover');
     if (!pop) return;
 
+    const dock = document.getElementById('battleRosterDock');
+    if (dock) dock.style.display = 'none';
+
     pop.style.display = 'flex';
     // Clear any obsolete absolute stage coordinates so it cleanly docks in bottom third
     pop.style.left = '';
@@ -1517,6 +1598,14 @@ export class UIRenderer {
     if (pop) pop.style.display = 'none';
     const sub = document.getElementById('actionSublistPanel');
     if (sub) sub.style.display = 'none';
+    const dock = document.getElementById('battleRosterDock');
+    if (dock && window.__lt?.app?.battle && window.__lt.app.battle.phase === 'ally') {
+      const preview = document.getElementById('targetPreviewCard');
+      if (!preview || preview.style.display === 'none') {
+        dock.style.display = 'flex';
+        this.renderBattleRosterDock(window.__lt.app.battle, (ally) => window.__lt.app.handleUnitTap(ally));
+      }
+    }
   }
 
   /** ~400ms press (touch or mouse) on attack/skill/magic shows info; release hides; a short tap still selects. */
@@ -1591,17 +1680,14 @@ export class UIRenderer {
     if (card) card.style.display = 'none';
   }
 
-  hideActionMenu() {
-    const pop = document.getElementById('actionMenuPopover');
-    if (pop) pop.style.display = 'none';
-  }
-
   showTargetPreview(preview, onConfirm, onBack) {
     const card = document.getElementById('targetPreviewCard');
     if (!card) return;
 
     card.style.display = 'block';
     this.hideActionMenu();
+    const dock = document.getElementById('battleRosterDock');
+    if (dock) dock.style.display = 'none';
 
     const { attacker, defender, direction, isBackAttack, isSideAttack, expectedDamage, hitRate, critRate, canCounter, counterDamage, counterHitRate, willKill, comboAlly, comboDamage } = preview;
 
@@ -1661,7 +1747,15 @@ export class UIRenderer {
 
     const prevTitle = document.getElementById('prevActionName');
     if (preview.isStratagem) {
-      if (prevTitle) prevTitle.textContent = `策略 · ${preview.skill?.name || '計策'}`;
+      const sIcon = preview.skill?.icon || '📜';
+      const sName = preview.skill?.name || '計策';
+      if (prevTitle) {
+        prevTitle.innerHTML = `<span class="stratagem-head-title">${sIcon} ${sName}</span> <span class="stratagem-head-rate">成功率 ${preview.stratagemSuccessRate}%</span>`;
+      }
+      const noteEl = document.getElementById('prevTerrainNote');
+      if (noteEl) {
+        noteEl.textContent = preview.stratagemBlocked ? `🌧️ ${preview.stratagemBlockReason || '天候受阻無法施展'}` : (preview.skill?.desc || '軍謀策略：神機妙算，因地制宜');
+      }
       if (preview.stratagemBlocked) {
         document.getElementById('prevDamageVal').textContent = '無法施展';
         document.getElementById('prevAttackerRates').textContent = `🌧️ ${preview.stratagemBlockReason || '雨天無法火計'}`;
@@ -1675,7 +1769,7 @@ export class UIRenderer {
         } else {
           document.getElementById('prevDamageVal').textContent = `${expectedDamage} 傷害`;
         }
-        document.getElementById('prevAttackerRates').textContent = `成功率 ${preview.stratagemSuccessRate}%`;
+        document.getElementById('prevAttackerRates').textContent = `成功率 ${preview.stratagemSuccessRate}% · 耗氣 ${preview.skill?.cost ?? 2} MP`;
       }
     } else {
       if (prevTitle) prevTitle.textContent = preview.skill?.name || '攻擊預覽';
@@ -1739,6 +1833,12 @@ export class UIRenderer {
   hideTargetPreview() {
     const card = document.getElementById('targetPreviewCard');
     if (card) card.style.display = 'none';
+    const pop = document.getElementById('actionMenuPopover');
+    const dock = document.getElementById('battleRosterDock');
+    if ((!pop || pop.style.display === 'none') && dock && window.__lt?.app?.battle && window.__lt.app.battle.phase === 'ally') {
+      dock.style.display = 'flex';
+      this.renderBattleRosterDock(window.__lt.app.battle, (ally) => window.__lt.app.handleUnitTap(ally));
+    }
   }
 
   showTurnBanner(phaseName, subTxt, callback) {
@@ -2092,6 +2192,186 @@ export class UIRenderer {
       }
     };
     window.addEventListener('keydown', onKey);
+  }
+
+  renderBattleRosterDock(battle, onSelectUnit) {
+    const dock = document.getElementById('battleRosterDock');
+    if (!dock) return;
+    if (!battle || battle.phase !== 'ally') {
+      dock.style.display = 'none';
+      return;
+    }
+    const pop = document.getElementById('actionMenuPopover');
+    const preview = document.getElementById('targetPreviewCard');
+    const sub = document.getElementById('actionSublistPanel');
+    if ((pop && pop.style.display !== 'none') || 
+        (preview && preview.style.display !== 'none') || 
+        (sub && sub.style.display !== 'none')) {
+      dock.style.display = 'none';
+      return;
+    }
+    dock.style.display = 'flex';
+    const container = document.getElementById('rosterDockUnits');
+    if (!container) return;
+    const allies = battle.allies.filter(a => a.hp > 0 && a.role !== 'npc' && a.role !== 'objective');
+    container.innerHTML = allies.map(a => {
+      const hpPct = Math.max(0, Math.min(100, Math.round((a.hp / a.maxHp) * 100)));
+      const isActed = a.acted;
+      return `
+        <div class="roster-dock-card ${isActed ? 'is-acted' : 'is-ready'}" data-unit-id="${a.id}">
+          <div class="rdc-por-wrap">
+            <img src="assets/art/v4/por_${a.id}.webp" class="rdc-por" alt="${a.name}">
+            <span class="rdc-status-chip ${isActed ? 'acted' : 'ready'}">${isActed ? '已行動' : '待命'}</span>
+          </div>
+          <div class="rdc-info">
+            <div class="rdc-name-row">
+              <span class="rdc-name">${a.name}</span>
+              <span class="rdc-cls">${a.clsBadge || (a.cls ? a.cls[0] : '兵')}</span>
+            </div>
+            <div class="rdc-bar rdc-hp-bar">
+              <div class="rdc-bar-fill hp" style="width: ${hpPct}%;"></div>
+            </div>
+            <div class="rdc-stat-text">HP ${a.hp}/${a.maxHp}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    container.querySelectorAll('.roster-dock-card').forEach(card => {
+      card.onclick = () => {
+        const uid = card.dataset.unitId;
+        const targetAlly = allies.find(a => a.id === uid);
+        if (targetAlly && onSelectUnit) {
+          onSelectUnit(targetAlly);
+        }
+      };
+    });
+  }
+
+  showLevelUpCard(unit, levelUpData) {
+    const card = document.getElementById('battleLevelUpCard');
+    if (!card || !levelUpData || !unit) return;
+    const por = document.getElementById('bluUnitPor');
+    if (por) por.src = `assets/art/v4/por_${unit.id}.webp`;
+    const nameEl = document.getElementById('bluUnitName');
+    if (nameEl) nameEl.textContent = unit.name;
+    const lvEl = document.getElementById('bluUnitLevels');
+    if (lvEl) lvEl.textContent = `Lv.${(levelUpData.newLevel ?? 2) - 1} ➔ Lv.${levelUpData.newLevel ?? 2}`;
+    const statsEl = document.getElementById('bluStatsGrid');
+    if (statsEl) {
+      const gains = levelUpData.statGains || { hp: 2, atk: 1, def: 1 };
+      statsEl.innerHTML = `
+        <span class="blu-stat-chip">生命 HP +${gains.hp}</span>
+        <span class="blu-stat-chip">武力 ATK +${gains.atk}</span>
+        <span class="blu-stat-chip">防禦 DEF +${gains.def}</span>
+      `;
+    }
+    card.style.display = 'flex';
+    if (this._levelUpCardTimer) clearTimeout(this._levelUpCardTimer);
+    const dismiss = () => {
+      card.style.display = 'none';
+      if (this._levelUpCardTimer) clearTimeout(this._levelUpCardTimer);
+    };
+    card.onclick = dismiss;
+    this._levelUpCardTimer = setTimeout(dismiss, 2400);
+  }
+
+  showDuelModal({ player, enemy, onResolve, onDecline }) {
+    const modal = document.getElementById('modalDuel');
+    if (!modal) return;
+    modal.style.display = 'flex';
+
+    const pPor = document.getElementById('duelPlayerPor');
+    if (pPor) pPor.src = `assets/art/v4/por_${player.id}.webp`;
+    const pName = document.getElementById('duelPlayerName');
+    if (pName) pName.textContent = player.name;
+    const pHp = document.getElementById('duelPlayerHp');
+    if (pHp) pHp.textContent = `HP ${player.hp}`;
+
+    const ePor = document.getElementById('duelEnemyPor');
+    if (ePor) ePor.src = `assets/art/v4/por_${enemy.id}.webp`;
+    const eName = document.getElementById('duelEnemyName');
+    if (eName) eName.textContent = enemy.name;
+    const eHp = document.getElementById('duelEnemyHp');
+    if (eHp) eHp.textContent = `HP ${enemy.hp}`;
+
+    const duelLog = document.getElementById('duelLog');
+    if (duelLog) duelLog.textContent = `敵將【${enemy.name}】策馬挺槍邀戰！敢與我一決雄雌乎？`;
+
+    for (let i = 1; i <= 3; i++) {
+      const pip = document.getElementById(`duelPip${i}`);
+      if (pip) {
+        pip.className = 'duel-round-pip';
+        pip.textContent = `第${i}合: 待定`;
+      }
+    }
+
+    const choiceBtns = modal.querySelectorAll('.btn-duel-choice');
+    choiceBtns.forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+
+    const pChoices = [];
+    const eChoices = [];
+    const aiChoices = ['strike', 'defend', 'crit'];
+
+    const cleanup = () => {
+      modal.style.display = 'none';
+      window.removeEventListener('keydown', onKey);
+    };
+
+    const btnDecline = document.getElementById('btnDuelDecline');
+    if (btnDecline) {
+      btnDecline.onclick = () => {
+        cleanup();
+        onDecline && onDecline();
+      };
+    }
+
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        cleanup();
+        onDecline && onDecline();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+
+    choiceBtns.forEach(btn => {
+      btn.onclick = () => {
+        const choice = btn.dataset.choice;
+        pChoices.push(choice);
+        const ec = aiChoices[Math.floor(Math.random() * aiChoices.length)];
+        eChoices.push(ec);
+        const roundNum = pChoices.length;
+
+        const choiceNames = { strike: '攻', defend: '守', crit: '必殺' };
+        import('../engine/combat.js').then(({ resolveDuelRound, resolveDuel }) => {
+          const res = resolveDuelRound(choice, ec);
+          const pip = document.getElementById(`duelPip${roundNum}`);
+          if (pip) {
+            pip.className = `duel-round-pip ${res.outcome}`;
+            pip.textContent = `第${roundNum}合: 我【${choiceNames[choice]}】 vs 敵【${choiceNames[ec]}】 ➔ ${res.text}！`;
+          }
+          if (roundNum >= 3) {
+            choiceBtns.forEach(b => { b.disabled = true; b.style.opacity = '0.4'; });
+            const finalRes = resolveDuel(pChoices, eChoices);
+            if (duelLog) {
+              if (finalRes.overall === 'victory') {
+                duelLog.textContent = `【單挑大勝】${player.name} 連破敵陣！斬挫敵軍士氣！`;
+              } else if (finalRes.overall === 'defeat') {
+                duelLog.textContent = `【單挑惜敗】${player.name} 氣力不支，退回本陣！`;
+              } else {
+                duelLog.textContent = `【平分秋色】兩將大戰三十回合，不分勝負！`;
+              }
+            }
+            setTimeout(() => {
+              cleanup();
+              onResolve && onResolve(finalRes);
+            }, 1600);
+          } else {
+            if (duelLog) duelLog.textContent = `第${roundNum}合戰罷！請將軍定奪下合出招：`;
+          }
+        });
+      };
+    });
   }
 
   showTutorial(step = 0, onComplete) {
@@ -2499,6 +2779,14 @@ export class UIRenderer {
     const tilePx = 64;
     floater.style.left = `${Math.max(48, Math.min(640 - 48, x * tilePx + 32))}px`;
     floater.style.top = `${y * tilePx - 26}px`;
+
+    if (info.type === 'exp' || (info.text && info.text.includes('EXP'))) {
+      floater.className = 'floating-exp-tag';
+      floater.innerHTML = `<span class="floating-tag-badge exp" style="background:#F59E0B;color:#111;font-weight:900;padding:1px 4px;border-radius:3px;">軍略</span>${info.text || '+12 EXP'}`;
+      vfxLayer.appendChild(floater);
+      setTimeout(() => floater.remove(), 2500);
+      return;
+    }
 
     let floaterClass = 'floating-dmg-number';
     let tagHtml = '';

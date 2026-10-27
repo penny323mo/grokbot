@@ -1243,3 +1243,65 @@ test('Rules: Telegraphed reinforcements announced one turn early with warning ma
   assert.strictEqual(spawnedEnemy.x, 1, 'Reinforcement spawns at telegraphed X');
   assert.strictEqual(spawnedEnemy.y, 6, 'Reinforcement spawns at telegraphed Y');
 });
+
+test('Rules: New classes (策士, 醫者, 盾兵) have distinct stats, roles, and terrain aptitudes', () => {
+  const strat = ENEMY_PROTOS.enemy_strategist;
+  const medic = ENEMY_PROTOS.enemy_medic;
+  const shield = ENEMY_PROTOS.enemy_shield;
+
+  assert.ok(strat, 'enemy_strategist exists');
+  assert.strictEqual(strat.cls, '策士');
+  assert.strictEqual(strat.clsBadge, '策');
+  assert.strictEqual(strat.hp, 16);
+  assert.deepStrictEqual(strat.range, [2, 3]);
+
+  assert.ok(medic, 'enemy_medic exists');
+  assert.strictEqual(medic.cls, '醫者');
+  assert.strictEqual(medic.clsBadge, '醫');
+  assert.strictEqual(medic.role, 'healer');
+  assert.strictEqual(medic.skill.isHeal, true);
+
+  assert.ok(shield, 'enemy_shield exists');
+  assert.strictEqual(shield.cls, '盾兵');
+  assert.strictEqual(shield.clsBadge, '盾');
+  assert.strictEqual(shield.def, 10);
+  assert.strictEqual(shield.mov, 3);
+  assert.strictEqual(shield.trait.id, 'shield_block');
+
+  // Terrain aptitude: shield is slowed more in mountain/forest
+  const board = new Board(Array(13).fill(".........."));
+  board.setTerrainChar(2, 2, 'h'); // mountain
+  const shieldCost = shield.terrainAptitude ? shield.terrainAptitude.mountain : 3;
+  const stratCost = strat.terrainAptitude ? strat.terrainAptitude.mountain : 2;
+  assert.ok(shieldCost > stratCost, 'Shield unit has higher mountain cost than strategist');
+});
+
+test('Rules: Officer growth: EXP gain, level-up stat increases, and persistence across chapters', () => {
+  const store = {};
+  const orig = globalThis.localStorage;
+  globalThis.localStorage = { getItem: k => store[k] ?? null, setItem: (k, v) => { store[k] = String(v); } };
+
+  try {
+    const camp = new CampaignManager();
+    const initBear = camp.getUnitInstance('bear_guard');
+    const initHp = initBear.maxHp;
+    const initAtk = initBear.atk;
+    const initDef = initBear.def;
+
+    // Add 100 EXP -> triggers level up
+    const res = camp.addExp('bear_guard', 100);
+    assert.strictEqual(res.leveledUp, true);
+    assert.strictEqual(res.newLevel, 2);
+    assert.deepStrictEqual(res.statGains, { hp: 2, atk: 1, def: 1 });
+
+    // Persistence: reload campaign instance from localStorage
+    const reloadedCamp = new CampaignManager();
+    const reloadedBear = reloadedCamp.getUnitInstance('bear_guard');
+    assert.strictEqual(reloadedBear.level, 2);
+    assert.strictEqual(reloadedBear.maxHp, initHp + 2);
+    assert.strictEqual(reloadedBear.atk, initAtk + 1);
+    assert.strictEqual(reloadedBear.def, initDef + 1);
+  } finally {
+    globalThis.localStorage = orig;
+  }
+});

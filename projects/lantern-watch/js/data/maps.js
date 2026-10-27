@@ -76,8 +76,8 @@ export const CHAPTERS = [
       { x: 8, y: 1, radius: 2 }
     ],
     deployTiles: [
-      { x: 1, y: 8 }, { x: 0, y: 9 }, { x: 2, y: 8 }, { x: 2, y: 9 },
-      { x: 0, y: 8 }, { x: 1, y: 10 }, { x: 2, y: 10 }
+      { x: 1, y: 8 }, { x: 0, y: 10 }, { x: 2, y: 10 }, { x: 1, y: 12 },
+      { x: 0, y: 8 }, { x: 2, y: 8 }, { x: 0, y: 12 }, { x: 2, y: 12 }
     ],
     npcSpawns: [
       { id: 'lantern_cart', x: 1, y: 9 }
@@ -280,9 +280,9 @@ export const CHAPTERS = [
       { id: 'shield_guard', x: 4, y: 0, facing: 2, aggro: 'guard', guardRadius: 2 },
       { id: 'shield_guard', x: 5, y: 0, facing: 2, aggro: 'guard', guardRadius: 2 },
       { id: 'iron_general', x: 4, y: 2, facing: -1 }, // holds the dam bridge!
-      { id: 'shield_guard', x: 5, y: 2, facing: -1 },
-      { id: 'mist_sorcerer', x: 2, y: 2, facing: 1 },
-      { id: 'mist_shaman', x: 7, y: 2, facing: -1 },
+      { id: 'enemy_shield', x: 5, y: 2, facing: -1 },
+      { id: 'enemy_strategist', x: 2, y: 2, facing: 1 },
+      { id: 'enemy_medic', x: 7, y: 2, facing: -1 },
       { id: 'shadow_archer', x: 1, y: 7, facing: 1 }, // cliff outcrop
       { id: 'shadow_archer', x: 8, y: 7, facing: -1 }  // cliff outcrop
     ],
@@ -347,7 +347,7 @@ export const CHAPTERS = [
       { id: 'shield_guard', x: 4, y: 1, facing: 2, aggro: 'guard', guardRadius: 2 },
       { id: 'shield_guard', x: 5, y: 1, facing: 2, aggro: 'guard', guardRadius: 2 },
       { id: 'shield_guard', x: 5, y: 2, facing: -1, aggro: 'guard', guardRadius: 2 },
-      { id: 'shield_guard', x: 4, y: 4, facing: -1, aggro: 'guard', guardRadius: 3 },
+      { id: 'enemy_shield', x: 4, y: 4, facing: -1, aggro: 'guard', guardRadius: 3 },
       { id: 'mist_sorcerer', x: 5, y: 4, facing: -1, aggro: 'guard', guardRadius: 3 },
       { id: 'shadow_archer', x: 3, y: 6, facing: 1, aggro: 'guard', guardRadius: 4 },
       { id: 'shadow_archer', x: 6, y: 6, facing: -1, aggro: 'guard', guardRadius: 4 },
@@ -408,12 +408,12 @@ export const CHAPTERS = [
     enemySpawns: [
       { id: 'shield_guard', x: 4, y: 1, facing: 2, aggro: 'guard', guardRadius: 2 },
       { id: 'citadel_warlord', x: 4, y: 2, facing: -1 }, // Fortress Keep commander
-      { id: 'shadow_archer', x: 5, y: 2, facing: -1, aggro: 'guard', guardRadius: 3 }, // Inner keep bodyguard
+      { id: 'enemy_medic', x: 5, y: 2, facing: -1, aggro: 'guard', guardRadius: 3 }, // Inner keep medic
       { id: 'siege_engine', x: 2, y: 2, facing: -1 },    // Artillery on ramparts
       { id: 'shadow_archer', x: 2, y: 4, facing: 1 },    // Wall archer
-      { id: 'shadow_archer', x: 7, y: 4, facing: -1 },   // Wall archer
-      { id: 'shield_guard', x: 4, y: 6, facing: -1 },    // Gatekeeper guard
-      { id: 'shield_guard', x: 5, y: 6, facing: -1 }     // Gatekeeper guard
+      { id: 'enemy_strategist', x: 7, y: 4, facing: -1 },   // Wall strategist
+      { id: 'enemy_shield', x: 4, y: 6, facing: -1 },    // Gatekeeper guard
+      { id: 'enemy_shield', x: 5, y: 6, facing: -1 }     // Gatekeeper guard
     ],
     storyBefore: [
       { speaker: 'cat_patrol', mood: 'calm', text: '「此城乃迷霧軍團之樞紐要塞，城樓上有霹靂砲車封鎖吊橋！」' },
@@ -522,15 +522,16 @@ export const CHAPTERS = [
     ],
     reinforcements: [
       { turn: 3, id: 'fog_rider', x: 1, y: 5, facing: 1, bark: '「萬壑伏兵四起，截斷退路！」' },
-      { turn: 3, id: 'shadow_archer', x: 8, y: 3, facing: -1, bark: '「居高臨下，亂箭齊發！」' }
+      { turn: 3, id: 'shadow_archer', x: 8, y: 3, facing: -1, bark: '「居高臨下，亂箭齊發！」' },
+      { turn: 4, id: 'enemy_medic', x: 4, y: 0, facing: 2, bark: '「隨軍醫者就位，速護主將！」' }
     ],
     enemySpawns: [
       { id: 'mountain_warlord', x: 4, y: 1, facing: 2, aggro: 'guard', guardRadius: 3 },
       { id: 'shield_phalanx', x: 3, y: 4, facing: 2, aggro: 'guard', guardRadius: 2 },
-      { id: 'shield_phalanx', x: 4, y: 3, facing: 2, aggro: 'guard', guardRadius: 2 },
+      { id: 'enemy_shield', x: 4, y: 3, facing: 2, aggro: 'guard', guardRadius: 2 },
       { id: 'shield_phalanx', x: 5, y: 4, facing: 2, aggro: 'guard', guardRadius: 2 },
       { id: 'shadow_archer', x: 2, y: 2, facing: 2 },
-      { id: 'shadow_archer', x: 7, y: 2, facing: 2 }
+      { id: 'enemy_strategist', x: 7, y: 2, facing: 2 }
     ],
     storyBefore: [
       { speaker: 'cat_patrol', mood: 'calm', text: '「前方是萬壑松風險隘！兩側峭壁如削，敵軍布下鐵壁盾陣，正面刀槍不入！」' },

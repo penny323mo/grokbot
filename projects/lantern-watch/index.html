@@ -489,6 +489,39 @@
           </div>
         </div>
 
+        <!-- Idle Roster & Turn-Order Dock (Fills empty dock area when no unit is selected) -->
+        <div class="battle-roster-dock" id="battleRosterDock">
+          <div class="roster-dock-header">
+            <span class="roster-dock-title">我軍行陣 · 點選出擊</span>
+            <span class="roster-dock-order" id="rosterDockOrder">行動順位</span>
+          </div>
+          <div class="roster-dock-units" id="rosterDockUnits"></div>
+        </div>
+
+        <!-- Auto End Turn Toast Notification -->
+        <div class="auto-end-turn-toast" id="autoEndTurnToast" style="display:none;">
+          <span class="aet-icon">⚡</span>
+          <span class="aet-text" id="autoEndTurnToastText">全軍行動完畢 · 1秒後自動結束回合</span>
+          <button type="button" class="btn-cancel-auto-end" id="btnCancelAutoEnd">取消</button>
+        </div>
+
+        <!-- Live Battle Level-Up Card -->
+        <div class="battle-levelup-card" id="battleLevelUpCard" style="display:none;">
+          <div class="blu-header">✦ 升級突破 · LEVEL UP ✦</div>
+          <div class="blu-unit-row">
+            <img src="" alt="" class="blu-unit-por" id="bluUnitPor">
+            <div class="blu-unit-meta">
+              <span class="blu-unit-name" id="bluUnitName">熊岳</span>
+              <span class="blu-unit-levels" id="bluUnitLevels">Lv.1 ➔ Lv.2</span>
+            </div>
+          </div>
+          <div class="blu-stats-grid" id="bluStatsGrid">
+            <span class="blu-stat-chip">生命 HP +2</span>
+            <span class="blu-stat-chip">武力 ATK +1</span>
+            <span class="blu-stat-chip">防禦 DEF +1</span>
+          </div>
+        </div>
+
         <!-- Floating Auto-Battle Running Banner with Instant Pause -->
         <div class="autobattle-banner" id="autobattleBanner" style="display:none;">
           <div class="autobattle-pill">
@@ -1035,6 +1068,55 @@
           <button type="button" class="btn-brush-main" id="btnManualConfirm">
             <span>謹記兵法 · 重返沙場</span>
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 9: 單挑 (Officer Duel) -->
+    <div class="modal-overlay modal-duel-overlay" id="modalDuel" style="display:none;">
+      <div class="duel-card">
+        <div class="duel-header">
+          <span class="duel-badge">⚔️ 沙場鬥將 · 單挑決死</span>
+          <h2 class="duel-title" id="duelTitle">主將對決 · 一決雌雄</h2>
+        </div>
+        <div class="duel-arena">
+          <div class="duel-fighter player" id="duelPlayerFighter">
+            <img class="duel-por" id="duelPlayerPor" src="assets/art/v4/por_bear_guard.webp" alt="我方主將">
+            <span class="duel-name" id="duelPlayerName">熊岳</span>
+            <span class="duel-hp" id="duelPlayerHp">HP 36</span>
+          </div>
+          <div class="duel-vs-badge">VS</div>
+          <div class="duel-fighter enemy" id="duelEnemyFighter">
+            <img class="duel-por" id="duelEnemyPor" src="assets/art/v4/por_mist_boss.webp" alt="敵方主將">
+            <span class="duel-name" id="duelEnemyName">敵方主將</span>
+            <span class="duel-hp" id="duelEnemyHp">HP 45</span>
+          </div>
+        </div>
+        <div class="duel-rules-chip">
+          <span>攻克必殺 · 必殺克守 · 守克攻（三合定勝負）</span>
+        </div>
+        <div class="duel-log" id="duelLog">敵將策馬挺槍邀戰！敢與我一決雄雌乎？</div>
+        <div class="duel-rounds-display" id="duelRoundsDisplay">
+          <div class="duel-round-pip" id="duelPip1">第一合: 待定</div>
+          <div class="duel-round-pip" id="duelPip2">第二合: 待定</div>
+          <div class="duel-round-pip" id="duelPip3">第三合: 待定</div>
+        </div>
+        <div class="duel-controls" id="duelControls">
+          <button type="button" class="btn-duel-choice" data-choice="strike">
+            <span class="duel-c-icon">⚔️</span>
+            <span class="duel-c-txt">攻 (平刺)</span>
+          </button>
+          <button type="button" class="btn-duel-choice" data-choice="defend">
+            <span class="duel-c-icon">🛡️</span>
+            <span class="duel-c-txt">守 (架擋)</span>
+          </button>
+          <button type="button" class="btn-duel-choice" data-choice="crit">
+            <span class="duel-c-icon">⚡</span>
+            <span class="duel-c-txt">必殺 (猛擊)</span>
+          </button>
+        </div>
+        <div class="duel-footer">
+          <button type="button" class="btn-duel-decline" id="btnDuelDecline">掛免戰牌 · 避戰 (ESC)</button>
         </div>
       </div>
     </div>

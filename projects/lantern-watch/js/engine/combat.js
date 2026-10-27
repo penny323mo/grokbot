@@ -52,6 +52,13 @@ export function getAttackDirection(attackerPos, defenderPos, defenderFacing) {
 export function canTargetUnit(attacker, defender, board, visionTiles = null) {
   if (defender.hp <= 0) return false;
 
+  // Stealthed units (e.g. 墨影 「潛影」) cannot be targeted unless adjacent
+  if (defender.isStealthed && attacker.team !== defender.team) {
+    if (Board.manhattan(attacker.x, attacker.y, defender.x, defender.y) > 1) {
+      return false;
+    }
+  }
+
   // Fog of war: if visionTiles set is provided and defender is outside vision, cannot target
   if (visionTiles && !visionTiles.has(`${defender.x},${defender.y}`)) {
     return false;
@@ -474,6 +481,7 @@ export function calculateCombat(attacker, defender, board, options = {}) {
     isAdvantage: elemEff.isAdvantage,
     elemMult: elemEff.mult,
     targetTags,
+    skill,
     isStratagem,
     stratagemSuccessRate,
     stratagemBlocked,
@@ -640,4 +648,38 @@ export function executeCombat(attacker, defender, board, rng, options = {}) {
     attackerAlive: attacker.hp > 0,
     defenderAlive: defender.hp > 0
   };
+}
+
+/**
+ * Three Kingdoms single combat (單挑) 3-round duel resolution:
+ * 攻 (strike) beats 必殺 (crit)
+ * 必殺 (crit) beats 守 (defend)
+ * 守 (defend) beats 攻 (strike)
+ */
+export function resolveDuelRound(pChoice, eChoice) {
+  if (pChoice === eChoice) return { outcome: 'tie', text: '平分秋色' };
+  if (
+    (pChoice === 'strike' && eChoice === 'crit') ||
+    (pChoice === 'crit' && eChoice === 'defend') ||
+    (pChoice === 'defend' && eChoice === 'strike')
+  ) {
+    return { outcome: 'win', text: '破招得手' };
+  }
+  return { outcome: 'lose', text: '失招受挫' };
+}
+
+export function resolveDuel(pChoices, eChoices) {
+  let playerWins = 0, enemyWins = 0, ties = 0;
+  const rounds = [];
+  for (let i = 0; i < 3; i++) {
+    const pc = pChoices[i] || 'strike';
+    const ec = eChoices[i] || 'strike';
+    const res = resolveDuelRound(pc, ec);
+    if (res.outcome === 'win') playerWins++;
+    else if (res.outcome === 'lose') enemyWins++;
+    else ties++;
+    rounds.push({ round: i + 1, pChoice: pc, eChoice: ec, ...res });
+  }
+  const overall = playerWins > enemyWins ? 'victory' : (enemyWins > playerWins ? 'defeat' : 'draw');
+  return { overall, playerWins, enemyWins, ties, rounds };
 }

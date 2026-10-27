@@ -29,6 +29,22 @@ export function decideEnemyTurn(enemy, battleState, rng) {
     }
   }
 
+  // Stealth check: untargetable for one enemy phase if not adjacent to enemies
+  playerUnits = playerUnits.filter(u => {
+    if (u.isStealthed && Board.manhattan(enemy.x, enemy.y, u.x, u.y) > 1) {
+      return false;
+    }
+    return true;
+  });
+
+  // Taunt check: if enemy is taunted, force target to the taunter if alive
+  if (enemy.isTaunted && enemy.tauntTargetId) {
+    const taunter = allies.find(u => u.id === enemy.tauntTargetId && u.hp > 0);
+    if (taunter) {
+      playerUnits = [taunter];
+    }
+  }
+
   // Calculate reachable movement tiles (respecting ZOC and cursed miasma)
   const reachable = getReachableTiles(board, enemy, allUnits, { zoc: true, cursedTiles: battleState?.cursedTiles });
   const reachableList = Array.from(reachable.values());

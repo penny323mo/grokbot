@@ -36,7 +36,7 @@ for (const ch of CHAPTERS) {
   if (ch.id === 1) {
     assert.strictEqual(rate, 1.0, `Chapter 1 reasonable win rate ${wins}/50 must be 100%`);
   } else {
-    assert.ok(rate >= 0.74 && rate <= 0.92, `Chapter ${ch.id} (${ch.key}) reasonable win rate ${wins}/50 (${Math.round(rate * 100)}%) outside 75-90% range`);
+    assert.ok(rate >= 0.74 && rate <= 0.90, `Chapter ${ch.id} (${ch.key}) reasonable win rate ${wins}/50 (${Math.round(rate * 100)}%) outside 75-90% range`);
   }
   console.log(`ch${ch.id} reasonable win: ${wins}/50 (${Math.round(rate * 100)}%)`);
 }
