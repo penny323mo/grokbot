@@ -48,3 +48,20 @@
 - Round 6 (improve-5) finished 10:57. Live returns 200. npm test passes: ch1 naive 50/50; reasonable ch1/2/4/5/6 100%, ch3/ch7 92%; the naive rush fails ch3/5/7.
 - 390px review of screenshots/v9: the deploy gap and the objective clipping are fixed, and the attack preview is clean. New issues: the ch1 tutorial names 熊岳, who wasn't deployed, and undeployed 槍/飛 units appear; the info bar shows "河水 移∞" for a unit; the tutorial dims the whole map.
 - Brief: ch1 roster/tutorial coherence plus a spotlight; tune mid chapters to a 75–90% reasonable-bot win rate via composition (not stats); a 士氣 morale/rout system; ch8 山道伏兵 with a 盾陣 phalanx and a 滾木 stratagem; 1.25× figures with shadows and idle bob. Screenshots go to screenshots/v10. Old state is in .orch-prev-6.
+
+## 2026-10-27 12:05 (Asia/Macau): Improve round 7 DONE (prompts/orch-build.txt)
+- All test suites passing (`npm test`: 28 rules, 10 AI, 8 objectives, 2 branding, 16 encounter simulations, 8 balance simulations).
+- 390px mobile battle UI verified across 5 critical steps in `screenshots/v10/`:
+  - `screenshots/v10/a-deploy.png`: Deploy tray and pre-battle roster completely consistent on `['bear_guard', 'cat_patrol', 'lantern_crafter', 'tea_master']` (熊岳, 墨影, 燈娘, 茶翁), removing phantom flyer/spear units.
+  - `screenshots/v10/b-tutorial-spotlight.png`: Tutorial Beat 1 with dynamic radial gradient spotlight cutout around Bear at `(1, 11)`. Bottom info bar reads `(1,11) 平地 · 移1 · 防+0 【熊岳】` (no deep water/infinite move).
+  - `screenshots/v10/c-battle-morale.png`: Dual morale bar in HUD (`#hudAllyMorale` / `#hudEnemyMorale`) with dynamic morale drops from flank/back attacks and unit losses, plus rout behavior on low morale.
+  - `screenshots/v10/d-ch8-shield-wall.png`: Chapter 8 (萬壑松風伏兵隘) with hand-painted `map_mountain_pass.webp` background, `shield_phalanx` (鐵壁盾陣) 85% frontal physical damage reduction, and `rolling_log` (滾木) stratagem.
+  - `screenshots/v10/e-target-preview.png`: Compact action and target preview cards with safe insets never covering units or targets.
+- Balance Calibration (Zero Stat Inflation):
+  - Reasonable Bot: Ch1 100%, Ch2 86%, Ch3 90%, Ch4 88%, Ch5 88%, Ch6 90%, Ch7 76%, Ch8 76% (all mid chapters land in 75–90% range).
+  - Naive Bot fails tactically: Ch2 0%, Ch3 22%, Ch4 26%, Ch5 2%, Ch6 24%, Ch7 18%, Ch8 2% (all well below 50%).
+  - Core invariants held: Ch1 naive 100%, zero first-phase deaths across all chapters, enemy hit cap holds at 30% maxHp.
+- Visual Polish at 390px:
+  - Battle figures scaled 1.25x (`height: 60px; max-width: 58px`) with 52px grounded contact shadows and `figureBob` idle breathing.
+  - Clearer faction silhouettes and high-contrast ally (gold-cyan) and enemy (crimson) outline glows.
+- Deployment: Published to GitHub Pages (`/workspace/orchestrator/publish.sh .`), live URL returns HTTP 200.
