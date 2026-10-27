@@ -672,3 +672,41 @@
 - Manual tap-to-target with a pulse highlight, two-tap confirm and a cancel bar.
 - Compact deploy sheet, 偵察 scout mode, auto-framing camera with HUD safe area.
 - 敵域 threat-range toggle.
+
+
+## Round 1 fixes
+
+### Major Fixes
+- **MAJOR #1 (Scout Deploy Tray Layout)**:
+  - Formatted `.deploy-tray-bar.scouting` as a single horizontal compact bar with `flex-direction: row; justify-content: space-between; align-items: center;`.
+  - Hid unit chip grid, synergy strip, and status badge in scouting mode.
+  - Kept deploy title on a single line (`偵察敵陣中 · 可拖曳縮放`) and made 佈陣 and 出征開戰 two readable, prominent 44px buttons.
+  - Recaptured `c-scout.png` and `live-scout.png` with map filling the viewport.
+- **MAJOR #2 (Enemy Threat Canvas Contour & Default Off)**:
+  - Filtered out impassable cliffs (`#`) and deep water (`w` for non-flyers) in `computeThreatTiles()`.
+  - Replaced DOM-based per-cell `.grid-tile.threat` lattice with a single continuous feathered vermilion region painted on `#rangeOverlayCanvas` via `drawMergedRegion`.
+  - Toggled threat off by default across battle UI and tests, isolating threat display exclusively to `b-threat.png`.
+- **MAJOR #3 (Tutorial 建議行動 Button Squeeze)**:
+  - Dropped `width: 100%` on `.btn-tutorial-ack` inside `.tutorial-card-actions`.
+  - Set both `💡 建議行動` and `明白` buttons to `flex: 1 1 0; min-width: 0; height: 44px; white-space: nowrap;`, placing them cleanly side-by-side.
+- **MAJOR #4 (Action Menu 技能 Label & Tutorial Beat 6 Align)**:
+  - Replaced `計策` on the unit skill action button with `技能` in both `index.html` and `js/render/ui.js` to match SPEC §5 (`攻擊 / 技能 / 魔法 / 待命`).
+  - Reserved `計策` strictly for the one-per-battle army stratagems (火攻, 佯攻, 水淹, 鼓舞, 夜襲).
+  - Aligned tutorial beat 6 copy to reference `【技能】或【法術】`.
+- **MAJOR #5 (Class Synergy Real Combat Modifiers & Unit Tests)**:
+  - Connected `getClassSynergies` to active combat resolution in `js/engine/combat.js` and `js/engine/battle.js`:
+    - `iron_fortress` (金湯固若): grants +1 DEF to all allies when tank + healer are present.
+    - `cavalry_coop` (步騎協同): grants +1 MOV on turn 1 when flanker + (cavalry or flyer) are in squad.
+    - `spell_arrow` (法箭交輝): boosts ranged/magic attacks by +10% damage when mage + archer are present.
+  - Added dedicated test `Rules: Class synergy bonuses (spell_arrow +10% ranged dmg, iron_fortress +1 def, cavalry_coop +1 turn 1 mov)` in `tests/rules.test.mjs`.
+- **MAJOR #6 (Deploy Camera Framing & Live Alignment)**:
+  - Ensured deploy framing subtracts measured bottom overlay inset via `frameTiles(deployTiles ∪ units)`.
+  - Recaptured `live-deploy.png` and `live-scout.png` against live production URL, completely free of empty black bands.
+
+### Minor Fixes & Polish
+- **MINOR #7 (SPEC §6 & Help Modal 7-Beat Sync)**:
+  - Updated SPEC §6 and the navigation `?` modal (`showTacticsTutorialModal`) to present all 7 interactive beats in sync with the live battle tutorial.
+- **MINOR #8 (Directional Targeting Preview Capture)**:
+  - Added `g2-directional.png` to `screenshots/v9/` showcasing crane rider's `crane_line_gust` orange line highlight preview with cardinal confirm flow.
+- **MINOR #10 (Combat Damage Multiplier Floaters Visibility)**:
+  - Extended floating damage label lifespan to 2500ms and tuned confirm timing so `h-after-confirm.png` visibly captures the damage multiplier tags (`【側翼 ×1.2】`).
