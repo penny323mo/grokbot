@@ -1039,16 +1039,16 @@ export class UIRenderer {
     const weather = battle?.weather || battle?.chapter?.weather || 'clear';
     if (weather === 'rain') {
       ctx.save();
-      ctx.strokeStyle = 'rgba(180, 220, 255, 0.55)';
-      ctx.lineWidth = 1.4;
+      ctx.strokeStyle = 'rgba(215, 240, 255, 0.85)';
+      ctx.lineWidth = 1.6;
       ctx.lineCap = 'round';
       ctx.beginPath();
       // Draw rain streaks slanted at -15 deg
-      for (let i = 0; i < 90; i++) {
+      for (let i = 0; i < 120; i++) {
         const x = (i * 37 + 19) % 640;
         const y = (i * 53 + 27) % 832;
         ctx.moveTo(x, y);
-        ctx.lineTo(x - 7, y + 26);
+        ctx.lineTo(x - 8, y + 28);
       }
       ctx.stroke();
       ctx.restore();
@@ -1340,42 +1340,49 @@ export class UIRenderer {
       {
         num: '1 / 7',
         title: '移動 · 步法挺進',
+        actionHint: '點選【熊岳】 · 藍格移動',
         text: '①「移動」點選將士【熊岳】，腳下藍格為合法移動範圍',
         idle: '✦ 8秒提示：點擊發光的熊岳，或點【💡建議行動】直達前線！'
       },
       {
         num: '2 / 7',
         title: '攻擊 · 陣前交鋒',
+        actionHint: '點選【攻擊】 · 紅格鎖定敵軍',
         text: '②「攻擊」移動後點擊【攻擊】，紅格為射程，再次點擊目標確認',
         idle: '✦ 8秒提示：點擊【攻擊】，或點【💡建議行動】直取敵首！'
       },
       {
         num: '3 / 7',
         title: '地形 · 險要據守',
+        actionHint: '進駐林木高地 · 獲取地形防禦',
         text: '③「地形」進駐林木或高地，可獲防禦與居高臨下傷害加成',
         idle: '✦ 8秒提示：樹林可加防禦，點【💡建議行動】佔領險要！'
       },
       {
         num: '4 / 7',
         title: '反擊與側翼 · 致命背刺',
+        actionHint: '側翼1.2倍 · 背刺1.5倍無反擊',
         text: '④「奇襲」正面易遭反擊；側翼打出1.2倍，背面更享1.5倍背刺且不受反擊',
         idle: '✦ 8秒提示：繞至敵軍身後！點【💡建議行動】執行1.5倍背刺！'
       },
       {
         num: '5 / 7',
         title: '明燈 · 照破幽霧',
+        actionHint: '護送燈車 · 燈火照破夜霧咒縛',
         text: '⑤「明燈」引路燈車向前挺進，長明燈光照破夜霧、驅散幽冥咒縛',
         idle: '✦ 8秒提示：燈光照亮前路，點【💡建議行動】護送前進！'
       },
       {
         num: '6 / 7',
         title: '奇術 · 破陣絕技',
+        actionHint: '消耗法力 · 發動奇術破陣絕技',
         text: '⑥「奇術」消耗法力施展將士絕技，燈娘可放靈矢或置長明燈，茶翁烹茶療癒全軍',
         idle: '✦ 8秒提示：點擊將士【技能】或【奇術】發動絕技，或點【💡建議行動】！'
       },
       {
         num: '7 / 7',
         title: '軍略 · 運籌帷幄',
+        actionHint: '點擊【軍略】 · 運籌帷幄扭轉戰局',
         text: '⑦「軍略」右上角發動軍略妙計，鼓舞全軍提升戰力或誘敵深入',
         idle: '✦ 8秒提示：點擊右上角【軍略】發動鼓舞扭轉戰局！'
       }
@@ -1396,7 +1403,7 @@ export class UIRenderer {
       if (titleEl) titleEl.textContent = `燈影軍略 · ${s.title}`;
       if (textEl) textEl.textContent = s.text;
       if (compactTextEl) {
-        compactTextEl.textContent = `${s.title}：${s.text.replace(/^[①②③④⑤⑥⑦]\s*「.*?」\s*/, '')}`;
+        compactTextEl.textContent = s.actionHint || `${s.title}：${s.text.replace(/^[①②③④⑤⑥⑦]\s*「.*?」\s*/, '')}`;
       }
 
       const expandBtn = document.getElementById('btnTutorialExpand');
@@ -2072,10 +2079,11 @@ export class UIRenderer {
       const rewards = battle?.calculateBattleRewards ? battle.calculateBattleRewards() : null;
 
       // 4-Star Evaluation Calculation
+      const maxT = chapter?.maxTurns || 12;
       const hasVictory = Boolean(status.victory);
-      const underTurnLimit = battle ? (battle.currentTurn <= (chapter?.maxTurns || 12)) : true;
+      const underTurnLimit = battle ? (battle.currentTurn <= Math.ceil(maxT * 0.6)) : true;
       const noAllyLost = battle ? battle.allies.every(a => a.hp > 0) : true;
-      const sideObjDone = battle ? (battle.enemyMorale <= 50 || status.victory) : true;
+      const sideObjDone = battle ? (battle.enemyMorale <= 35) : true;
 
       const starRow = document.getElementById('resultStarRow');
       if (starRow) {

@@ -888,3 +888,19 @@
 - **MINOR #5: Chapter 8 Mountain Pass 390px Viewport Framing**:
   - Updated framing targets in `scripts/verify_battle_ui.steps.json` for Chapter 8 to include warlord (4, 1), western archer (2, 2), eastern archer (7, 2), and the 滾木 log ramp chute.
   - Recaptured `screenshots/v11/e-ch8-mountain-pass.png` ensuring the eastern archer has clear margin and is not clipped by the 390px right border.
+
+
+## Round 1 fixes
+
+### MINOR Fixes
+- **MINOR #1 (Compact Tutorial Hint Copy - Action First)**:
+  - Updated `showBoardTutorial` in `js/render/ui.js` with concise `actionHint` values for all 7 beats (Beat 1: `點選【熊岳】 · 藍格移動`, Beat 2: `點選【攻擊】 · 紅格鎖定敵軍`, etc.), preventing trailing text truncation by ellipsis. Long title and descriptive lore are cleanly preserved in the 詳情 expanded drawer.
+- **MINOR #2 (Four-Star Rating & Objective Calibration)**:
+  - Tuned `underTurnLimit` to require fast victory within 60% of turn limit (`currentTurn <= Math.ceil(maxTurns * 0.6)`) for 速戰速決, and `sideObjDone` to require breaking enemy morale (`enemyMorale <= 35`) for 勢如破竹, avoiding trivial 4-star completion on standard wins.
+- **MINOR #3 (Combat Bark Header Wrapping)**:
+  - Added `white-space: nowrap` to `.bark-header` in `css/style.css` and tightened default bark header to `【${unit.name} · 開戰】`, preventing header line break artifacts on mobile 390px screens.
+- **MINOR #4 (Chapter 6 Weather Rain Overlay & Viewport Framing)**:
+  - Boosted rain streak canvas stroke alpha from 0.55 to 0.85 and increased streak count in `renderWeatherOverlay` (`js/render/ui.js`) for sharp readability against dark wet stone.
+  - Reset `this.deployPlacements = []` when launching different chapters so units use the proper chapter deploy slots, and framed living allies plus incoming reinforcement markers so 燈娘 小螢 and edge markers remain completely visible inside 390px boundaries.
+- **MINOR #5 (SPEC Alignment for Weather & Telegraphed Reinforcements)**:
+  - Added §8b (Weather System & Telegraphed Reinforcements) to `SPEC.md` documenting weather conditions (`rain`, `fog`, `wind`, `night`) and 1-turn early glowing hazard warning indicators.

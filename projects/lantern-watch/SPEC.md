@@ -82,6 +82,19 @@ Title → World map (`world_map.webp`, 7 main route nodes + 1 外傳 node = 8 ba
 計策 list: 火攻 (fire on a 3x3 forest/market area at turn 1: 10 dmg, x0 water; spreads to adjacent forest/market tiles unless blocked by water/stone), 伏兵 (one ally deploys anywhere hidden in forest), 佯攻 (enemy cavalry turn 1 moves toward a decoy tile), 水淹 (map 4 only: dam break floods the lower path, 15 dmg to units in shallows/road rows ≥9), 夜襲 (enemies skip turn 1), 鼓舞 (+20% dmg for allies turns 1–2), 擂鼓 (mid-battle war drums: ally morale +25, allies within radius 2 gain +1 MOV this turn), 滾木 (map 8 only: rolling log down slope dealing 16 damage, knockback 1 tile, shatters shield phalanx).
 Morale system (士氣): Dual gauge (100 max) in HUD. Commander kill (-25), unit defeat (-8), and flank/back attacks (-2 / -5) lower enemy morale; ally defeat drops ally morale (-15). Below 35 morale, weak enemies rout (flee instead of attacking); dynamic floating notifications 【敵軍士氣 -X】 and 【敵軍潰逃！】.
 
+## 8b. Weather System & Telegraphed Reinforcements
+- **Weather System (`js/data/maps.js`, `weather:`)**:
+  - `clear` (晴): Standard visibility, neutral elemental interactions.
+  - `rain` (雨): 水淹 damage & water magic +25% bonus; 火攻 and fire skills deal -25% reduced damage. Canvas renders slanted rain streaks overlay.
+  - `fog` (霧): Dense fog reduces vision and long-range attack distance by -1 tile. Atmospheric mist haze overlay.
+  - `wind` (風): Archers and ranged projectile attacks traveling downwind (South, +y) gain +1 attack range. Floating windblown leaf particles.
+  - `night` (夜): Low ambient visibility; lantern light radius is crucial to pierce shrouded foes and curse miasma.
+  - Dynamic weather badge (`#hudWeatherBadge`) in battle HUD displays current weather condition with an explanatory tooltip.
+- **Telegraphed Mid-Battle Reinforcements**:
+  - Mid-battle enemy reinforcements are announced one turn in advance of their arrival.
+  - A flashing warning marker (`⚠️ 援軍突襲 [兵種]`, `.reinforcement-spawn-marker`) appears at the exact entry edge tile on the map, allowing players to fortify chokepoints and prepare defensive positions.
+  - Distinct combos configured: Ch2 (烈風 wind + T3 flank cavalry), Ch4 (夜霧 fog + T5 boss reinforcement), Ch6 (驟雨 rain + T4 bridge collapse + T5 scout reinforcement). Covered by rules #31 & #32.
+
 ## 9. Encounter design table
 | # | Map | Objective | Enemy mix | Intended counters | Solution A | Solution B |
 |---|---|---|---|---|---|---|

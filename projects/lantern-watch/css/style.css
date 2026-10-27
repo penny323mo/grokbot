@@ -1288,6 +1288,7 @@ html, body {
   font-size: 13px;
   color: var(--lantern-gold);
   letter-spacing: 1px;
+  white-space: nowrap;
 }
 
 .bark-quote {

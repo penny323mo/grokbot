@@ -406,9 +406,10 @@ class LanternTacticsApp {
     const badgeEl = document.getElementById('txtChapterBadge');
     if (badgeEl) badgeEl.textContent = chapter.id === 7 ? '外傳' : `第${chapter.id}回`;
 
+    const activePlacements = placements || (this.activeChapter?.id === chapter.id ? this.deployPlacements : null);
     const squadInstances = this.selectedSquadIds.map(id => this.campaign.getUnitInstance(id));
     this.battle = new Battle(chapter, squadInstances, this.activeStratagemId, this.campaign, this.rng, {
-      deployPlacements: placements || this.deployPlacements
+      deployPlacements: activePlacements
     });
 
     this.clearSelection();
@@ -1595,6 +1596,19 @@ class LanternTacticsApp {
       },
       launchBattle: (chId = 1) => {
         const ch = CHAPTERS.find(c => c.id === chId) || CHAPTERS[0];
+        const defaultComps = {
+          1: ['bear_guard', 'cat_patrol', 'lantern_crafter', 'tea_master'],
+          2: ['bear_guard', 'cat_patrol', 'lantern_crafter', 'tea_master', 'fox_maiden'],
+          3: ['bear_guard', 'cat_patrol', 'lantern_crafter', 'tea_master', 'fox_maiden'],
+          4: ['bear_guard', 'cat_patrol', 'lantern_crafter', 'tea_master', 'crane_rider', 'fox_maiden'],
+          5: ['bear_guard', 'cat_patrol', 'lantern_crafter', 'tea_master', 'crane_rider', 'fox_maiden'],
+          6: ['bear_guard', 'cat_patrol', 'lantern_crafter', 'tea_master', 'crane_rider', 'fox_maiden'],
+          7: ['bear_guard', 'cat_patrol', 'lantern_crafter', 'tea_master', 'crane_rider'],
+          8: ['bear_guard', 'tea_master', 'cat_patrol', 'lantern_crafter', 'crane_rider', 'fox_maiden']
+        };
+        this.selectedSquadIds = defaultComps[ch.id] || Object.keys(GUARDIAN_PROTOS).slice(0, ch.squadLimit);
+        this.activeChapter = ch;
+        this.deployPlacements = [];
         this.launchBattleInstance(ch);
       },
       selectUnit: (unitId) => {
