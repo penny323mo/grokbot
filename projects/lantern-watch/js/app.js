@@ -429,6 +429,25 @@ class LanternTacticsApp {
     } else if (allies.length > 0) {
       requestAnimationFrame(() => this.ui.frameTiles(allies, false, false));
     }
+
+    // Battle start dialogue bark
+    this.firstKillBarkPlayed = false;
+    const leader = this.battle.allies.find(a => a.hp > 0);
+    if (leader) {
+      const startBarks = {
+        bear_guard: '「敵陣已近！結鐵壁之陣，護住明燈！」',
+        cat_patrol: '「暗夜之中，正是拔劍破陣之時！」',
+        crane_rider: '「風雲在握，敵陣破綻已收眼底！」',
+        tea_master: '「品此清茶，靜觀敵變，破陣只在彈指間。」',
+        lantern_crafter: '「明燈照徹，諸位將士隨我照破夜霧！」'
+      };
+      if (this.battleStartBarkTimer) clearTimeout(this.battleStartBarkTimer);
+      this.battleStartBarkTimer = setTimeout(() => {
+        if (this.battle && this.battle.currentTurn === 1) {
+          this.ui.showCombatBark(leader, `【${leader.name} · 開戰號令】`, startBarks[leader.id] || leader.bark || '「全軍列陣，隨我迎敵！」', 1500);
+        }
+      }, 1400);
+    }
   }
 
   refreshBattleUI() {
@@ -1052,6 +1071,35 @@ class LanternTacticsApp {
     this.clearSelection();
     this.refreshBattleUI();
 
+    // First kill dialogue bark
+    if (!this.firstKillBarkPlayed && res?.events?.some(e => e.type === 'defeat' || e.type === 'kill' || (e.type === 'hit' && e.targetDead))) {
+      this.firstKillBarkPlayed = true;
+      const killBarks = {
+        cat_patrol: '「先下一城！劍鋒所向，敵酋必隕！」',
+        bear_guard: '「喝！不堪一擊，隨俺乘勝追擊！」',
+        crane_rider: '「長空破敵！側翼敵陣已瓦解！」',
+        tanuki_mage: '「天雷破煞！妖霧散盡之時到了！」',
+        fox_maiden: '「靈狐烈焰，焚盡宵小！」'
+      };
+      this.ui.showCombatBark(actingUnit, `【${actingUnit.name} · 首殺拔旗】`, killBarks[actingUnit.id] || '「首戰告捷！乘勝破敵！」', 1500);
+    }
+
+    // Ally low HP dialogue bark
+    for (const ally of (this.battle?.allies || [])) {
+      if (ally.hp > 0 && ally.hp <= ally.maxHp * 0.3 && !ally._lowHpBarkPlayed) {
+        ally._lowHpBarkPlayed = true;
+        this.ui.showCombatBark(ally, `【${ally.name} · 鏖戰負創】`, '「此等微傷何足懼……死戰不退！」', 1500);
+        break;
+      }
+    }
+
+    // Boss phase change bark
+    const bossEv = res?.events?.find(e => e.type === 'boss_phase');
+    if (bossEv) {
+      const boss = this.battle.enemies.find(e => e.id === 'iron_general') || { id: 'iron_general', name: '鐵將' };
+      this.ui.showCombatBark(boss, `【${boss.name} · 暴怒】`, '「狂妄之徒！見識本將軍的狂暴刀罡吧！」', 1500);
+    }
+
     // Check events from action (morale drops, bonus XP, routs)
     if (this.battle.eventLog) {
       const recentEvents = this.battle.eventLog.slice(-5);
@@ -1246,6 +1294,24 @@ class LanternTacticsApp {
           phasePill.className = 'battle-phase-pill ally';
         }
         this.refreshBattleUI();
+
+        // Check telegraphed reinforcement alerts
+        const warnings = this.battle?.eventLog?.filter(e => e.type === 'reinforce_warning' && !e._notified);
+        if (warnings && warnings.length > 0) {
+          for (const w of warnings) {
+            w._notified = true;
+            this.ui.showMoraleNotice(w.msg);
+          }
+        }
+
+        // Check low HP allies
+        for (const ally of (this.battle?.allies || [])) {
+          if (ally.hp > 0 && ally.hp <= ally.maxHp * 0.3 && !ally._lowHpBarkPlayed) {
+            ally._lowHpBarkPlayed = true;
+            this.ui.showCombatBark(ally, `【${ally.name} · 鏖戰負創】`, '「此等微傷何足懼……死戰不退！」', 1500);
+            break;
+          }
+        }
       });
     });
   }

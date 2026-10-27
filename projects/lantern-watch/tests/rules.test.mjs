@@ -1155,6 +1155,10 @@ test('Rules: Morale Rally (擂鼓) stratagem and routed enemy flee bonus XP', ()
   assert.strictEqual(battleCat.mov, 6, 'Allies within radius 2 gain +1 MOV (5 -> 6)');
   assert.strictEqual(battleFar.mov, 4, 'Allies outside radius 2 do not gain MOV');
 
+  // Verify single callout event emission
+  const rallyMoraleEvents = battle.eventLog.filter(e => e.type === 'morale' && e.reason === '擂鼓振威');
+  assert.strictEqual(rallyMoraleEvents.length, 1, 'One rally emits exactly one morale callout event');
+
   // Once per battle constraint
   assert.strictEqual(battle.triggerRally(), false, 'Rally cannot be cast twice in the same battle');
 
@@ -1166,4 +1170,76 @@ test('Rules: Morale Rally (擂鼓) stratagem and routed enemy flee bonus XP', ()
   // Cat defeats routed enemy
   battle.processCombatMorale(battleCat, enemy, { preview: {}, attackerAlive: true, defenderAlive: false });
   assert.strictEqual(camp.getUnitInstance('cat_patrol').exp, prevExp + 5, 'Defeating a routed enemy awards +5 bonus XP');
+});
+
+test('Rules: Weather mechanics (雨 water boost/fire dampen, 風 downwind range, 霧 mist)', () => {
+  const terrain = new Array(13).fill('ffffffffff');
+  const chRain = { id: 2, terrain, weather: 'rain', deployTiles: [{ x: 2, y: 5 }] };
+  const chClear = { id: 1, terrain, weather: 'clear', deployTiles: [{ x: 2, y: 5 }] };
+  const chWind = { id: 2, terrain, weather: 'wind', deployTiles: [{ x: 2, y: 5 }] };
+
+  // 1. Rain weakens fire stratagem damage and strengthens flood
+  const bClear = new Battle(chClear, [{ id: 'bear_guard', x: 2, y: 5, hp: 30, maxHp: 30 }]);
+  bClear.enemies = [{ id: 'dummy_foe', x: 2, y: 2, hp: 30, maxHp: 30, team: 'enemy' }];
+  bClear.triggerFireAttack(2, 2);
+  const dmgClear = 30 - bClear.enemies[0].hp;
+  assert.strictEqual(dmgClear, 10, 'Normal fire attack deals 10 baseline damage in clear weather');
+
+  const bRain = new Battle(chRain, [{ id: 'bear_guard', x: 2, y: 5, hp: 30, maxHp: 30 }]);
+  bRain.enemies = [{ id: 'dummy_foe', x: 2, y: 2, hp: 30, maxHp: 30, team: 'enemy' }];
+  bRain.triggerFireAttack(2, 2);
+  const dmgRain = 30 - bRain.enemies[0].hp;
+  assert.strictEqual(dmgRain, 8, 'Rain weakens fire stratagem damage by 20-25% (10 -> 8)');
+
+  // 2. Rain strengthens flood damage
+  bRain.board.setTerrainChar(2, 6, 's');
+  bRain.enemies = [{ id: 'dummy_foe2', x: 2, y: 6, hp: 30, maxHp: 30, team: 'enemy' }];
+  bRain.triggerWaterFlood(6, 6);
+  const floodDmgRain = 30 - bRain.enemies[0].hp;
+  assert.strictEqual(floodDmgRain, 15, 'Rain strengthens flood damage (+25%: 12 -> 15)');
+
+  // 3. Wind grants downwind south (+y) range for archers
+  const bWind = new Battle(chWind, [{ id: 'bear_guard', x: 2, y: 5, hp: 30, maxHp: 30 }]);
+  const archer = { id: 'shadow_archer', role: 'archer', range: [1, 2] };
+  const rangeClear = getAttackRangeTiles(bClear.board, archer, 5, 5);
+  const southReachClear = Math.max(...rangeClear.map(t => t.y)) - 5;
+  assert.strictEqual(southReachClear, 2, 'In clear weather, archer south reach is 2 tiles');
+
+  const rangeWind = getAttackRangeTiles(bWind.board, archer, 5, 5);
+  const southReachWind = Math.max(...rangeWind.map(t => t.y)) - 5;
+  assert.strictEqual(southReachWind, 3, 'In wind weather, archer south downwind reach gains +1 (2 -> 3 tiles)');
+});
+
+test('Rules: Telegraphed reinforcements announced one turn early with warning marker', () => {
+  const terrain = new Array(13).fill('..........');
+  const chWithReinforce = {
+    id: 2,
+    terrain,
+    deployTiles: [{ x: 2, y: 10 }],
+    reinforcements: [
+      { turn: 2, id: 'fog_rider', x: 1, y: 6, facing: 1, bark: '「側翼突擊！」' }
+    ]
+  };
+
+  const battle = new Battle(chWithReinforce, [{ id: 'bear_guard', x: 2, y: 10, hp: 30, maxHp: 30 }]);
+
+  // Turn 1 start: reinforcement for Turn 2 should already be telegraphed!
+  assert.strictEqual(battle.currentTurn, 1, 'Battle starts on Turn 1');
+  const incomingTurn1 = battle.getIncomingReinforcements();
+  assert.strictEqual(incomingTurn1.length, 1, 'Turn 2 reinforcement is telegraphed at Turn 1');
+  assert.strictEqual(incomingTurn1[0].turn, 2, 'Incoming reinforcement turn is 2');
+  assert.strictEqual(incomingTurn1[0].x, 1, 'Incoming reinforcement X is 1');
+  assert.strictEqual(incomingTurn1[0].y, 6, 'Incoming reinforcement Y is 6');
+
+  const warningEvents = battle.eventLog.filter(e => e.type === 'reinforce_warning');
+  assert.strictEqual(warningEvents.length, 1, 'One reinforce_warning event is emitted for player preparation');
+  assert.ok(warningEvents[0].msg.includes('下回合'), 'Warning message indicates arrival on next turn');
+
+  // Turn 1 ally ends phase, Turn 1 enemy ends phase -> advances to Turn 2
+  battle.endEnemyPhase();
+  assert.strictEqual(battle.currentTurn, 2, 'Battle advances to Turn 2');
+  const spawnedEnemy = battle.enemies.find(e => e.id === 'fog_rider');
+  assert.ok(spawnedEnemy, 'Reinforcement spawns on map at Turn 2');
+  assert.strictEqual(spawnedEnemy.x, 1, 'Reinforcement spawns at telegraphed X');
+  assert.strictEqual(spawnedEnemy.y, 6, 'Reinforcement spawns at telegraphed Y');
 });

@@ -1,14 +1,14 @@
 # 燈影軍略 — orchestrator report
 
-- Generated: 2026-10-27 12:22 (Macau, UTC+8)
+- Generated: 2026-10-27 13:53 (Macau, UTC+8)
 - Live: https://penny323mo.github.io/grokbot/projects/lantern-watch/ (HTTP 200)
-- Rounds: 1  ·  Started: 2026-10-27T11:04:53+08:00
+- Rounds: 1  ·  Started: 2026-10-27T12:40:05+08:00
 
 ## Phases
-- build finished 2026-10-27T12:05:01+08:00
-- review-1 finished 2026-10-27T12:11:53+08:00
-- fix-1 finished 2026-10-27T12:22:38+08:00
-- publish finished 2026-10-27T12:22:47+08:00
+- build finished 2026-10-27T13:24:20+08:00
+- review-1 finished 2026-10-27T13:31:04+08:00
+- fix-1 finished 2026-10-27T13:53:13+08:00
+- publish finished 2026-10-27T13:53:22+08:00
 
 ## Reviews
 - orch-r1-grok.md: VERDICT: NOT READY
@@ -19,9 +19,9 @@
 ch2 reasonable win: 43/50 (86%)
 ch3 reasonable win: 45/50 (90%)
 ch4 reasonable win: 44/50 (88%)
-ch5 reasonable win: 44/50 (88%)
+ch5 reasonable win: 42/50 (84%)
 ch6 reasonable win: 45/50 (90%)
-ch7 reasonable win: 38/50 (76%)
+ch7 reasonable win: 40/50 (80%)
 ch8 reasonable win: 38/50 (76%)
 balance ok: ch1 naive win 50/50, ch3/5/7 naive failed, all mid chapters reasonable in 75-90% range
 ```
@@ -30,9 +30,9 @@ balance ok: ch1 naive win 50/50, ch3/5/7 naive failed, all mid chapters reasonab
 ch2 reasonable win: 43/50 (86%)
 ch3 reasonable win: 45/50 (90%)
 ch4 reasonable win: 44/50 (88%)
-ch5 reasonable win: 44/50 (88%)
+ch5 reasonable win: 42/50 (84%)
 ch6 reasonable win: 45/50 (90%)
-ch7 reasonable win: 38/50 (76%)
+ch7 reasonable win: 40/50 (80%)
 ch8 reasonable win: 38/50 (76%)
 balance ok: ch1 naive win 50/50, ch3/5/7 naive failed, all mid chapters reasonable in 75-90% range
 ```
@@ -45,33 +45,33 @@ balance ok: ch1 naive win 50/50, ch3/5/7 naive failed, all mid chapters reasonab
 - screenshots/orch/live-title.png
 
 ## Changelog (tail)
-  - Toggled threat off by default across battle UI and tests, isolating threat display exclusively to `b-threat.png`.
-- **MAJOR #3 (Tutorial 建議行動 Button Squeeze)**:
-  - Dropped `width: 100%` on `.btn-tutorial-ack` inside `.tutorial-card-actions`.
-  - Set both `💡 建議行動` and `明白` buttons to `flex: 1 1 0; min-width: 0; height: 44px; white-space: nowrap;`, placing them cleanly side-by-side.
-- **MAJOR #4 (Action Menu 技能 Label & Tutorial Beat 6 Align)**:
-  - Replaced `計策` on the unit skill action button with `技能` in both `index.html` and `js/render/ui.js` to match SPEC §5 (`攻擊 / 技能 / 魔法 / 待命`).
-  - Reserved `計策` strictly for the one-per-battle army stratagems (火攻, 佯攻, 水淹, 鼓舞, 夜襲).
-  - Aligned tutorial beat 6 copy to reference `【技能】或【法術】`.
-- **MAJOR #5 (Class Synergy Real Combat Modifiers & Unit Tests)**:
-  - Connected `getClassSynergies` to active combat resolution in `js/engine/combat.js` and `js/engine/battle.js`:
-    - `iron_fortress` (金湯固若): grants +1 DEF to all allies when tank + healer are present.
-    - `cavalry_coop` (步騎協同): grants +1 MOV on turn 1 when flanker + (cavalry or flyer) are in squad.
-    - `spell_arrow` (法箭交輝): boosts ranged/magic attacks by +10% damage when mage + archer are present.
-  - Added dedicated test `Rules: Class synergy bonuses (spell_arrow +10% ranged dmg, iron_fortress +1 def, cavalry_coop +1 turn 1 mov)` in `tests/rules.test.mjs`.
-- **MAJOR #6 (Deploy Camera Framing & Live Alignment)**:
-  - Ensured deploy framing subtracts measured bottom overlay inset via `frameTiles(deployTiles ∪ units)`.
-  - Recaptured `live-deploy.png` and `live-scout.png` against live production URL, completely free of empty black bands.
+  - Fixed `measureBottomInset()` in `js/render/ui.js` to strictly require elements to cover or touch the bottom edge of the viewport (`r.bottom >= vr.bottom - 30`), completely preventing `.tutorial-board-card` from being miscalculated as a bottom overlay when docked at the top with `.card-at-top`.
+  - Added stage height reset to 940px in `hideDeployPhase()` to clear deploy tray padding extensions.
+  - In `startTutorialFlow()` step 0, applied `.card-at-top` before framing and called `frameTiles(liveAllies, false, false)` so row 12 sits directly above the bottom info bar.
+  - Verified `b-tutorial-spotlight.png` now has full painted river bank terrain filling the band under 茶翁 and 燈車 with 0px empty void.
 
-### Minor Fixes & Polish
-- **MINOR #7 (SPEC §6 & Help Modal 7-Beat Sync)**:
-  - Updated SPEC §6 and the navigation `?` modal (`showTacticsTutorialModal`) to present all 7 interactive beats in sync with the live battle tutorial.
-- **MINOR #8 (Directional Targeting Preview Capture)**:
-  - Added `g2-directional.png` to `screenshots/v9/` showcasing crane rider's `crane_line_gust` orange line highlight preview with cardinal confirm flow.
-- **MINOR #10 (Combat Damage Multiplier Floaters Visibility)**:
-  - Extended floating damage label lifespan to 2500ms and tuned confirm timing so `h-after-confirm.png` visibly captures the damage multiplier tags (`【側翼 ×1.2】`).
+- **MAJOR #2: 擂鼓 Mid-Battle Stratagem Activation & Dynamic Morale Boost**:
+  - Removed 擂鼓 (`rally`) from turn 1 auto-cast list in `applyStratagemAtStart()`.
+  - Added dedicated in-battle `#btnStratagemTop` in `index.html` and wired it in `js/app.js` to trigger `battle.triggerRally()` once per battle during ally phase.
+  - Generates floating callout `【我軍士氣 ↑ +25】`, toast notice `【擂鼓振威】戰鼓如雷！我軍士氣提升25點，周圍友軍步法+1！`, and actually moves the ally morale gauge.
+  - Updated rules test #30 in `tests/rules.test.mjs` asserting mid-battle rally activation (60 -> 85 morale, +1 MOV within radius 2, and once-per-battle enforcement).
+  - Captured fresh `d-morale-rout.png` showing ally morale dynamically rising to 85.
 
-## 2026-10-27 12:40 (Asia/Macau): improve round 8 launched (prompts/improve-7.txt)
-- Round 7 finished at 12:22. The live site returns 200. npm test passes: ch1 naive 50/50; reasonable ch2–8 76–90%; no first-phase deaths.
-- The 390px review of screenshots/v10 found several issues. The ch1 class badges and sprites don't match the names: the shield figure is badged 槍, and the tutorial says 熊岳 but the spotlight sits on the 劍 unit. All units are crammed into the bottom-left corner and clipped by the info bar, and no enemy is visible at battle start. The ch8 mountain-pass art is murky and unreadable.
-- Brief: make unit identity coherent (with name labels and a test); spread out the deploy area; add a battle-start camera pan that shows the enemies; repaint the ch8 map; give morale visible callouts, routing enemies and a 擂鼓 rally stratagem; keep all balance invariants. Screenshots go to screenshots/v11, and the old state is in .orch-prev-7.
+### MINOR Fixes
+- **MINOR #3: Chapter 1 Deployment Column Gaps & Name Tag Clearance**:
+  - Configured Chapter 1 `deployTiles` as `[{ x: 1, y: 11 }, { x: 0, y: 11 }, { x: 3, y: 12 }, { x: 4, y: 12 }, { x: 1, y: 12 }, { x: 0, y: 12 }]`.
+  - Units spawn across discrete columns (Col 0: 墨影, Col 1: 熊岳, Col 2: 引路燈車, Col 3: 燈娘 小螢, Col 4: 茶翁), completely eliminating north-south figure/name tag collisions between 熊岳 and 茶翁.
+  - Refined `.unit-name-tag` positioning to `top: -11px; z-index: 10` with high-contrast text shadows.
+
+- **MINOR #4: SPEC Alignment**:
+  - Updated `SPEC.md` §8 計策 list to include `擂鼓` (mid-battle war drums: ally morale +25, allies within radius 2 gain +1 MOV this turn).
+  - Updated §9 balance table to reflect live simulation results: Chapter 5 reasonable win rate at 42/50 (84%) and Chapter 7 at 40/50 (80%).
+
+- **MINOR #5: Chapter 8 Mountain Pass 390px Viewport Framing**:
+  - Updated framing targets in `scripts/verify_battle_ui.steps.json` for Chapter 8 to include warlord (4, 1), western archer (2, 2), eastern archer (7, 2), and the 滾木 log ramp chute.
+  - Recaptured `screenshots/v11/e-ch8-mountain-pass.png` ensuring the eastern archer has clear margin and is not clipped by the 390px right border.
+
+## 2026-10-27 14:10 (Asia/Macau): improve round 9 launched (prompts/improve-8.txt)
+- Round 8 finished at 13:53. The live site returns 200. npm test passes: ch1 naive 50/50 and reasonable 100%; reasonable ch2–8 76–90%; no first-phase deaths.
+- The 390px review of screenshots/v11 found these issues. The rally callout shows twice and the rout shows no fleeing enemy. The ch8 info bar still shows ch1 熊岳 (1,11). The deploy panel covers about 30% of the map, the units sit in one row on the bottom edge, and a tray name wraps. The tutorial card covers the top third of the screen. Enemy figures read as near-black blobs. The ch8 repaint is now clear.
+- Brief: fix those UI bugs (collapsible deploy panel, compact tutorial hint, visible rout); add per-chapter weather (rain, fog, wind, night) with real mechanics and art overlays, plus reinforcements telegraphed one turn early; add portrait dialogue barks and a post-battle star rating with an MVP; add enemy colour accents and rim light; keep all balance invariants. Screenshots go to screenshots/v12, and the old state is in .orch-prev-8.

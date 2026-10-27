@@ -21,6 +21,8 @@ export class Battle {
 
     this.board = new Board();
     this.board.loadMap(chapter.terrain, chapter.lanterns || []);
+    this.weather = chapter.weather || 'clear';
+    this.board.weather = this.weather;
 
     this.currentTurn = 1;
     this.phase = 'ally'; // 'ally' | 'enemy' | 'finished'
@@ -29,6 +31,7 @@ export class Battle {
     this.allies = [];
     this.enemies = [];
     this.eventLog = [];
+    this.telegraphedReinforcements = new Set();
     this.allyMorale = 100;
     this.enemyMorale = 100;
     this.maxMorale = 100;
@@ -43,6 +46,7 @@ export class Battle {
     this.initUnits(squadUnits, this.options);
     this.updateLastStand();
     this.applyStratagemAtStart();
+    this.checkTelegraphedReinforcements();
   }
 
   initUnits(squadUnits, options = {}) {
@@ -315,11 +319,37 @@ export class Battle {
     }
   }
 
+  checkTelegraphedReinforcements() {
+    if (!this.chapter?.reinforcements) return;
+    for (const r of this.chapter.reinforcements) {
+      if (r.turn === this.currentTurn + 1 && !this.telegraphedReinforcements.has(r)) {
+        this.telegraphedReinforcements.add(r);
+        const proto = ENEMY_PROTOS[r.id];
+        const name = proto ? proto.name : '敵軍精銳';
+        this.eventLog.push({
+          type: 'reinforce_warning',
+          turn: r.turn,
+          x: r.x,
+          y: r.y,
+          id: r.id,
+          name,
+          msg: `【敵襲警報】斥候探明：下回合（第${r.turn}回合）敵軍【${name}】將於(${r.x},${r.y})發起突襲！`
+        });
+      }
+    }
+  }
+
+  getIncomingReinforcements() {
+    if (!this.chapter?.reinforcements) return [];
+    return this.chapter.reinforcements.filter(r => r.turn === this.currentTurn + 1);
+  }
+
   triggerFireAttack(cx, cy) {
     const center = { x: cx, y: cy };
     this.fireCenter = center;
     if (!this.burningTiles) this.burningTiles = new Set();
-    this.eventLog.push({ type: 'stratagem', name: '火攻', msg: `火箭齊射，烈火燃遍指定3×3區域(${center.x},${center.y})！` });
+    const weatherNotice = this.weather === 'rain' ? '（暴雨綿延，火勢受制，傷害-25%）' : '';
+    this.eventLog.push({ type: 'stratagem', name: '火攻', msg: `火箭齊射，烈火燃遍指定3×3區域(${center.x},${center.y})！${weatherNotice}` });
 
     for (let r = Math.max(0, cy - 1); r <= Math.min(12, cy + 1); r++) {
       for (let c = Math.max(0, cx - 1); c <= Math.min(9, cx + 1); c++) {
@@ -333,11 +363,12 @@ export class Battle {
       }
     }
 
+    const fireBaseDmg = this.weather === 'rain' ? 8 : 10;
     for (const e of this.enemies) {
       if (this.burningTiles.has(`${e.x},${e.y}`)) {
         if (e.element !== 'water') {
-          e.hp = Math.max(0, e.hp - 10);
-          this.eventLog.push({ type: 'fire_hit', target: e.id, damage: 10 });
+          e.hp = Math.max(0, e.hp - fireBaseDmg);
+          this.eventLog.push({ type: 'fire_hit', target: e.id, damage: fireBaseDmg });
         }
       }
     }
@@ -390,7 +421,8 @@ export class Battle {
 
   triggerWaterFlood(targetRowMin = 4, targetRowMax = 8) {
     if (!this.floodedTiles) this.floodedTiles = new Map();
-    this.eventLog.push({ type: 'stratagem', name: '水淹', msg: '江河開閘決堤，巨浪滔天席捲淺灘河道！' });
+    const weatherNotice = this.weather === 'rain' ? '（暴雨助陣，江河浪潮兇猛，傷害+25%）' : '';
+    this.eventLog.push({ type: 'stratagem', name: '水淹', msg: `江河開閘決堤，巨浪滔天席捲淺灘河道！${weatherNotice}` });
 
     for (let r = targetRowMin; r <= targetRowMax; r++) {
       for (let c = 0; c < 10; c++) {
@@ -405,11 +437,12 @@ export class Battle {
       }
     }
 
+    const floodDmg = this.weather === 'rain' ? 15 : 12;
     for (const e of this.enemies) {
       if (this.floodedTiles.has(`${e.x},${e.y}`)) {
         if (!e.flyer) {
-          e.hp = Math.max(0, e.hp - 12);
-          this.eventLog.push({ type: 'flood_hit', target: e.id, damage: 12, msg: `巨浪衝擊【${e.name}】造成12點傷害！` });
+          e.hp = Math.max(0, e.hp - floodDmg);
+          this.eventLog.push({ type: 'flood_hit', target: e.id, damage: floodDmg, msg: `巨浪衝擊【${e.name}】造成${floodDmg}點傷害！` });
           if (e.hp > 0) {
             const pushY = Math.min(12, e.y + 1);
             if (!this.getUnitAt(e.x, pushY) && !this.board.isImpassable(e.x, pushY, false)) {
@@ -1231,6 +1264,7 @@ export class Battle {
     // Advance turn & reset allies
     this.currentTurn++;
     this.phase = 'ally';
+    this.checkTelegraphedReinforcements();
 
     for (const a of this.allies) {
       if (a.rallyBuffed) {

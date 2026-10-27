@@ -173,6 +173,16 @@ export function calculateCombat(attacker, defender, board, options = {}) {
     damageMod *= 1.5;
   }
 
+  // Weather modifiers
+  const weather = options.weather || board?.weather || null;
+  if (weather === 'rain') {
+    if (element === 'fire') {
+      damageMod *= 0.75;
+    } else if (element === 'water') {
+      damageMod *= 1.25;
+    }
+  }
+
   // Class synergies
   const squadAllies = options.allies || (attacker.team === 'ally' ? attacker.squad : (defender.team === 'ally' ? defender.squad : null));
   const activeSynergies = options.synergies || (squadAllies ? getClassSynergies(squadAllies) : []);
@@ -215,6 +225,9 @@ export function calculateCombat(attacker, defender, board, options = {}) {
 
   // Crit rate
   let critRate = Math.max(2, Math.min(50, Math.round(((attacker.spd || 10) - (defender.spd || 10)) * 1.5) + (isBackAttack ? 15 : 0)));
+  if (weather === 'night' && attacker.team === 'enemy' && board?.isTileLit && !board.isTileLit(defenderPos.x, defenderPos.y)) {
+    critRate = Math.min(50, critRate + 10);
+  }
 
   // Will defender survive?
   const willKill = expectedDamage >= defender.hp;

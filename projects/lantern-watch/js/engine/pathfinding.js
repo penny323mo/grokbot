@@ -170,11 +170,15 @@ export function getAttackRangeTiles(board, unit, fromX, fromY) {
     maxRange += unit.rangeMaxBonus;
   }
 
+  const isDownwindBonus = board.weather === 'wind' && (maxRange > 1 || unit.role === 'archer' || unit.cls === '弓手');
+
   const tiles = [];
-  for (let dy = -maxRange; dy <= maxRange; dy++) {
+  const maxDy = isDownwindBonus ? maxRange + 1 : maxRange;
+  for (let dy = -maxRange; dy <= maxDy; dy++) {
     for (let dx = -maxRange; dx <= maxRange; dx++) {
       const dist = Math.abs(dx) + Math.abs(dy);
-      if (dist >= minRange && dist <= maxRange) {
+      const effectiveMax = (isDownwindBonus && dy > 0) ? maxRange + 1 : maxRange;
+      if (dist >= minRange && dist <= effectiveMax) {
         const tx = fromX + dx;
         const ty = fromY + dy;
         if (board.inBounds(tx, ty)) {

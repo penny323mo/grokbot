@@ -183,6 +183,10 @@
             <div class="hud-left">
               <span class="battle-turn-badge" id="hudTurnBadge">第 1 / 12 回合</span>
               <span class="battle-phase-pill ally" id="hudPhasePill">我方回合</span>
+              <div class="hud-weather-badge" id="hudWeatherBadge" title="【氣候】">
+                <span class="weather-icon" id="hudWeatherIcon">🌙</span>
+                <span class="weather-name" id="hudWeatherName">夜</span>
+              </div>
             </div>
             <div class="hud-right">
               <button type="button" class="btn-hud-action" id="btnStratagemTop" title="施放軍略計策"><span>軍略</span></button>
@@ -236,6 +240,7 @@
             <canvas class="board-canvas-layer" id="fireOverlayCanvas" width="640" height="832"></canvas>
             <canvas class="board-canvas-layer" id="rangeOverlayCanvas" width="640" height="832"></canvas>
             <canvas class="board-canvas-layer" id="fogOverlayCanvas" width="640" height="832"></canvas>
+            <canvas class="board-canvas-layer" id="weatherOverlayCanvas" width="640" height="832"></canvas>
             <!-- 10x13 Grid Tiles Overlay -->
             <div class="tactics-grid" id="tacticsGrid"></div>
             <!-- Dynamic 2.5D Figures Layer -->
@@ -338,9 +343,9 @@
         <!-- Deploy Phase Bottom Tray -->
         <div class="deploy-tray-bar" id="deployTrayBar" style="display:none;">
           <div class="deploy-tray-header">
-            <span class="deploy-tray-title">排兵布陣 · 點選將士再點選金色部署格</span>
+            <span class="deploy-tray-title" id="deployTrayTitle">排兵布陣 · 點選將士再點選金色部署格</span>
             <span class="badge-tag highlight" id="deployStatusBadge">已就位</span>
-            <button type="button" class="btn-deploy-mini" id="btnDeployScout" title="收起面板，拖曳地圖偵察敵軍">偵察</button>
+            <button type="button" class="btn-deploy-mini" id="btnToggleDeployTray" title="收起或展開排兵面板">收起 ▼</button>
           </div>
           <div class="deploy-synergy-strip" id="deploySynergyStrip"></div>
           <div class="deploy-tray-units" id="deployTrayUnits"></div>
@@ -350,23 +355,25 @@
         </div>
 
         <!-- Live Board Tutorial Spotlight Overlay -->
-        <div class="tutorial-board-overlay" id="tutorialBoardOverlay" style="display:none;">
-          <div class="tutorial-board-card">
-            <div class="tutorial-card-header">
-              <span class="tutorial-pill-badge" id="boardTutorialTitle">燈影軍略 · 兵法引領</span>
+        <div class="tutorial-board-overlay card-at-top compact" id="tutorialBoardOverlay" style="display:none;">
+          <div class="tutorial-board-card compact" id="tutorialBoardCard">
+            <div class="tutorial-card-compact-row">
               <span class="tutorial-step-pill" id="boardTutorialStep">1 / 7</span>
+              <span class="tutorial-compact-text" id="boardTutorialTextCompact">移動：點選將士【熊岳】，藍格為移動範圍</span>
+              <div class="tutorial-compact-btns">
+                <button type="button" class="btn-tutorial-suggest-mini" id="btnTutorialSuggest" title="建議行動">💡 建議</button>
+                <button type="button" class="btn-tutorial-expand-mini" id="btnTutorialExpand" title="展開詳情">詳情</button>
+                <button type="button" class="btn-tutorial-ack-mini" id="btnBoardTutorialAck">明白</button>
+              </div>
             </div>
-            <div class="tutorial-card-body">
-              <div class="tutorial-tip-icon">✦</div>
-              <div class="tutorial-card-text" id="boardTutorialText">① 「點擊熊岳 → 藍色格子為移動範圍」</div>
-            </div>
-            <div class="tutorial-card-actions">
-              <button type="button" class="btn-tutorial-suggest" id="btnTutorialSuggest">
-                <span>💡 建議行動</span>
-              </button>
-              <button type="button" class="btn-tutorial-ack" id="btnBoardTutorialAck">
-                <span>明白</span>
-              </button>
+            <div class="tutorial-card-expanded-body" id="tutorialCardExpandedBody" style="display:none;">
+              <div class="tutorial-card-header">
+                <span class="tutorial-pill-badge" id="boardTutorialTitle">燈影軍略 · 移動</span>
+              </div>
+              <div class="tutorial-card-body">
+                <div class="tutorial-tip-icon">✦</div>
+                <div class="tutorial-card-text" id="boardTutorialText">① 「移動」點選將士【熊岳】，腳下藍格為合法移動範圍</div>
+              </div>
             </div>
           </div>
         </div>
@@ -509,6 +516,36 @@
           <h2 class="result-title" id="resultTitle">大獲全勝</h2>
           <div class="result-subtitle" id="resultSubtitle">天光破曉 · 迷霧退散</div>
         </div>
+        <!-- 4-Star Tactical Evaluation -->
+        <div class="result-star-row" id="resultStarRow">
+          <div class="result-star-item active" id="starVictory">
+            <span class="star-icon">★</span>
+            <span class="star-label">旗開得勝</span>
+          </div>
+          <div class="result-star-item active" id="starTurns">
+            <span class="star-icon">★</span>
+            <span class="star-label">速戰速決</span>
+          </div>
+          <div class="result-star-item active" id="starCasualty">
+            <span class="star-icon">★</span>
+            <span class="star-label">全員生還</span>
+          </div>
+          <div class="result-star-item active" id="starObjective">
+            <span class="star-icon">★</span>
+            <span class="star-label">勢如破竹</span>
+          </div>
+        </div>
+        <!-- MVP Highlight Banner -->
+        <div class="result-mvp-card" id="resultMvpCard">
+          <div class="mvp-por-box">
+            <img src="assets/art/v4/por_cat_patrol.webp" alt="MVP" class="mvp-por" id="resultMvpPor">
+            <span class="mvp-crown-badge">👑 MVP</span>
+          </div>
+          <div class="mvp-quote-box">
+            <div class="mvp-name-tag" id="resultMvpName">【本戰MVP】墨影 · 影步遊俠</div>
+            <div class="mvp-quote-text" id="resultMvpQuote">「暗夜之中，劍鋒所向披靡。敵酋已斬，長夜將明！」</div>
+          </div>
+        </div>
         <div class="result-body">
           <div class="result-exp-awards" id="resultExpAwards">參戰將士每人獲得 30 點軍略功勳 (EXP)！</div>
           <div class="result-xp-list" id="resultXpList"></div>
@@ -520,13 +557,6 @@
                 <strong class="relic-name" id="resultRelicName">倚天古劍</strong>
                 <span class="relic-desc" id="resultRelicDesc">攻擊力 +4 · 暴擊率 +15%</span>
               </div>
-            </div>
-          </div>
-          <div class="result-story-box" id="resultStoryBox">
-            <img src="assets/art/v4/por_cat_patrol.webp" alt="" class="result-story-por" id="resultSpeakerPor">
-            <div class="result-story-dialogue">
-              <span class="result-speaker-name" id="resultSpeakerName">墨影</span>
-              <p class="result-speaker-text" id="resultSpeakerText">「長夜終有盡，迷霧隨燈散。全軍稍作整頓，繼續進軍！」</p>
             </div>
           </div>
           <p class="result-lore-note" id="resultLoreNote">此役過後，小鎮前路破曉微明。</p>

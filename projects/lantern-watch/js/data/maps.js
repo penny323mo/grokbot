@@ -16,6 +16,44 @@ export const TERRAIN_INFO = {
   's': { char: 's', name: '淺灘', moveCost: 3, defBonus: -1, evaBonus: 0, desc: '碎石泥灘，需3移動力，防禦-1' }
 };
 
+export const WEATHER_CONFIG = {
+  clear: {
+    id: 'clear',
+    name: '晴朗',
+    icon: '☀️',
+    tag: '晴',
+    tooltip: '【晴朗】風和日麗，兵行千里，無氣候修正。'
+  },
+  rain: {
+    id: 'rain',
+    name: '暴雨',
+    icon: '🌧️',
+    tag: '雨',
+    tooltip: '【暴雨】水淹傷害+25%，火攻傷害-25%。'
+  },
+  fog: {
+    id: 'fog',
+    name: '濃霧',
+    icon: '🌫️',
+    tag: '霧',
+    tooltip: '【濃霧】遠程射程-1，未照亮目標迴避+15%。'
+  },
+  wind: {
+    id: 'wind',
+    name: '朔風',
+    icon: '🍃',
+    tag: '風',
+    tooltip: '【朔風】向南順風射程+1，吹拂落葉。'
+  },
+  night: {
+    id: 'night',
+    name: '暗夜',
+    icon: '🌙',
+    tag: '夜',
+    tooltip: '【暗夜】長明燈照破夜霧，黑暗中未照亮敵軍暴擊率提升。'
+  }
+};
+
 export const CHAPTERS = [
   {
     id: 1,
@@ -23,6 +61,7 @@ export const CHAPTERS = [
     title: '第一回 · 孤舟燈影渡寒川',
     mapName: '河橋',
     image: 'map_river_bridge.webp',
+    weather: 'night',
     squadLimit: 4,
     maxTurns: 12,
     objectiveType: 'escort',
@@ -37,7 +76,7 @@ export const CHAPTERS = [
     ],
     deployTiles: [
       { x: 1, y: 11 }, { x: 0, y: 11 }, { x: 3, y: 12 }, { x: 4, y: 12 },
-      { x: 1, y: 12 }, { x: 0, y: 12 }
+      { x: 1, y: 12 }, { x: 0, y: 12 }, { x: 0, y: 10 }, { x: 1, y: 10 }
     ],
     npcSpawns: [
       { id: 'lantern_cart', x: 2, y: 12 }
@@ -77,6 +116,7 @@ export const CHAPTERS = [
     title: '第二回 · 鐵壁雄關鎮夜魘',
     mapName: '城門',
     image: 'map_gate.webp',
+    weather: 'wind',
     squadLimit: 5,
     maxTurns: 8,
     objectiveType: 'hold_gate',
@@ -92,7 +132,8 @@ export const CHAPTERS = [
     ],
     deployTiles: [
       { x: 4, y: 7 }, { x: 5, y: 7 },
-      { x: 3, y: 8 }, { x: 6, y: 8 }, { x: 2, y: 8 }, { x: 7, y: 8 }
+      { x: 3, y: 8 }, { x: 6, y: 8 }, { x: 2, y: 8 }, { x: 7, y: 8 },
+      { x: 4, y: 9 }, { x: 5, y: 9 }
     ],
     reinforcements: [
       { turn: 3, id: 'fog_rider', x: 1, y: 6, facing: 1, bark: '「側翼突擊！直撲關門！」' },
@@ -137,6 +178,7 @@ export const CHAPTERS = [
     title: '第三回 · 長街百肆明燈燃',
     mapName: '市集',
     image: 'map_market.webp',
+    weather: 'night',
     squadLimit: 5,
     maxTurns: 10,
     objectiveType: 'protect_lantern',
@@ -201,6 +243,7 @@ export const CHAPTERS = [
     title: '第四回 · 雲海天池決戰峰',
     mapName: '山道',
     image: 'map_mountain.webp',
+    weather: 'fog',
     squadLimit: 6,
     maxTurns: 16,
     objectiveType: 'defeat_boss_or_reach',
@@ -218,7 +261,8 @@ export const CHAPTERS = [
     ],
     deployTiles: [
       { x: 4, y: 11 }, { x: 5, y: 11 },
-      { x: 3, y: 12 }, { x: 4, y: 12 }, { x: 5, y: 12 }, { x: 6, y: 12 }
+      { x: 3, y: 12 }, { x: 4, y: 12 }, { x: 5, y: 12 }, { x: 6, y: 12 },
+      { x: 4, y: 10 }, { x: 5, y: 10 }
     ],
     enemySpawns: [
       { id: 'shield_guard', x: 4, y: 0, facing: 2, aggro: 'guard', guardRadius: 2 },
@@ -259,6 +303,7 @@ export const CHAPTERS = [
     title: '第五回 · 竹海夜霧斷魂隘',
     mapName: '竹海',
     image: 'map_bamboo_pass.webp',
+    weather: 'fog',
     squadLimit: 6,
     maxTurns: 8,
     hasNightFog: true,
@@ -326,6 +371,7 @@ export const CHAPTERS = [
     title: '第六回 · 鐵甲雄關破重圍',
     mapName: '攻城',
     image: 'map_siege.webp',
+    weather: 'rain',
     squadLimit: 6,
     maxTurns: 8,
     hasCollapsibleBridge: true,
@@ -341,7 +387,11 @@ export const CHAPTERS = [
     ],
     deployTiles: [
       { x: 3, y: 11 }, { x: 4, y: 11 }, { x: 5, y: 11 }, { x: 6, y: 11 },
-      { x: 4, y: 12 }, { x: 5, y: 12 }
+      { x: 4, y: 12 }, { x: 5, y: 12 },
+      { x: 4, y: 10 }, { x: 5, y: 10 }
+    ],
+    reinforcements: [
+      { turn: 5, id: 'mist_scout', x: 8, y: 6, facing: -1, bark: '「斥候查探，敵軍已被切斷後路！」' }
     ],
     enemySpawns: [
       { id: 'shield_guard', x: 4, y: 1, facing: 2, aggro: 'guard', guardRadius: 2 },
@@ -382,6 +432,7 @@ export const CHAPTERS = [
     title: '外傳 · 荒澤伏擊破咒禁',
     mapName: '荒澤',
     image: 'map_side_marsh.webp',
+    weather: 'fog',
     banner: 'banner_side.webp',
     squadLimit: 5,
     maxTurns: 12,
@@ -396,7 +447,8 @@ export const CHAPTERS = [
     ],
     deployTiles: [
       { x: 1, y: 11 }, { x: 2, y: 11 }, { x: 3, y: 11 },
-      { x: 1, y: 12 }, { x: 2, y: 12 }, { x: 3, y: 12 }
+      { x: 1, y: 12 }, { x: 2, y: 12 }, { x: 3, y: 12 },
+      { x: 1, y: 10 }, { x: 2, y: 10 }
     ],
     reinforcements: [
       { turn: 3, id: 'paper_ghost', x: 1, y: 7, facing: 1, bark: '「冤魂借水還陽……休想活著離開荒澤！」' },
@@ -438,6 +490,7 @@ export const CHAPTERS = [
     title: '第八回 · 萬壑松風伏兵隘',
     mapName: '萬壑山隘',
     image: 'map_mountain_pass.webp',
+    weather: 'clear',
     banner: 'banner_ch8.webp',
     squadLimit: 6,
     maxTurns: 6,
@@ -451,7 +504,8 @@ export const CHAPTERS = [
     ],
     deployTiles: [
       { x: 3, y: 11 }, { x: 4, y: 11 }, { x: 5, y: 11 }, { x: 6, y: 11 },
-      { x: 3, y: 12 }, { x: 4, y: 12 }
+      { x: 3, y: 12 }, { x: 4, y: 12 },
+      { x: 4, y: 10 }, { x: 5, y: 10 }
     ],
     reinforcements: [
       { turn: 3, id: 'fog_rider', x: 1, y: 5, facing: 1, bark: '「萬壑伏兵四起，截斷退路！」' },

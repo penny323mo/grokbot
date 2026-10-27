@@ -92,3 +92,25 @@
 - Round 7 finished at 12:22. The live site returns 200. npm test passes: ch1 naive 50/50; reasonable ch2–8 76–90%; no first-phase deaths.
 - The 390px review of screenshots/v10 found several issues. The ch1 class badges and sprites don't match the names: the shield figure is badged 槍, and the tutorial says 熊岳 but the spotlight sits on the 劍 unit. All units are crammed into the bottom-left corner and clipped by the info bar, and no enemy is visible at battle start. The ch8 mountain-pass art is murky and unreadable.
 - Brief: make unit identity coherent (with name labels and a test); spread out the deploy area; add a battle-start camera pan that shows the enemies; repaint the ch8 map; give morale visible callouts, routing enemies and a 擂鼓 rally stratagem; keep all balance invariants. Screenshots go to screenshots/v11, and the old state is in .orch-prev-7.
+
+## 2026-10-27 15:05 (Asia/Macau): Improve round 9 DONE (prompts/orch-build.txt)
+- All test suites passing (`npm test`: 32 rules, 10 AI, 8 objectives, 2 branding, 16 encounter simulations, 8 balance simulations).
+- 390px mobile battle UI verified across 6 critical steps in `screenshots/v12/`:
+  - `screenshots/v12/a-deploy-collapsed.png`: Deploy tray collapsible with compact toggle button (`展開 ▲`), 2–3 rows of deploy tiles, and character chip names (`燈娘 小螢`) fitting neatly without wrapping.
+  - `screenshots/v12/b-tutorial-compact.png`: Compact dockable 1-line tutorial hint at top (`#tutorialBoardCard.compact`) with `💡 建議`, `詳情`, and `明白` buttons, completely unobstructed view of spotlighted unit (熊岳) and move range.
+  - `screenshots/v12/c-weather-reinforce.png`: Weather system in action (`🌧️ 雨` badge + tooltip, animated rain overlay canvas), accompanied by telegraphed reinforcement warning marker (`⚠️ 援軍突襲 斥候`) at map edge with glowing hazard border.
+  - `screenshots/v12/d-dialogue-bark.png`: Character portrait dialogue bark bubble (`【熊岳 · 開戰號令】`) floating at top safe area without overlapping HUD morale or battle units.
+  - `screenshots/v12/e-star-result.png`: 4-star evaluation row (旗開得勝, 速戰速決, 全員生還, 勢如破竹) and MVP highlight card (`【本戰MVP】 熊岳・戰功卓著`) with crown badge and victory quote.
+  - `screenshots/v12/f-visible-rout.png`: Single rally callout (`【我軍士氣 ↑ +25】`), fleeing routed enemy (`霧騎`) with floating `⚑ 潰` flag, dust trail, and cleared bottom info strip.
+- Gameplay & Weather Mechanics:
+  - Per-chapter weather implemented: `rain` (water flood +25%, fire attack -25%, rain streaks), `fog` (range/vision -1, mist), `wind` (downwind +y range bonus, blowing leaves), `night` (lantern light radius).
+  - Distinct weather & event combos across Ch2 (wind + Turn 3 side reinforcement), Ch4 (fog + Turn 5 boss reinforcement), and Ch6 (rain + moat bridge collapse + Turn 5 scout reinforcement).
+  - Telegraphed reinforcements announce 1 turn early with edge hazard markers, enabling chokepoint preparation.
+- Art & Silhouette Pop:
+  - Enemy units (影弓, 霧騎, 盾衛, 盾陣精兵, 刺客) enhanced with crimson cloth accents, weapon gleams, and rim lighting.
+- Balance Calibration (Zero Stat Inflation):
+  - Ch1 naive win rate: 50/50 (100% >= 90%).
+  - Reasonable bot win rate: Ch1 100%, Ch2 86%, Ch3 90%, Ch4 88%, Ch5 84%, Ch6 88%, Ch7 80%, Ch8 76% (75–90% range across Ch2–Ch8).
+  - Naive rush fails tactically across Ch2, Ch3, Ch5, Ch6, Ch7, Ch8 (< 50%).
+  - Core invariants held: zero first-phase deaths, enemy hit cap at 30% maxHp.
+- Deployment: Published via `/workspace/orchestrator/publish.sh .`, live URL returns HTTP 200.

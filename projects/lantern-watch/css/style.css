@@ -1246,7 +1246,7 @@ html, body {
 /* Floating Combat Voice Bark Banner */
 .combat-bark-banner {
   position: absolute;
-  top: 56px;
+  top: 86px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 120;
@@ -4015,10 +4015,49 @@ html, body {
 .deploy-tray-bar { padding: 8px 10px; gap: 6px; }
 .deploy-tray-title { font-size: 12px; flex: 1; }
 .deploy-tray-header { gap: 6px; }
-.deploy-unit-chip { width: 50px; padding: 3px; }
+.deploy-unit-chip { width: auto; min-width: 58px; padding: 3px 5px; }
 .deploy-unit-chip img { max-width: 40px; max-height: 40px; }
+.deploy-unit-name { white-space: nowrap; font-size: 9.5px; letter-spacing: -0.2px; text-align: center; }
 .btn-confirm-deploy { padding: 8px !important; min-height: 0 !important; font-size: 15px; }
-.btn-deploy-mini { background: rgba(242,180,90,.15); color: var(--lantern-gold); border: 1px solid var(--lantern-gold); border-radius: 8px; font-size: 12px; padding: 3px 9px; font-weight: 700; }
+.btn-deploy-mini { background: rgba(242,180,90,.15); color: var(--lantern-gold); border: 1px solid var(--lantern-gold); border-radius: 8px; font-size: 12px; padding: 3px 9px; font-weight: 700; cursor: pointer; }
+
+/* Collapsible Deploy Panel */
+.deploy-tray-bar.collapsed {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+}
+.deploy-tray-bar.collapsed .deploy-tray-units,
+.deploy-tray-bar.collapsed .deploy-synergy-strip {
+  display: none !important;
+}
+.deploy-tray-bar.collapsed .deploy-tray-header {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.deploy-tray-bar.collapsed .deploy-tray-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--lantern-gold);
+}
+.deploy-tray-bar.collapsed .btn-confirm-deploy {
+  width: auto;
+  min-height: 38px !important;
+  padding: 0 16px !important;
+  font-size: 14px;
+  white-space: nowrap;
+  margin: 0;
+  flex-shrink: 0;
+}
 .deploy-tray-bar.scouting {
   flex-direction: row;
   align-items: center;
@@ -4070,3 +4109,304 @@ html, body {
   background-color: transparent;
 }
 #btnThreatToggle.active { background: rgba(200,40,40,.45); border-color: #e66; }
+
+/* ==========================================================================
+   ROUND 9: COMPACT TUTORIAL, ROUT VISIBILITY, WEATHER HUD & 4-STAR MVP
+   ========================================================================== */
+
+/* 1. Compact Live Board Tutorial Docked Bar */
+.tutorial-board-overlay.compact {
+  background: transparent !important;
+  pointer-events: none;
+  justify-content: flex-start !important;
+  padding: calc(48px + env(safe-area-inset-top, 0px)) 10px 0 !important;
+  z-index: 75;
+}
+.tutorial-board-card.compact {
+  pointer-events: auto;
+  width: 100%;
+  max-width: 370px;
+  margin: 0 auto;
+  padding: 6px 10px;
+  border-radius: 20px;
+  background: rgba(12, 16, 40, 0.94);
+  border: 1.5px solid var(--lantern-gold);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.75), 0 0 10px rgba(242, 180, 90, 0.3);
+  backdrop-filter: blur(8px);
+}
+.tutorial-card-compact-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.tutorial-compact-text {
+  flex: 1;
+  font-size: 11px;
+  color: var(--text-parchment-bright);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+}
+.tutorial-compact-btns {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.btn-tutorial-suggest-mini,
+.btn-tutorial-expand-mini,
+.btn-tutorial-ack-mini {
+  border: 1px solid var(--lantern-gold);
+  background: rgba(242, 180, 90, 0.18);
+  color: var(--lantern-gold);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-tutorial-suggest-mini:active,
+.btn-tutorial-expand-mini:active {
+  background: rgba(242, 180, 90, 0.35);
+}
+.btn-tutorial-ack-mini {
+  background: linear-gradient(180deg, #E69D35 0%, #B8671B 100%);
+  color: #120A02;
+  border-color: #FFE4A0;
+}
+
+/* 2. Routing Unit Visibility (Fleeing tilt, dust trail, ⚑ 潰 flag) */
+.unit-figure.is-routed .unit-fig-img {
+  transform: translateX(-50%) scaleX(var(--facing, -1)) skewX(-14deg);
+  filter: drop-shadow(0 0 6px rgba(255, 60, 60, 0.85)) grayscale(0.35);
+  animation: routFleeShake 0.4s infinite alternate ease-in-out;
+}
+@keyframes routFleeShake {
+  0% { transform: translateX(-50%) scaleX(var(--facing, -1)) skewX(-12deg) translateY(0); }
+  100% { transform: translateX(-50%) scaleX(var(--facing, -1)) skewX(-16deg) translateY(-3px); }
+}
+.unit-rout-flag {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(185, 20, 20, 0.95);
+  border: 1.5px solid #FFD700;
+  color: #FFF;
+  font-size: 11px;
+  font-weight: 900;
+  padding: 1px 5px;
+  border-radius: 4px;
+  box-shadow: 0 0 8px rgba(255, 60, 60, 0.9);
+  z-index: 10;
+  pointer-events: none;
+}
+.unit-rout-dust {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  width: 24px;
+  height: 12px;
+  background: radial-gradient(ellipse at center, rgba(210, 180, 130, 0.7) 0%, rgba(210, 180, 130, 0) 70%);
+  border-radius: 50%;
+  animation: routDustPuff 0.45s infinite ease-out;
+  pointer-events: none;
+}
+@keyframes routDustPuff {
+  0% { transform: scale(0.6) translateX(0); opacity: 0.9; }
+  100% { transform: scale(1.4) translateX(calc(var(--facing, -1) * -10px)); opacity: 0; }
+}
+
+/* 3. Telegraphed Reinforcement Warning Markers */
+.reinforcement-spawn-marker {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  pointer-events: none;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.marker-pulse-ring {
+  position: absolute;
+  inset: 2px;
+  border: 2px dashed #EF4444;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.16);
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.6);
+  animation: reinforceMarkerPulse 1.2s infinite ease-in-out;
+}
+@keyframes reinforceMarkerPulse {
+  0%, 100% { transform: scale(0.96); opacity: 0.7; }
+  50% { transform: scale(1.04); opacity: 1; }
+}
+.marker-hazard-badge {
+  position: absolute;
+  top: -12px;
+  background: rgba(220, 38, 38, 0.95);
+  border: 1px solid #FCA5A5;
+  color: #FFF;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 4px;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+  z-index: 6;
+}
+.marker-unit-name {
+  font-family: var(--font-brush);
+  font-size: 13px;
+  color: #FECACA;
+  text-shadow: 0 1px 3px #000, 0 0 6px #DC2626;
+  z-index: 6;
+}
+
+/* 4. HUD Weather Badge */
+.hud-weather-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 12px;
+  background: rgba(20, 26, 60, 0.85);
+  border: 1px solid var(--lantern-gold);
+  color: var(--text-parchment-bright);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: help;
+  box-shadow: 0 0 6px rgba(242, 180, 90, 0.3);
+}
+
+/* 5. 4-Star Evaluation & MVP Highlight in Result Modal */
+.result-star-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 4px;
+  background: rgba(14, 18, 44, 0.6);
+  border: 1px solid rgba(242, 180, 90, 0.35);
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+.result-star-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  opacity: 0.35;
+  filter: grayscale(0.8);
+}
+.result-star-item.active {
+  opacity: 1;
+  filter: none;
+}
+.result-star-item .star-icon {
+  font-size: 22px;
+  color: #94A3B8;
+  text-shadow: 0 1px 2px #000;
+}
+.result-star-item.active .star-icon {
+  color: #FBBF24;
+  text-shadow: 0 0 10px rgba(251, 191, 36, 0.9), 0 0 4px #FFF;
+  animation: starPop 0.4s ease-out;
+}
+@keyframes starPop {
+  0% { transform: scale(0.6); }
+  50% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+.result-star-item .star-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-parchment-muted);
+}
+.result-star-item.active .star-label {
+  color: var(--lantern-gold);
+}
+.result-mvp-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(90deg, rgba(30, 24, 60, 0.92) 0%, rgba(20, 16, 40, 0.92) 100%);
+  border: 1.5px solid var(--lantern-gold);
+  border-radius: 10px;
+  padding: 8px 10px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.8), inset 0 0 12px rgba(242, 180, 90, 0.2);
+  text-align: left;
+}
+.mvp-por-box {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+.mvp-por {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  border: 1.5px solid var(--lantern-gold);
+  object-fit: cover;
+  background: #14182C;
+}
+.mvp-crown-badge {
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #D97706;
+  border: 1px solid #FDE68A;
+  color: #FFF;
+  font-size: 9px;
+  font-weight: 900;
+  padding: 0 4px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.mvp-quote-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.mvp-name-tag {
+  font-family: var(--font-brush);
+  font-size: 13px;
+  color: var(--lantern-gold);
+}
+.mvp-quote-text {
+  font-size: 11px;
+  color: var(--text-parchment-bright);
+  font-style: italic;
+  line-height: 1.35;
+}
+
+/* 6. Art Pop for Enemy Figures (rim light & contrast so they pop on dark terrain) */
+.unit-figure.enemy .unit-fig-img {
+  filter: drop-shadow(0 0 2px rgba(255, 60, 60, 0.95))
+          drop-shadow(0 0 7px rgba(220, 38, 38, 0.85))
+          drop-shadow(0 0 12px rgba(248, 113, 113, 0.45))
+          brightness(1.12)
+          contrast(1.15) !important;
+}
+.unit-figure.enemy::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  right: 6px;
+  bottom: 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(220, 38, 38, 0.22) 0%, rgba(220, 38, 38, 0) 70%);
+  pointer-events: none;
+  z-index: 1;
+}

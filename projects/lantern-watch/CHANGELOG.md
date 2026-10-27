@@ -1,5 +1,52 @@
 # Changelog
 
+## v12.0.0 — 可折疊布陣面板、極簡教學指示條、章節動態天氣與預告援軍、角色短台詞氣泡、四星結算與敵軍赤焰剪影高亮 (Round 9 / v12 Polish)
+
+### 介面易讀性與視圖遮擋修復 (UI Polish & Bug Fixes)
+- **布陣面板折疊收納 (Collapsible Deploy Panel)**:
+  - 布陣托盤新增折疊按鈕 `#btnToggleDeployTray`，支援一鍵收納為單行頂欄（顯示「X / X 已就位」與「出征開戰」），釋放全幅戰場視野。
+  - 將布陣點位擴展至 2–3 行，支援真實戰術前後排陣型配置。
+  - 將托盤角色晶片縮小文字與間距，確保「燈娘 小螢」等長名標籤單行完整顯示不換行。
+- **極簡頂部停靠教學卡 (Compact Dockable Tutorial Bar)**:
+  - 將原佔屏幕頂部 1/3 的教學卡改造為極簡單行頂部提示條（高約 38px），附帶「💡 建議」、「詳情」與「明白」按鈕，完全不遮擋聚光高亮的將士與其移動範圍。
+- **士氣號令與潰兵標識清晰化 (Rout & Morale Feedback)**:
+  - 修復 `【我軍士氣 ↑ +25】` 雙重觸發疊加問題，加入防重覆發射邏輯與專屬單元測試。
+  - 敵軍士氣崩潰潰退時，單位頭頂高亮顯示赤紅色 `⚑ 潰` 旗幟與腳底揚塵煙霧（`.unit-rout-flag` 與 `.unit-rout-dust`），潰退狀態一目了然。
+- **底端資訊欄狀態同步 (Bottom Info Bar Sync)**:
+  - 進入新章節或無選中單位時，自動調用 `clearBottomStrip()` 清空底端狀態，徹底解決跨章節殘留 Chapter 1 熊岳資訊的問題。
+
+### 戰場環境與動態事件 (Varied Battles & Weather System)
+- **章節動態天候系統 (Chapter Weather Mechanics & Visual Overlays)**:
+  - 全章節分配專屬天候：
+    - `雨` (Rain): 水淹效果 +25%、火攻效果 -25%，全螢幕細雨水絲粒子動態覆蓋；
+    - `霧` (Fog): 攻擊與視野範圍 -1，流動水墨濃霧迷濛覆蓋；
+    - `風` (Wind): 順風（南向）射程 +1，動態飄葉紛飛覆蓋；
+    - `夜` (Night): 燈火照亮範圍核心化。
+  - 戰鬥頂端 HUD 加入動態天候徽章 `#hudWeatherBadge`（如 `🌧️ 雨`、`🌙 夜`、`💨 風`、`🌫️ 霧`）與單行說明提示。
+- **提前一回合預告援軍機制 (Telegraphed Mid-battle Reinforcements)**:
+  - 援軍登場前一回合，在地圖邊緣預定進軍點標記醒目警示框 `⚠️ 援軍突襲 [兵種]`（`.reinforcement-spawn-marker`），讓玩家有充足時間調整陣型卡住扼喉隘口。
+  - 為 Chapter 2（烈風 + 第3回合側翼霧騎援軍預告）、Chapter 4（濃霧 + 第5回合迷霧之母預告）、Chapter 6（驟雨 + 斷橋 + 第5回合斥候援軍預告）配置差異化戰術組合，並添加規則單元測試。
+
+### 角色深度與戰後結算 (Character Depth & Post-Battle Evaluation)
+- **戰鬥角色肖像短對話氣泡 (Portrait Dialogue Barks)**:
+  - 開戰號令、首殺斬將、友軍瀕危、合擊連攜、頭目狂暴時觸發簡短帶肖像氣泡對話框，1.5 秒自動淡出，絕不阻擋戰場操作。
+- **四星評價與 MVP 角色展示 (4-Star Result & MVP Spotlight)**:
+  - 結算介面新增四星評價系統（旗開得勝、速戰速決、全員生還、勢如破竹）；
+  - 醒目展示本戰 MVP 英雄肖像、王冠徽章、榮譽頭銜與專屬獲勝感言。
+
+### 敵軍剪影與辨識度提升 (Art Silhouette Pop)**:
+- **赤焰軍團細節修飾**:
+  - 重繪修飾 `fig_shadow_archer.webp`、`fig_fog_rider.webp`、`fig_shield_guard.webp`、`fig_shield_phalanx.webp`、`fig_shadow_rat.webp`，添加赤紅戰袍飾邊、武器高光寒芒與外輪廓光暈；
+  - CSS 配合濾鏡赤色柔光邊緣，390px 螢幕下敵軍剪影辨識度大幅躍升。
+
+### 數值平衡與約束保持 (Balance Invariants Verified)
+- `npm test` 全面通過（32 rules, 10 AI, 8 objectives, 2 branding, 16 encounter simulations, 8 balance simulations）；
+- Ch1 Naive Bot 勝率 50/50 (100%)，首回合我方零陣亡；
+- Ch2–Ch8 合理行為 Bot 勝率保持在 75–90% 區間（Ch2 86%、Ch3 90%、Ch4 88%、Ch5 84%、Ch6 88%、Ch7 80%、Ch8 76%）；
+- 蠻衝 Naive Rush 在 Ch3、Ch5、Ch7 等關卡勝率嚴格 < 50%。
+
+---
+
 ## v11.0.0 — 將士身份標識統一、開局戰場鏡頭運鏡、手繪山道水墨地圖與士氣潰逃追擊 (Round 8 / v11 Polish)
 
 ### 將士身份標識與布陣完全統一 (Unit Identity & Coherence)

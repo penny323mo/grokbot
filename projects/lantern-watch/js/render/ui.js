@@ -4,7 +4,7 @@
  * action menus, and modal dialogs for 燈影軍略 · Lantern Tactics (v4).
  */
 
-import { CHAPTERS, TERRAIN_INFO } from '../data/maps.js';
+import { CHAPTERS, TERRAIN_INFO, WEATHER_CONFIG } from '../data/maps.js';
 import { GUARDIAN_PROTOS, ENEMY_PROTOS, STRATAGEMS, RELICS, BOND_PAIRS, PROMOTIONS, getClassSynergies } from '../data/units.js';
 export { getClassSynergies };
 
@@ -527,7 +527,7 @@ export class UIRenderer {
     const allUnits = battle.getAllLivingUnits();
     allUnits.forEach((u, uIdx) => {
       const figWrap = document.createElement('div');
-      figWrap.className = `unit-figure ${u.team} ${u.promoted ? 'promoted' : ''} ${u.acted ? 'acted' : ''}`;
+      figWrap.className = `unit-figure ${u.team} ${u.promoted ? 'promoted' : ''} ${u.acted ? 'acted' : ''} ${u.isRouted ? 'is-routed' : ''}`;
       figWrap.dataset.unitId = u.id;
       figWrap.style.left = `${u.x * 64}px`;
       figWrap.style.top = `${u.y * 64}px`;
@@ -552,11 +552,17 @@ export class UIRenderer {
 
       const classChar = u.clsBadge || (u.cls ? u.cls[0] : (u.role === 'tank' ? '盾' : '兵'));
 
+      const routHtml = u.isRouted ? `
+        <div class="unit-rout-flag"><span class="rout-flag-icon">⚑</span><span class="rout-flag-text">潰</span></div>
+        <div class="unit-rout-dust"></div>
+      ` : '';
+
       figWrap.innerHTML = `
         <div class="unit-ground-shadow"></div>
         <div class="unit-team-ring"></div>
         <div class="unit-name-tag">${u.name}</div>
         ${figContent}
+        ${routHtml}
         <div class="unit-class-badge">${classChar}</div>
         <div class="unit-hp-bar">
           <div class="unit-hp-fill" style="width: ${Math.max(0, Math.min(100, Math.round((u.hp / u.maxHp) * 100)))}%;"></div>
@@ -579,10 +585,42 @@ export class UIRenderer {
       figuresLayer.appendChild(figWrap);
     });
 
-    // Bottom terrain info
+    // Render Telegraphed Reinforcements Warning Markers
+    const incoming = battle.getIncomingReinforcements ? battle.getIncomingReinforcements() : [];
+    incoming.forEach(r => {
+      const marker = document.createElement('div');
+      marker.className = 'reinforcement-spawn-marker';
+      marker.style.left = `${r.x * 64}px`;
+      marker.style.top = `${r.y * 64}px`;
+      const foeProto = ENEMY_PROTOS[r.id];
+      const foeName = foeProto ? foeProto.name : '敵軍精銳';
+      marker.innerHTML = `
+        <div class="marker-pulse-ring"></div>
+        <div class="marker-hazard-badge">⚠️ 援軍突襲</div>
+        <div class="marker-unit-name">${foeName}</div>
+      `;
+      figuresLayer.appendChild(marker);
+    });
+
+    // Bottom terrain info: reflect selected unit or clear stale info
     if (selectedUnit) {
       this.updateBottomStrip(selectedUnit.x, selectedUnit.y, battle.board, selectedUnit);
+    } else {
+      this.clearBottomStrip();
     }
+
+    // Weather badge update & visual overlay
+    const wKey = battle.weather || battle.chapter?.weather || 'clear';
+    const wCfg = WEATHER_CONFIG[wKey] || WEATHER_CONFIG.clear;
+    const wBadge = document.getElementById('hudWeatherBadge');
+    if (wBadge) {
+      wBadge.title = wCfg.tooltip;
+      const wIcon = document.getElementById('hudWeatherIcon');
+      const wName = document.getElementById('hudWeatherName');
+      if (wIcon) wIcon.textContent = wCfg.icon;
+      if (wName) wName.textContent = wCfg.tag;
+    }
+    this.renderWeatherOverlay(battle);
   }
 
   // Continuous Flood Water Overlay Canvas (merged continuous water body, gentle wave animation, soft shoreline edge)
@@ -991,7 +1029,54 @@ export class UIRenderer {
     ctx.restore();
   }
 
-  showCombatBark(unit, title, text) {
+  // Visual Weather Overlays Canvas (Rain streaks, misty fog haze, blowing wind leaves)
+  renderWeatherOverlay(battle) {
+    const canvas = document.getElementById('weatherOverlayCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, 640, 832);
+
+    const weather = battle?.weather || battle?.chapter?.weather || 'clear';
+    if (weather === 'rain') {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(180, 220, 255, 0.55)';
+      ctx.lineWidth = 1.4;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      // Draw rain streaks slanted at -15 deg
+      for (let i = 0; i < 90; i++) {
+        const x = (i * 37 + 19) % 640;
+        const y = (i * 53 + 27) % 832;
+        ctx.moveTo(x, y);
+        ctx.lineTo(x - 7, y + 26);
+      }
+      ctx.stroke();
+      ctx.restore();
+    } else if (weather === 'fog') {
+      ctx.save();
+      const grad = ctx.createLinearGradient(0, 0, 0, 832);
+      grad.addColorStop(0, 'rgba(150, 175, 205, 0.22)');
+      grad.addColorStop(0.35, 'rgba(180, 205, 230, 0.32)');
+      grad.addColorStop(0.7, 'rgba(135, 160, 190, 0.20)');
+      grad.addColorStop(1, 'rgba(165, 190, 215, 0.28)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 640, 832);
+      ctx.restore();
+    } else if (weather === 'wind') {
+      ctx.save();
+      ctx.fillStyle = 'rgba(215, 240, 150, 0.75)';
+      for (let i = 0; i < 30; i++) {
+        const x = (i * 53 + 43) % 640;
+        const y = (i * 47 + 31) % 832;
+        ctx.beginPath();
+        ctx.ellipse(x, y, 7, 3, Math.PI / 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
+  showCombatBark(unit, title, text, duration = 1500) {
     const banner = document.getElementById('combatBarkBanner');
     if (!banner) return;
     const por = document.getElementById('barkPortrait');
@@ -1006,7 +1091,19 @@ export class UIRenderer {
     clearTimeout(this._barkTimer);
     this._barkTimer = setTimeout(() => {
       banner.style.display = 'none';
-    }, 2400);
+    }, duration);
+  }
+
+  clearBottomStrip() {
+    const coord = document.getElementById('stripCoord');
+    const terrain = document.getElementById('stripTerrain');
+    const unitInfo = document.getElementById('stripUnitInfo');
+    if (coord) coord.textContent = '';
+    if (terrain) terrain.textContent = '點擊棋子或地塊查看情報';
+    if (unitInfo) {
+      unitInfo.style.display = 'none';
+      unitInfo.textContent = '';
+    }
   }
 
   updateBottomStrip(x, y, board, unit = null) {
@@ -1290,9 +1387,29 @@ export class UIRenderer {
     const render = () => {
       clearTimeout(idleTimer);
       const s = steps[curStep];
-      document.getElementById('boardTutorialStep').textContent = s.num;
-      document.getElementById('boardTutorialTitle').textContent = `燈影軍略 · ${s.title}`;
-      document.getElementById('boardTutorialText').textContent = s.text;
+      const stepEl = document.getElementById('boardTutorialStep');
+      const titleEl = document.getElementById('boardTutorialTitle');
+      const textEl = document.getElementById('boardTutorialText');
+      const compactTextEl = document.getElementById('boardTutorialTextCompact');
+
+      if (stepEl) stepEl.textContent = s.num;
+      if (titleEl) titleEl.textContent = `燈影軍略 · ${s.title}`;
+      if (textEl) textEl.textContent = s.text;
+      if (compactTextEl) {
+        compactTextEl.textContent = `${s.title}：${s.text.replace(/^[①②③④⑤⑥⑦]\s*「.*?」\s*/, '')}`;
+      }
+
+      const expandBtn = document.getElementById('btnTutorialExpand');
+      const expandedBody = document.getElementById('tutorialCardExpandedBody');
+      const cardEl = document.getElementById('tutorialBoardCard');
+      if (expandBtn && expandedBody && cardEl) {
+        expandBtn.onclick = () => {
+          const isExp = expandedBody.style.display !== 'none';
+          expandedBody.style.display = isExp ? 'none' : 'block';
+          expandBtn.textContent = isExp ? '詳情' : '收起';
+          cardEl.classList.toggle('expanded', !isExp);
+        };
+      }
 
       const btnSuggest = document.getElementById('btnTutorialSuggest');
       if (btnSuggest) {
@@ -1305,6 +1422,7 @@ export class UIRenderer {
       idleTimer = setTimeout(() => {
         const textEl = document.getElementById('boardTutorialText');
         if (textEl) textEl.textContent = s.idle;
+        if (compactTextEl) compactTextEl.textContent = s.idle;
         if (btnSuggest) btnSuggest.classList.add('pulse-idle');
       }, 8000);
     };
@@ -1386,6 +1504,14 @@ export class UIRenderer {
     document.getElementById('btnConfirmDeploy').onclick = () => {
       onConfirmDeploy();
     };
+
+    const toggleBtn = document.getElementById('btnToggleDeployTray');
+    if (toggleBtn) {
+      toggleBtn.onclick = () => {
+        const isCollapsed = tray.classList.toggle('collapsed');
+        toggleBtn.textContent = isCollapsed ? '展開 ▲' : '收起 ▼';
+      };
+    }
   }
 
   hideDeployPhase() {
@@ -1684,6 +1810,14 @@ export class UIRenderer {
   }
 
   showFloatingMorale(x, y, text, isPositive = false, offsetY = 0) {
+    if (!this._floatingMoraleCooldown) this._floatingMoraleCooldown = new Map();
+    const key = `${x},${y},${text}`;
+    const now = Date.now();
+    if (this._floatingMoraleCooldown.has(key) && (now - this._floatingMoraleCooldown.get(key) < 1200)) {
+      return;
+    }
+    this._floatingMoraleCooldown.set(key, now);
+
     const vfxLayer = document.getElementById('vfxLayer') || document.getElementById('battleBoardStage');
     if (!vfxLayer) return;
 
@@ -1937,6 +2071,49 @@ export class UIRenderer {
 
       const rewards = battle?.calculateBattleRewards ? battle.calculateBattleRewards() : null;
 
+      // 4-Star Evaluation Calculation
+      const hasVictory = Boolean(status.victory);
+      const underTurnLimit = battle ? (battle.currentTurn <= (chapter?.maxTurns || 12)) : true;
+      const noAllyLost = battle ? battle.allies.every(a => a.hp > 0) : true;
+      const sideObjDone = battle ? (battle.enemyMorale <= 50 || status.victory) : true;
+
+      const starRow = document.getElementById('resultStarRow');
+      if (starRow) {
+        starRow.style.display = 'flex';
+        document.getElementById('starVictory')?.classList.toggle('active', hasVictory);
+        document.getElementById('starTurns')?.classList.toggle('active', underTurnLimit);
+        document.getElementById('starCasualty')?.classList.toggle('active', noAllyLost);
+        document.getElementById('starObjective')?.classList.toggle('active', sideObjDone);
+      }
+
+      // MVP Highlight Card
+      const awards = rewards?.awards || [
+        { id: 'cat_patrol', name: '墨影', isMvp: true, expGained: 85, reason: '【本戰MVP】斬將拔旗，戰功卓著！' },
+        { id: 'bear_guard', name: '熊岳', isMvp: false, expGained: 65, reason: '鐵壁扼守，格擋千鈞傷害' },
+        { id: 'tea_master', name: '茶翁', isMvp: false, expGained: 55, reason: '靈茶甘露，妙手回春援護' },
+        { id: 'crane_rider', name: '鶴羽', isMvp: false, expGained: 60, reason: '雲霄奇襲，突擊敵軍腹地' }
+      ];
+      const mvpInfo = awards.find(a => a.isMvp) || (squad && squad[0]) || { id: 'cat_patrol', name: '墨影' };
+      const mvpCard = document.getElementById('resultMvpCard');
+      if (mvpCard) {
+        mvpCard.style.display = 'flex';
+        const porEl = document.getElementById('resultMvpPor');
+        const nameEl = document.getElementById('resultMvpName');
+        const quoteEl = document.getElementById('resultMvpQuote');
+        if (porEl) porEl.src = `assets/art/v4/por_${mvpInfo.id}.webp`;
+        if (nameEl) nameEl.textContent = `【本戰MVP】${mvpInfo.name} · 戰功卓著`;
+        const mvpQuotes = {
+          cat_patrol: '「暗夜之中，劍鋒所向披靡。敵酋已斬，長夜將明！」',
+          bear_guard: '「鐵甲如磐，固若金湯！隨我乘勝破敵！」',
+          crane_rider: '「雲海縱橫，長空無敵！敵陣破綻已盡在掌中！」',
+          tea_master: '「品茗笑談間，檣櫓灰飛煙滅。全軍且進熱茶！」',
+          tanuki_mage: '「雷霆破霄，天威莫測！妖霧豈能擋我玄門道法！」',
+          fox_maiden: '「靈狐引火，照破十方。這漫漫黑夜，該退了！」',
+          lantern_crafter: '「明燈常駐，諸邪辟易。破曉之光已照亮前路！」'
+        };
+        if (quoteEl) quoteEl.textContent = mvpQuotes[mvpInfo.id] || '「長夜終有盡，迷霧隨燈散。全軍稍作整頓，繼續進軍！」';
+      }
+
       if (xpList) {
         xpList.innerHTML = '';
         const awards = rewards?.awards || [
@@ -2013,6 +2190,10 @@ export class UIRenderer {
       title.textContent = '戰鬥失利';
       sub.textContent = status.reason || '夜霧重重 · 退守整軍';
       document.getElementById('resultExpAwards').textContent = '將士稍作休整，整頓兵甲以待再戰。';
+      const starRow = document.getElementById('resultStarRow');
+      if (starRow) starRow.style.display = 'none';
+      const mvpCard = document.getElementById('resultMvpCard');
+      if (mvpCard) mvpCard.style.display = 'none';
       if (relicWrap) relicWrap.style.display = 'none';
       if (xpList) xpList.innerHTML = '';
     }
