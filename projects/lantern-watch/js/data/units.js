@@ -241,16 +241,15 @@ export const GUARDIAN_PROTOS = {
       bark: '「狐火燃盡之處，霧靄皆化灰燼！」'
     },
     magic: {
-      id: 'crimson_lotus',
-      name: '紅蓮妖焰',
+      id: 'flame_fan_cone',
+      name: '紅蓮扇炎',
       cost: 4,
       type: 'magic',
-      range: 2,
+      aoe: 'cone',
       power: 16,
-      aoe: 'cross',
       element: 'fire',
-      desc: '召喚盛開的紅蓮烈火，焚盡十字範圍內的一切',
-      bark: '「紅蓮盛放，夜霧無存！」'
+      desc: '朝選定方向噴吐扇形烈焰（前方1格及次排3格扇形區域），焚滅群敵',
+      bark: '「青丘妖火，扇炎燎原！」'
     },
     bark: '「迷霧不過是妖火的薪柴罷了。」',
     backstory: '身負青丘血脈的狐女，掌管淨化之火，與黑暗中的迷霧為宿敵。'
@@ -330,14 +329,15 @@ export const GUARDIAN_PROTOS = {
       desc: '無視所有地形阻礙；對弓手部隊造成+30%額外剋制傷害'
     },
     skill: {
-      id: 'crane_plunge',
-      name: '雲鶴破空',
+      id: 'crane_line_gust',
+      name: '鶴鳴貫空',
       cost: 2,
       type: 'skill',
-      range: 1,
+      aoe: 'line',
+      lineLength: 3,
       power: 13,
-      desc: '自九天之上疾速俯衝，重創地面敵人（對弓手+30%）',
-      bark: '「九霄清風，隨我疾行！」'
+      desc: '朝選定方向直線疾衝穿透3格，重創路徑上所有敵軍（對弓手+30%）',
+      bark: '「雲鶴凌空，一線穿破敵陣！」'
     },
     magic: {
       id: 'feather_storm',
@@ -709,12 +709,12 @@ export const ENEMY_PROTOS = {
     role: 'commander',
     team: 'enemy',
     mov: 3,
-    hp: 55,
-    maxHp: 55,
+    hp: 42,
+    maxHp: 42,
     mp: 8,
     maxMp: 8,
     atk: 16,
-    def: 12,
+    def: 10,
     mag: 6,
     res: 8,
     spd: 7,
@@ -814,9 +814,9 @@ export const NPC_PROTOS = {
     mp: 0,
     maxMp: 0,
     atk: 0,
-    def: 6,
+    def: 4,
     mag: 0,
-    res: 6,
+    res: 4,
     spd: 0,
     range: 0,
     flyer: false,

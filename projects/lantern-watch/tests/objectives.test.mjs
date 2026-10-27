@@ -189,7 +189,7 @@ test('Objectives: Siege chapter (breach gate or defeat citadel warlord)', () => 
 
   // Case 3: Turn limit exceeded -> LOSE!
   status = checkBattleStatus(chapter, {
-    currentTurn: 15, // max 14
+    currentTurn: 16, // max 15
     allies: [ally],
     enemies: [wallArcher]
   });

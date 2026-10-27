@@ -374,6 +374,7 @@ function decideShroudedAction(enemy, reachableList, playerUnits, board, rng) {
         let score = combat.expectedDamage * 2;
         if (combat.isBackAttack) score += 20; // 背擊
         if (combat.willKill) score += 50;
+        if (p.role === 'objective' || p.id === 'market_lantern' || p.id === 'lantern_cart') score += 80;
         score += (30 - (p.def || 0)) * 5; // Heavily prioritize lowest-DEF unit
         if (inCover) score += 10;
 
@@ -392,13 +393,14 @@ function decideShroudedAction(enemy, reachableList, playerUnits, board, rng) {
 
   if (bestAction) return bestAction;
 
-  // Move towards squishiest target while preferring forest/market tiles
+  // Move towards squishiest target or objective while preferring forest/market tiles
   let bestMove = reachableList[0];
   let bestScoreMove = -Infinity;
-  const lowestDefPlayer = [...playerUnits].sort((a, b) => (a.def || 0) - (b.def || 0))[0];
+  const objectiveTarget = playerUnits.find(p => p.role === 'objective' || p.id === 'market_lantern' || p.id === 'lantern_cart');
+  const targetUnit = objectiveTarget || [...playerUnits].sort((a, b) => (a.def || 0) - (b.def || 0))[0];
 
   for (const m of reachableList) {
-    const dist = Board.manhattan(m.x, m.y, lowestDefPlayer.x, lowestDefPlayer.y);
+    const dist = Board.manhattan(m.x, m.y, targetUnit.x, targetUnit.y);
     const inCover = board.getTerrain(m.x, m.y).char === 'f' || board.getTerrain(m.x, m.y).char === 'm';
     let s = -dist * 5 + (inCover ? 12 : 0);
     if (s > bestScoreMove) {

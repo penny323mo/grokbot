@@ -7,6 +7,46 @@
 import { CHAPTERS, TERRAIN_INFO } from '../data/maps.js';
 import { GUARDIAN_PROTOS, ENEMY_PROTOS, STRATAGEMS, RELICS, BOND_PAIRS, PROMOTIONS } from '../data/units.js';
 
+export function getClassSynergies(squad) {
+  if (!squad || !squad.length) return [];
+  const roles = new Set(squad.map(u => {
+    if (!u) return null;
+    return typeof u === 'string' ? GUARDIAN_PROTOS[u]?.role : u.role;
+  }).filter(Boolean));
+  const hasFlyer = squad.some(u => {
+    if (!u) return false;
+    return typeof u === 'string' ? GUARDIAN_PROTOS[u]?.flyer : u.flyer;
+  });
+
+  const synergies = [];
+  if (roles.has('tank') && roles.has('healer')) {
+    synergies.push({
+      id: 'iron_fortress',
+      name: '金湯固若',
+      icon: '🛡️',
+      desc: '盾醫協守 · 全軍防禦+1'
+    });
+  }
+  if (roles.has('flanker') && (roles.has('cavalry') || hasFlyer)) {
+    synergies.push({
+      id: 'cavalry_coop',
+      name: '步騎協同',
+      icon: '⚡',
+      desc: '步騎呼應 · 首回合移動+1'
+    });
+  }
+  if (roles.has('mage') && roles.has('archer')) {
+    synergies.push({
+      id: 'spell_arrow',
+      name: '法箭交輝',
+      icon: '✦',
+      desc: '法箭呼應 · 遠程傷害+10%'
+    });
+  }
+
+  return synergies;
+}
+
 export class UIRenderer {
   constructor(soundEngine) {
     this.sound = soundEngine;
@@ -137,6 +177,11 @@ export class UIRenderer {
     // if box is bigger than band, prioritise keeping the bottom (player side) visible
     if (maxY - minY > h - 24) sy = maxY - h + 12;
     if (maxX - minX > w - 16) sx = minX - 8;
+
+    // Keep map bottom (832px) from pulling above the bottom overlay / deploy panel
+    const maxSyMap = Math.max(0, 832 - h);
+    sy = Math.min(sy, maxSyMap);
+
     sx = Math.max(0, Math.min(vp.scrollWidth - vp.clientWidth, sx));
     sy = Math.max(0, Math.min(vp.scrollHeight - vp.clientHeight, sy));
     vp.scrollTo({ left: sx, top: sy, behavior: smooth ? 'smooth' : 'auto' });
@@ -278,6 +323,24 @@ export class UIRenderer {
     const squadGrid = document.getElementById('squadRosterGrid');
     squadGrid.innerHTML = '';
     document.getElementById('preSquadLimitBadge').textContent = `已選 ${selectedSquadIds.length} / ${chapter.squadLimit} 人`;
+
+    const preSynergy = document.getElementById('preSquadSynergyStrip');
+    if (preSynergy) {
+      const syns = getClassSynergies(selectedSquadIds);
+      if (syns.length > 0) {
+        preSynergy.style.display = 'flex';
+        preSynergy.innerHTML = syns.map(s => `
+          <div class="synergy-badge" title="${s.desc}">
+            <span class="syn-icon">${s.icon}</span>
+            <span class="syn-name">${s.name}</span>
+            <span class="syn-desc">${s.desc}</span>
+          </div>
+        `).join('');
+      } else {
+        preSynergy.style.display = 'none';
+        preSynergy.innerHTML = '';
+      }
+    }
 
     for (const [gid, proto] of Object.entries(GUARDIAN_PROTOS)) {
       const unitInst = campaign.getUnitInstance(gid);
@@ -1173,29 +1236,87 @@ export class UIRenderer {
     };
   }
 
-  showBoardTutorial(step = 0, onStepChange, onComplete) {
+  showBoardTutorial(step = 0, onStepChange, onComplete, onSuggest = null) {
     const overlay = document.getElementById('tutorialBoardOverlay');
     if (!overlay) return;
 
     overlay.style.display = 'flex';
     const steps = [
-      { num: '1 / 3', text: '① 「撳角色 → 藍格係可以行嘅位」' },
-      { num: '2 / 3', text: '② 「撳藍格移動 → 揀 攻擊/技能/魔法/待命」' },
-      { num: '3 / 3', text: '③ 「紅格係攻擊範圍，睇清傷害預覽先確認」' }
+      {
+        num: '1 / 7',
+        title: '移動 · 步法挺進',
+        text: '①「移動」點選將士【熊岳】，腳下藍格為合法移動範圍',
+        idle: '✦ 8秒提示：點擊發光的熊岳，或點【💡建議行動】直達前線！'
+      },
+      {
+        num: '2 / 7',
+        title: '攻擊 · 陣前交鋒',
+        text: '②「攻擊」移動後點擊【攻擊】，紅格為射程，再次點擊目標確認',
+        idle: '✦ 8秒提示：點擊【攻擊】，或點【💡建議行動】直取敵首！'
+      },
+      {
+        num: '3 / 7',
+        title: '地形 · 險要據守',
+        text: '③「地形」進駐林木或高地，可獲防禦與居高臨下傷害加成',
+        idle: '✦ 8秒提示：樹林可加防禦，點【💡建議行動】佔領險要！'
+      },
+      {
+        num: '4 / 7',
+        title: '反擊與側翼 · 致命背刺',
+        text: '④「奇襲」正面易遭反擊；側翼打出1.2倍，背面更享1.5倍背刺且不受反擊',
+        idle: '✦ 8秒提示：繞至敵軍身後！點【💡建議行動】執行1.5倍背刺！'
+      },
+      {
+        num: '5 / 7',
+        title: '明燈 · 照破幽霧',
+        text: '⑤「明燈」引路燈車向前挺進，長明燈光照破夜霧、驅散幽冥咒縛',
+        idle: '✦ 8秒提示：燈光照亮前路，點【💡建議行動】護送前進！'
+      },
+      {
+        num: '6 / 7',
+        title: '奇術 · 破陣絕技',
+        text: '⑥「奇術」消耗法力施展絕技，可直線貫穿或扇形烈焰覆蓋群敵',
+        idle: '✦ 8秒提示：點擊【計策】施展直線或扇形絕技，按【💡建議行動】發動！'
+      },
+      {
+        num: '7 / 7',
+        title: '軍略 · 運籌帷幄',
+        text: '⑦「軍略」右上角發動軍略妙計，鼓舞全軍提升戰力或誘敵深入',
+        idle: '✦ 8秒提示：點擊右上角【軍略】發動鼓舞扭轉戰局！'
+      }
     ];
 
-    let curStep = step;
+    let curStep = Math.max(0, Math.min(steps.length - 1, step));
+    let idleTimer = null;
+
     const render = () => {
+      clearTimeout(idleTimer);
       const s = steps[curStep];
       document.getElementById('boardTutorialStep').textContent = s.num;
+      document.getElementById('boardTutorialTitle').textContent = `燈影軍略 · ${s.title}`;
       document.getElementById('boardTutorialText').textContent = s.text;
+
+      const btnSuggest = document.getElementById('btnTutorialSuggest');
+      if (btnSuggest) {
+        btnSuggest.classList.remove('pulse-idle');
+        btnSuggest.onclick = () => {
+          if (onSuggest) onSuggest(curStep);
+        };
+      }
+
+      idleTimer = setTimeout(() => {
+        const textEl = document.getElementById('boardTutorialText');
+        if (textEl) textEl.textContent = s.idle;
+        if (btnSuggest) btnSuggest.classList.add('pulse-idle');
+      }, 8000);
     };
 
     render();
     if (onStepChange) onStepChange(curStep);
 
     document.getElementById('btnBoardTutorialAck').onclick = () => {
-      if (curStep < 2) {
+      clearTimeout(idleTimer);
+      if (curStep < steps.length - 1) {
         curStep++;
         render();
         if (onStepChange) onStepChange(curStep);
@@ -1216,6 +1337,25 @@ export class UIRenderer {
     if (!tray) return;
 
     tray.style.display = 'flex';
+
+    const deploySynergy = document.getElementById('deploySynergyStrip');
+    if (deploySynergy) {
+      const syns = getClassSynergies(squadUnits.map(u => u.id));
+      if (syns.length > 0) {
+        deploySynergy.style.display = 'flex';
+        deploySynergy.innerHTML = syns.map(s => `
+          <div class="synergy-badge" title="${s.desc}">
+            <span class="syn-icon">${s.icon}</span>
+            <span class="syn-name">${s.name}</span>
+            <span class="syn-desc">${s.desc}</span>
+          </div>
+        `).join('');
+      } else {
+        deploySynergy.style.display = 'none';
+        deploySynergy.innerHTML = '';
+      }
+    }
+
     const container = document.getElementById('deployTrayUnits');
     container.innerHTML = '';
 
@@ -1483,16 +1623,28 @@ export class UIRenderer {
       if (info.isCrit) {
         floaterClass += ' crit';
         tagHtml += '<span class="floating-tag-badge crit">暴擊！</span>';
-      } else if (info.isBackAttack) {
+      }
+      if (info.isBackAttack) {
         floaterClass += ' back';
-        tagHtml += '<span class="floating-tag-badge back">背擊！</span>';
-      } else if (info.isFrontBlocked) {
+        tagHtml += '<span class="floating-tag-badge back">背刺 ×1.5</span>';
+      } else if (info.isSideAttack) {
+        tagHtml += '<span class="floating-tag-badge side">側翼 ×1.2</span>';
+      }
+      if (info.isHighGround) {
+        tagHtml += '<span class="floating-tag-badge hill">居高臨下 ×1.2</span>';
+      }
+      if (info.isFrontBlocked) {
         floaterClass += ' block';
-        tagHtml += '<span class="floating-tag-badge block">鐵壁格擋！</span>';
-      } else if (info.isWeakness) {
+        tagHtml += '<span class="floating-tag-badge block">正面護盾 -70%</span>';
+      }
+      if (info.defBonus && info.defBonus > 0) {
+        tagHtml += `<span class="floating-tag-badge def">地形防禦 -${info.defBonus}</span>`;
+      }
+      if (info.isWeakness) {
         floaterClass += ' weak';
-        tagHtml += '<span class="floating-tag-badge weak">屬性克制！</span>';
-      } else if (info.isCounter) {
+        tagHtml += '<span class="floating-tag-badge weak">屬性相剋 ×2.0</span>';
+      }
+      if (info.isCounter) {
         tagHtml += '<span class="floating-tag-badge counter">反擊！</span>';
       }
 
@@ -1664,6 +1816,50 @@ export class UIRenderer {
         if (callback) callback(c.type);
       };
       grid.appendChild(item);
+    });
+  }
+
+  showRecruitModal(recruitId, onConfirm) {
+    const modal = document.getElementById('modalRecruit');
+    if (!modal) return;
+    const proto = GUARDIAN_PROTOS[recruitId];
+    if (!proto) return;
+
+    modal.style.display = 'flex';
+    const por = document.getElementById('recruitPor');
+    if (por) por.src = `assets/art/v4/por_${recruitId}.webp`;
+    document.getElementById('recruitName').textContent = proto.name;
+    document.getElementById('recruitTitle').textContent = `${proto.cls} · ${proto.title || '遊俠'}`;
+    document.getElementById('recruitDesc').textContent = proto.backstory || proto.desc || proto.trait?.desc || '新同伴加入陣營！';
+    document.getElementById('recruitBark').textContent = proto.bark || '「願隨將軍共赴沙場！」';
+
+    document.getElementById('btnRecruitConfirm').onclick = () => {
+      modal.style.display = 'none';
+      if (onConfirm) onConfirm();
+    };
+  }
+
+  showRouteEventModal(eventData, onChoose) {
+    const modal = document.getElementById('modalRouteEvent');
+    if (!modal) return;
+    modal.style.display = 'flex';
+
+    document.getElementById('routeEventTitle').textContent = eventData.title || '行軍奇遇';
+    document.getElementById('routeEventDesc').textContent = eventData.desc || '請將軍定奪行軍休整方略：';
+
+    const container = document.getElementById('routeEventChoices');
+    container.innerHTML = '';
+
+    (eventData.options || []).forEach(opt => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn-route-choice';
+      btn.innerHTML = `<span>${opt.text}</span>`;
+      btn.onclick = () => {
+        modal.style.display = 'none';
+        if (onChoose) onChoose(opt);
+      };
+      container.appendChild(btn);
     });
   }
 

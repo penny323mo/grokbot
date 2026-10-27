@@ -829,16 +829,23 @@ html, body {
 
 /* Battle HUD Top */
 .battle-hud-top {
-  height: 44px;
-  background: rgba(14, 18, 44, 0.95);
+  min-height: 48px;
+  background: rgba(14, 18, 44, 0.96);
   border-bottom: 1px solid var(--night-border);
+  display: flex;
+  flex-direction: column;
+  padding: 4px 8px 3px 8px;
+  z-index: 30;
+  flex-shrink: 0;
+  gap: 2px;
+}
+
+.hud-main-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 8px;
-  z-index: 30;
-  flex-shrink: 0;
-  gap: 6px;
+  width: 100%;
+  height: 28px;
 }
 
 .hud-left {
@@ -848,10 +855,22 @@ html, body {
   white-space: nowrap;
 }
 
-.hud-center {
-  flex: 1;
-  min-width: 0;
-  text-align: center;
+.hud-obj-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(8, 12, 28, 0.6);
+  border: 1px solid rgba(242, 180, 90, 0.2);
+  border-radius: 4px;
+  padding: 1px 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.hud-obj-icon {
+  font-size: 10px;
+  color: var(--lantern-gold);
 }
 
 .hud-right {
@@ -888,13 +907,13 @@ html, body {
 }
 
 .battle-obj-ticker {
-  font-size: 12px;
-  color: var(--text-parchment-bright);
-  font-weight: 500;
-  max-width: 140px;
+  font-size: 11px;
+  color: var(--lantern-gold);
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: 0.5px;
 }
 
 .btn-hud-action {
@@ -948,7 +967,8 @@ html, body {
   top: 0;
   left: 0;
   width: 640px;
-  height: 832px;
+  min-height: 832px;
+  height: 100%;
   object-fit: cover;
   z-index: 1;
   pointer-events: none;
@@ -2718,6 +2738,210 @@ html, body {
 
 .btn-tutorial-ack:active {
   transform: scale(0.96);
+}
+
+.tutorial-card-actions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.btn-tutorial-suggest {
+  flex: 1;
+  height: 44px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #3B82F6 0%, #1D4ED8 100%);
+  border: 1px solid #93C5FD;
+  color: #FFF;
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  transition: all 0.15s ease;
+}
+
+.btn-tutorial-suggest:active {
+  transform: scale(0.96);
+}
+
+.btn-tutorial-suggest.pulse-idle {
+  animation: suggestPulse 1.2s infinite ease-in-out;
+}
+
+@keyframes suggestPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.6); }
+  50% { box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); }
+}
+
+/* Floating damage multiplier badges */
+.floating-tag-badge.back { background: #DC2626; color: #FFF; }
+.floating-tag-badge.side { background: #EA580C; color: #FFF; }
+.floating-tag-badge.hill { background: #D97706; color: #FFF; }
+.floating-tag-badge.def { background: #059669; color: #FFF; }
+.floating-tag-badge.weak { background: #7C3AED; color: #FFF; }
+
+/* Class synergy chips */
+.squad-synergy-strip, .deploy-synergy-strip {
+  display: flex;
+  gap: 6px;
+  padding: 4px 0;
+  flex-wrap: wrap;
+}
+
+.synergy-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: rgba(242, 180, 90, 0.15);
+  border: 1px solid rgba(242, 180, 90, 0.45);
+  color: var(--lantern-gold, #F2B45A);
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.synergy-badge .syn-icon { font-size: 13px; }
+.synergy-badge .syn-name { font-weight: 800; color: #FFF; }
+.synergy-badge .syn-desc { font-size: 10px; color: var(--text-parchment-bright, #E5D5BA); opacity: 0.85; }
+
+/* Recruit Modal */
+.recruit-card {
+  width: 90%;
+  max-width: 360px;
+  background: radial-gradient(circle at 50% 20%, #201B42 0%, #0F0D20 100%);
+  border: 1.5px solid #F2B45A;
+  border-radius: 16px;
+  padding: 24px 20px;
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(242, 180, 90, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.recruit-badge {
+  font-family: var(--font-serif);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #F2B45A;
+  background: rgba(242, 180, 90, 0.15);
+  border: 1px solid rgba(242, 180, 90, 0.35);
+  padding: 2px 10px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.recruit-por {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 2px solid #F2B45A;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  object-fit: cover;
+  margin-bottom: 10px;
+}
+
+.recruit-name {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 900;
+  color: #FFF;
+  margin: 0 0 4px;
+}
+
+.recruit-title {
+  font-size: 13px;
+  color: #F2B45A;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.recruit-desc {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #DDD;
+  margin: 0 0 12px;
+}
+
+.recruit-bark {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 14px;
+  color: #FFE4A0;
+  margin: 0 0 16px;
+}
+
+/* Route Event Modal */
+.route-event-card {
+  width: 90%;
+  max-width: 360px;
+  background: radial-gradient(circle at 50% 20%, #201B42 0%, #0F0D20 100%);
+  border: 1.5px solid #F2B45A;
+  border-radius: 16px;
+  padding: 24px 20px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+}
+
+.route-event-badge {
+  font-family: var(--font-serif);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #F2B45A;
+  align-self: center;
+  margin-bottom: 8px;
+}
+
+.route-event-title {
+  font-family: var(--font-serif);
+  font-size: 19px;
+  font-weight: 900;
+  color: #FFF;
+  text-align: center;
+  margin: 0 0 10px;
+}
+
+.route-event-desc {
+  font-size: 13px;
+  line-height: 1.55;
+  color: #CCC;
+  margin: 0 0 16px;
+}
+
+.route-event-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn-route-choice {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(242, 180, 90, 0.4);
+  color: #FFF;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-route-choice:hover, .btn-route-choice:active {
+  background: rgba(242, 180, 90, 0.2);
+  border-color: #F2B45A;
+  transform: translateY(-1px);
 }
 
 /* Pulsing spotlight on focused board elements during tutorial */

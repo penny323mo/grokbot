@@ -9,6 +9,12 @@ export function checkBattleStatus(chapter, battleState) {
 
   const livingAllies = allies.filter(u => u.hp > 0 && u.role !== 'npc' && u.role !== 'objective');
   const livingEnemies = enemies.filter(u => u.hp > 0);
+  const hasPendingReinforcements = !!(chapter.reinforcements && chapter.reinforcements.some(r => {
+    if (battleState.spawnedReinforcements) {
+      return !battleState.spawnedReinforcements.has(r);
+    }
+    return currentTurn < r.turn;
+  }));
 
   // Universal loss: all controllable player units defeated
   if (livingAllies.length === 0) {
@@ -30,8 +36,8 @@ export function checkBattleStatus(chapter, battleState) {
       if (cart.x >= goal.colMin && cart.y <= goal.rowMax) {
         return { finished: true, victory: true, reason: '引路燈車平安抵達彼岸，成功突破夜霧！' };
       }
-      // Or if all enemies routed
-      if (livingEnemies.length === 0) {
+      // Or if all enemies routed (and no pending waves)
+      if (livingEnemies.length === 0 && !hasPendingReinforcements) {
         return { finished: true, victory: true, reason: '全殲渡口敵騎，前路暢通無阻！' };
       }
       break;
@@ -54,7 +60,7 @@ export function checkBattleStatus(chapter, battleState) {
       }
 
       // Or if all enemies routed
-      if (livingEnemies.length === 0) {
+      if (livingEnemies.length === 0 && !hasPendingReinforcements) {
         return { finished: true, victory: true, reason: '全殲攻關魔物，雄關安然無恙！' };
       }
       break;
@@ -72,7 +78,7 @@ export function checkBattleStatus(chapter, battleState) {
       }
 
       // Or if all enemies routed
-      if (livingEnemies.length === 0) {
+      if (livingEnemies.length === 0 && !hasPendingReinforcements) {
         return { finished: true, victory: true, reason: '市集暗處的匿影妖邪已被盡數肅清！' };
       }
       break;
@@ -113,7 +119,7 @@ export function checkBattleStatus(chapter, battleState) {
       }
 
       // Or rout all enemies
-      if (livingEnemies.length === 0) {
+      if (livingEnemies.length === 0 && !hasPendingReinforcements) {
         return { finished: true, victory: true, reason: '竹海伏兵魔物已盡數肅清，幽谷隘口光復！' };
       }
 
@@ -128,7 +134,7 @@ export function checkBattleStatus(chapter, battleState) {
       if (boss && boss.hp <= 0) {
         return { finished: true, victory: true, reason: '斬殺鎮關主將！要塞群龍無首，鐵甲雄關告破！' };
       }
-      if (livingEnemies.length === 0) {
+      if (livingEnemies.length === 0 && !hasPendingReinforcements) {
         return { finished: true, victory: true, reason: '全殲要塞守軍，雄關徹底光復！' };
       }
       if (currentTurn > chapter.maxTurns) {
@@ -142,7 +148,7 @@ export function checkBattleStatus(chapter, battleState) {
       if (boss && boss.hp <= 0) {
         return { finished: true, victory: true, reason: '荒澤妖術師已被斬殺，邪霧妖咒徹底消散！' };
       }
-      if (livingEnemies.length === 0) {
+      if (livingEnemies.length === 0 && !hasPendingReinforcements) {
         return { finished: true, victory: true, reason: '全殲荒澤伏兵，水寨迷霧盡散！' };
       }
       if (currentTurn > chapter.maxTurns) {

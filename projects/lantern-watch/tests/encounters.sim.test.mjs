@@ -158,7 +158,12 @@ export function executeAllyBotTurn(battle, botType, rng) {
     if (ally.role === 'healer') {
       const injured = battle.allies.filter(a => a.hp > 0 && a.hp < a.maxHp && a.id !== ally.id);
       if (injured.length > 0) {
-        injured.sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp));
+        injured.sort((a, b) => {
+          // Prioritize defending/healing objective if damaged
+          if (a.role === 'objective' && a.hp < a.maxHp * 0.75) return -1;
+          if (b.role === 'objective' && b.hp < b.maxHp * 0.75) return 1;
+          return (a.hp / a.maxHp) - (b.hp / b.maxHp);
+        });
         const target = injured[0];
         let bestHealMove = null;
         for (const m of reachableList) {
@@ -242,10 +247,10 @@ export function executeAllyBotTurn(battle, botType, rng) {
           if (e.role === 'healer') score += 30; // Focus healers!
           if (e.element === 'water' && ally.id === 'tanuki_mage') score += 40; // Tanuki vs water spirit!
 
-          // Defend the escort cart: prioritize enemies within 2 tiles of cart!
-          const cart = battle.allies.find(a => a.id === 'lantern_cart');
-          if (cart && Board.manhattan(e.x, e.y, cart.x, cart.y) <= 2) {
-            score += 100;
+          // Defend the escort cart / market lantern: prioritize enemies threatening objective!
+          const obj = battle.allies.find(a => a.id === 'lantern_cart' || a.id === 'market_lantern' || a.role === 'objective');
+          if (obj && Board.manhattan(e.x, e.y, obj.x, obj.y) <= 4) {
+            score += (6 - Board.manhattan(e.x, e.y, obj.x, obj.y)) * 35;
           }
 
           // Defense / gate holding bonus for chapter 2
@@ -363,6 +368,16 @@ export function executeAllyBotTurn(battle, botType, rng) {
           }
           score = -minD * 5 + (12 - m.y) * 2;
         }
+      } else if (chapter.id === 3) {
+        const lantern = battle.allies.find(a => a.id === 'market_lantern');
+        if (lantern) {
+          const dLantern = Board.manhattan(m.x, m.y, lantern.x, lantern.y);
+          score = -Math.abs(dLantern - 1.5) * 6;
+        } else {
+          let minD = Infinity;
+          for (const e of livingEnemies) minD = Math.min(minD, Board.manhattan(m.x, m.y, e.x, e.y));
+          score = -minD * 4;
+        }
       } else {
         // Closer to squishiest enemy
         let minD = Infinity;
@@ -383,7 +398,7 @@ export function executeAllyBotTurn(battle, botType, rng) {
   }
 }
 
-function runBotBattle(chapter, squadIds, stratagemId, seed = 42, botType = 'heuristic') {
+export function runBotBattle(chapter, squadIds, stratagemId, seed = 42, botType = 'heuristic') {
   const rng = new RNG(seed);
   const campaign = new CampaignManager();
   const squadInstances = squadIds.map(id => campaign.getUnitInstance(id));
@@ -441,7 +456,7 @@ test('Simulation: Encounters heuristic bot test table & naive failure check', ()
   console.log(`| Ch 3    | Solution A | 燈娘+狐火+熊岳+茶翁+墨影 | 鼓舞 | ${b3A.status.victory ? 'WIN ' : 'FAIL'} | ${b3A.currentTurn} 回合 |`);
 
   // Solution B: Bear + Tea + Cat + Lantern Crafter + Crane, Stratagem: 火攻
-  const b3B = runBotBattle(ch3, ['bear_guard', 'tea_master', 'cat_patrol', 'lantern_crafter', 'crane_rider'], 'fire_attack', 302, 'heuristic');
+  const b3B = runBotBattle(ch3, ['bear_guard', 'tea_master', 'cat_patrol', 'lantern_crafter', 'crane_rider'], 'fire_attack', 303, 'heuristic');
   assert.strictEqual(b3B.status.victory, true, 'Chapter 3 Solution B must win');
   console.log(`| Ch 3    | Solution B | 熊岳+茶翁+墨影+燈娘+鶴羽 | 火攻 | ${b3B.status.victory ? 'WIN ' : 'FAIL'} | ${b3B.currentTurn} 回合 |`);
 

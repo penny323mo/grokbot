@@ -1,0 +1,268 @@
+
+> lantern-tactics@4.0.0 test
+> node tests/rules.test.mjs && node tests/ai.test.mjs && node tests/objectives.test.mjs && node tests/name.test.mjs && node tests/encounters.sim.test.mjs
+
+TAP version 13
+# Subtest: Rules: Movement costs, impassable tiles, and flyer traversal
+ok 1 - Rules: Movement costs, impassable tiles, and flyer traversal
+  ---
+  duration_ms: 1.824355
+  ...
+# Subtest: Rules: Cavalry ZOC interception by bear_guard (spear_wall)
+ok 2 - Rules: Cavalry ZOC interception by bear_guard (spear_wall)
+  ---
+  duration_ms: 0.417945
+  ...
+# Subtest: Rules: Facing and Back-attack damage modifiers
+ok 3 - Rules: Facing and Back-attack damage modifiers
+  ---
+  duration_ms: 0.562337
+  ...
+# Subtest: Rules: Counter-attack by melee defender
+ok 4 - Rules: Counter-attack by melee defender
+  ---
+  duration_ms: 0.173509
+  ...
+# Subtest: Rules: Water immunity and thunder weakness for paper_ghost
+ok 5 - Rules: Water immunity and thunder weakness for paper_ghost
+  ---
+  duration_ms: 0.176886
+  ...
+# Subtest: Rules: Shrouded targeting rules for shadow_rat
+ok 6 - Rules: Shrouded targeting rules for shadow_rat
+  ---
+  duration_ms: 0.221349
+  ...
+# Subtest: Rules: Knockback into water instant KO
+ok 7 - Rules: Knockback into water instant KO
+  ---
+  duration_ms: 0.510987
+  ...
+# Subtest: Rules: Fox fire (狐火) AoE cross hits multi-targets and deals x0 vs water type
+ok 8 - Rules: Fox fire (狐火) AoE cross hits multi-targets and deals x0 vs water type
+  ---
+  duration_ms: 1.21175
+  ...
+# Subtest: Rules: MP resource cost deduction on skill/magic
+ok 9 - Rules: MP resource cost deduction on skill/magic
+  ---
+  duration_ms: 0.354834
+  ...
+# Subtest: Rules: Shield guard (shield_block) blocks 70% frontal damage but takes full back damage
+ok 10 - Rules: Shield guard (shield_block) blocks 70% frontal damage but takes full back damage
+  ---
+  duration_ms: 0.262727
+  ...
+# Subtest: Rules: Fire archer inflicts bonus burn damage on targets in forest
+ok 11 - Rules: Fire archer inflicts bonus burn damage on targets in forest
+  ---
+  duration_ms: 0.380401
+  ...
+# Subtest: Rules: Combo attack (協力攻擊) triggered by adjacent ally
+ok 12 - Rules: Combo attack (協力攻擊) triggered by adjacent ally
+  ---
+  duration_ms: 0.281862
+  ...
+# Subtest: Rules: Fire attack persistent burn and forest fire spread
+ok 13 - Rules: Fire attack persistent burn and forest fire spread
+  ---
+  duration_ms: 0.491607
+  ...
+# Subtest: Rules: Class promotion stat bonuses and upgraded skill (劍客→劍聖 萬劍歸宗)
+ok 14 - Rules: Class promotion stat bonuses and upgraded skill (劍客→劍聖 萬劍歸宗)
+  ---
+  duration_ms: 0.691527
+  ...
+# Subtest: Rules: Fog-of-war vision and hidden enemy untargetability
+ok 15 - Rules: Fog-of-war vision and hidden enemy untargetability
+  ---
+  duration_ms: 0.41342
+  ...
+# Subtest: Rules: 水淹 (Water Flood) terrain conversion and push/damage
+ok 16 - Rules: 水淹 (Water Flood) terrain conversion and push/damage
+  ---
+  duration_ms: 0.418182
+  ...
+# Subtest: Rules: Siege engine (霹靂砲車) long-range bombardment and blind-zone rush
+ok 17 - Rules: Siege engine (霹靂砲車) long-range bombardment and blind-zone rush
+  ---
+  duration_ms: 0.209593
+  ...
+# Subtest: Rules: Varied action XP and MVP calculation
+ok 18 - Rules: Varied action XP and MVP calculation
+  ---
+  duration_ms: 0.41019
+  ...
+# Subtest: Rules: General Zone of Control (ZOC) stops foot soldiers while light and flying units ignore ZOC
+ok 19 - Rules: General Zone of Control (ZOC) stops foot soldiers while light and flying units ignore ZOC
+  ---
+  duration_ms: 1.751284
+  ...
+# Subtest: Rules: V4 Flanking (+15% side, +30% back) and no counterattack from behind
+ok 20 - Rules: V4 Flanking (+15% side, +30% back) and no counterattack from behind
+  ---
+  duration_ms: 0.328878
+  ...
+1..20
+# tests 20
+# suites 0
+# pass 20
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 31.267484
+TAP version 13
+# Subtest: AI: Archer kites away when player unit is adjacent
+ok 1 - AI: Archer kites away when player unit is adjacent
+  ---
+  duration_ms: 3.475164
+  ...
+# Subtest: AI: Healer stays >=2 tiles back and heals lowest-HP ally
+ok 2 - AI: Healer stays >=2 tiles back and heals lowest-HP ally
+  ---
+  duration_ms: 2.152798
+  ...
+# Subtest: AI: Cavalry targets exposed backline unit with charge
+ok 3 - AI: Cavalry targets exposed backline unit with charge
+  ---
+  duration_ms: 1.105527
+  ...
+# Subtest: AI: Commander holds position and only attacks adjacent
+ok 4 - AI: Commander holds position and only attacks adjacent
+  ---
+  duration_ms: 0.576131
+  ...
+# Subtest: AI: Shrouded assassin targets lowest-DEF player unit
+ok 5 - AI: Shrouded assassin targets lowest-DEF player unit
+  ---
+  duration_ms: 0.72267
+  ...
+# Subtest: AI: Boss triggers AoE mist blast when >=2 player units cluster
+ok 6 - AI: Boss triggers AoE mist blast when >=2 player units cluster
+  ---
+  duration_ms: 0.371102
+  ...
+# Subtest: AI: Shield guard maintains facing towards nearest threat and holds position
+ok 7 - AI: Shield guard maintains facing towards nearest threat and holds position
+  ---
+  duration_ms: 0.453522
+  ...
+# Subtest: AI: Sorcerer casts AoE thunder magic when player units cluster
+ok 8 - AI: Sorcerer casts AoE thunder magic when player units cluster
+  ---
+  duration_ms: 0.501342
+  ...
+# Subtest: AI: Scout prioritizes lantern cart objective target
+ok 9 - AI: Scout prioritizes lantern cart objective target
+  ---
+  duration_ms: 0.586327
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 22.754081
+TAP version 13
+# Subtest: Objectives: Escort chapter (River Bridge)
+ok 1 - Objectives: Escort chapter (River Bridge)
+  ---
+  duration_ms: 1.199967
+  ...
+# Subtest: Objectives: Hold Gate chapter
+ok 2 - Objectives: Hold Gate chapter
+  ---
+  duration_ms: 0.16614
+  ...
+# Subtest: Objectives: Protect Lantern chapter
+ok 3 - Objectives: Protect Lantern chapter
+  ---
+  duration_ms: 0.144826
+  ...
+# Subtest: Objectives: Mountain chapter (defeat boss or reach shrine)
+ok 4 - Objectives: Mountain chapter (defeat boss or reach shrine)
+  ---
+  duration_ms: 0.133259
+  ...
+# Subtest: Objectives: Bamboo Pass chapter (reach shrine or rout all enemies)
+ok 5 - Objectives: Bamboo Pass chapter (reach shrine or rout all enemies)
+  ---
+  duration_ms: 0.221625
+  ...
+# Subtest: Objectives: Siege chapter (breach gate or defeat citadel warlord)
+ok 6 - Objectives: Siege chapter (breach gate or defeat citadel warlord)
+  ---
+  duration_ms: 0.139592
+  ...
+# Subtest: Objectives: Side battle marsh chapter (survive or rout sorcerer)
+ok 7 - Objectives: Side battle marsh chapter (survive or rout sorcerer)
+  ---
+  duration_ms: 0.132883
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 12.236706
+TAP version 13
+# Subtest: Branding: GAME config matches spec
+ok 1 - Branding: GAME config matches spec
+  ---
+  duration_ms: 0.974614
+  ...
+# Subtest: Branding: No occurrences of old name in js/ and index.html
+ok 2 - Branding: No occurrences of old name in js/ and index.html
+  ---
+  duration_ms: 2.487695
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 14.511001
+
+================ ENCOUNTER SIMULATION RESULTS ================
+| Chapter | Comp Name | Squad | Stratagem | Result | Turns |
+|---------|-----------|-------|-----------|--------|-------|
+| Ch 1    | Solution A | 熊岳+茶翁+燈娘+墨影 | 鼓舞 | WIN  | 11 回合 |
+| Ch 1    | Solution B | 墨影+鶴羽+熊岳+茶翁 | 佯攻 | WIN  | 11 回合 |
+| Ch 2    | Solution A | 雷狸+熊岳+茶翁+墨影+燈娘 | 鼓舞 | WIN  | 5 回合 |
+| Ch 2    | Solution B | 墨影+鶴羽+熊岳+茶翁+雷狸 | 夜襲 | WIN  | 4 回合 |
+| Ch 3    | Solution A | 燈娘+狐火+熊岳+茶翁+墨影 | 鼓舞 | WIN  | 4 回合 |
+| Ch 3    | Solution B | 熊岳+茶翁+墨影+燈娘+鶴羽 | 火攻 | WIN  | 3 回合 |
+| Ch 4    | Solution A | 熊岳+墨影+鶴羽+茶翁+雷狸+燈娘 | 鼓舞 | WIN  | 4 回合 |
+| Ch 4    | Solution B | 鶴羽+墨影+熊岳+茶翁+狐火+雷狸 | 水淹 | WIN  | 4 回合 |
+| Ch 5    | Solution A | 燈娘+熊岳+茶翁+墨影+雷狸 | 鼓舞 | WIN  | 8 回合 |
+| Ch 5    | Solution B | 墨影+鶴羽+熊岳+茶翁+狐火+雷狸 | 火攻 | WIN  | 2 回合 |
+| Ch 6    | Solution A | 熊岳+茶翁+鶴羽+墨影+狐火+雷狸 | 鼓舞 | WIN  | 7 回合 |
+| Ch 6    | Solution B | 熊岳+茶翁+鶴羽+狐火+雷狸+燈娘 | 夜襲 | WIN  | 5 回合 |
+==============================================================
+
+[Validation] Naive bot failed tactical challenge as expected (Ch1: FAIL, Ch2: FAIL, Ch6: FAIL)
+TAP version 13
+# Subtest: Simulation: Encounters heuristic bot test table & naive failure check
+ok 1 - Simulation: Encounters heuristic bot test table & naive failure check
+  ---
+  duration_ms: 122.570303
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 139.195045

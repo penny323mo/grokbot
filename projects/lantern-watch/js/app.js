@@ -593,6 +593,15 @@ class LanternTacticsApp {
       }
     }
 
+    // Directional line / cone mode (鶴羽 crane_line_gust / 狐火 flame_fan_cone)
+    if (this.targetingMode === 'directional') {
+      const key = `${x},${y}`;
+      if (this.attackableTiles.has(key)) {
+        this.tapTarget(key, () => this.previewDirectional(x, y));
+        return;
+      }
+    }
+
     // In targeting mode, stray taps never deselect the unit
     if (this.targetingMode) return;
 
@@ -638,7 +647,7 @@ class LanternTacticsApp {
     const hasMpForSkill = (unit.mp ?? 6) >= skillCost;
 
     let hasSkillTarget = false;
-    if (unit.skill?.isLightPlacement) {
+    if (unit.skill?.isLightPlacement || unit.skill?.aoe === 'line' || unit.skill?.aoe === 'cone') {
       hasSkillTarget = true;
     } else if (unit.skill?.isHeal) {
       const sRange = getAttackRangeTiles(this.battle.board, unit, unit.x, unit.y);
@@ -653,7 +662,7 @@ class LanternTacticsApp {
     const hasMpForMagic = (unit.mp ?? 6) >= magicCost;
 
     let hasMagicTarget = false;
-    if (unit.magic?.selfBuff) {
+    if (unit.magic?.selfBuff || unit.magic?.aoe === 'line' || unit.magic?.aoe === 'cone') {
       hasMagicTarget = true;
     } else if (unit.magic?.isHeal) {
       const mRange = getAttackRangeTiles(this.battle.board, unit, unit.x, unit.y);
@@ -750,6 +759,26 @@ class LanternTacticsApp {
       return;
     }
 
+    // Directional skill or magic (Line or Cone: 鶴羽 crane_line_gust / 狐火 flame_fan_cone)
+    const activeSkillObj = actionType === 'skill' ? unit.skill : (actionType === 'magic' ? unit.magic : null);
+    const isDirectional = activeSkillObj?.aoe === 'line' || activeSkillObj?.aoe === 'cone';
+    if (isDirectional) {
+      this.targetingMode = 'directional';
+      this.directionalSkill = activeSkillObj;
+      this.reachableTiles = new Map();
+      const cardinals = [
+        { x: unit.x + 1, y: unit.y },
+        { x: unit.x - 1, y: unit.y },
+        { x: unit.x, y: unit.y + 1 },
+        { x: unit.x, y: unit.y - 1 }
+      ].filter(t => this.battle.board.inBounds(t.x, t.y));
+      this.attackableTiles = new Set(cardinals.map(t => `${t.x},${t.y}`));
+      const desc = activeSkillObj.aoe === 'line' ? '直線穿透3格' : '扇形烈焰4格';
+      this.beginTargeting(`點選施放朝向（上下左右） · 再點一次施放【${activeSkillObj.name}】(${desc})`, this.attackableTiles);
+      this.refreshBattleUI();
+      return;
+    }
+
     // Regular single-target attack
     this.targetingMode = 'target_unit';
     this.reachableTiles = new Map();
@@ -776,6 +805,60 @@ class LanternTacticsApp {
     const target = focusDefender || this.battle.getUnitAt(cx, cy) || this.battle.enemies.find(e => e.hp > 0 && this.aoeTiles.has(`${e.x},${e.y}`));
     if (target) {
       this.evaluateTargetPreview(target, { tileX: cx, tileY: cy });
+    }
+    this.refreshBattleUI();
+  }
+
+  previewDirectional(x, y) {
+    const unit = this.selectedUnit;
+    if (!unit || !this.directionalSkill) return;
+    const dx = x - unit.x;
+    const dy = y - unit.y;
+    let tiles = [];
+    if (this.directionalSkill.aoe === 'cone') {
+      tiles = Board.getConeTiles(unit.x, unit.y, dx, dy);
+    } else {
+      tiles = Board.getLineTiles(unit.x, unit.y, dx, dy, this.directionalSkill.lineLength || 3);
+    }
+    this.aoeTiles = new Set(tiles.map(t => `${t.x},${t.y}`));
+
+    const livingEnemies = this.battle.enemies.filter(e => e.hp > 0);
+    const hitEnemies = livingEnemies.filter(e => this.aoeTiles.has(`${e.x},${e.y}`));
+    const target = hitEnemies[0] || null;
+
+    if (target) {
+      this.evaluateTargetPreview(target, { dx, dy, skill: this.directionalSkill });
+    } else {
+      // Empty direction preview with confirm callback
+      const preview = {
+        attacker: unit,
+        defender: { name: '指定方向', hp: 0, maxHp: 0, cls: '空地' },
+        direction: 'front',
+        isBackAttack: false,
+        isSideAttack: false,
+        expectedDamage: this.directionalSkill.power || 12,
+        hitRate: 100,
+        critRate: 0,
+        canCounter: false,
+        willKill: false
+      };
+      const actionType = this.activeActionType;
+      this.pendingConfirm = () => this.confirmActionExecution(actionType, null, { dx, dy, skill: this.directionalSkill });
+      this.ui.showTargetPreview(
+        preview,
+        () => {
+          this.resetTargeting();
+          this.confirmActionExecution(actionType, null, { dx, dy, skill: this.directionalSkill });
+        },
+        () => {
+          this.aoeTiles = new Set();
+          this.resetTargeting();
+          this.activeActionType = null;
+          this.targetingMode = null;
+          this.openActionMenuForUnit(unit);
+          this.refreshBattleUI();
+        }
+      );
     }
     this.refreshBattleUI();
   }
@@ -850,7 +933,11 @@ class LanternTacticsApp {
       damage: hitEv?.damage ?? 10,
       isCrit: hitEv?.isCrit || false,
       isBackAttack: hitEv?.isBackAttack || false,
-      isFrontBlocked: target?.role === 'shield_guard' && hitEv?.direction === 'front',
+      isSideAttack: hitEv?.isSideAttack || false,
+      isHighGround: hitEv?.isHighGround || false,
+      isFrontBlocked: hitEv?.isFrontBlocked || (target?.role === 'shield_guard' && hitEv?.direction === 'front'),
+      defBonus: hitEv?.defBonus || 0,
+      isWeakness: hitEv?.elementWeakness || false,
       isHeal: actionType === 'skill' && actingUnit.skill?.isHeal,
       healAmount: 8,
       isMiss
@@ -884,7 +971,13 @@ class LanternTacticsApp {
     if (this.battle.status.finished) {
       setTimeout(() => {
         this.ui.showBattleResult(this.battle.status, this.activeChapter, () => {
-          this.openWorldMap();
+          if (this.battle.status.victory) {
+            this.handlePostBattleEvents(this.activeChapter, () => {
+              this.openWorldMap();
+            });
+          } else {
+            this.openWorldMap();
+          }
         }, this.campaign, this.battle.allies, this.battle);
       }, 600);
       return;
@@ -896,6 +989,110 @@ class LanternTacticsApp {
         this.triggerEnemyTurn();
       }, 400);
     }
+  }
+
+  handlePostBattleEvents(chapter, onFinish) {
+    if (!chapter) {
+      if (onFinish) onFinish();
+      return;
+    }
+
+    // Chapter 1 recruit: 鶴羽 (crane_rider)
+    if (chapter.id === 1 && !this.ch1RecruitSeen) {
+      this.ch1RecruitSeen = true;
+      if (this.campaign.roster['crane_rider']) this.campaign.roster['crane_rider'].unlocked = true;
+      this.ui.showRecruitModal('crane_rider', () => {
+        if (onFinish) onFinish();
+      });
+      return;
+    }
+
+    // Chapter 2 route event: 官道分水嶺 (整備兵刃 vs 安撫將士)
+    if (chapter.id === 2 && !this.ch2EventChosen) {
+      this.ch2EventChosen = true;
+      const eventData = {
+        title: '【行軍奇遇 · 官道分水嶺】',
+        desc: '突破雄關後，大軍暫憩於山麓驛站。軍師請將軍定奪休整方略：',
+        options: [
+          {
+            text: '【整備兵刃】全軍將士磨礪鋒刃，攻擊力暫時提升 +1',
+            effect: 'atk',
+            apply: () => {
+              for (const u of Object.values(this.campaign.roster)) {
+                if (!u.bonusStats) u.bonusStats = { atk: 0, def: 0, mag: 0, res: 0, maxHp: 0, mov: 0 };
+                u.bonusStats.atk = (u.bonusStats.atk || 0) + 1;
+              }
+              this.campaign.save();
+            }
+          },
+          {
+            text: '【安撫將士】靈湯滋補，全軍氣血上限永久提升 +3',
+            effect: 'hp',
+            apply: () => {
+              for (const u of Object.values(this.campaign.roster)) {
+                if (!u.bonusStats) u.bonusStats = { atk: 0, def: 0, mag: 0, res: 0, maxHp: 0, mov: 0 };
+                u.bonusStats.maxHp = (u.bonusStats.maxHp || 0) + 3;
+              }
+              this.campaign.save();
+            }
+          }
+        ]
+      };
+      this.ui.showRouteEventModal(eventData, (chosenOpt) => {
+        if (chosenOpt?.apply) chosenOpt.apply();
+        if (onFinish) onFinish();
+      });
+      return;
+    }
+
+    // Chapter 3 recruit: 狐火 緋 (fox_maiden)
+    if (chapter.id === 3 && !this.ch3RecruitSeen) {
+      this.ch3RecruitSeen = true;
+      if (this.campaign.roster['fox_maiden']) this.campaign.roster['fox_maiden'].unlocked = true;
+      this.ui.showRecruitModal('fox_maiden', () => {
+        if (onFinish) onFinish();
+      });
+      return;
+    }
+
+    // Chapter 4 route event: 天池靈泉與古碑 (飲泉固本 vs 參悟石刻)
+    if (chapter.id === 4 && !this.ch4EventChosen) {
+      this.ch4EventChosen = true;
+      const eventData = {
+        title: '【行軍奇遇 · 天池靈泉與古碑】',
+        desc: '踏破雲海大壩，山巔靈泉與上古石刻映入眼簾：',
+        options: [
+          {
+            text: '【飲天池靈泉】全軍法力上限提升 +2，精神飽滿',
+            effect: 'mp',
+            apply: () => {
+              for (const u of Object.values(this.campaign.roster)) {
+                if (!u.bonusStats) u.bonusStats = { atk: 0, def: 0, mag: 0, res: 0, maxHp: 0, mov: 0 };
+                u.bonusStats.res = (u.bonusStats.res || 0) + 1;
+              }
+              this.campaign.save();
+            }
+          },
+          {
+            text: '【參悟石刻古陣】全體將士領悟玄機，獲得 +50 點功勳 EXP',
+            effect: 'exp',
+            apply: () => {
+              for (const id of Object.keys(this.campaign.roster)) {
+                this.campaign.addExp(id, 50);
+              }
+              this.campaign.save();
+            }
+          }
+        ]
+      };
+      this.ui.showRouteEventModal(eventData, (chosenOpt) => {
+        if (chosenOpt?.apply) chosenOpt.apply();
+        if (onFinish) onFinish();
+      });
+      return;
+    }
+
+    if (onFinish) onFinish();
   }
 
   triggerEnemyTurn() {
@@ -914,7 +1111,13 @@ class LanternTacticsApp {
 
       if (this.battle.status.finished) {
         this.ui.showBattleResult(this.battle.status, this.activeChapter, () => {
-          this.openWorldMap();
+          if (this.battle.status.victory) {
+            this.handlePostBattleEvents(this.activeChapter, () => {
+              this.openWorldMap();
+            });
+          } else {
+            this.openWorldMap();
+          }
         }, this.campaign, this.battle.allies, this.battle);
         return;
       }
@@ -942,7 +1145,7 @@ class LanternTacticsApp {
     const savedStratagem = this.activeStratagemId;
 
     // Use a clean, isolated demo battle for tutorial steps so live battle is untouched
-    const squad = ['cat_patrol', 'lantern_crafter', 'tea_master', 'bear_guard'].map(id => this.campaign.getUnitInstance(id));
+    const squad = ['bear_guard', 'cat_patrol', 'lantern_crafter', 'crane_rider', 'tea_master'].map(id => this.campaign.getUnitInstance(id));
     this.battle = new Battle(CHAPTERS[0], squad, 'inspire', this.campaign, this.rng);
     this.ui.showScreen('screenBattle');
 
@@ -950,54 +1153,153 @@ class LanternTacticsApp {
       document.querySelectorAll('.spotlight-active').forEach(el => el.classList.remove('spotlight-active'));
 
       if (step === 0) {
-        // Step 0: Unit selected, blue tiles glow + spotlight on unit/reachable
+        // Beat 1: Move (移動)
         this.clearSelection();
         this.ui.hideActionMenu();
         this.ui.hideTargetPreview();
-        const cat = this.battle.allies.find(a => a.id === 'cat_patrol');
-        if (cat) {
-          cat.x = 1;
-          cat.y = 8;
-          cat.turnStartX = 1;
-          cat.turnStartY = 8;
-          this.handleUnitTap(cat);
-          this.ui.centerCameraOn(cat.x, cat.y);
-          const tileEl = document.querySelector(`.grid-tile[data-x="${cat.x}"][data-y="${cat.y}"]`);
+        const bear = this.battle.allies.find(a => a.id === 'bear_guard');
+        if (bear) {
+          bear.x = 4; bear.y = 10;
+          bear.turnStartX = 4; bear.turnStartY = 10;
+          this.handleUnitTap(bear);
+          this.ui.centerCameraOn(bear.x, bear.y);
+          const tileEl = document.querySelector(`.grid-tile[data-x="${bear.x}"][data-y="${bear.y}"]`);
           if (tileEl) tileEl.classList.add('spotlight-active');
         }
       } else if (step === 1) {
-        // Step 1: Unit moves, action menu opens + spotlight on menu
+        // Beat 2: Attack (攻擊)
         this.clearSelection();
         this.ui.hideTargetPreview();
-        const cat = this.battle.allies.find(a => a.id === 'cat_patrol');
-        if (cat) {
-          this.selectedUnit = cat;
-          this.battle.moveUnit(cat, 0, 9);
-          this.stagedMoveTile = { x: 0, y: 9 };
-          this.openActionMenuForUnit(cat);
+        const bear = this.battle.allies.find(a => a.id === 'bear_guard');
+        const foe = this.battle.enemies[0];
+        if (bear && foe) {
+          bear.x = foe.x; bear.y = foe.y + 1;
+          bear.turnStartX = bear.x; bear.turnStartY = bear.y;
+          this.selectedUnit = bear;
+          this.openActionMenuForUnit(bear);
           this.refreshBattleUI();
-          this.ui.centerCameraOn(cat.x, Math.max(0, cat.y - 2));
+          this.ui.centerCameraOn(bear.x, bear.y);
           const pop = document.getElementById('actionMenuPopover');
           if (pop) pop.classList.add('spotlight-active');
         }
       } else if (step === 2) {
-        // Step 2: Red attack range + target preview card with spotlight
+        // Beat 3: Terrain (地形)
+        this.clearSelection();
+        this.ui.hideActionMenu();
+        this.ui.hideTargetPreview();
+        const cat = this.battle.allies.find(a => a.id === 'cat_patrol');
+        if (cat) {
+          cat.x = 2; cat.y = 7; // Forest tile with DEF bonus
+          cat.turnStartX = 2; cat.turnStartY = 7;
+          this.selectedUnit = cat;
+          this.refreshBattleUI();
+          this.ui.centerCameraOn(cat.x, cat.y);
+          const tileEl = document.querySelector(`.grid-tile[data-x="${cat.x}"][data-y="${cat.y}"]`);
+          if (tileEl) tileEl.classList.add('spotlight-active');
+        }
+      } else if (step === 3) {
+        // Beat 4: Counter / Flank (反擊與側翼背刺)
+        this.clearSelection();
         this.ui.hideActionMenu();
         const cat = this.battle.allies.find(a => a.id === 'cat_patrol');
-        const enemy = this.battle.enemies[0];
-        if (cat && enemy) {
-          cat.x = enemy.x;
-          cat.y = enemy.y - 1;
-          cat.turnStartX = cat.x;
-          cat.turnStartY = cat.y;
-          enemy.facing = 1;
+        const foe = this.battle.enemies[0];
+        if (cat && foe) {
+          foe.facing = 1; // Facing East
+          cat.x = foe.x - 1; cat.y = foe.y; // Attacking from West = Back Attack!
+          cat.turnStartX = cat.x; cat.turnStartY = cat.y;
           this.selectedUnit = cat;
           this.activeActionType = 'attack';
-          this.evaluateTargetPreview(enemy);
-          this.ui.centerCameraOn(cat.x, cat.y);
+          this.evaluateTargetPreview(foe);
+          this.ui.centerCameraOn(foe.x, foe.y);
           const card = document.getElementById('targetPreviewCard');
           if (card) card.classList.add('spotlight-active');
         }
+      } else if (step === 4) {
+        // Beat 5: Light (引魂明燈)
+        this.clearSelection();
+        this.ui.hideActionMenu();
+        this.ui.hideTargetPreview();
+        const cart = this.battle.allies.find(a => a.id === 'lantern_cart') || this.battle.allies.find(a => a.id === 'lantern_crafter');
+        if (cart) {
+          this.handleUnitTap(cart);
+          this.ui.centerCameraOn(cart.x, cart.y);
+          const tileEl = document.querySelector(`.grid-tile[data-x="${cart.x}"][data-y="${cart.y}"]`);
+          if (tileEl) tileEl.classList.add('spotlight-active');
+        }
+      } else if (step === 5) {
+        // Beat 6: Spell (奇術/絕技 - directional line)
+        this.clearSelection();
+        this.ui.hideTargetPreview();
+        const crane = this.battle.allies.find(a => a.id === 'crane_rider');
+        if (crane) {
+          crane.x = 4; crane.y = 9;
+          crane.turnStartX = 4; crane.turnStartY = 9;
+          this.selectedUnit = crane;
+          this.openActionMenuForUnit(crane);
+          this.refreshBattleUI();
+          this.ui.centerCameraOn(crane.x, crane.y);
+          const btnSkill = document.getElementById('btnActionSkill');
+          if (btnSkill) btnSkill.classList.add('spotlight-active');
+        }
+      } else if (step === 6) {
+        // Beat 7: Stratagem (軍略妙計)
+        this.clearSelection();
+        this.ui.hideActionMenu();
+        this.ui.hideTargetPreview();
+        this.refreshBattleUI();
+        const stratBtn = document.getElementById('btnStratagemTop');
+        if (stratBtn) stratBtn.classList.add('spotlight-active');
+      }
+    };
+
+    const handleSuggest = (step) => {
+      document.querySelectorAll('.spotlight-active').forEach(el => el.classList.remove('spotlight-active'));
+      if (step === 0) {
+        // Suggest move: moves bear to (4, 9)
+        const bear = this.battle.allies.find(a => a.id === 'bear_guard');
+        if (bear) {
+          this.battle.moveUnit(bear, 4, 9);
+          this.stagedMoveTile = { x: 4, y: 9 };
+          this.openActionMenuForUnit(bear);
+          this.refreshBattleUI();
+        }
+      } else if (step === 1) {
+        // Suggest attack: attacks enemy
+        const foe = this.battle.enemies[0];
+        if (foe && this.selectedUnit) {
+          this.activeActionType = 'attack';
+          this.evaluateTargetPreview(foe);
+        }
+      } else if (step === 2) {
+        // Suggest terrain: moves to forest (2, 7)
+        const cat = this.battle.allies.find(a => a.id === 'cat_patrol');
+        if (cat) {
+          this.battle.moveUnit(cat, 2, 7);
+          this.refreshBattleUI();
+        }
+      } else if (step === 3) {
+        // Suggest back attack execution
+        const foe = this.battle.enemies[0];
+        if (foe && this.selectedUnit) {
+          this.confirmActionExecution('attack', foe);
+        }
+      } else if (step === 4) {
+        // Suggest light: moves cart
+        const cart = this.battle.allies.find(a => a.id === 'lantern_cart');
+        if (cart) {
+          this.battle.moveUnit(cart, cart.x + 1, cart.y - 1);
+          this.refreshBattleUI();
+        }
+      } else if (step === 5) {
+        // Suggest spell: directional skill
+        const crane = this.battle.allies.find(a => a.id === 'crane_rider');
+        if (crane) {
+          this.selectedUnit = crane;
+          this.handleActionMenuChoice('skill');
+        }
+      } else if (step === 6) {
+        // Suggest stratagem
+        this.ui.showStratagemModal(this.activeStratagemId || 'inspire');
       }
     };
 
@@ -1019,7 +1321,7 @@ class LanternTacticsApp {
         this.activeStratagemId = savedStratagem;
         this.launchBattleInstance(savedChapter, savedPlacements);
       }
-    });
+    }, handleSuggest);
   }
 
   // ================= DEBUG & TEST HOOKS =================
@@ -1063,6 +1365,8 @@ class LanternTacticsApp {
       },
       showTutorial: (step = 0) => this.startTutorialFlow(step),
       showTacticsTutorial: () => this.ui.showTacticsTutorialModal(),
+      showRecruit: (id = 'crane_rider') => this.ui.showRecruitModal(id, () => {}),
+      showRouteEvent: () => this.handlePostBattleEvents({ id: 2 }, () => {}),
       showLevelUp: (unitId = 'cat_patrol') => {
         const inst = this.campaign.getUnitInstance(unitId);
         const newLevel = Math.max(2, (inst.level || 1) + 1);

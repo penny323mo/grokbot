@@ -156,6 +156,7 @@
               <span>選擇出征將士</span>
               <span class="badge-tag highlight" id="preSquadLimitBadge">已選 4 / 4 人</span>
             </div>
+            <div class="squad-synergy-strip" id="preSquadSynergyStrip"></div>
             <div class="squad-roster-grid" id="squadRosterGrid"></div>
           </div>
         </div>
@@ -178,24 +179,27 @@
       <div class="battle-screen-layout">
         <!-- Battle Top Status HUD -->
         <div class="battle-hud-top">
-          <div class="hud-left">
-            <span class="battle-turn-badge" id="hudTurnBadge">第 1 / 12 回合</span>
-            <span class="battle-phase-pill ally" id="hudPhasePill">我方回合</span>
+          <div class="hud-main-row">
+            <div class="hud-left">
+              <span class="battle-turn-badge" id="hudTurnBadge">第 1 / 12 回合</span>
+              <span class="battle-phase-pill ally" id="hudPhasePill">我方回合</span>
+            </div>
+            <div class="hud-right">
+              <button type="button" class="btn-hud-speed" id="btnBattleSpeed" title="戰鬥速度切換">
+                <span id="txtBattleSpeed">1x</span>
+              </button>
+              <button type="button" class="btn-hud-action" id="btnUndoMove" style="display:none;" title="悔棋撤銷移動">
+                <span>悔棋</span>
+              </button>
+              <button type="button" class="btn-hud-action" id="btnThreatToggle" title="顯示全部敵軍威脅範圍"><span>敵域</span></button>
+              <button type="button" class="btn-hud-action end-turn" id="btnEndTurn">
+                <span>結束回合</span>
+              </button>
+            </div>
           </div>
-          <div class="hud-center">
+          <div class="hud-obj-row">
+            <span class="hud-obj-icon">✦</span>
             <span class="battle-obj-ticker" id="hudObjectiveTicker">護送燈車抵達北岸</span>
-          </div>
-          <div class="hud-right">
-            <button type="button" class="btn-hud-speed" id="btnBattleSpeed" title="戰鬥速度切換">
-              <span id="txtBattleSpeed">1x</span>
-            </button>
-            <button type="button" class="btn-hud-action" id="btnUndoMove" style="display:none;" title="悔棋撤銷移動">
-              <span>悔棋</span>
-            </button>
-            <button type="button" class="btn-hud-action" id="btnThreatToggle" title="顯示全部敵軍威脅範圍"><span>敵域</span></button>
-            <button type="button" class="btn-hud-action end-turn" id="btnEndTurn">
-              <span>結束回合</span>
-            </button>
           </div>
         </div>
 
@@ -324,6 +328,7 @@
             <span class="badge-tag highlight" id="deployStatusBadge">已就位</span>
             <button type="button" class="btn-deploy-mini" id="btnDeployScout" title="收起面板，拖曳地圖偵察敵軍">偵察</button>
           </div>
+          <div class="deploy-synergy-strip" id="deploySynergyStrip"></div>
           <div class="deploy-tray-units" id="deployTrayUnits"></div>
           <button type="button" class="btn-confirm-deploy" id="btnConfirmDeploy">
             <span>出征開戰</span>
@@ -334,16 +339,21 @@
         <div class="tutorial-board-overlay" id="tutorialBoardOverlay" style="display:none;">
           <div class="tutorial-board-card">
             <div class="tutorial-card-header">
-              <span class="tutorial-pill-badge" id="boardTutorialTitle">燈影軍略 · 基礎兵法</span>
-              <span class="tutorial-step-pill" id="boardTutorialStep">1 / 3</span>
+              <span class="tutorial-pill-badge" id="boardTutorialTitle">燈影軍略 · 兵法引領</span>
+              <span class="tutorial-step-pill" id="boardTutorialStep">1 / 7</span>
             </div>
             <div class="tutorial-card-body">
               <div class="tutorial-tip-icon">✦</div>
-              <div class="tutorial-card-text" id="boardTutorialText">① 「撳角色 → 藍格係可以行嘅位」</div>
+              <div class="tutorial-card-text" id="boardTutorialText">① 「點擊熊岳 → 藍色格子為移動範圍」</div>
             </div>
-            <button type="button" class="btn-tutorial-ack" id="btnBoardTutorialAck">
-              <span>明白</span>
-            </button>
+            <div class="tutorial-card-actions">
+              <button type="button" class="btn-tutorial-suggest" id="btnTutorialSuggest">
+                <span>💡 建議行動</span>
+              </button>
+              <button type="button" class="btn-tutorial-ack" id="btnBoardTutorialAck">
+                <span>明白</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -512,6 +522,31 @@
             <span>返回大地圖</span>
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- MODAL 6: RECRUIT COMPANION -->
+    <div class="modal-overlay" id="modalRecruit" style="display:none;">
+      <div class="recruit-card">
+        <div class="recruit-badge">✦ 新將入陣 ✦</div>
+        <img class="recruit-por" id="recruitPor" src="assets/art/v4/por_crane_rider.webp" alt="將士">
+        <h3 class="recruit-name" id="recruitName">鶴羽</h3>
+        <span class="recruit-title" id="recruitTitle">雲間飛騎 · 飛羽遊俠</span>
+        <p class="recruit-desc" id="recruitDesc">無視地形阻礙，盤旋飛越水面與險壁；以「鶴鳴貫空」貫穿直線3格敵陣！</p>
+        <blockquote class="recruit-bark" id="recruitBark">「九霄清風，隨我疾行！」</blockquote>
+        <button type="button" class="btn-brush-main" id="btnRecruitConfirm">
+          <span>共赴戎機 ▶</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- MODAL 7: ROUTE EVENT CHOICE -->
+    <div class="modal-overlay" id="modalRouteEvent" style="display:none;">
+      <div class="route-event-card">
+        <div class="route-event-badge">✦ 行軍奇遇 · 抉擇 ✦</div>
+        <h3 class="route-event-title" id="routeEventTitle">官道分水嶺</h3>
+        <p class="route-event-desc" id="routeEventDesc">突破雄關後，大軍暫憩於山麓驛站。軍師請將軍定奪休整方略：</p>
+        <div class="route-event-choices" id="routeEventChoices"></div>
       </div>
     </div>
 

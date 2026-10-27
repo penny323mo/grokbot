@@ -94,6 +94,11 @@ export const CHAPTERS = [
       { x: 4, y: 7 }, { x: 5, y: 7 },
       { x: 3, y: 8 }, { x: 6, y: 8 }, { x: 2, y: 8 }, { x: 7, y: 8 }
     ],
+    reinforcements: [
+      { turn: 3, id: 'paper_ghost', x: 3, y: 1, facing: 1, bark: '「水影重重，陰魂不散！」' },
+      { turn: 4, id: 'fog_rider', x: 4, y: 1, facing: 1, bark: '「精騎衝擊！踏平城門！」' },
+      { turn: 5, id: 'mist_sorcerer', x: 5, y: 1, facing: -1 }
+    ],
     enemySpawns: [
       { id: 'shield_guard', x: 4, y: 3, facing: -1 },
       { id: 'paper_ghost', x: 3, y: 2, facing: 1 },
@@ -150,12 +155,17 @@ export const CHAPTERS = [
       { id: 'market_lantern', x: 4, y: 6 }
     ],
     enemySpawns: [
-      { id: 'mist_scout', x: 1, y: 3, facing: 1 },
-      { id: 'shadow_rat', x: 2, y: 2, facing: 1 },
-      { id: 'mist_scout', x: 7, y: 2, facing: -1 },
-      { id: 'fire_archer', x: 6, y: 10, facing: -1 },
-      { id: 'shadow_archer', x: 1, y: 8, facing: 1 },
-      { id: 'shield_guard', x: 8, y: 3, facing: -1 }
+      { id: 'shield_guard', x: 5, y: 2, facing: -1, aggro: 'guard', guardRadius: 2 },
+      { id: 'mist_sorcerer', x: 2, y: 2, facing: 1, aggro: 'guard', guardRadius: 2 },
+      { id: 'shadow_archer', x: 7, y: 2, facing: -1, aggro: 'guard', guardRadius: 3 },
+      { id: 'shadow_archer', x: 1, y: 2, facing: 1, aggro: 'guard', guardRadius: 3 }
+    ],
+    reinforcements: [
+      { turn: 3, id: 'fog_rider', x: 4, y: 8, facing: -1, aggro: 'rush', bark: '「精騎截殺！直取市集神燈！」' },
+      { turn: 3, id: 'shadow_rat', x: 2, y: 8, facing: 1, aggro: 'rush' },
+      { turn: 3, id: 'mist_scout', x: 6, y: 8, facing: -1, aggro: 'rush' },
+      { turn: 4, id: 'fog_rider', x: 5, y: 9, facing: -1, aggro: 'rush', bark: '「放火燒街！斷其歸路！」' },
+      { turn: 4, id: 'fire_archer', x: 2, y: 9, facing: 1, aggro: 'rush' }
     ],
     storyBefore: [
       { speaker: 'lantern_crafter', mood: 'calm', text: '「市集幽深巷道極多，那些匿鼠藏身在暗處伺機而動！」' },
@@ -243,17 +253,20 @@ export const CHAPTERS = [
     mapName: '竹海',
     image: 'map_bamboo_pass.webp',
     squadLimit: 6,
-    maxTurns: 14,
+    maxTurns: 12,
     hasNightFog: true,
     objectiveType: 'reach_shrine_or_rout',
     objectiveDesc: '突破幽谷竹海，佔領北端【封魔神壇】（或殲滅全體伏兵敵將）',
-    defeatDesc: '我方全軍覆沒 或 超過14回合',
+    defeatDesc: '我方全軍覆沒 或 超過12回合',
     shrineTiles: [
       { x: 4, y: 1 }, { x: 5, y: 1 }, { x: 4, y: 2 }, { x: 5, y: 2 }
     ],
     reinforcements: [
-      { turn: 3, id: 'fog_rider', x: 4, y: 12, facing: 1, bark: '「霧騎後軍已至！休放走一人！」' },
-      { turn: 3, id: 'fog_rider', x: 5, y: 12, facing: -1 }
+      { turn: 3, id: 'fog_rider', x: 4, y: 10, facing: 1, bark: '「霧騎後軍已至！休放走一人！」' },
+      { turn: 3, id: 'fog_rider', x: 5, y: 10, facing: -1 },
+      { turn: 3, id: 'shadow_archer', x: 7, y: 5, facing: -1 },
+      { turn: 4, id: 'shadow_rat', x: 1, y: 6, facing: 1, bark: '「竹海深處伏兵殺出！包夾敵軍！」' },
+      { turn: 4, id: 'mist_sorcerer', x: 8, y: 6, facing: -1 }
     ],
     lanterns: [
       { x: 4, y: 1, radius: 2 }
@@ -263,12 +276,12 @@ export const CHAPTERS = [
       { x: 4, y: 12 }, { x: 5, y: 12 }
     ],
     enemySpawns: [
-      { id: 'shield_guard', x: 4, y: 4, facing: -1 },
-      { id: 'mist_sorcerer', x: 5, y: 4, facing: -1 },
-      { id: 'shadow_archer', x: 3, y: 6, facing: 1 },
-      { id: 'shadow_archer', x: 6, y: 6, facing: -1 },
-      { id: 'shadow_rat', x: 4, y: 7, facing: -1 },
-      { id: 'mist_scout', x: 5, y: 7, facing: -1 }
+      { id: 'shield_guard', x: 4, y: 4, facing: -1, aggro: 'guard', guardRadius: 3 },
+      { id: 'mist_sorcerer', x: 5, y: 4, facing: -1, aggro: 'guard', guardRadius: 3 },
+      { id: 'shadow_archer', x: 3, y: 6, facing: 1, aggro: 'guard', guardRadius: 4 },
+      { id: 'shadow_archer', x: 6, y: 6, facing: -1, aggro: 'guard', guardRadius: 4 },
+      { id: 'mist_scout', x: 5, y: 8, facing: -1 },
+      { id: 'shadow_rat', x: 2, y: 8, facing: 1 }
     ],
     storyBefore: [
       { speaker: 'cat_patrol', mood: 'calm', text: '「此乃斷魂隘口，兩側竹海深密，夜霧鎖陣，極易遭遇埋伏。」' },
@@ -300,10 +313,11 @@ export const CHAPTERS = [
     mapName: '攻城',
     image: 'map_siege.webp',
     squadLimit: 6,
-    maxTurns: 14,
+    maxTurns: 15,
+    hasCollapsibleBridge: true,
     objectiveType: 'breach_gate_or_rout',
-    objectiveDesc: '強渡護城河擊破鐵門，或側翼飛騎奇襲斬殺【鎮關將領】（14回合內）',
-    defeatDesc: '我方全軍覆沒 或 超過14回合',
+    objectiveDesc: '強渡護城河擊破鐵門，或側翼飛騎奇襲斬殺【鎮關將領】（15回合內）',
+    defeatDesc: '我方全軍覆沒 或 超過15回合',
     bossId: 'citadel_warlord',
     gateTiles: [
       { x: 4, y: 5 }, { x: 5, y: 5 }
@@ -369,12 +383,18 @@ export const CHAPTERS = [
       { x: 1, y: 11 }, { x: 2, y: 11 }, { x: 3, y: 11 },
       { x: 1, y: 12 }, { x: 2, y: 12 }, { x: 3, y: 12 }
     ],
+    reinforcements: [
+      { turn: 3, id: 'paper_ghost', x: 1, y: 7, facing: 1, bark: '「冤魂借水還陽……休想活著離開荒澤！」' },
+      { turn: 3, id: 'paper_ghost', x: 6, y: 7, facing: -1 },
+      { turn: 3, id: 'shadow_archer', x: 7, y: 4, facing: -1 },
+      { turn: 4, id: 'shadow_rat', x: 2, y: 9, facing: 1, bark: '「水寨泥濘深處，皆為爾等葬身之所！」' },
+      { turn: 4, id: 'mist_sorcerer', x: 6, y: 9, facing: -1 }
+    ],
     enemySpawns: [
-      { id: 'curse_sorcerer', x: 4, y: 2, facing: -1 }, // Sorcerer on northern stockade altar
-      { id: 'shadow_rat', x: 2, y: 6, facing: 1 },       // Ambush rat in reeds
-      { id: 'shadow_rat', x: 6, y: 7, facing: -1 },      // Ambush rat in reeds
-      { id: 'mist_scout', x: 5, y: 4, facing: -1 },      // Fast scout
-      { id: 'shield_guard', x: 4, y: 4, facing: -1 }     // Shield guard protecting sorcerer
+      { id: 'curse_sorcerer', x: 4, y: 2, facing: -1, aggro: 'guard', guardRadius: 3 },
+      { id: 'shield_guard', x: 4, y: 3, facing: -1, aggro: 'guard', guardRadius: 3 },
+      { id: 'mist_scout', x: 5, y: 4, facing: -1 },
+      { id: 'shadow_rat', x: 2, y: 5, facing: 1 }
     ],
     storyBefore: [
       { speaker: 'cat_patrol', mood: 'calm', text: '「此處是大荒沼澤水寨，妖術師在前方祭壇布下咒禁之陣，沼澤水草深處更伏有刺客！」' },

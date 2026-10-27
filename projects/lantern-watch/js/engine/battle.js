@@ -600,6 +600,50 @@ export class Battle {
           }
           unit.acted = true;
           unit.moved = false;
+        } else if (skill?.aoe === 'line') {
+          let dx = options.dx, dy = options.dy;
+          if (dx === undefined && dy === undefined && target) {
+            dx = target.x > unit.x ? 1 : (target.x < unit.x ? -1 : 0);
+            dy = dx !== 0 ? 0 : (target.y > unit.y ? 1 : (target.y < unit.y ? -1 : 0));
+          }
+          dx = dx ?? (unit.facing || 1);
+          dy = dy ?? 0;
+          if (dx !== 0) unit.facing = dx > 0 ? 1 : -1;
+          const lineTiles = Board.getLineTiles(unit.x, unit.y, dx, dy, skill.lineLength || 3);
+          for (const tile of lineTiles) {
+            const hitUnit = this.getUnitAt(tile.x, tile.y);
+            if (hitUnit && hitUnit.team !== unit.team && hitUnit.hp > 0) {
+              const combatRes = executeCombat(unit, hitUnit, this.board, this.rng, {
+                actionType: 'skill',
+                skill
+              });
+              result.events.push(...combatRes.events);
+            }
+          }
+          unit.acted = true;
+          unit.moved = false;
+        } else if (skill?.aoe === 'cone') {
+          let dx = options.dx, dy = options.dy;
+          if (dx === undefined && dy === undefined && target) {
+            dx = target.x > unit.x ? 1 : (target.x < unit.x ? -1 : 0);
+            dy = dx !== 0 ? 0 : (target.y > unit.y ? 1 : (target.y < unit.y ? -1 : 0));
+          }
+          dx = dx ?? (unit.facing || 1);
+          dy = dy ?? 0;
+          if (dx !== 0) unit.facing = dx > 0 ? 1 : -1;
+          const coneTiles = Board.getConeTiles(unit.x, unit.y, dx, dy);
+          for (const tile of coneTiles) {
+            const hitUnit = this.getUnitAt(tile.x, tile.y);
+            if (hitUnit && hitUnit.team !== unit.team && hitUnit.hp > 0) {
+              const combatRes = executeCombat(unit, hitUnit, this.board, this.rng, {
+                actionType: 'skill',
+                skill
+              });
+              result.events.push(...combatRes.events);
+            }
+          }
+          unit.acted = true;
+          unit.moved = false;
         } else if (target) {
           if (target.x !== unit.x) unit.facing = target.x > unit.x ? 1 : -1;
           const combatRes = executeCombat(unit, target, this.board, this.rng, {
@@ -655,6 +699,50 @@ export class Battle {
           }
           unit.acted = true;
           unit.moved = false;
+        } else if (magic?.aoe === 'line') {
+          let dx = options.dx, dy = options.dy;
+          if (dx === undefined && dy === undefined && target) {
+            dx = target.x > unit.x ? 1 : (target.x < unit.x ? -1 : 0);
+            dy = dx !== 0 ? 0 : (target.y > unit.y ? 1 : (target.y < unit.y ? -1 : 0));
+          }
+          dx = dx ?? (unit.facing || 1);
+          dy = dy ?? 0;
+          if (dx !== 0) unit.facing = dx > 0 ? 1 : -1;
+          const lineTiles = Board.getLineTiles(unit.x, unit.y, dx, dy, magic.lineLength || 3);
+          for (const tile of lineTiles) {
+            const hitUnit = this.getUnitAt(tile.x, tile.y);
+            if (hitUnit && hitUnit.team !== unit.team && hitUnit.hp > 0) {
+              const combatRes = executeCombat(unit, hitUnit, this.board, this.rng, {
+                actionType: 'magic',
+                skill: magic
+              });
+              result.events.push(...combatRes.events);
+            }
+          }
+          unit.acted = true;
+          unit.moved = false;
+        } else if (magic?.aoe === 'cone') {
+          let dx = options.dx, dy = options.dy;
+          if (dx === undefined && dy === undefined && target) {
+            dx = target.x > unit.x ? 1 : (target.x < unit.x ? -1 : 0);
+            dy = dx !== 0 ? 0 : (target.y > unit.y ? 1 : (target.y < unit.y ? -1 : 0));
+          }
+          dx = dx ?? (unit.facing || 1);
+          dy = dy ?? 0;
+          if (dx !== 0) unit.facing = dx > 0 ? 1 : -1;
+          const coneTiles = Board.getConeTiles(unit.x, unit.y, dx, dy);
+          for (const tile of coneTiles) {
+            const hitUnit = this.getUnitAt(tile.x, tile.y);
+            if (hitUnit && hitUnit.team !== unit.team && hitUnit.hp > 0) {
+              const combatRes = executeCombat(unit, hitUnit, this.board, this.rng, {
+                actionType: 'magic',
+                skill: magic
+              });
+              result.events.push(...combatRes.events);
+            }
+          }
+          unit.acted = true;
+          unit.moved = false;
         } else if (target) {
           if (target.x !== unit.x) unit.facing = target.x > unit.x ? 1 : -1;
           const combatRes = executeCombat(unit, target, this.board, this.rng, {
@@ -695,6 +783,8 @@ export class Battle {
       }
     }
 
+    this.checkBossPhases();
+
     // Check status after action
     this.status = checkBattleStatus(this.chapter, this);
     if (this.status.finished) {
@@ -705,6 +795,34 @@ export class Battle {
     }
 
     return result;
+  }
+
+  checkBossPhases() {
+    if (this.chapter?.id === 4) {
+      const boss = this.enemies.find(e => e.id === 'iron_general' && e.hp > 0);
+      if (boss) {
+        if (!boss.phase2Triggered && boss.hp <= boss.maxHp * 0.66) {
+          boss.phase2Triggered = true;
+          boss.atk = (boss.atk || 16) + 2;
+          boss.def = (boss.def || 10) + 1;
+          this.eventLog.push({
+            type: 'boss_phase',
+            phase: 2,
+            msg: '【玄鐵巨將·二階段】重鎧解禁！攻擊+2、防禦+1！「爾等休想跨過天池大壩！」'
+          });
+        }
+        if (!boss.phase3Triggered && boss.hp <= boss.maxHp * 0.33) {
+          boss.phase3Triggered = true;
+          boss.atk = (boss.atk || 16) + 3;
+          boss.spd = (boss.spd || 7) + 2;
+          this.eventLog.push({
+            type: 'boss_phase',
+            phase: 3,
+            msg: '【玄鐵巨將·瀕死狂暴】狂怒咆哮！攻擊+3、速度+2！「同歸於盡吧！」'
+          });
+        }
+      }
+    }
   }
 
   /** Outnumbered morale: when living foes outnumber the squad, guardians fight harder (背水一戰 +20% dmg). */
@@ -880,18 +998,22 @@ export class Battle {
   endEnemyPhase() {
     if (this.status.finished) return;
 
-    // Check reinforcements (e.g. Chapter 4 Turn 5 mother_of_mist)
+    // Check reinforcements (e.g. Chapter 4 Turn 5 mother_of_mist, flank waves)
     if (this.chapter.reinforcements) {
+      if (!this.spawnedReinforcements) this.spawnedReinforcements = new Set();
       for (const r of this.chapter.reinforcements) {
-        if (this.currentTurn + 1 === r.turn) {
+        if (this.currentTurn + 1 === r.turn && !this.spawnedReinforcements.has(r)) {
           const proto = ENEMY_PROTOS[r.id];
-          if (proto && !this.enemies.some(e => e.id === r.id)) {
+          if (proto) {
+            this.spawnedReinforcements.add(r);
             this.enemies.push({
               ...proto,
-              instanceId: `${r.id}_reinforce`,
+              instanceId: r.instanceId || `${r.id}_turn${r.turn}_${this.enemies.length}`,
               x: r.x,
               y: r.y,
               facing: r.facing || -1,
+              aggro: r.aggro || proto.aggro || 'rush',
+              guardRadius: r.guardRadius || proto.guardRadius || 3,
               acted: false
             });
             this.eventLog.push({ type: 'reinforce', name: proto.name, msg: r.bark || '迷霧深處傳來了可怖的咆哮！' });
@@ -903,6 +1025,28 @@ export class Battle {
     // Advance turn & reset allies
     this.currentTurn++;
     this.phase = 'ally';
+
+    // Chapter 5: Fog dissipates on turn 4 (weather change)
+    if (this.chapter?.id === 5 && this.currentTurn === 4 && this.chapter.hasNightFog) {
+      this.chapter.hasNightFog = false;
+      this.eventLog.push({
+        type: 'weather_change',
+        msg: '【天光破曉】晨風驟起，竹海夜霧盡散！全體敵陣一覽無遺！'
+      });
+    }
+
+    // Chapter 6: Collapsible bridge on turn 4
+    if (this.chapter?.id === 6 && this.currentTurn === 4 && !this.bridgeCollapsed) {
+      this.bridgeCollapsed = true;
+      this.board.setTerrainChar(4, 8, 'w');
+      this.board.setTerrainChar(5, 8, 'w');
+      this.eventLog.push({
+        type: 'bridge_collapse',
+        msg: '【吊橋斷裂】要塞機關啟動！護城河吊橋踏板轟然崩塌，化為滾滾護城深水！'
+      });
+    }
+
+    this.checkBossPhases();
 
     this.tickBurningTiles();
     this.tickFloodedTiles();

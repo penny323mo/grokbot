@@ -341,6 +341,11 @@ export function executeCombat(attacker, defender, board, rng, options = {}) {
     damage: finalDamage,
     isCrit,
     isBackAttack: preview.isBackAttack,
+    isSideAttack: preview.isSideAttack,
+    isHighGround: preview.isHighGround,
+    isFrontBlocked: preview.isFrontBlocked,
+    defBonus: preview.defBonus,
+    elementWeakness: preview.elementWeakness,
     target: defender.id,
     defenderHp: defender.hp
   });

@@ -854,3 +854,113 @@ test('Rules: Curse miasma (幽冥咒縛) tile effect slows MOV, ticks 4 damage, 
   battle.tickCursedTiles();
   assert.strictEqual(battle.cursedTiles.has('3,5'), false, 'Cursed tile on fire must be cleansed');
 });
+
+test('Rules: Directional geometry (Line and Cone tiles)', () => {
+  // Test Line (East: dx=1, dy=0, length=3 from (2, 2))
+  const lineEast = Board.getLineTiles(2, 2, 1, 0, 3);
+  assert.deepStrictEqual(lineEast, [{ x: 3, y: 2 }, { x: 4, y: 2 }, { x: 5, y: 2 }]);
+
+  // Test Line (North: dx=0, dy=-1, length=2 from (2, 2))
+  const lineNorth = Board.getLineTiles(2, 2, 0, -1, 2);
+  assert.deepStrictEqual(lineNorth, [{ x: 2, y: 1 }, { x: 2, y: 0 }]);
+
+  // Test Cone (East: dx=1, dy=0 from (2, 2)) -> forward 1 tile (3, 2), next column 3 tiles (4, 1), (4, 2), (4, 3)
+  const coneEast = Board.getConeTiles(2, 2, 1, 0);
+  assert.strictEqual(coneEast.length, 4);
+  assert.ok(coneEast.some(t => t.x === 3 && t.y === 2));
+  assert.ok(coneEast.some(t => t.x === 4 && t.y === 1));
+  assert.ok(coneEast.some(t => t.x === 4 && t.y === 2));
+  assert.ok(coneEast.some(t => t.x === 4 && t.y === 3));
+
+  // Test Cone (South: dx=0, dy=1 from (2, 2)) -> forward 1 tile (2, 3), next row 3 tiles (1, 4), (2, 4), (3, 4)
+  const coneSouth = Board.getConeTiles(2, 2, 0, 1);
+  assert.strictEqual(coneSouth.length, 4);
+  assert.ok(coneSouth.some(t => t.x === 2 && t.y === 3));
+  assert.ok(coneSouth.some(t => t.x === 1 && t.y === 4));
+  assert.ok(coneSouth.some(t => t.x === 2 && t.y === 4));
+  assert.ok(coneSouth.some(t => t.x === 3 && t.y === 4));
+});
+
+test('Rules: Directional skills (Crane line gust) and magic (Flame fan cone)', () => {
+  const terrain = Array(13).fill('..........');
+  const craneProto = GUARDIAN_PROTOS.crane_rider;
+  const foxProto = GUARDIAN_PROTOS.fox_maiden;
+
+  assert.strictEqual(craneProto.skill.aoe, 'line', 'Crane rider skill must have aoe: line');
+  assert.strictEqual(craneProto.skill.lineLength, 3);
+  assert.strictEqual(foxProto.magic.aoe, 'cone', 'Fox maiden magic must have aoe: cone');
+
+  // Battle test for line execution
+  const ally = { ...craneProto, x: 2, y: 5, team: 'ally', hp: 24, mp: 6 };
+  const foe1 = { id: 'foe1', name: '敵1', team: 'enemy', x: 3, y: 5, hp: 20, maxHp: 20, def: 0 };
+  const foe2 = { id: 'foe2', name: '敵2', team: 'enemy', x: 4, y: 5, hp: 20, maxHp: 20, def: 0 };
+  const foe3 = { id: 'foe3', name: '敵3', team: 'enemy', x: 5, y: 5, hp: 20, maxHp: 20, def: 0 };
+  const foeOff = { id: 'foe_off', name: '敵旁', team: 'enemy', x: 3, y: 6, hp: 20, maxHp: 20, def: 0 };
+
+  const battle = new Battle({ id: 1, terrain, deployTiles: [{ x: 2, y: 5 }] }, [ally]);
+  battle.enemies = [foe1, foe2, foe3, foeOff];
+
+  // Confirm crane line gust heading East (dx=1, dy=0)
+  const res = battle.confirmAction(battle.allies[0], 'skill', null, { dx: 1, dy: 0 });
+  assert.strictEqual(res.success, true);
+  assert.ok(foe1.hp < 20, 'foe1 in line must be hit');
+  assert.ok(foe2.hp < 20, 'foe2 in line must be hit');
+  assert.ok(foe3.hp < 20, 'foe3 in line must be hit');
+  assert.strictEqual(foeOff.hp, 20, 'foeOff outside line must remain unharmed');
+});
+
+test('Rules: Chapter 4 Boss Phases (Iron General at <=66% and <=33% HP)', () => {
+  const terrain = Array(13).fill('..........');
+  const ch4 = { id: 4, terrain, deployTiles: [{ x: 4, y: 10 }] };
+  const ally = { ...GUARDIAN_PROTOS.bear_guard, x: 4, y: 3, team: 'ally', hp: 36, atk: 15 };
+  const boss = { id: 'iron_general', name: '玄鐵巨將', team: 'enemy', x: 4, y: 2, hp: 60, maxHp: 60, atk: 16, def: 10, spd: 7 };
+
+  const battle = new Battle(ch4, [ally]);
+  battle.enemies = [boss];
+
+  const origAtk = boss.atk;
+  const origDef = boss.def;
+  const origSpd = boss.spd;
+
+  // Boss drops to 39 HP (65% <= 66%): Triggers Phase 2
+  boss.hp = 39;
+  battle.checkBossPhases();
+  assert.strictEqual(boss.phase2Triggered, true);
+  assert.strictEqual(boss.atk, origAtk + 2, 'Phase 2: Boss ATK increases by +2');
+  assert.strictEqual(boss.def, origDef + 1, 'Phase 2: Boss DEF increases by +1');
+  assert.ok(battle.eventLog.some(e => e.type === 'boss_phase' && e.phase === 2));
+
+  // Boss drops to 18 HP (30% <= 33%): Triggers Phase 3
+  boss.hp = 18;
+  battle.checkBossPhases();
+  assert.strictEqual(boss.phase3Triggered, true);
+  assert.strictEqual(boss.atk, origAtk + 2 + 3, 'Phase 3: Boss ATK increases by +3 further');
+  assert.strictEqual(boss.spd, origSpd + 2, 'Phase 3: Boss SPD increases by +2');
+  assert.ok(battle.eventLog.some(e => e.type === 'boss_phase' && e.phase === 3));
+});
+
+test('Rules: Dynamic Chapter Twists (Ch5 weather fog change, Ch6 bridge collapse)', () => {
+  const terrain = Array(13).fill('..........');
+  
+  // Chapter 5: Fog clears on turn 4
+  const ch5 = { id: 5, terrain, maxTurns: 12, hasNightFog: true, deployTiles: [{ x: 4, y: 10 }] };
+  const b5 = new Battle(ch5, [{ ...GUARDIAN_PROTOS.bear_guard, x: 4, y: 10 }]);
+  b5.currentTurn = 3;
+  b5.endEnemyPhase(); // Transitions into turn 4
+  assert.strictEqual(b5.currentTurn, 4);
+  assert.strictEqual(b5.chapter.hasNightFog, false, 'Chapter 5 fog must clear on turn 4');
+  assert.ok(b5.eventLog.some(e => e.type === 'weather_change'));
+
+  // Chapter 6: Bridge collapses on turn 4
+  const ch6 = { id: 6, terrain, maxTurns: 15, hasCollapsibleBridge: true, deployTiles: [{ x: 4, y: 10 }] };
+  const b6 = new Battle(ch6, [{ ...GUARDIAN_PROTOS.bear_guard, x: 4, y: 10 }]);
+  b6.board.setTerrainChar(4, 8, 'b');
+  b6.board.setTerrainChar(5, 8, 'b');
+  b6.currentTurn = 3;
+  b6.endEnemyPhase(); // Transitions into turn 4
+  assert.strictEqual(b6.currentTurn, 4);
+  assert.strictEqual(b6.bridgeCollapsed, true);
+  assert.strictEqual(b6.board.getTerrain(4, 8).char, 'w', 'Bridge (4, 8) must collapse into water');
+  assert.strictEqual(b6.board.getTerrain(5, 8).char, 'w', 'Bridge (5, 8) must collapse into water');
+  assert.ok(b6.eventLog.some(e => e.type === 'bridge_collapse'));
+});

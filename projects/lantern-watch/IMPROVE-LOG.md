@@ -6,6 +6,36 @@
 
 - 2026-10-27 06:35 (Asia/Macau): Improve round 3 DONE 06:33 (grok review NOT READY before fix-1; fix-1 addressed row overlap, grokbot/HUD clearance, camp equip/promotion fold, Ch6 intel grid, painted flood/AoE wash, emoji cleanup), live 200. Strict 390px review of screenshots/v7: fog of war is hard-edged black squares, flood is per-cell repeated water tiles with seams, move range and 砲車 AoE still look like separate boxes, figures small and hard to read, camp profile has empty areas and a small portrait. Launched improve round 4 (prompts/improve-4.txt): soft painted fog mask, merged flood/range regions, clearer figures with base rings and class badges, facing/flanking + zone of control + AI use, rich character sheet with large portraits and barks, 火攻 stratagem vs 妖術師 enemy in a new side battle, title/world-map/post-battle polish. Previous state in .orch-prev-4, old prompts/reviews in prompts/prev-4 and reviews/prev-4.
 
+## 2026-10-27 · v10 comprehensive roadmap pass (Balance, 7-Beat Tutorial, Directional Skills, Battle Twists)
+- Balance follow-up:
+  - Staggered enemy waves, turn 3–4 flank reinforcements, and guard zones configured across maps. Naive rush fails Ch2 (0/50), Ch3 (14/50), Ch4 (24/50), Ch5 (23/50), Ch6 (18/50), Ch7 (0/50) — well under 50%.
+  - Preserved Ch1 naive win rate (49/50 = 98% >= 90%) and zero first-phase deaths across all chapters.
+  - Generic reasonable bot (`tests/helpers/reasonable-bot.mjs`: focus fire lowest-HP/high-threat, threat zone evasion, heal under 40%, hold chokes and objective perimeter) achieves 82%–100% win rate across all 7 chapters (asserted in `tests/balance.sim.test.mjs`). Updated `SPEC.md` v9/v10 table.
+- 7-Beat Guided Interactive Tutorial:
+  - Implemented 7 progressive beats across Chapter 1: 1. Move (移動走位), 2. Attack (攻擊鎖定), 3. Terrain (地形高低), 4. Counter & Flank (反擊與背刺), 5. Lantern Light (燈火驅霧), 6. Spell (法術轟擊), 7. Stratagem (軍略計策).
+  - Spotlight focus ring with gold pulse highlights on target/tiles.
+  - One-line contextual hints with an 8-second idle prompt advising exact tactical choices.
+  - `💡 建議行動` (suggested move) button allowing players to preview and execute ideal tactical decisions instantly.
+  - Post-hit combat feedback floating tags displaying exact damage multipliers: `【背刺 ×1.5】`, `【側翼 ×1.2】`, `【居高臨下 ×1.2】`, `【正面護盾 -70%】`, `【地形防禦 -X】`, `【屬性相剋 ×2.0】`.
+- Dynamic Battle Twists:
+  - Ch2 timed gate defense (8 turns).
+  - Ch3 market ambush + turn 3/4 flank wave reinforcements targeting the central lantern cart.
+  - Ch4 Iron General multi-phase boss: triggers Phase 2 (+2 ATK, +1 DEF) at <=66% HP and Phase 3 (+3 ATK, +2 SPD, berserk AoE) at <=33% HP.
+  - Ch5 night fog clearance: weather turns clear on Turn 4, dispersing fog and revealing enemies.
+  - Ch6 collapsible moat bridge: stone walkway at (4,8) and (5,8) collapses into deep water on Turn 4, isolating ground forces and emphasizing aerial mobility (Crane Rider).
+  - Ch7 marsh escort & cursed miasma ambush with Sorcerer.
+- Directional Skills & Targeting Flow:
+  - Added line geometry (`Board.getLineTiles`) and cone geometry (`Board.getConeTiles`).
+  - Added `crane_line_gust` (鶴羽翔風, 3-tile linear knockback) for Crane Rider and `flame_fan_cone` (赤羽炎扇, 4-tile cone blast) for Fox Maiden.
+  - 4-way cardinal direction picker with live orange area highlight preview and confirm flow.
+- Route Events, Recruits & Class Synergies:
+  - Inter-battle route events (Ch2 supply choice, Ch4 scouting choice).
+  - Hero recruitment events (Crane Rider after Ch1, Fox Maiden after Ch3).
+  - Class synergy badges: `【金湯固若】` (Bear + Iron Guard), `【步騎協同】` (Cavalry + Infantry), `【法箭交輝】` (Archer + Mage) displayed in squad selection and deployment tray.
+- UI & Polish:
+  - Fixed deploy screen map gap: `.battle-map-bg` and `frameTiles()` ensure map fills full height above deploy tray.
+  - Top bar HUD: separated into `.hud-main-row` and dedicated `.hud-obj-row` to prevent objective text clipping by buttons.
+
 ## 2026-10-27 · v9 urgent fairness pass (Penny: 「第一關…2秒比佢哋秒殺」)
 - Root cause: ch1 was an escort with 6 enemies (4 fog_riders: move 6, ×1.4 charge, plus back/side multipliers) rushing a 25 HP cart. Also the default squad has no bear_guard, which the map's design assumed. The naive bot won 0/50.
 - Fix: enemy hit cap at 30% of maxHp, turn-1 grace, guard/aggro AI zones, last-stand ×1.2, ch1 cut to 3 enemies with a guard. ch1 naive is now 49/50, with no first-phase deaths in any chapter.

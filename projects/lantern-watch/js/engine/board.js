@@ -76,6 +76,52 @@ export class Board {
   }
 
   /**
+   * Generates line tiles extending in cardinal direction (dx, dy)
+   */
+  static getLineTiles(originX, originY, dx, dy, length = 3) {
+    const tiles = [];
+    for (let i = 1; i <= length; i++) {
+      const tx = originX + dx * i;
+      const ty = originY + dy * i;
+      if (tx >= 0 && tx < COLS && ty >= 0 && ty < ROWS) {
+        tiles.push({ x: tx, y: ty });
+      }
+    }
+    return tiles;
+  }
+
+  /**
+   * Generates cone/fan tiles extending in cardinal direction (dx, dy):
+   * 1 tile in front, 3 tiles in the second row
+   */
+  static getConeTiles(originX, originY, dx, dy) {
+    const tiles = [];
+    // Row 1 (distance 1, 1 tile)
+    const t1x = originX + dx;
+    const t1y = originY + dy;
+    if (t1x >= 0 && t1x < COLS && t1y >= 0 && t1y < ROWS) {
+      tiles.push({ x: t1x, y: t1y });
+    }
+    // Row 2 (distance 2, 3 tiles wide)
+    if (dx !== 0) {
+      const cx = originX + 2 * dx;
+      for (const cy of [originY - 1, originY, originY + 1]) {
+        if (cx >= 0 && cx < COLS && cy >= 0 && cy < ROWS) {
+          tiles.push({ x: cx, y: cy });
+        }
+      }
+    } else {
+      const cy = originY + 2 * dy;
+      for (const cx of [originX - 1, originX, originX + 1]) {
+        if (cx >= 0 && cx < COLS && cy >= 0 && cy < ROWS) {
+          tiles.push({ x: cx, y: cy });
+        }
+      }
+    }
+    return tiles;
+  }
+
+  /**
    * Adds a placed lantern (e.g. from lantern_crafter skill)
    */
   addPlacedLantern(x, y, radius = 2, turnsLeft = 3) {
