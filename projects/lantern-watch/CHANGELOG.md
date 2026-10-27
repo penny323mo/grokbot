@@ -810,3 +810,34 @@
   - Added `g2-directional.png` to `screenshots/v9/` showcasing crane rider's `crane_line_gust` orange line highlight preview with cardinal confirm flow.
 - **MINOR #10 (Combat Damage Multiplier Floaters Visibility)**:
   - Extended floating damage label lifespan to 2500ms and tuned confirm timing so `h-after-confirm.png` visibly captures the damage multiplier tags (`【側翼 ×1.2】`).
+
+
+## Round 1 fixes
+
+### MAJOR Fixes
+- **MAJOR #1: Tutorial Beat 1 Viewport Inset & Empty Void Elimination**:
+  - Fixed `measureBottomInset()` in `js/render/ui.js` to strictly require elements to cover or touch the bottom edge of the viewport (`r.bottom >= vr.bottom - 30`), completely preventing `.tutorial-board-card` from being miscalculated as a bottom overlay when docked at the top with `.card-at-top`.
+  - Added stage height reset to 940px in `hideDeployPhase()` to clear deploy tray padding extensions.
+  - In `startTutorialFlow()` step 0, applied `.card-at-top` before framing and called `frameTiles(liveAllies, false, false)` so row 12 sits directly above the bottom info bar.
+  - Verified `b-tutorial-spotlight.png` now has full painted river bank terrain filling the band under 茶翁 and 燈車 with 0px empty void.
+
+- **MAJOR #2: 擂鼓 Mid-Battle Stratagem Activation & Dynamic Morale Boost**:
+  - Removed 擂鼓 (`rally`) from turn 1 auto-cast list in `applyStratagemAtStart()`.
+  - Added dedicated in-battle `#btnStratagemTop` in `index.html` and wired it in `js/app.js` to trigger `battle.triggerRally()` once per battle during ally phase.
+  - Generates floating callout `【我軍士氣 ↑ +25】`, toast notice `【擂鼓振威】戰鼓如雷！我軍士氣提升25點，周圍友軍步法+1！`, and actually moves the ally morale gauge.
+  - Updated rules test #30 in `tests/rules.test.mjs` asserting mid-battle rally activation (60 -> 85 morale, +1 MOV within radius 2, and once-per-battle enforcement).
+  - Captured fresh `d-morale-rout.png` showing ally morale dynamically rising to 85.
+
+### MINOR Fixes
+- **MINOR #3: Chapter 1 Deployment Column Gaps & Name Tag Clearance**:
+  - Configured Chapter 1 `deployTiles` as `[{ x: 1, y: 11 }, { x: 0, y: 11 }, { x: 3, y: 12 }, { x: 4, y: 12 }, { x: 1, y: 12 }, { x: 0, y: 12 }]`.
+  - Units spawn across discrete columns (Col 0: 墨影, Col 1: 熊岳, Col 2: 引路燈車, Col 3: 燈娘 小螢, Col 4: 茶翁), completely eliminating north-south figure/name tag collisions between 熊岳 and 茶翁.
+  - Refined `.unit-name-tag` positioning to `top: -11px; z-index: 10` with high-contrast text shadows.
+
+- **MINOR #4: SPEC Alignment**:
+  - Updated `SPEC.md` §8 計策 list to include `擂鼓` (mid-battle war drums: ally morale +25, allies within radius 2 gain +1 MOV this turn).
+  - Updated §9 balance table to reflect live simulation results: Chapter 5 reasonable win rate at 42/50 (84%) and Chapter 7 at 40/50 (80%).
+
+- **MINOR #5: Chapter 8 Mountain Pass 390px Viewport Framing**:
+  - Updated framing targets in `scripts/verify_battle_ui.steps.json` for Chapter 8 to include warlord (4, 1), western archer (2, 2), eastern archer (7, 2), and the 滾木 log ramp chute.
+  - Recaptured `screenshots/v11/e-ch8-mountain-pass.png` ensuring the eastern archer has clear margin and is not clipped by the 390px right border.

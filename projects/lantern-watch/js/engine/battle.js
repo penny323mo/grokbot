@@ -33,6 +33,7 @@ export class Battle {
     this.enemyMorale = 100;
     this.maxMorale = 100;
     this.usedBondPairThisBattle = false;
+    this.rallyUsed = false;
     this.actionScores = {};
     this.floodedTiles = new Map();
     this.originalTerrain = new Map();
@@ -192,14 +193,14 @@ export class Battle {
         center = bestCenter;
       }
       this.triggerFireAttack(center.x, center.y);
-    } else if (this.stratagemId === 'rally') {
-      this.triggerRally();
     } else if (this.stratagemId === 'rolling_log') {
       this.triggerRollingLog();
     }
   }
 
   triggerRally() {
+    if (this.rallyUsed) return false;
+    this.rallyUsed = true;
     this.modifyMorale('ally', 25, '擂鼓振威');
     const leader = this.allies.find(a => a.hp > 0);
     if (leader) {
@@ -215,6 +216,7 @@ export class Battle {
       name: '擂鼓',
       msg: '【擂鼓振威】戰鼓如雷，我軍士氣提升25點，將士周圍2格友軍本回合移動力+1！'
     });
+    return true;
   }
 
   awardBonusExp(unit, amount, reason = '擊潰逃敵') {

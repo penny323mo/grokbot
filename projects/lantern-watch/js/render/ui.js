@@ -108,11 +108,17 @@ export class UIRenderer {
     const vr = vp.getBoundingClientRect();
     let top = vr.bottom;
     const els = ['deployTrayBar', 'targetPreviewCard', 'bottomInfoStrip'].map(id => document.getElementById(id));
-    els.push(document.querySelector('#tutorialBoardOverlay .tutorial-board-card'));
+    const overlay = document.getElementById('tutorialBoardOverlay');
+    if (overlay && overlay.style.display !== 'none' && !overlay.classList.contains('card-at-top')) {
+      els.push(overlay.querySelector('.tutorial-board-card'));
+    }
     els.forEach(el => {
       if (!el || el.offsetParent === null) return;
       const r = el.getBoundingClientRect();
-      if (r.height > 0 && r.top < vr.bottom && r.bottom > vr.top + vr.height * 0.4) top = Math.min(top, r.top);
+      // Must cover or touch the bottom edge of the viewport to be a bottom inset
+      if (r.height > 0 && r.bottom >= vr.bottom - 30 && r.top < vr.bottom) {
+        top = Math.min(top, r.top);
+      }
     });
     return Math.max(0, vr.bottom - top);
   }
@@ -123,7 +129,9 @@ export class UIRenderer {
     const stage = vp?.querySelector('.battle-board-stage');
     if (!vp || !tiles || !tiles.length) return;
     const inset = this.measureBottomInset();
-    if (stage) stage.style.height = (940 + inset) + 'px';
+    if (stage) {
+      stage.style.height = inset > 30 ? (940 + inset) + 'px' : '940px';
+    }
     const xs = tiles.map(t => t.x), ys = tiles.map(t => t.y);
     const minX = Math.min(...xs) * 64, maxX = Math.max(...xs) * 64 + 64;
     const minY = Math.min(...ys) * 64, maxY = Math.max(...ys) * 64 + 64;
@@ -138,14 +146,12 @@ export class UIRenderer {
     }
     if (maxX - minX > w - 16) sx = minX - 8;
 
-    // Keep map in bounds
+    // Keep map in bounds (never scroll below map bottom 832px)
     const maxSyMap = Math.max(0, 832 - h);
     const maxSxMap = Math.max(0, 640 - w);
     sx = Math.max(0, Math.min(maxSxMap, sx));
     sy = Math.max(0, Math.min(maxSyMap, sy));
 
-    sx = Math.max(0, Math.min(vp.scrollWidth - vp.clientWidth, sx));
-    sy = Math.max(0, Math.min(vp.scrollHeight - vp.clientHeight, sy));
     vp.scrollTo({ left: sx, top: sy, behavior: smooth ? 'smooth' : 'auto' });
   }
 
@@ -1385,6 +1391,8 @@ export class UIRenderer {
   hideDeployPhase() {
     const tray = document.getElementById('deployTrayBar');
     if (tray) tray.style.display = 'none';
+    const stage = document.querySelector('.battle-board-stage');
+    if (stage) stage.style.height = '940px';
   }
 
   showTutorial(step = 0, onComplete) {

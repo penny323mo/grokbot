@@ -36,8 +36,8 @@ export const CHAPTERS = [
       { x: 8, y: 1, radius: 2 }
     ],
     deployTiles: [
-      { x: 1, y: 11 }, { x: 0, y: 11 }, { x: 3, y: 12 }, { x: 1, y: 12 },
-      { x: 4, y: 12 }, { x: 0, y: 12 }
+      { x: 1, y: 11 }, { x: 0, y: 11 }, { x: 3, y: 12 }, { x: 4, y: 12 },
+      { x: 1, y: 12 }, { x: 0, y: 12 }
     ],
     npcSpawns: [
       { id: 'lantern_cart', x: 2, y: 12 }

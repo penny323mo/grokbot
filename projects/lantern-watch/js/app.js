@@ -150,6 +150,16 @@ class LanternTacticsApp {
       threatBtn.classList.toggle('active', this.showThreat);
       if (this.isDeploying) this.refreshDeployUI(); else this.refreshBattleUI();
     };
+
+    const stratBtnTop = document.getElementById('btnStratagemTop');
+    if (stratBtnTop) {
+      stratBtnTop.onclick = () => {
+        if (!this.battle || this.battle.phase !== 'ally') return;
+        this.sound?.playSfx('tap');
+        this.handleUseStratagem();
+      };
+    }
+
     document.getElementById('btnEndTurn').onclick = () => {
       if (!this.battle || this.battle.phase !== 'ally') return;
       this.sound?.playSfx('tap');
@@ -440,6 +450,45 @@ class LanternTacticsApp {
     const btnUndo = document.getElementById('btnUndoMove');
     if (btnUndo) {
       btnUndo.style.display = (this.selectedUnit && this.stagedMoveTile) ? 'inline-flex' : 'none';
+    }
+
+    const stratBtn = document.getElementById('btnStratagemTop');
+    if (stratBtn) {
+      const stratId = this.battle?.stratagemId || this.activeStratagemId;
+      if (stratId === 'rally') {
+        stratBtn.style.display = 'inline-flex';
+        stratBtn.innerHTML = '<span>擂鼓</span>';
+        stratBtn.style.opacity = this.battle?.rallyUsed ? '0.45' : '1';
+        stratBtn.title = this.battle?.rallyUsed ? '擂鼓已使用' : '點擊施放【擂鼓】：我軍士氣+25，周圍友軍MOV+1';
+      } else if (stratId) {
+        stratBtn.style.display = 'inline-flex';
+        const st = STRATAGEMS.find(s => s.id === stratId);
+        stratBtn.innerHTML = `<span>${st?.name || '軍略'}</span>`;
+        stratBtn.style.opacity = '1';
+      } else {
+        stratBtn.style.display = 'none';
+      }
+    }
+  }
+
+  handleUseStratagem() {
+    if (!this.battle) return;
+    const stratId = this.battle.stratagemId || this.activeStratagemId;
+    if (stratId === 'rally') {
+      if (this.battle.rallyUsed) {
+        this.ui.showMoraleNotice('【軍略已用】擂鼓每場戰鬥僅可施放一次！');
+        return;
+      }
+      const ok = this.battle.triggerRally();
+      if (ok) {
+        this.sound?.playSfx('buff');
+        const leader = this.battle.allies.find(a => a.hp > 0) || { x: 2, y: 10 };
+        this.ui.showFloatingMorale(leader.x, leader.y, '【我軍士氣 ↑ +25】', true);
+        this.ui.showMoraleNotice('【擂鼓振威】戰鼓如雷！我軍士氣提升25點，周圍友軍步法+1！');
+        this.refreshBattleUI();
+      }
+    } else {
+      this.ui.showStratagemModal(stratId || 'inspire');
     }
   }
 
@@ -1253,17 +1302,21 @@ class LanternTacticsApp {
         this.clearSelection();
         this.ui.hideActionMenu();
         this.ui.hideTargetPreview();
+        const overlay = document.getElementById('tutorialBoardOverlay');
+        if (overlay) overlay.classList.add('card-at-top');
         const bear = this.battle.allies.find(a => a.id === 'bear_guard');
         if (bear) {
           bear.x = 1; bear.y = 11;
           bear.turnStartX = 1; bear.turnStartY = 11;
           this.handleUnitTap(bear);
-          this.ui.centerCameraOn(bear.x, bear.y);
           const tileEl = document.querySelector(`.grid-tile[data-x="${bear.x}"][data-y="${bear.y}"]`);
           if (tileEl) {
             tileEl.classList.add('spotlight-active');
             updateSpotlight(tileEl);
           }
+          const liveAllies = this.battle.allies.filter(a => a.hp > 0);
+          this.ui.frameTiles(liveAllies, false, false);
+          if (tileEl) updateSpotlight(tileEl);
         }
       } else if (step === 1) {
         // Beat 2: Attack (攻擊)
@@ -1528,6 +1581,7 @@ class LanternTacticsApp {
           comboDamage: 6
         }, 1);
       },
+      triggerRally: () => this.handleUseStratagem(),
       showBattleResultModal: (victory = true, chId = 1) => {
         const ch = CHAPTERS.find(c => c.id === chId) || CHAPTERS[0];
         const status = { victory, reason: victory ? '天光破曉 · 突破隘口' : '夜霧重重 · 退守整軍' };

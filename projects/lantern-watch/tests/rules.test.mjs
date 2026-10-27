@@ -1145,9 +1145,18 @@ test('Rules: Morale Rally (擂鼓) stratagem and routed enemy flee bonus XP', ()
   const battleCat = battle.allies.find(a => a.id === 'cat_patrol');
   const battleFar = battle.allies.find(a => a.id === 'far_ally');
 
-  assert.strictEqual(battle.allyMorale, 100, 'Rally stratagem adds +25 to ally morale (capped at maxMorale 100)');
+  // Ally morale drops to 60 due to combat
+  battle.allyMorale = 60;
+  assert.strictEqual(battleCat.mov, 5, 'MOV starts unbuffed before rally is cast');
+
+  const triggered = battle.triggerRally();
+  assert.strictEqual(triggered, true, 'Rally stratagem triggers successfully mid-battle');
+  assert.strictEqual(battle.allyMorale, 85, 'Rally stratagem adds +25 to ally morale (60 -> 85)');
   assert.strictEqual(battleCat.mov, 6, 'Allies within radius 2 gain +1 MOV (5 -> 6)');
   assert.strictEqual(battleFar.mov, 4, 'Allies outside radius 2 do not gain MOV');
+
+  // Once per battle constraint
+  assert.strictEqual(battle.triggerRally(), false, 'Rally cannot be cast twice in the same battle');
 
   // Test 2: Routed enemy defeat grants +5 bonus XP
   const enemy = { id: 'shadow_rat', name: '匿鼠', team: 'enemy', x: 2, y: 4, hp: 1, maxHp: 16, isRouted: true };
