@@ -56,20 +56,18 @@ export class UIRenderer {
     c.s = Math.max(fit, Math.min(Math.max(fit * 3, 1.4), c.s));
     const cw = 640 * c.s, ch = 832 * c.s;
     c.tx = cw <= w ? (w - cw) / 2 : Math.min(0, Math.max(w - cw, c.tx));
-    c.ty = ch <= h ? (h - ch) / 2 : Math.min(0, Math.max(h - ch, c.ty));
+    c.ty = ch <= h ? 0 : Math.min(0, Math.max(h - ch, c.ty));
     stage.style.transform = `translate(${c.tx}px, ${c.ty}px) scale(${c.s})`;
     stage.style.setProperty('--cam-inv', String(1 / c.s));
   }
-  fitCamera() { const c = this.camState(); c.s = this.fitScale(); c.fit = true; this.applyCamera(); }
+  fitCamera() { const c = this.camState(); c.s = this.fitScale(); c.fit = true; c.tx = 0; c.ty = 0; this.applyCamera(); }
   fillHeightCamera() {
     const vp = document.getElementById('battleViewport');
     if (!vp) return;
-    const w = vp.clientWidth, h = vp.clientHeight;
     const c = this.camState();
-    c.s = Math.max(this.fitScale(), this.fillHeightScale());
-    c.fit = false;
-    const cw = 640 * c.s;
-    c.tx = (w - cw) / 2;
+    c.s = this.fitScale();
+    c.fit = true;
+    c.tx = 0;
     c.ty = 0;
     this.applyCamera();
   }
@@ -81,6 +79,11 @@ export class UIRenderer {
     let pinch = null, lastTap = 0;
     vp.addEventListener('pointerdown', (e) => {
       if (e.target.closest('.action-menu-popover') || e.target.closest('.target-preview-card') || e.target.closest('.btn-cam-fit')) return;
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        try { navigator.vibrate(10); } catch (_) {}
+      }
+      this.spawnTapRipple(e.clientX, e.clientY);
+
       pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
       const c = this.camState();
       if (pts.size === 1) {
@@ -89,7 +92,10 @@ export class UIRenderer {
         this.dragStartX = e.clientX; this.dragStartY = e.clientY;
         this.scrollStartX = c.tx; this.scrollStartY = c.ty;
         const now = Date.now();
-        if (now - lastTap < 300 && e.pointerType === 'touch' && !c.fit) { this.fitCamera(); this.hasDraggedBeyondThreshold = true; }
+        if (now - lastTap < 350) {
+          this.fitCamera();
+          this.hasDraggedBeyondThreshold = true;
+        }
         lastTap = now;
       } else if (pts.size === 2) {
         const [p1, p2] = [...pts.values()];
@@ -116,7 +122,12 @@ export class UIRenderer {
       }
       if (!this.isDraggingViewport) return;
       const dx = e.clientX - this.dragStartX, dy = e.clientY - this.dragStartY;
-      if (Math.hypot(dx, dy) > 6) this.hasDraggedBeyondThreshold = true;
+      if (Math.hypot(dx, dy) > 8) {
+        this.hasDraggedBeyondThreshold = true;
+        if (window.__lt?.app?.targetingMode) {
+          window.__lt.app.cancelTargetingOnSwipe?.();
+        }
+      }
       if (!this.hasDraggedBeyondThreshold) return;
       c.tx = this.scrollStartX + dx; c.ty = this.scrollStartY + dy;
       this.applyCamera();
@@ -147,6 +158,16 @@ export class UIRenderer {
     window.addEventListener('orientationchange', () => setTimeout(refit, 250));
     if (window.ResizeObserver) new ResizeObserver(refit).observe(vp);
     this.fitCamera();
+  }
+
+  spawnTapRipple(x, y) {
+    if (!x || !y) return;
+    const r = document.createElement('div');
+    r.className = 'tap-ripple';
+    r.style.left = `${x}px`;
+    r.style.top = `${y}px`;
+    document.body.appendChild(r);
+    setTimeout(() => r.remove(), 380);
   }
 
   centerCameraOn(x, y, smooth = false) { this.frameTiles([{ x, y }], smooth); }
@@ -581,9 +602,45 @@ export class UIRenderer {
     figuresLayer.innerHTML = '';
 
     const allUnits = battle.getAllLivingUnits();
+    // Collision detection for nameplates: stagger adjacent units so plates never collide
+    const plateOffsets = new Map();
+    const visited = new Set();
+    for (const u of allUnits) {
+      if (visited.has(u.id)) continue;
+      const cluster = [];
+      const queue = [u];
+      visited.add(u.id);
+      while (queue.length > 0) {
+        const curr = queue.shift();
+        cluster.push(curr);
+        for (const other of allUnits) {
+          if (!visited.has(other.id) && Math.abs(other.x - curr.x) <= 1 && Math.abs(other.y - curr.y) <= 1) {
+            visited.add(other.id);
+            queue.push(other);
+          }
+        }
+      }
+
+      if (cluster.length === 1) {
+        plateOffsets.set(cluster[0].id, cluster[0].y % 2 === 0 ? 'plate-even' : 'plate-odd');
+      } else {
+        cluster.sort((a, b) => {
+          if (a.id === 'lantern_cart') return -1;
+          if (b.id === 'lantern_cart') return 1;
+          return (a.y - b.y) || (a.x - b.x);
+        });
+        cluster.forEach((unit, idx) => {
+          const slot = idx % 4;
+          plateOffsets.set(unit.id, `plate-slot-${slot} ${slot === 0 ? 'plate-high' : 'plate-low'}`);
+        });
+      }
+    }
+
     allUnits.forEach((u, uIdx) => {
+      const plateClass = plateOffsets.get(u.id) || (u.y % 2 === 0 ? 'plate-even' : 'plate-odd');
+      const colClass = u.x === 0 ? 'col-0' : (u.x === 9 ? 'col-9' : '');
       const figWrap = document.createElement('div');
-      figWrap.className = `unit-figure ${u.team} ${u.promoted ? 'promoted' : ''} ${u.acted ? 'acted' : ''} ${u.isRouted ? 'is-routed' : ''} ${u.y % 2 === 0 ? 'row-even' : 'row-odd'}`;
+      figWrap.className = `unit-figure ${u.team} ${u.promoted ? 'promoted' : ''} ${u.acted ? 'acted' : ''} ${u.isRouted ? 'is-routed' : ''} ${u.y % 2 === 0 ? 'row-even' : 'row-odd'} ${plateClass} ${colClass}`;
       figWrap.dataset.unitId = u.id;
       figWrap.style.left = `${u.x * 64}px`;
       figWrap.style.top = `${u.y * 64}px`;
@@ -1601,8 +1658,30 @@ export class UIRenderer {
     // Attacker
     document.getElementById('prevAttackerPor').src = `assets/art/v4/por_${attacker.id}.webp`;
     document.getElementById('prevAttackerName').textContent = attacker.name;
-    document.getElementById('prevDamageVal').textContent = `${expectedDamage} 傷害`;
-    document.getElementById('prevAttackerRates').textContent = `命中 ${hitRate}% · 暴擊 ${critRate}%`;
+
+    const prevTitle = document.getElementById('prevActionName');
+    if (preview.isStratagem) {
+      if (prevTitle) prevTitle.textContent = `策略 · ${preview.skill?.name || '計策'}`;
+      if (preview.stratagemBlocked) {
+        document.getElementById('prevDamageVal').textContent = '無法施展';
+        document.getElementById('prevAttackerRates').textContent = `🌧️ ${preview.stratagemBlockReason || '雨天無法火計'}`;
+      } else {
+        if (preview.skill?.isConfuse) {
+          document.getElementById('prevDamageVal').textContent = '跳過行動';
+        } else if (preview.skill?.isSupport) {
+          document.getElementById('prevDamageVal').textContent = '增傷+20%·移速+1';
+        } else if (preview.skill?.isHeal) {
+          document.getElementById('prevDamageVal').textContent = '+10 生命';
+        } else {
+          document.getElementById('prevDamageVal').textContent = `${expectedDamage} 傷害`;
+        }
+        document.getElementById('prevAttackerRates').textContent = `成功率 ${preview.stratagemSuccessRate}%`;
+      }
+    } else {
+      if (prevTitle) prevTitle.textContent = preview.skill?.name || '攻擊預覽';
+      document.getElementById('prevDamageVal').textContent = `${expectedDamage} 傷害`;
+      document.getElementById('prevAttackerRates').textContent = `命中 ${hitRate}% · 暴擊 ${critRate}%`;
+    }
 
     // Defender
     document.getElementById('prevDefenderPor').src = `assets/art/v4/por_${defender.id}.webp`;
@@ -1619,7 +1698,20 @@ export class UIRenderer {
     document.getElementById('prevKoBadge').style.display = willKill ? 'inline-block' : 'none';
 
     // Buttons
-    document.getElementById('btnConfirmAction').onclick = () => {
+    const btnConfirm = document.getElementById('btnConfirmAction');
+    if (preview.isStratagem && preview.stratagemBlocked) {
+      btnConfirm.disabled = true;
+      btnConfirm.style.opacity = '0.5';
+      const sp = btnConfirm.querySelector('span');
+      if (sp) sp.textContent = '雨天無法火計';
+    } else {
+      btnConfirm.disabled = false;
+      btnConfirm.style.opacity = '1';
+      const sp = btnConfirm.querySelector('span');
+      if (sp) sp.textContent = '確認執行';
+    }
+    btnConfirm.onclick = () => {
+      if (preview.isStratagem && preview.stratagemBlocked) return;
       this.hideTargetPreview();
       onConfirm();
     };
@@ -1697,6 +1789,8 @@ export class UIRenderer {
 
   showBoardTutorial(step = 0, onStepChange, onComplete, onSuggest = null) {
     const overlay = document.getElementById('tutorialBoardOverlay');
+    const chip = document.getElementById('btnTutorialCollapsedChip');
+    if (chip) chip.style.display = 'none';
     if (!overlay) return;
 
     overlay.style.display = 'flex';
@@ -1707,7 +1801,7 @@ export class UIRenderer {
         actionHint: '【熊岳】· 移動與指令',
         text: '①「選定」點選將士查看移動範圍與指令。何時使用：戰鬥開始或切換目標時點選。',
         when: '何時使用：戰鬥開始或切換目標時點選。',
-        idle: '✦ 提示：點擊發光的熊岳查看前進路線！'
+        idle: '✦ 提示：點擊熊岳查看前進路線！'
       },
       {
         num: '2 / 7',
@@ -1715,7 +1809,7 @@ export class UIRenderer {
         actionHint: '挺進藍格 · 搶佔要津',
         text: '②「移動」點選藍色地塊挺進前線。何時使用：接近敵軍或搶佔樹林高地時使用。',
         when: '何時使用：接近敵軍或搶佔樹林高地時使用。',
-        idle: '✦ 提示：點擊前方藍色地塊走位至前線！'
+        idle: '✦ 提示：點擊藍格挺進前線！'
       },
       {
         num: '3 / 7',
@@ -1723,7 +1817,7 @@ export class UIRenderer {
         actionHint: '【攻擊】· 近身物理',
         text: '③「攻擊」近身物理·無消耗。何時使用：近距交鋒、節省MP或殘血補刀時使用。',
         when: '何時使用：近距交鋒、節省MP或殘血補刀時使用。',
-        idle: '✦ 提示：點擊【攻擊】鎖定紅框內敵軍！'
+        idle: '✦ 提示：點擊【攻擊】鎖定敵軍！'
       },
       {
         num: '4 / 7',
@@ -1731,7 +1825,7 @@ export class UIRenderer {
         actionHint: '【技能】· 職業招式',
         text: '④「技能」職業特技·耗氣力。何時使用：需要擊退破陣、推敵落水或強控時使用。',
         when: '何時使用：需要擊退破陣、推敵落水或強控時使用。',
-        idle: '✦ 提示：點擊【技能】施展巨盾推擊或影步突刺！'
+        idle: '✦ 提示：點擊【技能】釋放招式！'
       },
       {
         num: '5 / 7',
@@ -1739,7 +1833,7 @@ export class UIRenderer {
         actionHint: '【燈娘】法術 · 克制×1.5',
         text: '⑤「法術」屬性魔法·看克制。點選【燈娘】施展【破煞靈矢】，火克木享1.5倍克制爆發！',
         when: '何時使用：敵帶五行弱點時點選【燈娘】施法破敵。',
-        idle: '✦ 提示：點擊【燈娘】施展破煞靈矢，看準【克制 ×1.5】爆發破敵！'
+        idle: '✦ 提示：【燈娘】施法看準克制×1.5！'
       },
       {
         num: '6 / 7',
@@ -1747,7 +1841,7 @@ export class UIRenderer {
         actionHint: '【待命】· 固守結束',
         text: '⑥「待命」結束將士行動。何時使用：已到有利防守陣位且無須行動時待命獲防禦加成。',
         when: '何時使用：已到有利防守陣位且無須行動時待命獲防禦加成。',
-        idle: '✦ 提示：點擊【待命】讓將士固守陣地結束本動！'
+        idle: '✦ 提示：點擊【待命】固守陣地！'
       },
       {
         num: '7 / 7',
@@ -1755,7 +1849,7 @@ export class UIRenderer {
         actionHint: '【結束回合】· 輪轉敵軍',
         text: '⑦「回合」結束我軍階段。何時使用：全體將士行動皆已完畢，輪到敵軍進犯時點選。',
         when: '何時使用：全體將士行動皆已完畢，輪到敵軍進犯時點選。',
-        idle: '✦ 提示：點擊右上角【結束回合】交替回合！'
+        idle: '✦ 提示：點擊右上角【結束回合】！'
       }
     ];
 
@@ -1830,6 +1924,7 @@ export class UIRenderer {
       btnClose.onclick = () => {
         clearTimeout(idleTimer);
         overlay.style.display = 'none';
+        if (chip) chip.style.display = 'none';
         if (onComplete) onComplete();
       };
     }
@@ -1840,9 +1935,34 @@ export class UIRenderer {
     this.showBoardTutorial(step, onStepChange);
   }
 
+  collapseTutorialToChip(step = null) {
+    const overlay = document.getElementById('tutorialBoardOverlay');
+    const chip = document.getElementById('btnTutorialCollapsedChip');
+    const txt = document.getElementById('txtTutorialCollapsedChip');
+    if (overlay) overlay.style.display = 'none';
+    if (chip) {
+      chip.style.display = 'inline-flex';
+      const cur = step !== null ? step : (this.boardTutorialStep ?? 0);
+      if (txt) txt.textContent = `教學 ${cur + 1}/7 ▸`;
+      chip.onclick = () => {
+        chip.style.display = 'none';
+        if (overlay) overlay.style.display = 'flex';
+      };
+    }
+  }
+
+  restoreTutorialOverlay() {
+    const overlay = document.getElementById('tutorialBoardOverlay');
+    const chip = document.getElementById('btnTutorialCollapsedChip');
+    if (chip) chip.style.display = 'none';
+    if (overlay) overlay.style.display = 'flex';
+  }
+
   hideBoardTutorial() {
     const overlay = document.getElementById('tutorialBoardOverlay');
     if (overlay) overlay.style.display = 'none';
+    const chip = document.getElementById('btnTutorialCollapsedChip');
+    if (chip) chip.style.display = 'none';
   }
 
   renderDeployPhase(chapter, squadUnits, deployTiles, placedMap, onSelectSquadUnit, onConfirmDeploy) {
@@ -2377,7 +2497,7 @@ export class UIRenderer {
 
     const floater = document.createElement('div');
     const tilePx = 64;
-    floater.style.left = `${x * tilePx + 32}px`;
+    floater.style.left = `${Math.max(48, Math.min(640 - 48, x * tilePx + 32))}px`;
     floater.style.top = `${y * tilePx - 26}px`;
 
     let floaterClass = 'floating-dmg-number';
@@ -2385,7 +2505,8 @@ export class UIRenderer {
 
     if (info.isHeal) {
       floaterClass += ' heal';
-      tagHtml = '<span class="floating-tag-badge" style="background:#059669;color:#fff;">甘露回春！</span>';
+      const tagText = info.healTag || '甘露回春！';
+      tagHtml = `<span class="floating-tag-badge" style="background:#059669;color:#fff;">${tagText}</span>`;
       floater.innerHTML = `${tagHtml}+${info.healAmount || 12}`;
     } else if (info.isMiss) {
       floater.className = `${floaterClass} block`;
@@ -2444,7 +2565,7 @@ export class UIRenderer {
 
     const floater = document.createElement('div');
     const tilePx = 64;
-    floater.style.left = `${x * tilePx + 32}px`;
+    floater.style.left = `${Math.max(68, Math.min(640 - 68, x * tilePx + 32))}px`;
     floater.style.top = `${y * tilePx - 26 + offsetY}px`;
     floater.className = `floating-dmg-number ${isPositive ? 'heal' : 'crit'} floating-morale-text`;
     floater.innerHTML = `<span class="floating-tag-badge ${isPositive ? 'heal' : 'crit'}">${text}</span>`;
@@ -2508,6 +2629,35 @@ export class UIRenderer {
     document.getElementById('detailMag').textContent = unitInst.mag;
     document.getElementById('detailRes').textContent = unitInst.res;
     document.getElementById('detailSpd').textContent = unitInst.spd;
+
+    // 5-Stat Bar and Special Skill
+    const stats = unitInst.stats || {
+      ldr: Math.min(99, Math.round((unitInst.def || 5) * 8 + 30)),
+      war: Math.min(99, Math.round((unitInst.atk || 10) * 7 + 10)),
+      int: Math.min(99, Math.round((unitInst.mag || 5) * 7 + 15)),
+      agi: Math.min(99, Math.round((unitInst.spd || 10) * 6 + 15)),
+      luk: 75
+    };
+    const setStat = (id, val) => {
+      const bar = document.getElementById(`barStat${id}`);
+      const txt = document.getElementById(`valStat${id}`);
+      if (bar) bar.style.width = `${Math.min(100, Math.max(10, val))}%`;
+      if (txt) txt.textContent = val;
+    };
+    setStat('Ldr', stats.ldr);
+    setStat('War', stats.war);
+    setStat('Int', stats.int);
+    setStat('Agi', stats.agi);
+    setStat('Luk', stats.luk);
+
+    const specialSkill = unitInst.specialSkill || {
+      name: `【${unitInst.trait?.name || '將領專精'}】`,
+      desc: unitInst.trait?.desc || '擅長戰陣衝殺，攻防兼備'
+    };
+    const spDescEl = document.getElementById('officerSpecialSkillDesc');
+    if (spDescEl) {
+      spDescEl.textContent = `${specialSkill.name} ${specialSkill.desc}`;
+    }
 
     const howToUseHtml = unitInst.howToUse ? `<div style="margin-top:6px;padding:4px 8px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:6px;font-size:11px;color:#FCD34D;"><b>✦ 怎樣用：</b>${unitInst.howToUse}</div>` : '';
     document.getElementById('detailTrait').innerHTML = `<div>【${unitInst.trait.name}】${unitInst.trait.desc}</div>${howToUseHtml}`;

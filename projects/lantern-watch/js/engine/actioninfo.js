@@ -61,6 +61,17 @@ export function getActionInfo(battle, unit, actionType) {
     }
   }
   const power = actionType === 'attack' ? (unit.atk ?? 0) : (move.power ?? (move.isHeal ? (move.healAmount ?? 8) : null));
+  let counterNote = '正面可被反擊；背刺無反擊';
+  if (isSupport) {
+    counterNote = '輔助 · 無反擊';
+  } else if (move?.aoe) {
+    counterNote = '範圍招式 · 不傷友軍 · 無反擊';
+  } else if (move?.isStratagem) {
+    counterNote = '計策奇謀 · 無反擊';
+  } else if (targets.length > 0 && targets.every(t => !t.counter)) {
+    counterNote = '目標無法反擊 · 無反擊';
+  }
+
   return {
     actionType,
     name: actionType === 'attack' ? '普通攻擊' : move.name,
@@ -72,7 +83,7 @@ export function getActionInfo(battle, unit, actionType) {
     mp: unit.mp ?? 0,
     range: mn === mx ? `${mx}` : `${mn}-${mx}`,
     aoe: move?.aoe ? (AOE_NAMES[move.aoe] || move.aoe) : '單體',
-    counterNote: isSupport ? '輔助 · 無反擊' : move?.aoe ? '範圍招式 · 不傷友軍 · 無反擊' : '正面可被反擊；背刺無反擊',
+    counterNote,
     baseHit: targets.length ? Math.round(targets.reduce((s, t) => s + t.hit, 0) / targets.length) : null,
     tiles,
     targets,

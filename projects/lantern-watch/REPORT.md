@@ -1,14 +1,14 @@
 # 燈影軍略 — orchestrator report
 
-- Generated: 2026-10-27 18:11 (Macau, UTC+8)
+- Generated: 2026-10-27 19:40 (Macau, UTC+8)
 - Live: https://penny323mo.github.io/grokbot/projects/lantern-watch/ (HTTP 200)
-- Rounds: 1  ·  Started: 2026-10-27T17:14:42+08:00
+- Rounds: 1  ·  Started: 2026-10-27T18:39:36+08:00
 
 ## Phases
-- build finished 2026-10-27T17:54:25+08:00
-- review-1 finished 2026-10-27T17:59:57+08:00
-- fix-1 finished 2026-10-27T18:11:24+08:00
-- publish finished 2026-10-27T18:11:33+08:00
+- build finished 2026-10-27T19:16:49+08:00
+- review-1 finished 2026-10-27T19:23:37+08:00
+- fix-1 finished 2026-10-27T19:40:23+08:00
+- publish finished 2026-10-27T19:40:33+08:00
 
 ## Reviews
 - orch-r1-grok.md: VERDICT: NOT READY
@@ -16,24 +16,24 @@
 ## Tests
 ### tests-build
 ```
-ch2 reasonable win: 41/50 (82%)
-ch3 reasonable win: 45/50 (90%)
-ch4 reasonable win: 45/50 (90%)
-ch5 reasonable win: 42/50 (84%)
-ch6 reasonable win: 45/50 (90%)
-ch7 reasonable win: 40/50 (80%)
-ch8 reasonable win: 38/50 (76%)
+ch2 reasonable win: 40/50 (80%)
+ch3 reasonable win: 43/50 (86%)
+ch4 reasonable win: 39/50 (78%)
+ch5 reasonable win: 41/50 (82%)
+ch6 reasonable win: 43/50 (86%)
+ch7 reasonable win: 38/50 (76%)
+ch8 reasonable win: 42/50 (84%)
 balance ok: ch1 naive win 50/50, ch3/5/7 naive failed, all mid chapters reasonable in 75-90% range
 ```
 ### tests-fix-1
 ```
-ch2 reasonable win: 41/50 (82%)
-ch3 reasonable win: 45/50 (90%)
-ch4 reasonable win: 45/50 (90%)
-ch5 reasonable win: 42/50 (84%)
-ch6 reasonable win: 45/50 (90%)
-ch7 reasonable win: 40/50 (80%)
-ch8 reasonable win: 38/50 (76%)
+ch2 reasonable win: 40/50 (80%)
+ch3 reasonable win: 43/50 (86%)
+ch4 reasonable win: 39/50 (78%)
+ch5 reasonable win: 41/50 (82%)
+ch6 reasonable win: 43/50 (86%)
+ch7 reasonable win: 38/50 (76%)
+ch8 reasonable win: 42/50 (84%)
 balance ok: ch1 naive win 50/50, ch3/5/7 naive failed, all mid chapters reasonable in 75-90% range
 ```
 
@@ -71,7 +71,6 @@ balance ok: ch1 naive win 50/50, ch3/5/7 naive failed, all mid chapters reasonab
   - Added `## v14.0.0` release notes to `CHANGELOG.md`.
   - Updated `SPEC.md` §6 to document the live 7 tutorial beats (選定 / 移動 / 攻擊 / 技能 / 法術 / 待命 / 結束回合).
 
-## 2026-10-27 18:40 (Asia/Macau): improve round 12 launched (prompts/improve-11.txt)
-- Round 11 finished at 18:11 (live 200, npm test 81/81, verify_map_fit pass). Cherry-picked the 熊岳 鐵壁之陣 self-buff hotfix (c32b1ba) into master; verify_selfbuff updated for the new skill/magic sub-list and passes; republished at 18:36 (200).
-- Real-tap 390x844 play (screenshots/play12): prologue (6 painted panels) works; tutorial no longer plays moves for you; docked action bar works but the 法術 card overflows past the right edge; tutorial pill still truncates and stays on 5/7; ~200px empty band under the board with tiny figures; normal attack card shows "MP 0/6". Ch1 first enemy phase: no deaths (墨影 19/28, 燈娘 16/22).
-- Brief: UI polish of the above, distinct heroes (role tags, passives, signature moves, silhouettes), 兵法手冊 help page, 騎>步>弓>騎 class triangle + terrain bonuses, 掛機 auto-battle. Screenshots to screenshots/v15; old state in .orch-prev-11.
+---
+## Round 13 launched 2026-10-27 20:15 (Asia/Macau)
+Brief prompts/improve-12.txt: round-12 carry-over polish (tutorial pill, empty bands, overlapping plates, counter mismatch), 簡而精 controls (tap-twice confirm, cancel, double-tap fit, haptics), 策略 stratagems with success % and weather, terrain + village heal, officer stats + 特技, manual diagrams.

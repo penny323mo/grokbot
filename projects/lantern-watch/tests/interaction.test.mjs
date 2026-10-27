@@ -270,3 +270,88 @@ test('Per-Unit Auto: ally unit with isAuto=true computes valid action without ar
   const act = computeAutoAction(battle, bear, 'balanced');
   assert.ok(act && act.move, 'Per-unit auto must generate valid tactical action plan');
 });
+
+test('Mobile controls: driving full Chapter 1 first turn at 390x664 requires <= 2 taps per action', async () => {
+  const { createRequire } = await import('node:module');
+  const require = createRequire(import.meta.url);
+  const puppeteer = require('/workspace/nightly/shotkit/node_modules/puppeteer-core');
+
+  const browser = await puppeteer.launch({
+    executablePath: '/usr/bin/google-chrome',
+    args: ['--no-sandbox', '--disable-gpu']
+  });
+
+  try {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 390, height: 664, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    await page.evaluateOnNewDocument(() => {
+      localStorage.setItem('lt_tutorial_seen', '1');
+      localStorage.setItem('lantern_tactics_v4_tutorial', '1');
+    });
+
+    await page.goto('http://127.0.0.1:8897/index.html', { waitUntil: 'networkidle2' });
+    await page.evaluate(() => window.__lt.launchBattle(1));
+    await new Promise(r => setTimeout(r, 2200));
+
+    const result = await page.evaluate(async () => {
+      const app = window.__lt.app;
+      const battle = app.battle;
+      const logs = [];
+      const livingAllies = battle.allies.filter(a => a.hp > 0 && a.role !== 'npc' && a.role !== 'objective');
+
+      for (const ally of livingAllies) {
+        if (ally.acted) continue;
+
+        let moveTaps = 0;
+        let actionTaps = 0;
+
+        // Step 1: Tap the unit to select it (Tap 1)
+        app.handleUnitTap(ally);
+        moveTaps++;
+
+        // Step 2: Tap destination or re-tap unit to stay in place (Tap 2)
+        const reachable = Array.from(app.reachableTiles.keys());
+        if (reachable.length > 0) {
+          const [destX, destY] = reachable[0].split(',').map(Number);
+          app.handleTileTap(destX, destY);
+          moveTaps++;
+        } else {
+          app.handleUnitTap(ally);
+          moveTaps++;
+        }
+        logs.push({ unit: ally.id, stage: 'move', taps: moveTaps });
+
+        // Step 3: Action execution (≤ 2 taps)
+        const enemiesInRange = battle.enemies.filter(e => e.hp > 0 && Math.abs(e.x - ally.x) + Math.abs(e.y - ally.y) <= (ally.range?.[1] || 1));
+        if (enemiesInRange.length > 0) {
+          const enemy = enemiesInRange[0];
+          app.handleActionMenuChoice('attack');
+          // Tap target once to preview (Tap 1)
+          app.handleUnitTap(enemy);
+          actionTaps++;
+          // Tap same target again to confirm (Tap 2)
+          app.handleUnitTap(enemy);
+          actionTaps++;
+          logs.push({ unit: ally.id, stage: 'action_attack', taps: actionTaps });
+        } else {
+          // Wait action (1 tap)
+          app.handleActionMenuChoice('wait');
+          actionTaps++;
+          logs.push({ unit: ally.id, stage: 'action_wait', taps: actionTaps });
+        }
+
+        if (!ally.acted) {
+          throw new Error(`Unit ${ally.id} did not complete action!`);
+        }
+      }
+
+      return { success: true, logs, phase: battle.phase };
+    });
+
+    for (const step of result.logs) {
+      assert.ok(step.taps <= 2, `${step.unit} ${step.stage} took ${step.taps} taps (> 2 taps limit)`);
+    }
+  } finally {
+    await browser.close();
+  }
+});

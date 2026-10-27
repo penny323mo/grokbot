@@ -894,7 +894,7 @@ export class Battle {
       }
 
       case 'skill': {
-        const skill = unit.skill;
+        const skill = options.skill || unit.skill;
         const cost = skill?.cost || 0;
         unit.mp = Math.max(0, (unit.mp ?? 6) - cost);
 
@@ -1023,7 +1023,7 @@ export class Battle {
       }
 
       case 'magic': {
-        const magic = unit.magic;
+        const magic = options.skill || unit.magic;
         const cost = magic?.cost || 0;
         unit.mp = Math.max(0, (unit.mp ?? 6) - cost);
 
@@ -1131,7 +1131,8 @@ export class Battle {
             actionType: 'magic',
             skill: magic,
             allies: this.allies,
-            synergies: this.synergies
+            synergies: this.synergies,
+            weather: this.weather
           });
           this.processCombatMorale(unit, target, combatRes);
           result.events = combatRes.events;
@@ -1423,8 +1424,8 @@ export class Battle {
     const allLiving = [...this.allies, ...this.enemies].filter(u => u.hp > 0);
     for (const u of allLiving) {
       const t = this.board.getTerrain(u.x, u.y);
-      if (t && (t.isVillage || t.healAmount)) {
-        const heal = t.healAmount || 4;
+      if (t && (t.isVillage || t.isFort || t.isGate || t.healPercent || t.healAmount)) {
+        const heal = Math.max(2, Math.round(u.maxHp * 0.10));
         const oldHp = u.hp;
         u.hp = Math.min(u.maxHp, u.hp + heal);
         const actual = u.hp - oldHp;
@@ -1432,8 +1433,11 @@ export class Battle {
           this.eventLog.push({
             type: 'village_heal',
             unitId: u.id,
+            x: u.x,
+            y: u.y,
             heal: actual,
-            msg: `【村莊補給】${u.name} 於村莊休養生息，恢復 ${actual} HP！`
+            terrainName: t.name,
+            msg: `【${t.name}補給】${u.name} 於${t.name}休養生息，恢復 +${actual} HP！`
           });
         }
       }

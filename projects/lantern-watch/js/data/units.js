@@ -28,6 +28,11 @@ export const GUARDIAN_PROTOS = {
     range: 1,
     flyer: false,
     isLight: true,
+    stats: { ldr: 72, war: 90, int: 75, agi: 96, luk: 82 },
+    specialSkill: {
+      name: '【疾影無蹤】',
+      desc: '忽視ZOC領域控制，背刺享有雙倍致命暴擊傷害且不觸發反擊'
+    },
     trait: {
       id: 'swift_shadow',
       name: '疾影背刺',
@@ -79,6 +84,12 @@ export const GUARDIAN_PROTOS = {
     spd: 10,
     range: [2, 3],
     flyer: false,
+    stats: { ldr: 70, war: 82, int: 91, agi: 85, luk: 88 },
+    specialSkill: {
+      name: '【明燈破煞】',
+      desc: '佈燈照徹匿霧，五行屬性克制傷害提升至1.5倍'
+    },
+    stratagems: ['stratagem_fire', 'stratagem_heal'],
     trait: {
       id: 'hang_lantern',
       name: '照夜破霧',
@@ -131,6 +142,12 @@ export const GUARDIAN_PROTOS = {
     spd: 9,
     range: 2,
     flyer: false,
+    stats: { ldr: 68, war: 50, int: 96, agi: 74, luk: 85 },
+    specialSkill: {
+      name: '【引雷玄變】',
+      desc: '落雷連鎖穿透，施展策略享天候地勢倍率加成'
+    },
+    stratagems: ['stratagem_fire', 'stratagem_water', 'stratagem_rockfall', 'stratagem_confuse'],
     trait: {
       id: 'chain_lightning',
       name: '連鎖天雷',
@@ -185,6 +202,12 @@ export const GUARDIAN_PROTOS = {
     spd: 7,
     range: 1,
     flyer: false,
+    stats: { ldr: 76, war: 55, int: 95, agi: 68, luk: 92 },
+    specialSkill: {
+      name: '【甘露濟世】',
+      desc: '靈茶祛除異常，駐紮城池村莊提供全陣營補給'
+    },
+    stratagems: ['stratagem_heal', 'stratagem_rally', 'stratagem_confuse'],
     trait: {
       id: 'soothing_tea',
       name: '清心回春',
@@ -238,6 +261,12 @@ export const GUARDIAN_PROTOS = {
     spd: 11,
     range: 2,
     flyer: false,
+    stats: { ldr: 66, war: 52, int: 94, agi: 88, luk: 80 },
+    specialSkill: {
+      name: '【青丘業火】',
+      desc: '烈焰十字蔓延，狂風順勢助長烈火暴烈燎原'
+    },
+    stratagems: ['stratagem_fire', 'stratagem_confuse', 'stratagem_rally'],
     trait: {
       id: 'fox_fire',
       name: '妖火燎原',
@@ -292,6 +321,11 @@ export const GUARDIAN_PROTOS = {
     spd: 6,
     range: 1,
     flyer: false,
+    stats: { ldr: 92, war: 84, int: 65, agi: 60, luk: 78 },
+    specialSkill: {
+      name: '【鐵壁槍陣】',
+      desc: '架槍攔截騎兵衝鋒，正面抵擋大幅削減所受物理傷害'
+    },
     trait: {
       id: 'spear_wall',
       name: '槍林鐵壁',
@@ -344,6 +378,11 @@ export const GUARDIAN_PROTOS = {
     spd: 13,
     range: 1,
     flyer: true,
+    stats: { ldr: 85, war: 88, int: 72, agi: 92, luk: 75 },
+    specialSkill: {
+      name: '【鶴鳴九皋】',
+      desc: '俯衝突襲無視崎嶇地勢，衝鋒震退敵陣破壞陣型'
+    },
     trait: {
       id: 'sky_dive',
       name: '凌空俯衝',
@@ -1073,6 +1112,86 @@ export const PROMOTIONS = {
       desc: '自九霄雲端俯衝直刺，無視目標50%防禦',
       bark: '「凌雲破霧，一擊必殺！」'
     }
+  }
+};
+
+export const STRATAGEM_MOVES = {
+  stratagem_fire: {
+    id: 'stratagem_fire',
+    name: '火計',
+    icon: '🔥',
+    cost: 2,
+    type: 'stratagem',
+    range: 2,
+    element: 'fire',
+    isStratagem: true,
+    power: 10,
+    desc: '三國經典火攻：引火焚敵，樹林草地額外+15%成功率與+4傷害。暴雨天候無法施展。',
+    bark: '「順風引火，赤壁燎原！」'
+  },
+  stratagem_water: {
+    id: 'stratagem_water',
+    name: '水計',
+    icon: '💧',
+    cost: 2,
+    type: 'stratagem',
+    range: 2,
+    element: 'water',
+    isStratagem: true,
+    power: 10,
+    desc: '決堤引水淹敵：水邊淺灘+15%成功率；若遇暴雨天候威力激增+30%且成功率+20%。',
+    bark: '「引水決堤，巨浪滔天！」'
+  },
+  stratagem_rockfall: {
+    id: 'stratagem_rockfall',
+    name: '落石',
+    icon: '⛰️',
+    cost: 2,
+    type: 'stratagem',
+    range: 2,
+    element: 'earth',
+    isStratagem: true,
+    power: 11,
+    desc: '滾石破陣：自山崖高地崩落巨石，山丘高地+20%成功率，並擊碎前排盾陣格擋。',
+    bark: '「滾木礌石，破陣摧堅！」'
+  },
+  stratagem_confuse: {
+    id: 'stratagem_confuse',
+    name: '混亂',
+    icon: '🌪️',
+    cost: 3,
+    type: 'stratagem',
+    range: 2,
+    isStratagem: true,
+    isConfuse: true,
+    desc: '攻心攻虛：擾亂敵陣心智，命中後目標陷入混亂並跳過下個回合行動！',
+    bark: '「疑兵四起，軍心自亂！」'
+  },
+  stratagem_rally: {
+    id: 'stratagem_rally',
+    name: '鼓舞',
+    icon: '🥁',
+    cost: 2,
+    type: 'stratagem',
+    range: 2,
+    isStratagem: true,
+    isSupport: true,
+    desc: '擂鼓振威：提振我軍士氣+10，並使目標友軍本回合增傷+20%、移動力+1。必定成功。',
+    bark: '「三軍振奮，一往無前！」'
+  },
+  stratagem_heal: {
+    id: 'stratagem_heal',
+    name: '援護',
+    icon: '🍵',
+    cost: 2,
+    type: 'stratagem',
+    range: 2,
+    isStratagem: true,
+    isHeal: true,
+    isSupport: true,
+    power: 10,
+    desc: '救死扶傷：援護受傷友軍，回復10點生命並提供防禦強化。必定成功。',
+    bark: '「同舟共濟，休戚與共！」'
   }
 };
 

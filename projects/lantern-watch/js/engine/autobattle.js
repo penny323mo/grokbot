@@ -9,6 +9,7 @@
 import { Board } from './board.js';
 import { calculateCombat, canTargetUnit, getClassTriangleMultiplier } from './combat.js';
 import { getReachableTiles, getAttackRangeTiles } from './pathfinding.js';
+import { STRATAGEM_MOVES } from '../data/units.js';
 
 export function computeAutoAction(battle, ally, style = 'balanced') {
   if (!ally || ally.hp <= 0 || ally.acted) return null;
@@ -115,16 +116,43 @@ export function computeAutoAction(battle, ally, style = 'balanced') {
         }
       }
 
+      // Stratagems
+      if (ally.stratagems && ally.stratagems.length > 0) {
+        for (const sId of ally.stratagems) {
+          const strat = STRATAGEM_MOVES[sId];
+          if (!strat || ally.mp < (strat.cost || 4)) continue;
+          if (strat.isConfuse || (!strat.isSupport && !strat.isHeal)) {
+            const sMin = strat.minRange || 1;
+            const sMax = strat.maxRange || 2;
+            const dist = Board.manhattan(m.x, m.y, foe.x, foe.y);
+            if (dist >= sMin && dist <= sMax) {
+              actions.push({ type: 'magic', skill: strat, cost: strat.cost || 4 });
+            }
+          }
+        }
+      }
+
       for (const act of actions) {
         const combat = calculateCombat(ally, foe, board, {
           attackerX: m.x,
           attackerY: m.y,
           actionType: act.type,
           skill: act.skill,
+          weather: battle.weather,
+          battle,
           aiEval: true
         });
 
+        if (combat.stratagemBlocked) continue;
+
         let score = combat.expectedDamage * 2.5;
+        if (combat.isStratagem && act.skill?.isConfuse) {
+          if (!foe.isConfused) {
+            score = 65 + (foe.atk || 10) * 2;
+          } else {
+            score = -100;
+          }
+        }
         if (combat.willKill) score += 60;
         if (combat.isBackAttack) score += 30;
         if (combat.isSideAttack) score += 12;

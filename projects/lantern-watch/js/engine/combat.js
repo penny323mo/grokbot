@@ -157,8 +157,10 @@ export function calculateCombat(attacker, defender, board, options = {}) {
   const isMagic = actionType === 'magic' || skill?.type === 'magic' || (actionType === 'attack' && (attacker.cls === '術士' || attacker.role === 'mage'));
   const element = skill?.element || attacker.element || null;
 
-  // Base power
-  let attackPower = isMagic ? (attacker.mag || 5) : (attacker.atk || 10);
+  // Base power: 武力 (war) feeds physical attack power, 智力 (int) feeds magic power
+  const statWarAtk = attacker.stats?.war ? Math.round(attacker.stats.war * 0.14) : (attacker.atk || 10);
+  const statIntMag = attacker.stats?.int ? Math.round(attacker.stats.int * 0.13) : (attacker.mag || 5);
+  let attackPower = isMagic ? (attacker.mag ?? statIntMag) : (attacker.atk ?? statWarAtk);
   if (skill?.power) {
     attackPower = skill.power;
   }
@@ -273,13 +275,17 @@ export function calculateCombat(attacker, defender, board, options = {}) {
     expectedDamage = 0;
   }
 
-  // Hit rate
+  // Hit rate: 敏捷 (agi) feeds hit accuracy and evasion
+  const atkAgi = attacker.stats?.agi || (attacker.spd ? attacker.spd * 7 : 70);
+  const defAgi = defender.stats?.agi || (defender.spd ? defender.spd * 7 : 70);
   const spdDiff = Math.max(0, (defender.spd || 10) - (attacker.spd || 10));
-  let hitRate = 95 - evaBonus - spdDiff;
+  const agiDiff = Math.max(0, Math.round((defAgi - atkAgi) / 7));
+  let hitRate = 95 - evaBonus - Math.max(spdDiff, agiDiff);
   hitRate = Math.max(5, Math.min(100, hitRate));
 
-  // Crit rate
-  let critRate = Math.max(2, Math.min(50, Math.round(((attacker.spd || 10) - (defender.spd || 10)) * 1.5) + (isBackAttack ? 15 : 0)));
+  // Crit rate: 運氣 (luk) feeds critical strike probability
+  const lukBonus = attacker.stats?.luk ? Math.max(0, Math.floor((attacker.stats.luk - 75) / 5)) : 0;
+  let critRate = Math.max(2, Math.min(50, Math.round(((attacker.spd || 10) - (defender.spd || 10)) * 1.5) + (isBackAttack ? 15 : 0) + lukBonus));
   if (weather === 'night' && attacker.team === 'enemy' && board?.isTileLit && !board.isTileLit(defenderPos.x, defenderPos.y)) {
     critRate = Math.min(50, critRate + 10);
   }
@@ -287,12 +293,54 @@ export function calculateCombat(attacker, defender, board, options = {}) {
   // Will defender survive?
   const willKill = expectedDamage >= defender.hp;
 
+  // Stratagem resolution
+  const isStratagem = !!skill?.isStratagem;
+  let stratagemSuccessRate = 0;
+  let stratagemBlocked = false;
+  let stratagemBlockReason = '';
+
+  if (isStratagem) {
+    options.noCounter = true;
+    if (skill.id === 'stratagem_fire' && weather === 'rain') {
+      stratagemBlocked = true;
+      stratagemBlockReason = '雨天無法火計';
+      stratagemSuccessRate = 0;
+      expectedDamage = 0;
+    } else if (skill.isSupport || skill.isHeal) {
+      stratagemSuccessRate = 100;
+    } else {
+      const casterInt = attacker.stats?.int || (attacker.mag ? attacker.mag * 7 : 70);
+      const targetInt = defender.stats?.int || (defender.res ? defender.res * 7 : 50);
+      let rate = 70 + (casterInt - targetInt) * 3;
+      if (skill.id === 'stratagem_fire' && (defTerrain.char === 'f' || defTerrain.char === 'm')) rate += 15;
+      if (skill.id === 'stratagem_water' && (defTerrain.char === 'w' || defTerrain.char === 's')) rate += 15;
+      if (skill.id === 'stratagem_water' && weather === 'rain') rate += 20;
+      if (skill.id === 'stratagem_rockfall' && (defTerrain.char === 'h' || defTerrain.char === 'm')) rate += 20;
+      stratagemSuccessRate = Math.max(15, Math.min(95, Math.round(rate)));
+    }
+
+    hitRate = stratagemSuccessRate;
+
+    if (skill.id === 'stratagem_fire' && (defTerrain.char === 'f' || defTerrain.char === 'm')) {
+      expectedDamage += 4;
+    }
+    if (skill.id === 'stratagem_water' && weather === 'rain') {
+      expectedDamage = Math.round(expectedDamage * 1.3);
+    }
+    if (skill.id === 'stratagem_rockfall' && defTerrain.char === 'h') {
+      expectedDamage += 3;
+    }
+    if (skill.isConfuse || skill.isSupport) {
+      expectedDamage = 0;
+    }
+  }
+
   // Counter attack check
   let canCounter = false;
   let counterDamage = 0;
   let counterHitRate = 0;
 
-  if (!willKill && !isBackAttack && !options.noCounter) {
+  if (!willKill && !isBackAttack && !options.noCounter && !isStratagem) {
     // Check defender range
     let defMinRange = 1;
     let defMaxRange = 1;
@@ -379,17 +427,25 @@ export function calculateCombat(attacker, defender, board, options = {}) {
   }
 
   const targetTags = [];
-  if (classTri.relation === 'advantage') {
-    targetTags.push(`兵種克制 ×${classTri.mult}`);
-  }
-  if (elemEff.isAdvantage) {
-    targetTags.push(`克制 ×${elemEff.mult}`);
-  }
-  if (willKill) {
-    targetTags.push('可擊破');
-  }
-  if (canCounter && !willKill) {
-    targetTags.push('會反擊');
+  if (isStratagem) {
+    if (stratagemBlocked) {
+      targetTags.push('雨天無法火計');
+    } else {
+      targetTags.push(`成功率 ${stratagemSuccessRate}%`);
+    }
+  } else {
+    if (classTri.relation === 'advantage') {
+      targetTags.push(`兵種克制 ×${classTri.mult}`);
+    }
+    if (elemEff.isAdvantage) {
+      targetTags.push(`克制 ×${elemEff.mult}`);
+    }
+    if (willKill) {
+      targetTags.push('可擊破');
+    }
+    if (canCounter && !willKill) {
+      targetTags.push('會反擊');
+    }
   }
 
   return {
@@ -417,7 +473,11 @@ export function calculateCombat(attacker, defender, board, options = {}) {
     comboDamage,
     isAdvantage: elemEff.isAdvantage,
     elemMult: elemEff.mult,
-    targetTags
+    targetTags,
+    isStratagem,
+    stratagemSuccessRate,
+    stratagemBlocked,
+    stratagemBlockReason
   };
 }
 
@@ -427,7 +487,10 @@ export function calculateCombat(attacker, defender, board, options = {}) {
 export function executeCombat(attacker, defender, board, rng, options = {}) {
   // Damaging actions never resolve against the caster's own side (heals/buffs use their own paths)
   if (!defender || defender === attacker || (attacker.team && attacker.team === defender.team)) {
-    return { preview: null, events: [{ type: 'friendly_blocked', target: defender?.id }], attackerAlive: attacker.hp > 0, defenderAlive: (defender?.hp ?? 0) > 0 };
+    const isFriendlyOk = options.skill?.isHeal || options.skill?.isSupport || options.skill?.selfBuff;
+    if (!isFriendlyOk) {
+      return { preview: null, events: [{ type: 'friendly_blocked', target: defender?.id }], attackerAlive: attacker.hp > 0, defenderAlive: (defender?.hp ?? 0) > 0 };
+    }
   }
   const preview = calculateCombat(attacker, defender, board, options);
   const events = [];
@@ -439,13 +502,59 @@ export function executeCombat(attacker, defender, board, rng, options = {}) {
     attacker.isShrouded = false;
   }
 
+  // Check if stratagem was blocked by weather
+  if (preview.isStratagem && preview.stratagemBlocked) {
+    return {
+      preview,
+      events: [{ type: 'stratagem_blocked', target: defender.id, msg: preview.stratagemBlockReason || '天候限制無法施展！' }],
+      attackerAlive: attacker.hp > 0,
+      defenderAlive: defender.hp > 0
+    };
+  }
+
   // Hit roll
   const hitRoll = rng ? rng.nextInt(1, 100) : 50;
-  const isHit = hitRoll <= preview.hitRate;
+  const effectiveHitRate = preview.isStratagem ? preview.stratagemSuccessRate : preview.hitRate;
+  const isHit = hitRoll <= effectiveHitRate;
 
   if (!isHit) {
-    events.push({ type: 'miss', target: defender.id, msg: '迴避！' });
+    events.push({ type: 'miss', target: defender.id, msg: preview.isStratagem ? '計策落空！' : '迴避！' });
     return { preview, events, attackerAlive: attacker.hp > 0, defenderAlive: defender.hp > 0 };
+  }
+
+  // Handle support / utility stratagems
+  if (preview.isStratagem) {
+    if (options.skill?.isConfuse) {
+      defender.acted = true;
+      defender.isConfused = true;
+      events.push({
+        type: 'confuse',
+        target: defender.id,
+        msg: `【陷入混亂】${defender.name} 陣型散亂，下回合跳過行動！`
+      });
+      return { preview, events, attackerAlive: attacker.hp > 0, defenderAlive: defender.hp > 0 };
+    }
+    if (options.skill?.isSupport) {
+      defender.inspireBonus = true;
+      events.push({
+        type: 'rally',
+        target: defender.id,
+        msg: `【鼓舞士氣】${defender.name} 士氣高昂，增傷+20%！`
+      });
+      return { preview, events, attackerAlive: attacker.hp > 0, defenderAlive: defender.hp > 0 };
+    }
+    if (options.skill?.isHeal) {
+      const heal = Math.min(defender.maxHp - defender.hp, 10);
+      defender.hp = Math.min(defender.maxHp, defender.hp + 10);
+      events.push({
+        type: 'heal',
+        amount: heal,
+        target: defender.id,
+        defenderHp: defender.hp,
+        msg: `【援護療傷】恢復 +${heal} HP！`
+      });
+      return { preview, events, attackerAlive: attacker.hp > 0, defenderAlive: defender.hp > 0 };
+    }
   }
 
   // Crit roll

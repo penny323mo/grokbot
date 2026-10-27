@@ -6,7 +6,7 @@
 
 import { GAME } from './config.js';
 import { CHAPTERS } from './data/maps.js';
-import { GUARDIAN_PROTOS, ENEMY_PROTOS, RELICS, STRATAGEMS } from './data/units.js';
+import { GUARDIAN_PROTOS, ENEMY_PROTOS, RELICS, STRATAGEMS, STRATAGEM_MOVES } from './data/units.js';
 import { CampaignManager } from './engine/campaign.js';
 import { Battle } from './engine/battle.js';
 import { Board } from './engine/board.js';
@@ -646,22 +646,27 @@ class LanternTacticsApp {
       const unit = this.selectedUnit;
       const skill = this.selectedSkill || (actionForTags === 'skill' ? unit.skill : (actionForTags === 'magic' ? unit.magic : null));
       const rangeTiles = getAttackRangeTiles(this.battle.board, unit, unit.x, unit.y);
-      for (const enemy of this.battle.enemies) {
-        if (enemy.hp <= 0) continue;
-        const key = `${enemy.x},${enemy.y}`;
-        const inRange = rangeTiles.some(t => t.x === enemy.x && t.y === enemy.y);
+      const isSupportAction = skill?.isSupport || skill?.isHeal;
+      const potentialTargets = isSupportAction ? this.battle.allies : this.battle.enemies;
+
+      for (const tgt of potentialTargets) {
+        if (tgt.hp <= 0) continue;
+        const key = `${tgt.x},${tgt.y}`;
+        const inRange = rangeTiles.some(t => t.x === tgt.x && t.y === tgt.y);
         if (!inRange && this.validTargetKeys && !this.validTargetKeys.has(key)) continue;
-        const pv = calculateCombat(unit, enemy, this.battle.board, {
+        const pv = calculateCombat(unit, tgt, this.battle.board, {
           actionType: actionForTags,
           skill,
-          noCounter: !!skill?.aoe,
+          noCounter: !!skill?.aoe || !!skill?.isStratagem,
+          weather: this.battle.weather,
+          battle: this.battle,
           attackerX: unit.x,
           attackerY: unit.y,
           allies: this.battle.allies,
           synergies: this.battle.synergies
         });
         if (pv.targetTags && pv.targetTags.length > 0) {
-          targetTagsMap.set(enemy.id, pv.targetTags);
+          targetTagsMap.set(tgt.id, pv.targetTags);
         }
       }
     }
@@ -777,6 +782,25 @@ class LanternTacticsApp {
     this.pendingTargetKey = key;
     previewFn();
     this.refreshBattleUI();
+  }
+
+  cancelTargeting() {
+    this.aoeTiles = new Set();
+    this.resetTargeting();
+    this.ui.hideTargetPreview();
+    this.activeActionType = null;
+    this.targetingMode = null;
+    this.selectedSkill = null;
+    if (this.selectedUnit) {
+      this.openActionMenuForUnit(this.selectedUnit);
+    }
+    this.refreshBattleUI();
+  }
+
+  cancelTargetingOnSwipe() {
+    if (this.targetingMode) {
+      this.cancelTargeting();
+    }
   }
 
   handleUnitTap(unit) {
@@ -942,8 +966,14 @@ class LanternTacticsApp {
       }
     }
 
-    // In targeting mode, stray taps never deselect the unit
-    if (this.targetingMode) return;
+    // In targeting mode, tapping an empty or out-of-range tile cancels targeting
+    if (this.targetingMode) {
+      const key = `${x},${y}`;
+      if (!this.validTargetKeys || !this.validTargetKeys.has(key)) {
+        this.cancelTargeting();
+        return;
+      }
+    }
 
     // Normal move: if unit selected and tap blue tile -> move there!
     if (this.selectedUnit && !this.stagedMoveTile) {
@@ -1055,19 +1085,32 @@ class LanternTacticsApp {
       hasSkillTarget = this.battle.enemies.some(e => e.hp > 0 && sRange.some(t => t.x === e.x && t.y === e.y));
     }
 
-    const hasMagic = !!unit.magic;
-    const magicCost = unit.magic?.cost || 0;
-    const hasMpForMagic = (unit.mp ?? 6) >= magicCost;
+    const hasMagic = !!unit.magic || (unit.stratagems && unit.stratagems.length > 0);
+    const stratagemObjs = (unit.stratagems || []).map(id => STRATAGEM_MOVES[id]).filter(Boolean);
+    const allMagics = [unit.magic, ...stratagemObjs].filter(Boolean);
+    const affordableMagics = allMagics.filter(m => (unit.mp ?? 6) >= (m.cost || 0));
+    const hasMpForMagic = affordableMagics.length > 0;
+    const magicCost = unit.magic?.cost || (stratagemObjs[0]?.cost || 0);
 
     let hasMagicTarget = false;
-    if (unit.magic?.selfBuff || unit.magic?.aoe === 'line' || unit.magic?.aoe === 'cone') {
-      hasMagicTarget = true;
-    } else if (unit.magic?.isHeal) {
-      const mRange = getAttackRangeTiles(this.battle.board, unit, unit.x, unit.y);
-      hasMagicTarget = this.battle.allies.some(a => a.hp > 0 && mRange.some(t => t.x === a.x && t.y === a.y));
-    } else if (unit.magic) {
-      const mRange = getAttackRangeTiles(this.battle.board, unit, unit.x, unit.y);
-      hasMagicTarget = this.battle.enemies.some(e => e.hp > 0 && mRange.some(t => t.x === e.x && t.y === e.y));
+    for (const m of affordableMagics) {
+      if (m.selfBuff || m.aoe === 'line' || m.aoe === 'cone') {
+        hasMagicTarget = true;
+        break;
+      }
+      const mRange = [m.minRange || 1, m.maxRange || 2];
+      const rTiles = getAttackRangeTiles(this.battle.board, unit, unit.x, unit.y, mRange);
+      if (m.isHeal || m.isRally || m.isSupport) {
+        if (this.battle.allies.some(a => a.hp > 0 && rTiles.some(t => t.x === a.x && t.y === a.y))) {
+          hasMagicTarget = true;
+          break;
+        }
+      } else {
+        if (this.battle.enemies.some(e => e.hp > 0 && rTiles.some(t => t.x === e.x && t.y === e.y))) {
+          hasMagicTarget = true;
+          break;
+        }
+      }
     }
 
     const bondAvailable = this.battle.checkBondAvailable(unit);
@@ -1118,28 +1161,37 @@ class LanternTacticsApp {
     this.ui.renderRangeOnly?.(this.attackableTiles, this.aoeTiles) ?? this.refreshBattleUI();
   }
 
-  handleActionMenuChoice(actionType, skipSublist = false) {
+  handleActionMenuChoice(actionType, skipSublist = false, chosenMove = null) {
     const unit = this.selectedUnit;
     if (!unit) return;
 
+    if (chosenMove) {
+      this.selectedSkill = chosenMove;
+    }
+
     if (actionType === 'skill' && !skipSublist && unit.skill) {
       const skills = [unit.skill].filter(Boolean);
-      this.ui.showActionSublist('技能列表', skills, () => {
-        this.handleActionMenuChoice('skill', true);
+      this.ui.showActionSublist('技能列表', skills, (chosen) => {
+        this.handleActionMenuChoice('skill', true, chosen);
       }, () => {
         this.openActionMenuForUnit(unit);
       });
       return;
     }
 
-    if (actionType === 'magic' && !skipSublist && unit.magic) {
-      const magics = [unit.magic].filter(Boolean);
-      this.ui.showActionSublist('法術列表', magics, () => {
-        this.handleActionMenuChoice('magic', true);
-      }, () => {
-        this.openActionMenuForUnit(unit);
-      });
-      return;
+    if (actionType === 'magic' && !skipSublist) {
+      const stratagemObjs = (unit.stratagems || []).map(id => STRATAGEM_MOVES[id]).filter(Boolean);
+      const magics = [unit.magic, ...stratagemObjs].filter(Boolean);
+      if (magics.length > 1) {
+        this.ui.showActionSublist('法術與策略', magics, (chosen) => {
+          this.handleActionMenuChoice('magic', true, chosen);
+        }, () => {
+          this.openActionMenuForUnit(unit);
+        });
+        return;
+      } else if (magics.length === 1) {
+        this.selectedSkill = magics[0];
+      }
     }
 
     this.activeActionType = actionType;
@@ -1150,14 +1202,16 @@ class LanternTacticsApp {
       return;
     }
 
+    const activeSkillObj = this.selectedSkill || (actionType === 'skill' ? unit.skill : (actionType === 'magic' ? unit.magic : null));
+
     // Self-buff magic
-    if (actionType === 'magic' && unit.magic?.selfBuff) {
-      this.confirmActionExecution('magic', unit);
+    if (actionType === 'magic' && activeSkillObj?.selfBuff) {
+      this.confirmActionExecution('magic', unit, { skill: activeSkillObj });
       return;
     }
 
     // Lantern placement skill (range 3)
-    if (actionType === 'skill' && unit.skill?.isLightPlacement) {
+    if (actionType === 'skill' && activeSkillObj?.isLightPlacement) {
       this.targetingMode = 'light_placement';
       this.reachableTiles = new Map();
       this.attackableTiles = new Set();
@@ -1172,24 +1226,27 @@ class LanternTacticsApp {
       return;
     }
 
-    // Heal skill or magic (range 2) - tap ally to choose target
-    if ((actionType === 'skill' && unit.skill?.isHeal) || (actionType === 'magic' && unit.magic?.isHeal)) {
+    // Heal skill or magic or stratagem (range 2) - tap ally to choose target
+    if ((actionType === 'skill' || actionType === 'magic') && (activeSkillObj?.isHeal || activeSkillObj?.isRally || activeSkillObj?.isSupport)) {
       this.targetingMode = 'heal';
       this.reachableTiles = new Map();
-      const rTiles = getAttackRangeTiles(this.battle.board, unit, unit.x, unit.y);
+      const mRange = [activeSkillObj?.minRange || 1, activeSkillObj?.maxRange || 2];
+      const rTiles = getAttackRangeTiles(this.battle.board, unit, unit.x, unit.y, mRange);
       this.attackableTiles = new Set(rTiles.map(t => `${t.x},${t.y}`));
-      this.beginTargeting('點選要治療的隊友 · 再點一次確認', new Set(this.battle.allies.filter(a => a.hp > 0 && this.attackableTiles.has(`${a.x},${a.y}`)).map(a => `${a.x},${a.y}`)));
+      const targetAllies = this.battle.allies.filter(a => a.hp > 0 && this.attackableTiles.has(`${a.x},${a.y}`));
+      const msg = activeSkillObj?.isRally ? '點選要鼓舞的隊友 · 再點一次確認' : '點選要治療的隊友 · 再點一次確認';
+      this.beginTargeting(msg, new Set(targetAllies.map(a => `${a.x},${a.y}`)));
       this.refreshBattleUI();
       return;
     }
 
     // AoE Cross skill or magic (狐火 緋)
-    const isAoeCross = (actionType === 'skill' && unit.skill?.aoe === 'cross') ||
-                       (actionType === 'magic' && unit.magic?.aoe === 'cross');
+    const isAoeCross = (actionType === 'skill' || actionType === 'magic') && activeSkillObj?.aoe === 'cross';
     if (isAoeCross) {
       this.targetingMode = 'aoe_cross';
       this.reachableTiles = new Map();
-      const rTiles = getAttackRangeTiles(this.battle.board, unit, unit.x, unit.y);
+      const mRange = [activeSkillObj?.minRange || 1, activeSkillObj?.maxRange || 2];
+      const rTiles = getAttackRangeTiles(this.battle.board, unit, unit.x, unit.y, mRange);
       this.attackableTiles = new Set(rTiles.map(t => `${t.x},${t.y}`));
 
       this.beginTargeting('點選範圍內任一格作中心 · 再點一次施放', new Set(this.battle.enemies.filter(e => e.hp > 0 && this.attackableTiles.has(`${e.x},${e.y}`)).map(e => `${e.x},${e.y}`)));
@@ -1198,7 +1255,6 @@ class LanternTacticsApp {
     }
 
     // Directional skill or magic (Line or Cone: 鶴羽 crane_line_gust / 狐火 flame_fan_cone)
-    const activeSkillObj = actionType === 'skill' ? unit.skill : (actionType === 'magic' ? unit.magic : null);
     const isDirectional = activeSkillObj?.aoe === 'line' || activeSkillObj?.aoe === 'cone';
     if (isDirectional) {
       this.targetingMode = 'directional';
@@ -1217,10 +1273,11 @@ class LanternTacticsApp {
       return;
     }
 
-    // Regular single-target attack
+    // Regular single-target attack, magic, or offensive/confuse stratagem
     this.targetingMode = 'target_unit';
     this.reachableTiles = new Map();
-    const rTiles = getAttackRangeTiles(this.battle.board, unit, unit.x, unit.y);
+    const customR = activeSkillObj ? [activeSkillObj.minRange || 1, activeSkillObj.maxRange || 2] : null;
+    const rTiles = getAttackRangeTiles(this.battle.board, unit, unit.x, unit.y, customR);
     this.attackableTiles = new Set(rTiles.filter(t => !this.battle.board.isImpassable(t.x, t.y, false)).map(t => `${t.x},${t.y}`));
 
     const vision = this.battle.isFogActive() ? this.battle.calculateVisionMap() : null;
@@ -1317,30 +1374,35 @@ class LanternTacticsApp {
     const unit = this.selectedUnit;
     if (!unit || !defender) return;
 
-    const skill = this.activeActionType === 'skill' ? unit.skill : (this.activeActionType === 'magic' ? unit.magic : null);
+    const skill = options.skill || this.selectedSkill || (this.activeActionType === 'skill' ? unit.skill : (this.activeActionType === 'magic' ? unit.magic : null));
     const preview = calculateCombat(unit, defender, this.battle.board, {
       actionType: this.activeActionType,
       skill,
+      weather: this.battle.weather,
+      battle: this.battle,
       noCounter: !!skill?.aoe,
       attackerX: unit.x,
       attackerY: unit.y,
       allies: this.battle.allies,
-      synergies: this.battle.synergies
+      synergies: this.battle.synergies,
+      ...options
     });
 
     const actionType = this.activeActionType;
-    this.pendingConfirm = () => this.confirmActionExecution(actionType, defender, options);
+    const execOptions = { skill, ...options };
+    this.pendingConfirm = () => this.confirmActionExecution(actionType, defender, execOptions);
     this.ui.showTargetPreview(
       preview,
       () => {
         this.resetTargeting();
-        this.confirmActionExecution(actionType, defender, options);
+        this.confirmActionExecution(actionType, defender, execOptions);
       },
       () => {
         this.aoeTiles = new Set();
         this.resetTargeting();
         this.activeActionType = null;
         this.targetingMode = null;
+        this.selectedSkill = null;
         this.openActionMenuForUnit(unit);
         this.refreshBattleUI();
       }
@@ -1349,6 +1411,9 @@ class LanternTacticsApp {
 
   confirmActionExecution(actionType, target = null, options = {}) {
     if (!this.battle || !this.selectedUnit) return;
+    if (!options.skill && this.selectedSkill) {
+      options = { ...options, skill: this.selectedSkill };
+    }
 
     const actingUnit = this.selectedUnit;
     const res = this.battle.confirmAction(actingUnit, actionType, target, options);
@@ -1363,6 +1428,8 @@ class LanternTacticsApp {
         this.advanceGuidedTutorial(4);
       } else if (actionType === 'wait' && this.tutorialStep === 5) {
         this.advanceGuidedTutorial(5);
+      } else {
+        this.ui.collapseTutorialToChip(this.tutorialStep);
       }
     }
 
@@ -1664,7 +1731,25 @@ class LanternTacticsApp {
           phasePill.textContent = '我方回合';
           phasePill.className = 'battle-phase-pill ally';
         }
+        if (this.isGuidedTutorial && this.battle?.turn > 1) {
+          this.ui.collapseTutorialToChip(this.tutorialStep);
+        }
         this.refreshBattleUI();
+
+        // Check village / fort healing events
+        const vHeals = this.battle?.eventLog?.filter(e => e.type === 'village_heal' && !e._notified);
+        if (vHeals && vHeals.length > 0) {
+          for (const vh of vHeals) {
+            vh._notified = true;
+            this.ui.showFloatingDamage(vh.x, vh.y, {
+              isHeal: true,
+              healAmount: vh.heal,
+              isVillageHeal: true,
+              healTag: `${vh.terrainName || '要塞'}補給`
+            });
+          }
+        }
+
         if (this.isAutoBattle) {
           setTimeout(() => this.runAutoBattleLoop(), 400);
         }
@@ -1854,6 +1939,7 @@ class LanternTacticsApp {
       this.battle = new Battle(CHAPTERS[0], squad, this.activeStratagemId || 'inspire', this.campaign, this.rng);
     }
     this.ui.showScreen('screenBattle');
+    this.refreshBattleUI();
 
     this.isGuidedTutorial = true;
     this.tutorialStep = startStep;

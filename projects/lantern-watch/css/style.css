@@ -1047,8 +1047,10 @@ html, body {
 
 /* Scrollable Panned Viewport */
 .battle-viewport {
-  flex: 1;
+  flex: none;
   width: 100%;
+  height: min(calc(100vw * 832 / 640), calc(100% - 130px - 32px));
+  max-height: calc(100vw * 832 / 640);
   overflow: hidden;
   position: relative;
   min-height: 0;
@@ -1433,9 +1435,6 @@ html, body {
 }
 .unit-figure.row-odd .unit-name-tag {
   top: -7px;
-}
-.unit-figure[data-unit-id="lantern_cart"] .unit-name-tag {
-  top: -5px;
 }
 
 .unit-figure.ally .unit-name-tag {
@@ -4795,12 +4794,10 @@ html, body {
   flex: 1;
   min-width: 0;
   font-size: 11.5px;
-  line-height: 1.3;
+  line-height: 1.35;
   color: var(--text-parchment-bright);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  white-space: normal;
+  overflow: visible;
   font-weight: 700;
   letter-spacing: -0.1px;
   word-break: break-word;
@@ -5719,3 +5716,298 @@ html, body {
   color: #F87171;
   border: 1px solid rgba(239, 68, 68, 0.6);
 }
+
+/* ==========================================================================
+   ROUND 13 / v16 POLISH & STRATAGEMS
+   ========================================================================== */
+
+/* 1. Large figures & crisp unscaled name plates */
+.unit-fig-img {
+  height: 76px !important;
+  max-width: 72px !important;
+}
+
+.unit-name-tag {
+  transform: translateX(-50%) scale(var(--cam-inv, 1)) !important;
+  transform-origin: center bottom !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+}
+
+/* Base name-tag transform with horizontal offset support */
+.unit-figure .unit-name-tag {
+  transform: translateX(calc(-50% + var(--plate-dx, 0px))) scale(var(--cam-inv, 1)) !important;
+}
+
+/* Adjacent unit nameplate collision staggering (4 distinct height & horizontal offset slots) */
+.unit-figure.plate-slot-0 .unit-name-tag,
+.unit-figure.plate-high .unit-name-tag {
+  top: -28px !important;
+  --plate-dx: -10px;
+}
+.unit-figure.plate-slot-1 .unit-name-tag,
+.unit-figure.plate-low .unit-name-tag {
+  top: -14px !important;
+  --plate-dx: 10px;
+}
+.unit-figure.plate-slot-2 .unit-name-tag {
+  top: -42px !important;
+  --plate-dx: 0px;
+}
+.unit-figure.plate-slot-3 .unit-name-tag {
+  top: 0px !important;
+  --plate-dx: 0px;
+}
+
+/* Column 0 screen-edge clipping guard */
+.unit-figure.col-0 .unit-class-badge {
+  left: 8px !important;
+}
+.unit-figure.col-0 .unit-name-tag {
+  left: calc(50% + 12px) !important;
+}
+.unit-figure.col-9 .unit-name-tag {
+  left: calc(50% - 12px) !important;
+}
+
+/* 2. Collapsed tutorial chip */
+.tutorial-collapsed-chip {
+  position: absolute;
+  top: 136px;
+  left: 8px;
+  z-index: 55;
+  background: rgba(14, 20, 48, 0.94);
+  border: 1.5px solid var(--lantern-gold);
+  border-radius: 14px;
+  color: #FFF2C8;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7), 0 0 8px rgba(242, 180, 90, 0.3);
+  backdrop-filter: blur(6px);
+  transition: all 0.15s ease;
+}
+.tutorial-collapsed-chip:active {
+  transform: scale(0.95);
+  background: rgba(242, 180, 90, 0.25);
+}
+
+/* 3. Dock button wrap guard & auto-battle strip clearance */
+.btn-strip-auto,
+.strip-auto-txt,
+.btn-docked-tool {
+  white-space: nowrap !important;
+}
+
+.autobattle-banner {
+  top: 48px !important;
+  pointer-events: none;
+}
+
+.btn-cam-fit {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  z-index: 50 !important;
+}
+
+/* 4. Tap ripple feedback */
+.tap-ripple {
+  position: fixed;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.45) 0%, rgba(245, 158, 11, 0) 70%);
+  border: 1.5px solid rgba(245, 158, 11, 0.7);
+  transform: translate(-50%, -50%) scale(0.2);
+  animation: tapRippleAnim 0.35s ease-out forwards;
+}
+@keyframes tapRippleAnim {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0.9; }
+  100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+}
+
+/* 5. Officer 5-Stat Bar & Special Skill */
+.officer-5stat-box {
+  margin: 6px 0;
+  padding: 8px 10px;
+  background: rgba(14, 20, 48, 0.85);
+  border: 1px solid rgba(242, 180, 90, 0.4);
+  border-radius: 8px;
+}
+.officer-5stat-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--lantern-gold);
+  text-align: center;
+  margin-bottom: 6px;
+}
+.officer-5stat-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.stat5-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.stat5-lbl {
+  font-size: 10px;
+  font-weight: 800;
+  color: #E2E8F0;
+  width: 26px;
+}
+.stat5-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.stat5-fill {
+  height: 100%;
+  border-radius: 3px;
+}
+.stat5-fill.ldr { background: linear-gradient(90deg, #3B82F6, #60A5FA); }
+.stat5-fill.war { background: linear-gradient(90deg, #EF4444, #F87171); }
+.stat5-fill.int { background: linear-gradient(90deg, #8B5CF6, #A78BFA); }
+.stat5-fill.agi { background: linear-gradient(90deg, #10B981, #34D399); }
+.stat5-fill.luk { background: linear-gradient(90deg, #F59E0B, #FBBF24); }
+.stat5-val {
+  font-size: 10.5px;
+  font-weight: 900;
+  color: #FCD34D;
+  width: 20px;
+  text-align: right;
+}
+.officer-special-skill {
+  margin-top: 6px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.special-skill-badge {
+  background: linear-gradient(180deg, #E69D35 0%, #B8671B 100%);
+  color: #120A02;
+  font-size: 9.5px;
+  font-weight: 900;
+  padding: 1px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.special-skill-desc {
+  font-size: 10.5px;
+  color: #FEF08A;
+}
+
+/* 6. Mini-diagrams for 兵法手冊 */
+.facing-diagram-wrap {
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  border: 1px dashed rgba(242, 180, 90, 0.4);
+}
+.facing-diagram-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--lantern-gold);
+  text-align: center;
+  margin-bottom: 8px;
+}
+.facing-diagram-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 44px);
+  gap: 4px;
+  max-width: 280px;
+  margin: 0 auto;
+}
+.f-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 800;
+}
+.f-cell.corner {
+  background: transparent;
+}
+.f-cell.flank {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.5);
+  color: #7DD3FC;
+}
+.f-cell.back {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.6);
+  color: #FCA5A5;
+}
+.f-cell.front {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  color: #FCD34D;
+}
+.f-cell.defender {
+  background: radial-gradient(circle, #382414 0%, #1a0f08 100%);
+  border: 1.5px solid var(--lantern-gold);
+  color: #FFF;
+  box-shadow: 0 0 8px rgba(242, 180, 90, 0.5);
+}
+.f-tag { font-size: 9.5px; }
+.f-sub { font-size: 8px; opacity: 0.85; }
+.f-arrow { font-size: 11px; line-height: 1; }
+.f-def-badge { font-family: var(--font-brush); font-size: 12px; color: var(--lantern-gold); }
+.f-def-face { font-size: 9px; color: #94A3B8; }
+
+.stratagem-weather-diagram {
+  margin-top: 10px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+.sw-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #38BDF8;
+  text-align: center;
+  margin-bottom: 6px;
+}
+.sw-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+.sw-card {
+  background: rgba(14, 20, 44, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 6px;
+}
+.sw-head {
+  font-size: 11px;
+  color: #FFF;
+  margin-bottom: 3px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.sw-rule {
+  font-size: 9.5px;
+  line-height: 1.3;
+}
+.sw-rule.good { color: #86EFAC; }
+.sw-rule.bad { color: #FCA5A5; }
+.sw-rule.norm { color: #CBD5E1; }

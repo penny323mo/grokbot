@@ -323,7 +323,7 @@
         <div class="battle-viewport" id="battleViewport">
           <div class="battle-board-stage" id="battleBoardStage">
             <!-- Background Painted Top-Down Map -->
-            <img src="" alt="戰鬥地圖" class="battle-map-bg" id="battleMapBg">
+            <img src="assets/maps/river_bridge.png" alt="戰鬥地圖" class="battle-map-bg" id="battleMapBg">
             <!-- Continuous Canvas Overlays (Merged regions, soft shoreline water, feathered mist, fiery inferno) -->
             <canvas class="board-canvas-layer" id="floodOverlayCanvas" width="640" height="832"></canvas>
             <canvas class="board-canvas-layer" id="fireOverlayCanvas" width="640" height="832"></canvas>
@@ -551,6 +551,12 @@
             </div>
           </div>
         </div>
+
+        <!-- Collapsed Tutorial Chip (Shown when user acts out-of-order or minimizes) -->
+        <button type="button" class="tutorial-collapsed-chip" id="btnTutorialCollapsedChip" style="display:none;" title="點擊展開戰術教學">
+          <span class="chip-icon">💡</span>
+          <span class="chip-txt" id="txtTutorialCollapsedChip">教學 1/7 ▸</span>
+        </button>
       </div>
     </section>
 
@@ -617,6 +623,42 @@
             </div>
             <h3 class="detail-name" id="detailName">墨影</h3>
             <div class="detail-class" id="detailClass">劍客 · MOV 5</div>
+          </div>
+        </div>
+
+        <!-- Compact 5-Stat Bar (三國志將領五維: 統率/武力/智力/敏捷/運氣 + 特技) -->
+        <div class="officer-5stat-box" id="officer5StatBox">
+          <div class="officer-5stat-title">【將領五維 · 軍略底蘊】</div>
+          <div class="officer-5stat-bars">
+            <div class="stat5-row">
+              <span class="stat5-lbl">統率</span>
+              <div class="stat5-track"><div class="stat5-fill ldr" id="barStatLdr" style="width: 72%;"></div></div>
+              <span class="stat5-val" id="valStatLdr">72</span>
+            </div>
+            <div class="stat5-row">
+              <span class="stat5-lbl">武力</span>
+              <div class="stat5-track"><div class="stat5-fill war" id="barStatWar" style="width: 90%;"></div></div>
+              <span class="stat5-val" id="valStatWar">90</span>
+            </div>
+            <div class="stat5-row">
+              <span class="stat5-lbl">智力</span>
+              <div class="stat5-track"><div class="stat5-fill int" id="barStatInt" style="width: 75%;"></div></div>
+              <span class="stat5-val" id="valStatInt">75</span>
+            </div>
+            <div class="stat5-row">
+              <span class="stat5-lbl">敏捷</span>
+              <div class="stat5-track"><div class="stat5-fill agi" id="barStatAgi" style="width: 96%;"></div></div>
+              <span class="stat5-val" id="valStatAgi">96</span>
+            </div>
+            <div class="stat5-row">
+              <span class="stat5-lbl">運氣</span>
+              <div class="stat5-track"><div class="stat5-fill luk" id="barStatLuk" style="width: 82%;"></div></div>
+              <span class="stat5-val" id="valStatLuk">82</span>
+            </div>
+          </div>
+          <div class="officer-special-skill" id="officerSpecialSkill">
+            <span class="special-skill-badge">專屬特技</span>
+            <span class="special-skill-desc" id="officerSpecialSkillDesc">【疾風夜行】忽視ZOC控制，背刺造成雙倍致命打擊</span>
           </div>
         </div>
 
@@ -787,6 +829,7 @@
           <button type="button" class="btn-manual-tab active" data-tab="tab1">① 兵種武藝</button>
           <button type="button" class="btn-manual-tab" data-tab="tab2">② 五行走位</button>
           <button type="button" class="btn-manual-tab" data-tab="tab3">③ 地形士氣</button>
+          <button type="button" class="btn-manual-tab" data-tab="tab4">④ 策略軍謀</button>
         </div>
         <div class="manual-scrollable-content">
           <!-- TAB 1: 兵種相剋與武藝招式 -->
@@ -877,6 +920,21 @@
                   <div class="mini-card-body">正面近戰將承受敵方反擊；盾衛等重甲單位正面擁有 70%~85% 巨盾格擋減傷，務必以法術或繞背破之。</div>
                 </div>
               </div>
+              <!-- Facing / Backstab Mini CSS Grid Diagram -->
+              <div class="facing-diagram-wrap">
+                <div class="facing-diagram-title">【朝向方位與傷害判定示意圖】</div>
+                <div class="facing-diagram-grid">
+                  <div class="f-cell corner"></div>
+                  <div class="f-cell flank"><span class="f-tag">側翼 +20%</span><span class="f-arrow">↓</span></div>
+                  <div class="f-cell corner"></div>
+                  <div class="f-cell back"><span class="f-tag">背刺 +50%</span><span class="f-sub">無法反擊</span><span class="f-arrow">→</span></div>
+                  <div class="f-cell defender"><span class="f-def-badge">守</span><span class="f-def-face">面東 ▸</span></div>
+                  <div class="f-cell front"><span class="f-tag">正面 +0%</span><span class="f-sub">會反擊</span><span class="f-arrow">←</span></div>
+                  <div class="f-cell corner"></div>
+                  <div class="f-cell flank"><span class="f-tag">側翼 +20%</span><span class="f-arrow">↑</span></div>
+                  <div class="f-cell corner"></div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -886,10 +944,10 @@
             <div class="manual-section">
               <h3 class="manual-sec-title">五、地形與要塞防禦</h3>
               <div class="terrain-legend-grid">
-                <div class="t-legend-item"><span class="t-char">f</span> <b>森林</b>：需2移動力，防禦+1，迴避+15%</div>
-                <div class="t-legend-item"><span class="t-char">h</span> <b>山丘</b>：制高點，防禦+1，高處攻擊低處增傷+20%</div>
-                <div class="t-legend-item"><span class="t-char">v</span> <b>村莊</b>：防禦+2，迴避+5%，<b>每回合初恢復 4 HP</b></div>
-                <div class="t-legend-item"><span class="t-char">g</span> <b>城門/要塞</b>：要津門戶，防禦+2，兵家必爭</div>
+                <div class="t-legend-item"><span class="t-char">f</span> <b>森林</b>：需2移動力（騎兵需3），防禦+1，迴避+15%</div>
+                <div class="t-legend-item"><span class="t-char">h</span> <b>山丘</b>：制高點，需2移動力（騎兵需3），防禦+2，迴避+10%，弓手射程+1，高打低增傷+20%</div>
+                <div class="t-legend-item"><span class="t-char">v</span> <b>村莊</b>：防禦+2，迴避+5%，<b>回合初恢復 10% 最大生命 (+N)</b></div>
+                <div class="t-legend-item"><span class="t-char">g</span> <b>城門/要塞</b>：要津門戶，防禦+3，迴避+10%，<b>回合初恢復 10% 最大生命 (+N)</b></div>
                 <div class="t-legend-item"><span class="t-char">w</span> <b>河水</b>：深水天塹，非飛行不可通行；落水將直接溺亡KO！</div>
               </div>
             </div>
@@ -901,6 +959,74 @@
                 ✦ <b>背水一戰：</b>敵眾我寡時觸發士氣激昂，攻擊力提升+20%。<br>
                 ✦ <b>敵軍潰散：</b>敵方統領陣亡或士氣耗盡時部隊陷入潰逃（⚑ 潰），擊破逃敵可獲豐厚戰功！<br>
                 ✦ <b>軍略計策：</b>鼓舞提振戰力、夜襲搶得先手、水淹決堤破敵、火攻引燃草木、滾木崩落砸裂盾陣。
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 4: 三國志 策略軍謀 (火計/水計/落石/混亂/鼓舞/援護) -->
+          <div class="manual-tab-page" data-page="tab4" style="display:none;">
+            <div class="manual-section">
+              <h3 class="manual-sec-title">七、三國策略：策士與支援特技 (耗氣施展)</h3>
+              <div class="manual-sec-desc">智將運籌帷幄，策略成功率取決於<b>雙方智力差與戰場地勢</b>，從不誤傷友軍！</div>
+
+              <!-- Stratagem & Weather Mini Diagram (CSS Grid) -->
+              <div class="stratagem-weather-diagram">
+                <div class="sw-title">【策略與天候地勢交互示意】</div>
+                <div class="sw-grid">
+                  <div class="sw-card">
+                    <div class="sw-head"><span class="sw-icon">🔥</span><b>火計 (2 MP)</b></div>
+                    <div class="sw-rule bad">🌧️ 暴雨：<b>無法發動 (0%)</b></div>
+                    <div class="sw-rule good">🌲 林地/草地：<b>成功率 +15% · 增傷+4</b></div>
+                  </div>
+                  <div class="sw-card">
+                    <div class="sw-head"><span class="sw-icon">💧</span><b>水計 (2 MP)</b></div>
+                    <div class="sw-rule good">🌧️ 暴雨：<b>威力大增 +30% · 成功率+20%</b></div>
+                    <div class="sw-rule good">🌊 水邊/淺灘：<b>成功率 +15%</b></div>
+                  </div>
+                  <div class="sw-card">
+                    <div class="sw-head"><span class="sw-icon">⛰️</span><b>落石 (2 MP)</b></div>
+                    <div class="sw-rule good">⛰️ 山地/高地：<b>成功率 +20% · 破除盾防</b></div>
+                    <div class="sw-rule norm">平地：標準成功率</div>
+                  </div>
+                  <div class="sw-card">
+                    <div class="sw-head"><span class="sw-icon">🌪️</span><b>混亂 (3 MP)</b></div>
+                    <div class="sw-rule good">🎯 成功效果：<b>敵軍跳過下回合行動！</b></div>
+                    <div class="sw-rule norm">天候無礙 · 智高者制勝</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Success Chance Formula & 6 Stratagems List -->
+              <div class="manual-sec-desc" style="margin-top:8px;">
+                ✦ <b>成功率公式：</b>成功率 = 70% + (施法者智力 - 目標智力) × 3% + 地形/天候修正（最高95%，最低15%）。<br>
+                ✦ <b>援護與鼓舞：</b>對友軍施展必定 100% 成功，回復氣血或提振士氣。
+              </div>
+
+              <div class="manual-grid-2" style="margin-top:8px;">
+                <div class="manual-card-mini">
+                  <div class="mini-card-head"><span class="m-icon">🔥</span><b>火計</b> <span class="mini-card-tag gold">2 MP</span></div>
+                  <div class="mini-card-body">遠程放火焚敵。樹林草地增傷；<b>雨天無法施展</b>。</div>
+                </div>
+                <div class="manual-card-mini">
+                  <div class="mini-card-head"><span class="m-icon">💧</span><b>水計</b> <span class="mini-card-tag gold">2 MP</span></div>
+                  <div class="mini-card-body">引水淹敵。水邊增效，<b>暴雨天候增傷+30%</b>。</div>
+                </div>
+                <div class="manual-card-mini">
+                  <div class="mini-card-head"><span class="m-icon">⛰️</span><b>落石</b> <span class="mini-card-tag gold">2 MP</span></div>
+                  <div class="mini-card-body">自高處崩落巨石。山地高地增效，砸裂敵軍前排盾防。</div>
+                </div>
+                <div class="manual-card-mini">
+                  <div class="mini-card-head"><span class="m-icon">🌪️</span><b>混亂</b> <span class="mini-card-tag purple">3 MP</span></div>
+                  <div class="mini-card-body">攻心惑敵。命中後令目標<b>陷入混亂並跳過下回合</b>！</div>
+                </div>
+                <div class="manual-card-mini">
+                  <div class="mini-card-head"><span class="m-icon">🥁</span><b>鼓舞</b> <span class="mini-card-tag green">2 MP</span></div>
+                  <div class="mini-card-body">提振友軍。我方士氣+10，提升目標傷害20%與1格移動力。</div>
+                </div>
+                <div class="manual-card-mini">
+                  <div class="mini-card-head"><span class="m-icon">🍵</span><b>援護</b> <span class="mini-card-tag green">2 MP</span></div>
+                  <div class="mini-card-body">救護傷患。回復友軍 10 HP 並施加防禦強化。</div>
+                </div>
               </div>
             </div>
           </div>

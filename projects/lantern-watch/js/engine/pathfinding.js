@@ -123,6 +123,12 @@ export function getReachableTiles(board, unit, allUnits = [], options = {}) {
       if (options.cursedTiles && options.cursedTiles.has(nKey) && !isFlyer) {
         stepCost += 1; // Cursed miasma tile: movement cost +1 (MOV -1)
       }
+      if (isCavalry && !isFlyer) {
+        const nTer = board.getTerrain(n.x, n.y);
+        if (nTer && (nTer.char === 'f' || nTer.char === 'h')) {
+          stepCost += 1; // Cavalry movement slowed in forest/mountain
+        }
+      }
       const newCost = curr.cost + stepCost;
 
       if (newCost > mov) continue;
@@ -147,16 +153,17 @@ export function getReachableTiles(board, unit, allUnits = [], options = {}) {
   return reachable;
 }
 
-export function getAttackRangeTiles(board, unit, fromX, fromY) {
+export function getAttackRangeTiles(board, unit, fromX, fromY, customRange = null) {
   let minRange = 1;
   let maxRange = 1;
 
-  if (Array.isArray(unit.range)) {
-    minRange = unit.range[0];
-    maxRange = unit.range[1];
-  } else if (typeof unit.range === 'number') {
-    minRange = unit.range;
-    maxRange = unit.range;
+  const rangeDef = customRange || unit?.range;
+  if (Array.isArray(rangeDef)) {
+    minRange = rangeDef[0];
+    maxRange = rangeDef[1];
+  } else if (typeof rangeDef === 'number') {
+    minRange = rangeDef;
+    maxRange = rangeDef;
   }
 
   // Hill advantage: ranged units on hill gain +1 max range

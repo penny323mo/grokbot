@@ -5,15 +5,15 @@
 
 export const TERRAIN_INFO = {
   '.': { char: '.', name: '平地', moveCost: 1, defBonus: 0, evaBonus: 0, desc: '平坦開闊地面，無攻防修正' },
-  'f': { char: 'f', name: '森林', moveCost: 2, defBonus: 1, evaBonus: 15, desc: '林木掩映，防禦+1，迴避+15%' },
-  'h': { char: 'h', name: '山丘', moveCost: 2, defBonus: 1, evaBonus: 10, desc: '制高點，防禦+1，迴避+10%，遠程射程+1，對低處傷害+20%' },
+  'f': { char: 'f', name: '森林', moveCost: 2, defBonus: 1, evaBonus: 15, isForest: true, desc: '林木掩映，防禦+1，迴避+15%（騎兵移耗+1）' },
+  'h': { char: 'h', name: '山丘', moveCost: 2, defBonus: 2, evaBonus: 10, isMountain: true, desc: '制高點，防禦+2，迴避+10%，弓手射程+1，高打低增傷+20%（騎兵移耗+1）' },
   'r': { char: 'r', name: '道路', moveCost: 1, defBonus: 0, evaBonus: 0, desc: '平整石路，行軍迅速' },
   'b': { char: 'b', name: '木橋/石橋', moveCost: 1, defBonus: 0, evaBonus: 0, isBridge: true, desc: '跨水通道，被擊退落水將直接溺亡KO' },
-  'w': { char: 'w', name: '河水', moveCost: 99, defBonus: 0, evaBonus: 0, impassable: true, flyerOnly: true, isWater: true, desc: '湍急深水，非飛行單位無法涉足' },
+  'w': { char: 'w', name: '河水', moveCost: 99, defBonus: 0, evaBonus: 0, impassable: true, flyerOnly: true, isWater: true, desc: '湍急深水天塹，非飛行單位不可涉足' },
   '#': { char: '#', name: '城牆/屋頂/峭壁', moveCost: 99, defBonus: 0, evaBonus: 0, impassable: true, flyerOnly: true, desc: '高聳障礙，非飛行單位不可通行' },
-  'g': { char: 'g', name: '城門', moveCost: 1, defBonus: 2, evaBonus: 0, isGate: true, desc: '要塞門戶，防禦+2，防守目標核心' },
+  'g': { char: 'g', name: '要塞/城門', moveCost: 1, defBonus: 3, evaBonus: 10, isGate: true, isFort: true, healPercent: 0.10, healAmount: 4, desc: '要塞門戶，防禦+3，迴避+10%，駐紮每回合初恢復 10% 最大生命' },
   'm': { char: 'm', name: '市集', moveCost: 1, defBonus: 0, evaBonus: 10, isMarket: true, desc: '貨架棚帳，迴避+10%' },
-  'v': { char: 'v', name: '村莊', moveCost: 1, defBonus: 2, evaBonus: 5, isVillage: true, healAmount: 4, desc: '鄉野村落，防禦+2，迴避+5%，駐紮每回合初恢復 4 HP' },
+  'v': { char: 'v', name: '村莊', moveCost: 1, defBonus: 2, evaBonus: 5, isVillage: true, healPercent: 0.10, healAmount: 4, desc: '鄉野村落，防禦+2，迴避+5%，駐紮每回合初恢復 10% 最大生命' },
   's': { char: 's', name: '淺灘', moveCost: 3, defBonus: -1, evaBonus: 0, desc: '碎石泥灘，需3移動力，防禦-1' }
 };
 

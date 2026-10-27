@@ -4,10 +4,11 @@
  */
 import assert from 'node:assert';
 import test from 'node:test';
-import { GUARDIAN_PROTOS, ENEMY_PROTOS } from '../js/data/units.js';
+import { GUARDIAN_PROTOS, ENEMY_PROTOS, STRATAGEM_MOVES } from '../js/data/units.js';
 import { RNG } from '../js/engine/rng.js';
 import { Battle } from '../js/engine/battle.js';
 import { getActionInfo } from '../js/engine/actioninfo.js';
+import { calculateCombat } from '../js/engine/combat.js';
 
 const moves = [];
 for (const [id, p] of Object.entries(GUARDIAN_PROTOS)) {
@@ -116,4 +117,88 @@ test('熊岳 鐵壁之陣: caster loses no HP, gets +DEF, buff does not stack an
   battle.phase = 'enemy'; battle.endEnemyPhase();
   battle.phase = 'enemy'; battle.endEnemyPhase();
   assert.strictEqual(u.def, def0, 'buff expires after 2 turns');
+});
+
+test('Stratagems: all 6 stratagem moves deal zero friendly fire and never hurt teammates or caster', () => {
+  for (const [sId, strat] of Object.entries(STRATAGEM_MOVES)) {
+    const { battle, u } = arena('tea_master', GUARDIAN_PROTOS.tea_master);
+    const pal = battle.allies.find(a => a !== u);
+    pal.x = 5; pal.y = 6; pal.hp = pal.maxHp = 30;
+    const hp0 = pal.hp;
+    const uHp0 = u.hp;
+
+    // Cast directly on pal
+    const res = battle.confirmAction(u, 'magic', pal, { skill: strat });
+    if (strat.isHeal) {
+      assert.ok(pal.hp >= hp0, `${strat.name} heal should not decrease HP`);
+      assert.strictEqual(u.hp, uHp0);
+    } else if (strat.isSupport) {
+      assert.strictEqual(pal.hp, hp0, `${strat.name} must not damage ally`);
+      assert.strictEqual(u.hp, uHp0);
+      assert.ok(pal.inspireBonus, `${strat.name} should grant rally bonus`);
+    } else {
+      assert.strictEqual(pal.hp, hp0, `${strat.name} must not damage teammate`);
+      assert.strictEqual(u.hp, uHp0, `${strat.name} must not damage caster`);
+      assert.ok(!res.events.some(e => e.type === 'hit' && e.target === pal.id), `${strat.name} produced hit on ally`);
+    }
+  }
+});
+
+test('Stratagems: offensive and confuse stratagems work against enemies without friendly fire', () => {
+  for (const sId of ['stratagem_fire', 'stratagem_water', 'stratagem_rockfall', 'stratagem_confuse']) {
+    const strat = STRATAGEM_MOVES[sId];
+    const { battle, u } = arena('tanuki_mage', GUARDIAN_PROTOS.tanuki_mage);
+    const pal = battle.allies.find(a => a !== u);
+    pal.x = 4; pal.y = 5; pal.hp = 30;
+    const foe = { ...ENEMY_PROTOS.fog_rider, id: 'foe1', team: 'enemy', x: 5, y: 6, hp: 50, maxHp: 50 };
+    battle.enemies = [foe];
+
+    const res = battle.confirmAction(u, 'magic', foe, { skill: strat });
+    assert.strictEqual(pal.hp, 30, `Teammate lost HP when using ${strat.name} on enemy`);
+    assert.strictEqual(u.hp, 40, `Caster lost HP when using ${strat.name} on enemy`);
+    if (strat.isConfuse) {
+      assert.strictEqual(foe.isConfused, true, 'Enemy should be confused');
+    } else {
+      assert.ok(res.events.some(e => e.type === 'hit' || e.type === 'miss'), `${strat.name} should produce hit/miss against enemy`);
+    }
+  }
+});
+
+test('Stratagems: weather interactions - rain blocks fire stratagem, boosts water stratagem', () => {
+  const fireMove = STRATAGEM_MOVES.stratagem_fire;
+  const waterMove = STRATAGEM_MOVES.stratagem_water;
+  const { battle, u } = arena('lantern_crafter', GUARDIAN_PROTOS.lantern_crafter);
+  const foe = { ...ENEMY_PROTOS.fog_rider, id: 'foe1', team: 'enemy', x: 5, y: 6, hp: 50, maxHp: 50, int: 50 };
+
+  // In rain:
+  const rainCombatFire = calculateCombat(u, foe, battle.board, {
+    actionType: 'magic',
+    skill: fireMove,
+    weather: 'rain'
+  });
+  assert.strictEqual(rainCombatFire.stratagemBlocked, true);
+  assert.strictEqual(rainCombatFire.expectedDamage, 0);
+  assert.strictEqual(rainCombatFire.targetTags.includes('雨天無法火計'), true);
+
+  // In sunny / normal:
+  const sunnyCombatFire = calculateCombat(u, foe, battle.board, {
+    actionType: 'magic',
+    skill: fireMove,
+    weather: 'sunny'
+  });
+  assert.strictEqual(sunnyCombatFire.stratagemBlocked, false);
+  assert.ok(sunnyCombatFire.expectedDamage > 0);
+
+  // Water stratagem in rain has boost:
+  const rainCombatWater = calculateCombat(u, foe, battle.board, {
+    actionType: 'magic',
+    skill: waterMove,
+    weather: 'rain'
+  });
+  const normalCombatWater = calculateCombat(u, foe, battle.board, {
+    actionType: 'magic',
+    skill: waterMove,
+    weather: 'sunny'
+  });
+  assert.ok(rainCombatWater.expectedDamage > normalCombatWater.expectedDamage, 'Water stratagem should do more damage in rain');
 });

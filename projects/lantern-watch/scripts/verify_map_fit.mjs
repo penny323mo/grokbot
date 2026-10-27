@@ -33,6 +33,7 @@ for (const [w, h] of [[390, 664], [390, 844]]) {
     const e = 1.5;
     const tag = `${w}x${h} ch${ch}`;
     assert.ok(m.stage.l >= m.vp.l - e && m.stage.r <= m.vp.r + e && m.stage.t >= m.vp.t - e && m.stage.b <= m.vp.b + e, `${tag}: board not inside viewport ${JSON.stringify(m.stage)} vs ${JSON.stringify(m.vp)}`);
+    assert.ok(Math.abs((m.stage.b - m.stage.t) - (m.vp.b - m.vp.t)) < 8, `${tag}: board height does not fill viewport height: stage ${m.stage.b - m.stage.t} vs vp ${m.vp.b - m.vp.t}`);
     assert.ok(m.vp.t >= m.hud.b - e && m.vp.b <= m.strip.t + e, `${tag}: viewport overlaps HUD/strip`);
     assert.ok(m.nav.t >= -e && m.hud.t >= m.nav.b - e && m.strip.b <= m.H + e, `${tag}: top bar / strip off-screen`);
     for (const r of m.hudBtns) assert.ok(r.t >= -e && r.l >= -e && r.r <= m.W + e && r.b <= m.H + e, `${tag}: HUD button clipped ${JSON.stringify(r)}`);
