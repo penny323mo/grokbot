@@ -104,3 +104,13 @@ cat $P/REBUILD_PROGRESS.md
 - 2026-10-28 21:36 loop check: round-7 orch phase=fix-1 (round 1/3, sent 21:08) RUNNING, heartbeat fresh 21:35; no action.
 - 2026-10-28 22:07 loop check: round-7 orch phase=review-3 (round 3/3; fix-2 done 22:05, tests PASS, review-3 sent 22:05) RUNNING, heartbeat fresh 22:06; no action.
 - 2026-10-28 22:39 loop check: round-7 orch phase=fix-3 (round 3/3, sent 22:15) RUNNING, heartbeat fresh 22:38; no action.
+- 2026-10-28 23:10 loop: round-7 orch DONE 22:44 (live 200, tests pass). restore-cover run; studio thumb live (256², std 44). Own live play screenshots/loop-2306 RESULT PASS (CSS leak fixed). Harsh score: Art 80, UI 66, Music 84, Interaction 82, Story 85 — phone still settings form, drawer still card stack, scene top bar, cork bracket buttons/unreadable strip, deduction tabs overlap text, blue sticker on victim head, flat comic scene plate. Wrote prompts/improve-r8.txt (= orch-build.txt + sentinel); review/fix prompts → improve-r8; old reviews → reviews/archive-r7, prompts → prompts/archive-r7; old state → .orch-prev-7. Relaunched --rounds 3 at 23:10.
+- 2026-10-28 23:37 loop check: round-8 orch phase=build attempt 1 (sent 23:09) RUNNING, heartbeat fresh 23:36; no action.
+- 2026-10-29 00:03 loop check: round-8 orch phase=fix-1 (round 1/3; build PASS 23:39, review-1 done 23:44, fix-1 sent 23:44) RUNNING, heartbeat fresh 00:02; no action.
+
+## Wrapped up at Penny's request — 2026-10-29 00:36 Asia/Macau
+- Stopped round-8 orch (was phase=review-2 after fix-1). Killed orch tmux session; removed .orch/pid.
+- agy-pane at shell; grok-pane idle at prompt (sessions left alive for 01:00 nightly).
+- Kept round-8 HEAD a3f74dd (tests 9/9, audio PASS, harsh2_play RESULT PASS Case1 solved).
+- Publishing + restore-cover next.
+- 100分循環 already paused. Do not relaunch harbour orch tonight.

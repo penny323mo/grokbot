@@ -48,49 +48,55 @@ export class CaseBoard {
             ` : ''}
           </div>
 
-          <!-- Folder Face & Inside Page -->
-          <div class="folder-body-packet">
-            <div class="folder-packet-header">
-              <div class="folder-docket-line">
-                <span class="docket-ref">PROC. CRIME N.º 62/1962 · CASE 0${c.id}</span>
-                <span class="docket-loc">${c.location}</span>
+          ${isOpen ? `
+            <!-- Folder Face & Inside Page (Lifts up when opened) -->
+            <div class="folder-body-packet">
+              <div class="folder-packet-header">
+                <div class="folder-docket-line">
+                  <span class="docket-ref">PROC. CRIME N.º 62/1962 · CASE 0${c.id}</span>
+                  <span class="docket-loc">${c.location}</span>
+                </div>
+                <h3 class="folder-docket-title">〈${c.symbol}〉 ${c.title}</h3>
+                <span class="folder-docket-date">${c.date}</span>
               </div>
-              <h3 class="folder-docket-title">〈${c.symbol}〉 ${c.title}</h3>
-              <span class="folder-docket-date">${c.date}</span>
+
+              ${!isUnlocked ? `
+                <div class="folder-locked-seals">
+                  <span class="locked-twine-line"></span>
+                  <div class="locked-twine-badge">
+                    <span class="wax-seal-emblem">密</span>
+                    <span class="wax-seal-text">機密封簽 · 待前案破獲開封</span>
+                  </div>
+                  <span class="locked-twine-line"></span>
+                </div>
+              ` : `
+                <div class="folder-inside-content">
+                  <div class="telegram-dispatch-intro">
+                    <span class="dispatch-badge">加急公電 · 司法警察司</span>
+                    <p class="dispatch-body">${c.incidentIntro}</p>
+                  </div>
+
+                  <div class="folder-clipped-photo-row">
+                    <button class="clipped-scene-photo-btn btn-open-case" data-case-id="${c.id}" type="button" aria-label="進入現場勘驗">
+                      <span class="paperclip-photo-pin"></span>
+                      <img class="clipped-photo-img" src="${c.sceneImage}" alt="${c.title} 現場勘驗照片" />
+                      <span class="photo-caption-tag">現場勘查照 · 翻開調查現場 →</span>
+                    </button>
+                  </div>
+
+                  ${isSolved ? `
+                    <div class="folder-action-row">
+                      <button class="btn-card-epilogue" data-case-id="${c.id}" type="button">
+                        檢閱破案始末 · 《濠江紀實報》號外
+                      </button>
+                    </div>
+                  ` : ''}
+                </div>
+              `}
             </div>
-
-            ${!isUnlocked ? `
-              <div class="folder-locked-seals">
-                <span class="locked-twine-line"></span>
-                <div class="locked-twine-badge">
-                  <span class="wax-seal-emblem">密</span>
-                  <span class="wax-seal-text">〔 機密封簽 · 待前案破獲開封 〕</span>
-                </div>
-                <span class="locked-twine-line"></span>
-              </div>
-            ` : `
-              <div class="folder-inside-content">
-                <div class="telegram-dispatch-intro">
-                  <span class="dispatch-badge">【加急公電 · 司法警察司】</span>
-                  <p class="dispatch-body">${c.incidentIntro}</p>
-                </div>
-
-                ${isSolved ? `
-                  <div class="folder-action-row">
-                    <button class="btn-card-epilogue" data-case-id="${c.id}" type="button">
-                      【 檢閱破案始末 · 《濠江紀實報》號外 】
-                    </button>
-                  </div>
-                ` : `
-                  <div class="folder-action-row">
-                    <button class="btn-open-case folder-open-cta" data-case-id="${c.id}" type="button">
-                      【 翻開卷宗 · 進入現場勘驗 】
-                    </button>
-                  </div>
-                `}
-              </div>
-            `}
-          </div>
+          ` : `
+            <div class="folder-closed-lip"></div>
+          `}
         </article>
       `;
     });

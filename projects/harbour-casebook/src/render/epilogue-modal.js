@@ -36,7 +36,7 @@ export class EpilogueModal {
             <!-- Archival Noir Crime Scene Painting -->
             <div class="epilogue-vignette-art">
               <img src="assets/ui/epilogue_vignette.webp" class="epilogue-vignette-img" alt="1962 澳門內港案發現場" />
-              <span class="vignette-caption">【案發現場勘驗檔案照 · 刑事偵查司存】</span>
+              <span class="vignette-caption">案發現場勘驗檔案照 · 刑事偵查司存</span>
             </div>
             <h2 class="epilogue-headline" id="epilogue-title">破案始末</h2>
             <div class="epilogue-meta" id="epilogue-meta"></div>
@@ -47,11 +47,11 @@ export class EpilogueModal {
               <div class="newspaper-dispatch-divider"></div>
               <div class="newspaper-dispatch-actions">
                 <button class="newspaper-stamped-action" id="btn-epilogue-next">
-                  <span class="stamped-action-seal">【續案號外】</span>
+                  <span class="stamped-action-seal">續案號外</span>
                   <span class="stamped-action-text" id="epilogue-next-text">進入下一案 →</span>
                 </button>
                 <button class="newspaper-board-link" id="btn-epilogue-board">
-                  〔 闔報歸檔 · 檢閱卷宗架 〕
+                  闔報歸檔 · 檢閱卷宗架
                 </button>
               </div>
             </div>

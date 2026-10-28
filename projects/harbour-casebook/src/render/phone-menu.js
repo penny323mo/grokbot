@@ -43,7 +43,7 @@ export class PhoneMenu {
             <div class="cradle-forks">
               <span class="fork-prong left"></span>
               <div class="cradle-handset-bar">
-                <span class="cradle-hangup-text">〔 掛斷話筒 · 歸位案頭 〕</span>
+                <span class="cradle-hangup-text">掛斷話筒 · 歸位案頭</span>
               </div>
               <span class="fork-prong right"></span>
             </div>
@@ -67,9 +67,7 @@ export class PhoneMenu {
 
               <!-- Audio Controls: Brass Rotaries & Jack Plug Toggles -->
               <div class="switchboard-plate-section">
-                <div class="engraved-section-rule">
-                  <span>〔 電訊音頻調校 〕</span>
-                </div>
+                <div class="switchboard-engraved-heading">電訊音頻調校</div>
 
                 <!-- BGM: Brass Rotary Knob + Jack Plug Toggle -->
                 <div class="switchboard-control-block">
@@ -95,7 +93,7 @@ export class PhoneMenu {
                     <div class="knob-status-column">
                       <button class="switchboard-jack-toggle ${!settings.musicMuted ? 'is-connected' : ''}" id="menu-toggle-music" type="button" aria-pressed="${!settings.musicMuted}">
                         <span class="jack-socket-ring"><span class="jack-plug-core"></span></span>
-                        <span class="jack-status-text" id="music-toggle-mark">${!settings.musicMuted ? '接通 ⫚ 樂韻已連線' : '切斷 ⫛ 樂韻靜音'}</span>
+                        <span class="jack-status-text" id="music-toggle-mark">${!settings.musicMuted ? '已連線 · 樂韻正常' : '已切斷 · 樂韻靜音'}</span>
                       </button>
                       <span class="knob-reading-text" id="music-reading-text">檔位：${getLevelText(musicLevel)}</span>
                     </div>
@@ -126,7 +124,7 @@ export class PhoneMenu {
                     <div class="knob-status-column">
                       <button class="switchboard-jack-toggle ${!settings.sfxMuted ? 'is-connected' : ''}" id="menu-toggle-sfx" type="button" aria-pressed="${!settings.sfxMuted}">
                         <span class="jack-socket-ring"><span class="jack-plug-core"></span></span>
-                        <span class="jack-status-text" id="sfx-toggle-mark">${!settings.sfxMuted ? '接通 ⫚ 物證音效開' : '切斷 ⫛ 物證音效關'}</span>
+                        <span class="jack-status-text" id="sfx-toggle-mark">${!settings.sfxMuted ? '已連線 · 音效正常' : '已切斷 · 音效靜音'}</span>
                       </button>
                       <span class="knob-reading-text" id="sfx-reading-text">檔位：${getLevelText(sfxLevel)}</span>
                     </div>
@@ -136,51 +134,42 @@ export class PhoneMenu {
 
               <!-- Text Size: Physical Lever Switch -->
               <div class="switchboard-plate-section">
-                <div class="engraved-section-rule">
-                  <span>〔 打字機字規 〕</span>
-                </div>
+                <div class="switchboard-engraved-heading">公文字號規格</div>
                 <div class="switchboard-control-block">
-                  <div class="switchboard-line-label">
-                    <span class="line-dot"></span>
-                    <span class="line-title">公文字號規格</span>
-                  </div>
                   <div class="switchboard-lever-switch-row">
                     <button class="btn-text-size lever-option ${settings.textSize !== 'large' ? 'is-active' : ''}" data-size="normal" type="button">
-                      <span class="lever-indicator"></span>
+                      <span class="lever-switch-arm"></span>
                       <span class="lever-label">五號標準</span>
                     </button>
                     <span class="lever-throw-bar"></span>
                     <button class="btn-text-size lever-option ${settings.textSize === 'large' ? 'is-active' : ''}" data-size="large" type="button">
-                      <span class="lever-indicator"></span>
+                      <span class="lever-switch-arm"></span>
                       <span class="lever-label">四號大字</span>
                     </button>
                   </div>
                 </div>
               </div>
 
-              <!-- External Navigation Link: Brass Patch Terminal -->
+              <!-- External Navigation Link: Brass Nameplate -->
               <div class="switchboard-plate-section">
-                <div class="engraved-section-rule">
-                  <span>〔 外部專線轉接 〕</span>
-                </div>
-                <div class="switchboard-patch-socket-block">
-                  <a href="https://penny323mo.github.io/grokbot/" class="switchboard-patch-cable" target="_blank" rel="noopener noreferrer">
-                    <span class="patch-cable-plug"></span>
-                    <span class="patch-cable-label">直撥專線 · grokbot 總部通訊 →</span>
+                <div class="switchboard-engraved-heading">探署外線通訊</div>
+                <div class="switchboard-nameplate-wrapper">
+                  <a href="https://penny323mo.github.io/grokbot/" class="switchboard-brass-plaque" target="_blank" rel="noopener noreferrer">
+                    <span class="plaque-screw left"></span>
+                    <span class="plaque-title">GROKBOT TELECOM · 總部專線 →</span>
+                    <span class="plaque-screw right"></span>
                   </a>
                 </div>
               </div>
 
-              <!-- Reset Section: Emergency Seal -->
+              <!-- Reset Section: Wax Sealed Fuse Tag -->
               <div class="switchboard-plate-section danger-section">
-                <div class="engraved-section-rule danger-rule">
-                  <span>〔 卷宗重置室 〕</span>
-                </div>
+                <div class="switchboard-engraved-heading danger-heading">卷宗銷毀保險絲</div>
                 <p class="reset-desc">將當前所有已查明線索、物證筆記與破案紀錄銷毀碎紙，重歸第一案立案。</p>
-                <div class="emergency-seal-wrapper">
-                  <button class="btn-switchboard-reset-trip" id="menu-btn-reset-progress" type="button">
-                    <span class="emergency-wire"></span>
-                    <span class="emergency-text">扯斷鉛封 · 銷毀立案存根</span>
+                <div class="fuse-tag-wrapper">
+                  <button class="btn-switchboard-reset-trip fuse-tag-btn" id="menu-btn-reset-progress" type="button">
+                    <span class="wax-seal-lead"></span>
+                    <span class="fuse-tag-text">火漆鉛封保險絲 · 扯斷銷毀立案存根</span>
                   </button>
                 </div>
                 <div class="switchboard-screws bottom-screws">

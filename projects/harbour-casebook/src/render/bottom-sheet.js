@@ -36,7 +36,7 @@ export class BottomSheet {
             <h3 id="sheet-title" class="evidence-sheet-title">勘驗物證</h3>
             <button class="sheet-close-btn evidence-dismiss-pin" aria-label="收卷歸位" type="button">
               <span class="pin-head"></span>
-              <span class="pin-text">〔 收卷 ✕ 〕</span>
+              <span class="pin-text">收卷 ✕</span>
             </button>
           </div>
         </div>

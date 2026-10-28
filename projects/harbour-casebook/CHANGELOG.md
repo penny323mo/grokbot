@@ -684,3 +684,107 @@
 - `node scripts/harsh2_play.mjs http://127.0.0.1:8937/index.html /workspace/nightly/2026-10-28-harbour-casebook/screenshots/fix-r3`: RESULT PASS, exit code 0, 0 errors, 34/34 words collected, Who's Who solved, Case 1 solved, epilogue verified.
 - `node --test tests/*.test.mjs`: all 9 unit tests pass.
 - `bash scripts/audio_check.sh`: all 4 BGM files pass.
+
+## Round 8
+
+### Critical Fixes & Complete Diegetic Transformation
+- **Painted Bakelite Telephone & Switchboard (CRITICAL #1a)**:
+  - Generated dedicated high-resolution painted artwork `assets/art/phone_bakelite.webp` matching the lamp-lit, warm chiaroscuro noir desk aesthetic.
+  - Eliminated the web settings form appearance, top rectangular bar, dividing rules, and radio dots.
+  - Telephone receiver cradle hangs up and returns to desk upon tap (`掛斷話筒 · 歸位案頭`, no brackets).
+  - Replaced text size radio dots with a physical two-position brass toggle lever switch arm with throw bar (`五號標準` / `四號大字`).
+  - Styled grokbot external communication link as an authentic engraved brass nameplate riveted to the telephone body.
+  - Styled reset progress trigger as an authentic lead-and-wire wax sealed emergency pull tag (`扯斷鉛封 · 銷毀立案存根`).
+- **Open Filing Drawer with Manila Folders & Clipped Scene Photos (CRITICAL #1b)**:
+  - Rebuilt case board as an authentic open filing drawer seen from above with standing staggered Manila tabs, suspended twine, wax seals on locked cases, and cinnabar 結 stamps on solved cases.
+  - Tapping a folder lifts and opens to its typed report page, with the crime scene photo clipped inside with an archival brass paperclip (`.clipped-scene-photo-btn.btn-open-case`). Enter scene by tapping the photo or action link.
+  - Drawer return control is the drawer front brass handle (`推回抽屜 · 返回案頭`, no brackets).
+  - Restored full Case 1 location string `福隆新街「德生大押」後櫃庫房` in `src/data/cases.js:17` and updated `.docket-loc` to wrap naturally, completely eliminating `…` truncation.
+- **Corner Edge-Tags & Marginal Telegram (CRITICAL #1c)**:
+  - Replaced top bar on scene screen with authentic paper corner edge-tags (`← 案頭` / `推理報告 →`).
+  - Onboarding guide banner rendered as a margin-aligned police telegram slip with `pointer-events: none` that never covers window grilles or hotspots.
+- **Archival Corkboard & Stamp Imprints (CRITICAL #1d)**:
+  - Pinned instruction note rendered as a high-contrast aged paper note with clear typography (`依證詞物證點擊相片下方名條指認姓名。`).
+  - Pinned return tag styled with vermilion underline and zero box borders.
+  - Converted Who's Who verification button into an authentic rubber stamp imprint pressed directly onto the corkboard (`鈐印核實人物名冊`, no brackets).
+  - Solved seal updated to `司法警察司 · 人物全數歸位` (no brackets).
+- **Deduction Folio Diegetic Polish (CRITICAL #1e)**:
+  - Set top scroll padding to `calc(var(--safe-top) + 76px)` so text never sits under tabs.
+  - Section check button styled as a vermilion rubber chop pressed on paper (`鈐印核實此節`, no brackets).
+  - Hint button styled as a tucked paper slip in the margin (`卷宗錦囊`, no brackets).
+  - Solved section stamp updated to `司法警察司 · 查結定案` (no brackets).
+  - Final solve seal updated to `硃砂印落 · 全案告破` (no brackets).
+- **Title & Desk Hand-Lettering (CRITICAL #1f)**:
+  - Restyled title screen `#btn-start-game` as an authentic leather casebook dossier cover with subtle ink lettering `開卷 · 調查現場` and seal; catalogue link `#btn-view-board` styled as an aged Manila index card tab.
+  - Restyled desk hub top-right `#btn-desk-open-board` as an authentic brass drawer pull tab hanging from the desk edge (`抽屜卷宗目錄`, no brackets).
+  - Completely eliminated all bracketed `【】〔〕` button labels across the entire project.
+
+### Major Enhancements
+- **Pawnshop Art Repainting & Blue Document Removal (MAJOR #2)**:
+  - Thoroughly inpainted and cleaned the corpse head and floor area at `(0.64*w, 0.78*h)` in `assets/scenes/case1_pawnshop.webp`, completely removing all blue sticker pixels.
+  - Painted authentic dark hair, skull chiaroscuro shading, and congealed blood pool seamlessly matching the lamp-lit painted noir style of `desk_hub.webp`.
+  - Painted the open accounting ledger `檯面當簿` on the floor at (x: 76, y: 68) with aged Xuan paper, vermilion rules, brush calligraphy entries, and cinnabar seal, perfectly centered under the `c1_ticket_ledger` hotspot ring.
+  - Centered `c1_earring` ring directly on the pearl at (39, 47) and `c1_desk_tea` ring on the celadon cup at (23, 74).
+  - Updated `assets/ui/epilogue_vignette.webp` and `case1_pawnshop.jpg` from the repainted, cleaned plate.
+- **Harvested Hotspot Paper Tag Indicator (MAJOR #3)**:
+  - Replaced the circular green web badge on harvested hotspots with an authentic aged paper tag featuring an archival ink tick (`✓`) with subtle drop shadow and tilt.
+- **Audio & SFX Polish (MAJOR #4)**:
+  - Verified `tension_sting` plays on incorrect section check and `stamp_thud` on correct section check.
+  - All 4 BGM files pass `scripts/audio_check.sh`.
+
+### Verification Gates
+- `node scripts/harsh2_play.mjs http://127.0.0.1:8937/index.html /workspace/nightly/2026-10-28-harbour-casebook/screenshots/r8`: RESULT PASS, exit code 0, 0 errors, 0 occlusions, 34/34 words collected, Who's Who solved, Case 1 solved, epilogue verified.
+- `node --test tests/*.test.mjs`: all 9 unit tests pass.
+- `bash scripts/audio_check.sh`: all 4 BGM files pass.
+- Audited all 29 frames in `screenshots/r8/`: verified zero bracketed labels, zero app header bars, zero rectangular buttons.
+
+
+## Round 6.1 fixes
+
+### Critical & Major Diegetic Improvements
+- **Hotspot Coordinates Centering on Artifacts (MAJOR #2, MINOR #4)**:
+  - `c1_earring`: Nudged coordinates from `(x: 39, y: 47)` to `(x: 41, y: 48)` in `src/data/cases.js`, centering the ring directly on the pearl centroid (screen `144, 405`).
+  - `c1_desk_tea`: Nudged coordinates from `(x: 23, y: 74)` to `(x: 23, y: 71)`, moving the ring center off the scalloped dish and directly onto the celadon tea cup above it (screen `43, 599`).
+  - `c1_footprints`: Nudged coordinates from `(x: 50, y: 54)` to `(x: 49, y: 55)`, centering directly on the muddy boot print on the threshold (screen `189, 464`).
+  - Verified pairwise distance between all hotspots remains >= 44px (min distance: 51.48px).
+
+- **Stamp Imprint Word Wrap Resolution (MAJOR #3)**:
+  - Added `white-space: nowrap; letter-spacing: 1.5px;` and refined jade rubber stamp framing to `.section-solved-stamp`.
+  - Verified `司法警察司 · 查結定案` stays on a single contiguous line (height 25.3px, width 166px in 217px stamp), completely eliminating the lone `案` line wrap on 23 and 24.
+
+- **Deduction Sheet Tabs Clearance & Rubber Stamp CTA (CRITICAL #1e)**:
+  - Placed `.folio-edge-tabs-strip` in flex flow outside `.deduction-scroll-area` (`position: relative; flex-shrink: 0;`), with scroller starting directly below it (`overflow-y: auto;`).
+  - Verified the report narrative `案發陳述` starts cleanly below the tabs and never scrolls underneath them.
+  - Styled section check CTA (`.btn-check-section`) as a tactile vermilion rubber chop pressed onto the page with pressed `:active` state.
+  - Styled hint trigger (`.btn-hint-trigger`) as an authentic tucked paper slip in the folio margin.
+
+- **Overhead Filing Drawer Polish (CRITICAL #1b)**:
+  - Only the open folder (`.is-open`) lifts and displays its inside police dispatch page and clipped crime scene photo; non-active folders sit in the drawer rack showing their staggered manila tabs.
+  - Removed boxed text button `.folder-open-cta` (`翻開卷宗 · 進入現場勘驗 →`); scene entry is triggered directly by tapping the clipped crime scene photo.
+  - Rebuilt drawer pull handle (`.drawer-brass-pull-handle`) as a centered cast bronze drawer pull cup with archival paper label (`推回抽屜 · 返回案頭`), eliminating the full-bleed gold gradient bar.
+
+- **Bakelite Phone & Switchboard Controls (CRITICAL #1a)**:
+  - Styled grokbot external link as an engraved brass plaque (`.switchboard-brass-plaque`).
+  - Styled reset progress CTA as an authentic lead-and-wire wax-sealed fuse tag (`.fuse-tag-btn`).
+  - Completely eliminated horizontal divider rules and border lines across all switchboard sections.
+
+- **Corkboard Memo Contrast & Rubber Stamp (CRITICAL #1d)**:
+  - Upgraded `.corkboard-pinned-memo-scrap` to a solid high-contrast paper note (`background: #FAF5E8; border: 1px solid #755B3C; color: #1E1712; padding: 10px 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.55);`).
+  - Increased scroller top padding to `calc(var(--safe-top) + 72px)` ensuring the memo scrap never overlaps the return tag (`← 返回案頭`).
+  - Styled name slots as authentic paper tape strips with subtle paper texture and rotation.
+  - Styled Who's Who check button (`#btn-cork-check`) as an authentic wooden-handled rubber stamp imprint pressed onto the board.
+
+- **Title & Desk Diegetic Styling (CRITICAL #1f)**:
+  - Removed web menu rows and `CASE 01` / `DOC-001/004` tags from title screen; styled `#btn-start-game` as an archival casebook dossier with calligraphy `開卷 · 調查現場`, and catalogue link as a tucked manila index tab.
+  - Removed top gradient bar from desk hub (`.desk-header-bar`); styled top-right catalogue button (`#btn-desk-open-board`) as a manila paper index tab hanging from the top drawer lip.
+
+- **Scene Top Edge-Tags & Harvested Tag (CRITICAL #1c, MAJOR #3)**:
+  - Converted `.scene-tab-back` and `.scene-tab-report` to corner-pinned paper edge tags tucked into the plate's top corners; hid `.scene-docket-stamp` to remove any app header bar appearance.
+  - Repositioned `.onboarding-guide-banner` into the top center margin as a small telegram slip that never covers the window grilles or hotspots.
+  - Replaced the square 16x16 web badge on harvested hotspots with an authentic 18x13px paper specimen tag with corner pinhole and archival green ink tick (`✓`).
+
+### Verification Gates
+- `node scripts/harsh2_play.mjs http://127.0.0.1:8937/index.html /workspace/nightly/2026-10-28-harbour-casebook/screenshots/fix-r1`: RESULT PASS, exit code 0, 0 errors, 0 occlusions, 34/34 words collected, Who's Who solved, Case 1 solved, epilogue verified.
+- `node --test tests/*.test.mjs`: 9/9 unit tests pass.
+- `bash scripts/audio_check.sh`: all 4 BGM files pass.
+- Verified zero bracketed labels `【】〔〕` across the entire codebase.

@@ -10,9 +10,17 @@ def repaint_pawnshop():
     img_np = np.array(raw_pil)
     bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
 
-    # 2. Painterly edge softening (eliminate harsh comic black lines)
-    # Using bilateral filter
-    smooth = cv2.bilateralFilter(bgr, d=7, sigmaColor=50, sigmaSpace=50)
+    # 2. Inpaint-remove the blue document/sticker from the corpse head at (0.64*w, 0.78*h)
+    mask = np.zeros(img_np.shape[:2], dtype=np.uint8)
+    # Mask blue pixels in the victim head neighborhood
+    blue_cond = (bgr[:, :, 0].astype(int) - bgr[:, :, 2].astype(int) > 15) & (bgr[:, :, 0].astype(int) - bgr[:, :, 1].astype(int) > 5)
+    mask[int(h*0.72):int(h*0.84), int(w*0.56):int(w*0.72)] = blue_cond[int(h*0.72):int(h*0.84), int(w*0.56):int(w*0.72)] * 255
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+    mask = cv2.dilate(mask, kernel)
+    bgr_clean = cv2.inpaint(bgr, mask, inpaintRadius=9, flags=cv2.INPAINT_TELEA)
+
+    # 3. Painterly edge softening (eliminate harsh comic black lines)
+    smooth = cv2.bilateralFilter(bgr_clean, d=7, sigmaColor=50, sigmaSpace=50)
 
     # 3. Noir Chiaroscuro & Warm Lamp Lighting
     # Convert to float [0, 1]
@@ -153,14 +161,15 @@ def repaint_pawnshop():
     draw.rectangle([bx + 28, by + 10, bx + 34, by + 16], fill=(175, 45, 30, 180))
 
     # 5. Clean any artifact on the corpse head at (0.64*w, 0.78*h)
-    # Ensure raw corpse hair / blood pool looks natural with NO sticker on it
-    # We blend with raw at corpse head to guarantee zero sticker:
+    # Paint natural dark hair, skull curvature, and congealed blood pool seamlessly
     ch_x, ch_y = int(w * 0.64), int(h * 0.78)
-    corpse_patch = smooth[ch_y-40:ch_y+40, ch_x-40:ch_x+40]
-    corpse_pil = Image.fromarray(cv2.cvtColor(corpse_patch, cv2.COLOR_BGR2RGB))
-    # Apply matching tone
-    corpse_graded = Image.fromarray((np.power(corpse_patch.astype(np.float32)/255.0, 1.35) * 255.0 * 0.85).astype(np.uint8))
-    canvas.paste(corpse_graded, (ch_x - 40, ch_y - 40))
+    # Deep shadow and dark hair
+    draw.ellipse([ch_x - 30, ch_y - 25, ch_x + 35, ch_y + 30], fill=(22, 16, 12, 230))
+    # Hair strands and shadow
+    draw.ellipse([ch_x - 24, ch_y - 20, ch_x + 28, ch_y + 24], fill=(16, 12, 10, 240))
+    # Dark congealed blood pool around back of skull
+    draw.ellipse([ch_x + 8, ch_y + 4, ch_x + 42, ch_y + 36], fill=(55, 12, 10, 210))
+    draw.ellipse([ch_x + 14, ch_y + 12, ch_x + 36, ch_y + 30], fill=(42, 8, 8, 230))
 
     # 6. Apply fine film grain matching desk_hub
     grain_img = Image.open('assets/ui/film_grain.webp').convert('RGB')

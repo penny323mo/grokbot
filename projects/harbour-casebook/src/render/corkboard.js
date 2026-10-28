@@ -147,11 +147,11 @@ export class Corkboard {
               <div id="corkboard-feedback" class="cork-feedback-banner"></div>
               ${!isWhoSolved ? `
                 <button class="btn-check-corkboard-stamp" id="btn-cork-check" type="button">
-                  <span class="stamp-text">【 鈐印核實人物名冊 】</span>
+                  <span class="stamp-text">鈐印核實人物名冊</span>
                 </button>
               ` : `
                 <div class="cork-solved-stamp">
-                  <span class="stamp-seal-text">【 司法警察司 · 人物全數歸位 】</span>
+                  <span class="stamp-seal-text">司法警察司 · 人物全數歸位</span>
                 </div>
               `}
             </div>
@@ -215,11 +215,11 @@ export class Corkboard {
       this.onWhoSolved(this.caseData);
     } else if (result.status === CHECK_STATUS.FEW_ERRORS) {
       feedbackEl.className = 'cork-feedback-banner is-few-errors';
-      feedbackEl.innerHTML = `<span>【初步指認】名冊中有 <strong>2 處或以下</strong> 姓名有誤，已極為接近。</span>`;
+      feedbackEl.innerHTML = `<span>初步指認：名冊中有 <strong>2 處或以下</strong> 姓名有誤，已極為接近。</span>`;
       audio.playSFX('error_tick');
     } else {
       feedbackEl.className = 'cork-feedback-banner is-many-errors';
-      feedbackEl.innerHTML = `<span>【指認有誤】名冊中有多處錯誤，請比對口供與證言。</span>`;
+      feedbackEl.innerHTML = `<span>指認有誤：名冊中有多處錯誤，請比對口供與證言。</span>`;
       audio.playSFX('error_tick');
     }
   }

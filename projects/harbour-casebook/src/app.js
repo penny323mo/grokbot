@@ -60,14 +60,12 @@ class App {
           </div>
 
           <div class="title-actions">
-            <button class="btn-primary-start folder-tab-button" id="btn-start-game" aria-label="開卷調查">
-              <span class="folder-tab-badge">CASE 01</span>
-              <span class="folder-tab-title">開卷 · 調查現場</span>
-              <span class="folder-tab-seal-stamp">密卷</span>
+            <button class="btn-title-casebook-dossier" id="btn-start-game" aria-label="開卷 · 調查現場">
+              <span class="dossier-ink-seal"></span>
+              <span class="dossier-calligraphy">開卷 · 調查現場</span>
             </button>
-            <button class="btn-secondary-board index-card-button" id="btn-view-board" aria-label="案件目錄">
-              <span class="index-card-serial">DOC-001/004</span>
-              <span class="index-card-title">檔案抽屜 · 案件目錄</span>
+            <button class="btn-title-drawer-tab" id="btn-view-board" aria-label="案件目錄">
+              <span class="drawer-tab-manila">抽屜卷宗目錄</span>
             </button>
           </div>
 

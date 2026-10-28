@@ -97,7 +97,7 @@ export class DeductionSheet {
                 <div class="stamp-ink-splatter"></div>
               </div>
               <div class="stamp-action-callout">
-                <span class="stamp-callout-primary">【 硃砂印落 · 全案告破 】</span>
+                <span class="stamp-callout-primary">硃砂印落 · 全案告破</span>
               </div>
             </button>
           </div>
@@ -193,15 +193,15 @@ export class DeductionSheet {
           <div class="section-footer-actions">
             ${!isSolved ? `
               <button class="btn-check-section" data-section-id="${sec.id}">
-                ${ICONS.scale(16, '#9A3B2C')} 【 鈐印核實此節 】
+                ${ICONS.scale(16, '#9A3B2C')} 鈐印核實此節
               </button>
             ` : `
               <div class="section-solved-stamp">
-                <span class="solved-ink-text">【 司法警察司 · 查結定案 】</span>
+                <span class="solved-ink-text">司法警察司 · 查結定案</span>
               </div>
             `}
             <button class="btn-hint-trigger" data-section-id="${sec.id}" title="案件錦囊提示">
-              ${ICONS.lamp(16, 'currentColor')} 〔 卷宗錦囊 〕
+              ${ICONS.lamp(16, 'currentColor')} 卷宗錦囊
             </button>
           </div>
         </article>
@@ -230,7 +230,7 @@ export class DeductionSheet {
                   <div class="stamp-ink-splatter"></div>
                 </div>
                 <div class="stamp-action-callout">
-                  <span class="stamp-callout-primary">【 硃砂印落 · 全案告破 】</span>
+                  <span class="stamp-callout-primary">硃砂印落 · 全案告破</span>
                   <span class="stamp-callout-secondary">點擊硃砂大印 · 開閱《濠江紀實報》真相號外</span>
                 </div>
               </button>
@@ -434,9 +434,9 @@ export class DeductionSheet {
     if (this.pickerTypeTag) this.pickerTypeTag.textContent = categoryName;
     if (this.pickerTitle) {
       if (mode === 'who') {
-        this.pickerTitle.textContent = `選取【${params.slotLabel}】姓名`;
+        this.pickerTitle.textContent = `選取「${params.slotLabel}」姓名`;
       } else {
-        this.pickerTitle.textContent = `選取【${params.slotLabel}】`;
+        this.pickerTitle.textContent = `選取「${params.slotLabel}」`;
       }
     }
 

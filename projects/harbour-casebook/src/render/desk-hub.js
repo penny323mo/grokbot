@@ -45,7 +45,6 @@ export class DeskHub {
           </div>
           <div class="desk-header-actions">
             <button class="btn-desk-board-folder" id="btn-desk-open-board" title="案件目錄卷宗夾">
-              <span class="folder-tab-seal-mini">總卷</span>
               <span class="desk-folder-tab-text">抽屜卷宗目錄</span>
             </button>
           </div>

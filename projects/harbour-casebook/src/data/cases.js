@@ -14,7 +14,7 @@ export const CASES = [
     title: '當舖驚魂',
     subtitle: 'The Pawnshop Shock',
     date: '1962年5月12日 · 晚間八時半',
-    location: '福隆新街德生大押',
+    location: '福隆新街「德生大押」後櫃庫房',
     incidentIntro: '福隆新街的「德生大押」臨近打烊之時，掌櫃陳德生被發現倒臥於後櫃庫房，頭部遭鈍器重創身亡。昨午由名媛白蘭所抵押、價值連城的前清翡翠玉鐲不知所蹤，保險箱半掩卻無被撬痕跡……',
     sceneImage: 'assets/scenes/case1_pawnshop.webp',
     characters: ['chan_tak_sang', 'ho_bing', 'leung_ah_sei', 'pak_lan'],
@@ -51,7 +51,7 @@ export const CASES = [
       {
         id: 'c1_desk_tea',
         x: 23,
-        y: 74,
+        y: 71,
         name: '書桌上的茶具與鐵尺',
         desc: '書桌上放有陳掌櫃喝乾的普洱茶杯，以及客席的一隻<span class="word-chip" data-word="青瓷茶杯">青瓷茶杯</span>，杯緣赫然印有一道淡紅色唇膏印；桌旁還整齊擺放著掌櫃核算典當尺寸的黃銅<span class="word-chip" data-word="鐵尺">鐵尺</span>。'
       },
@@ -78,8 +78,8 @@ export const CASES = [
       },
       {
         id: 'c1_footprints',
-        x: 50,
-        y: 54,
+        x: 49,
+        y: 55,
         name: '後巷通往門檻的泥印',
         desc: '從庫房側門通往<span class="word-chip" data-word="後巷天井">後巷天井</span>的地磚上，留有數個帶鹹水潮泥的<span class="word-chip" data-word="泥鞋印">泥鞋印</span>，方向通往<span class="word-chip" data-word="內港碼頭">內港碼頭</span>。排查得知碼頭苦力<span class="word-chip" data-word="梁阿四">梁阿四</span>曾路過此處送貨。'
       },
@@ -99,8 +99,8 @@ export const CASES = [
       },
       {
         id: 'c1_earring',
-        x: 39,
-        y: 47,
+        x: 41,
+        y: 48,
         name: '後門石階跌落的珍珠耳環',
         desc: '後門石階門檻夾縫中，半掩著一顆泛著溫潤光澤的天然<span class="word-chip" data-word="珍珠耳環">珍珠耳環</span>，鑲嵌工藝極為考究，與白蘭右耳所戴的單隻耳飾完全一致。'
       }

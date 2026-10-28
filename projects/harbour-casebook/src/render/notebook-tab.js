@@ -45,7 +45,7 @@ export class NotebookTab {
           <div class="notebook-cat-header">
             <div class="notebook-cat-title-wrap">
               <span class="notebook-ink-doodle">§</span>
-              <h4 class="notebook-cat-title">【${meta.name}】</h4>
+              <h4 class="notebook-cat-title">${meta.name}</h4>
               <span class="notebook-cat-count">${collectedInCat.length}/${list.length}</span>
             </div>
             <span class="notebook-cat-desc">${meta.desc}</span>
