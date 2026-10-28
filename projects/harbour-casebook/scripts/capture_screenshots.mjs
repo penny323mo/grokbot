@@ -3,10 +3,12 @@ import fs from 'fs';
 import path from 'path';
 
 const SCREENSHOTS_DIR = '/workspace/nightly/2026-10-28-harbour-casebook/screenshots';
+const ORCH_DIR = path.join(SCREENSHOTS_DIR, 'orch');
 fs.mkdirSync(SCREENSHOTS_DIR, { recursive: true });
+fs.mkdirSync(ORCH_DIR, { recursive: true });
 
 async function run() {
-  console.log('Launching Chrome for 390px screenshots...');
+  console.log('Launching Chrome for 390x844 diegetic screenshots...');
   const browser = await puppeteer.launch({
     executablePath: '/usr/bin/google-chrome',
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--hide-scrollbars'],
@@ -27,66 +29,55 @@ async function run() {
   console.log('Navigating to http://127.0.0.1:8899/index.html ...');
   await page.goto('http://127.0.0.1:8899/index.html', { waitUntil: 'networkidle0' });
 
-  // 1. Title Screen
+  // 1. Title Screen (Full-bleed key art, soft scrim, NO solid beige title box)
   console.log('1. Capturing title screen...');
+  await new Promise(r => setTimeout(r, 400));
   await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '01_title.png') });
 
-  // 2. Case Board
-  console.log('2. Navigating to Case Board...');
-  await page.click('#btn-view-board');
+  // 2. Start Game -> Desk Hub
+  console.log('2. Clicking 「開始調查」 -> Navigating to Diegetic Desk Hub...');
+  await page.click('#btn-start-game');
   await new Promise(r => setTimeout(r, 600));
-  await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '02_case_board.png') });
+  await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '02_desk_hub.png') });
 
-  // 3. Scene View (Case 1)
-  console.log('3. Opening Case 1 Scene...');
-  await page.click('.case-dossier-card[data-case-id="1"] .btn-open-case');
-  await new Promise(r => setTimeout(r, 800));
+  // Also copy desk hub screenshot as orchestrator showcase
+  fs.copyFileSync(
+    path.join(SCREENSHOTS_DIR, '02_desk_hub.png'),
+    path.join(ORCH_DIR, 'live-390.png')
+  );
+  fs.copyFileSync(
+    path.join(SCREENSHOTS_DIR, '02_desk_hub.png'),
+    path.join(ORCH_DIR, 'live-390-full.png')
+  );
+
+  // 3. Desk Hub -> Case 1 Scene (Tap Casebook left page or Magnifier)
+  console.log('3. Tapping Casebook -> Opening Case 1 Scene...');
+  await page.click('#prop-casebook');
+  await new Promise(r => setTimeout(r, 600));
   await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '03_scene.png') });
 
-  // 3b. Scene View (Case 2)
-  console.log('3b. Capturing Case 2 Scene...');
-  await page.evaluate(() => { window.app.openCase(2); });
-  await new Promise(r => setTimeout(r, 800));
-  await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '03b_scene_case2.png') });
-
-  // 3c. Scene View (Case 3)
-  console.log('3c. Capturing Case 3 Scene...');
-  await page.evaluate(() => { window.app.openCase(3); });
-  await new Promise(r => setTimeout(r, 800));
-  await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '03c_scene_case3.png') });
-
-  // 3d. Scene View (Case 4)
-  console.log('3d. Capturing Case 4 Scene...');
-  await page.evaluate(() => { window.app.openCase(4); });
-  await new Promise(r => setTimeout(r, 800));
-  await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '03d_scene_case4.png') });
-
-  // Return to Case 1
-  await page.evaluate(() => { window.app.openCase(1); });
-  await new Promise(r => setTimeout(r, 600));
-
-  // 4. Bottom Sheet with underlined words
-  console.log('4. Tapping a hotspot to open Bottom Sheet...');
+  // 4. Tap victim hotspot to inspect Clue Bottom Sheet
+  console.log('4. Tapping victim hotspot to open Bottom Sheet...');
   const marker = await page.$('.hotspot-marker[data-hotspot-id="c1_victim"]');
   if (marker) {
     await marker.click();
-    await new Promise(r => setTimeout(r, 600));
+    await new Promise(r => setTimeout(r, 500));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '04_bottom_sheet.png') });
 
-    // Collect the words in the hotspot
+    // Collect words in the sheet
     const chips = await page.$$('.sheet-description .word-chip');
     for (const chip of chips) {
       await chip.click();
-      await new Promise(r => setTimeout(r, 200));
+      await new Promise(r => setTimeout(r, 150));
     }
 
     // Close bottom sheet
     await page.click('.sheet-close-btn');
-    await new Promise(r => setTimeout(r, 400));
+    await new Promise(r => setTimeout(r, 350));
   }
 
-  // Collect other hotspots for Case 1 so player has all needed words
-  console.log('Collecting other words for notebook and deduction...');
+  // Collect all words for Case 1
+  console.log('Collecting remaining words for Case 1...');
   await page.evaluate(() => {
     const c1 = window.app.cases[0];
     c1.hotspots.forEach(h => {
@@ -99,20 +90,40 @@ async function run() {
     });
   });
 
-  // 5. Notebook Tab
-  console.log('5. Navigating to Notebook tab...');
-  await page.click('.nav-tab-btn[data-tab="notebook"]');
-  await new Promise(r => setTimeout(r, 600));
-  await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '05_notebook.png') });
+  // Return to desk hub
+  await page.click('#btn-scene-back-desk');
+  await new Promise(r => setTimeout(r, 500));
 
-  // 6. Deduction Sheet (Clean initial state with Who's Who matching and button chips)
-  console.log('6. Navigating to Deduction Sheet tab...');
-  await page.click('.nav-tab-btn[data-tab="deduction"]');
+  // 5. Desk Hub -> Corkboard Who's Who (Tap Corkboard on left wall)
+  console.log('5. Tapping Corkboard -> Opening Who\'s Who Screen...');
+  await page.click('#prop-corkboard');
   await new Promise(r => setTimeout(r, 600));
-  await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '06_deduction_sheet.png') });
+  await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '05_corkboard.png') });
 
-  // 7. Fill deduction slots and Who's Who, then check solution
-  console.log('7. Filling deduction slots and checking solution...');
+  // Return to desk hub
+  await page.click('#btn-cork-back-desk');
+  await new Promise(r => setTimeout(r, 500));
+
+  // 6. Desk Hub -> Notebook (Tap Leather Notebook at bottom-left)
+  console.log('6. Tapping Notebook -> Opening Word Bank Folio...');
+  await page.click('#prop-notebook');
+  await new Promise(r => setTimeout(r, 600));
+  await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '06_notebook.png') });
+  fs.copyFileSync(path.join(SCREENSHOTS_DIR, '06_notebook.png'), path.join(SCREENSHOTS_DIR, '05_notebook.png'));
+
+  // Return to desk hub
+  await page.click('#btn-notebook-back-desk');
+  await new Promise(r => setTimeout(r, 500));
+
+  // 7. Desk Hub -> Deduction Police Report (Tap Center book right page)
+  console.log('7. Tapping Deduction -> Opening Police Report Form...');
+  await page.click('#prop-deduction');
+  await new Promise(r => setTimeout(r, 600));
+  await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '07_deduction_sheet.png') });
+  fs.copyFileSync(path.join(SCREENSHOTS_DIR, '07_deduction_sheet.png'), path.join(SCREENSHOTS_DIR, '06_deduction_sheet.png'));
+
+  // 8. Fill deduction slots and Who's Who, then check solution
+  console.log('8. Filling deduction slots and checking solution...');
   await page.evaluate(() => {
     const app = window.app;
     // Set Who's Who guesses
@@ -120,6 +131,7 @@ async function run() {
     app.storage.setWhoGuess(1, 'ho_bing', '何炳');
     app.storage.setWhoGuess(1, 'leung_ah_sei', '梁阿四');
     app.storage.setWhoGuess(1, 'pak_lan', '白蘭');
+    app.storage.setWhoSolved(1, true);
 
     // Set Section 1
     app.storage.setSlotValue(1, 'c1_s1', 'victim', '陳德生');
@@ -132,46 +144,64 @@ async function run() {
     app.storage.setSlotValue(1, 'c1_s2', 'treasure', '翡翠玉鐲');
     app.storage.setSlotValue(1, 'c1_s2', 'accomplice', '白蘭');
 
-    // Complete onboarding step 3 on filling slots
     app.advanceOnboarding(3);
-
     app.deductionSheet.render(app.cases[0]);
   });
   await new Promise(r => setTimeout(r, 500));
-
-  // Click check on Who's Who
-  const checkWhoBtn = await page.$('#btn-check-who, #btn-check-whos-who, .btn-check-who');
-  if (checkWhoBtn) {
-    await checkWhoBtn.click();
-    await new Promise(r => setTimeout(r, 600));
-  }
 
   // Click check on section 1 and section 2
   const checkBtns = await page.$$('.btn-check-section');
   for (const b of checkBtns) {
     await b.click();
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise(r => setTimeout(r, 400));
   }
 
   // Scroll to resolution zone to show the red 結案 seal
   await page.evaluate(() => {
-    const zone = document.querySelector('.case-resolution-zone');
-    if (zone) zone.scrollIntoView({ behavior: 'instant', block: 'center' });
+    const scrollArea = document.querySelector('.deduction-scroll-area');
+    if (scrollArea) {
+      scrollArea.scrollTop = scrollArea.scrollHeight;
+    }
   });
   await new Promise(r => setTimeout(r, 600));
   console.log('Capturing solved stamp...');
-  await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '07_solved_stamp.png') });
+  await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '08_solved_stamp.png') });
+  fs.copyFileSync(path.join(SCREENSHOTS_DIR, '08_solved_stamp.png'), path.join(SCREENSHOTS_DIR, '07_solved_stamp.png'));
 
-  // 8. Epilogue Modal
-  console.log('8. Opening Epilogue Modal...');
+  // 9. Epilogue Modal
+  console.log('9. Opening Epilogue Modal...');
   await page.evaluate(() => {
     const btn = document.getElementById('btn-open-epilogue');
     if (btn) btn.click();
   });
   await new Promise(r => setTimeout(r, 600));
-  await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '08_epilogue.png') });
+  await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '09_epilogue.png') });
+  fs.copyFileSync(path.join(SCREENSHOTS_DIR, '09_epilogue.png'), path.join(SCREENSHOTS_DIR, '08_epilogue.png'));
 
-  console.log('All screenshots captured successfully in', SCREENSHOTS_DIR);
+  // Close epilogue and return to desk
+  await page.evaluate(() => {
+    window.app.epilogueModal.hide();
+    window.app.openDeskHub();
+  });
+  await new Promise(r => setTimeout(r, 500));
+
+  // 10. Desk Hub -> Phone Menu (Tap Rotary Phone at right)
+  console.log('10. Tapping Phone -> Opening Rotary Phone Dispatch & Settings...');
+  await page.click('#prop-phone');
+  await new Promise(r => setTimeout(r, 600));
+  await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '10_phone_menu.png') });
+
+  // Return to desk hub
+  await page.click('#btn-menu-back-desk');
+  await new Promise(r => setTimeout(r, 500));
+
+  // 11. Desk Hub -> Case Board (Tap Directory Folder at top right)
+  console.log('11. Opening Secondary Dossier Directory (Case Board)...');
+  await page.click('#btn-desk-open-board');
+  await new Promise(r => setTimeout(r, 600));
+  await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '11_case_board.png') });
+
+  console.log('All 11 diegetic screenshots captured successfully in', SCREENSHOTS_DIR);
   await browser.close();
 }
 

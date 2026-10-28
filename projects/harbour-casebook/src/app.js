@@ -1,16 +1,19 @@
 /**
  * 濠江疑案 · Harbour Casebook
- * 主應用程式核心協調器 (Main Application Controller)
- * 依照 SPEC 要求實作：現場 / 筆記 / 推理 / 選單 四頁籤、三階段引導、音量滑桿與純淨向量圖標
+ * 案頭總覽核心協調器 (Diegetic Detective-Desk Rebuild)
+ * 以 1962 探長案頭為核心：無底部導航欄，點擊案頭實物切換現場、筆記、軟木板與推理報告
  */
 
 import { CASES } from './data/cases.js';
 import { storage } from './engine/storage.js';
 import { audio } from './engine/audio.js';
+import { DeskHub } from './render/desk-hub.js';
 import { SceneRenderer } from './render/scene-renderer.js';
 import { BottomSheet } from './render/bottom-sheet.js';
 import { NotebookTab } from './render/notebook-tab.js';
 import { DeductionSheet } from './render/deduction-sheet.js';
+import { Corkboard } from './render/corkboard.js';
+import { PhoneMenu } from './render/phone-menu.js';
 import { CaseBoard } from './render/case-board.js';
 import { EpilogueModal } from './render/epilogue-modal.js';
 import { ICONS } from './utils/icons.js';
@@ -21,9 +24,8 @@ class App {
     this.audio = audio;
     this.cases = CASES;
     this.currentCaseId = 1;
-    this.activeTab = 'scene'; // 'scene' | 'notebook' | 'deduction' | 'menu'
-    this.currentScreen = 'title'; // 'title' | 'board' | 'game'
-    this.onboardingStep = 1; // 1 | 2 | 3 | 4 (completed)
+    this.currentScreen = 'title'; // 'title' | 'desk' | 'scene' | 'deduction' | 'cork' | 'notebook' | 'menu' | 'board'
+    this.onboardingStep = 1;
 
     this.initDOM();
     this.initControllers();
@@ -33,13 +35,13 @@ class App {
   initDOM() {
     this.appRoot = document.getElementById('app');
     this.appRoot.innerHTML = `
-      <!-- Title Screen -->
+      <!-- 1. Title Screen (Full-bleed key art, soft scrim, no solid beige box) -->
       <section id="screen-title" class="screen-view is-active">
         <div class="title-key-art-bg" aria-hidden="true"></div>
         <div class="title-scrim-overlay" aria-hidden="true"></div>
         <div class="title-container">
           <div class="title-top-archival">
-            <span class="title-date-badge">1962 · 澳門內港</span>
+            <span class="title-date-badge">1962 · 澳門內港探署</span>
             <a href="https://penny323mo.github.io/grokbot/" class="link-grokbot-title" target="_blank" rel="noopener noreferrer">
               ← 返回 grokbot
             </a>
@@ -54,7 +56,7 @@ class App {
             <div class="title-ink-divider">
               <img src="assets/ui/ink_rule.webp" class="title-rule-img" alt="" />
             </div>
-            <p class="title-pitch">重回一九六二年澳門內港。在泛黃案卷中蒐證、推演與指認，揭開橫跨四案的殖民黑幕。</p>
+            <p class="title-pitch">重回一九六二年澳門內港。在案頭泛黃案卷中蒐證、推演與指認，揭開橫跨四案的殖民黑幕。</p>
           </div>
 
           <div class="title-actions">
@@ -74,201 +76,124 @@ class App {
         </div>
       </section>
 
-      <!-- Case Board Screen -->
-      <section id="screen-board" class="screen-view">
-        <div id="board-container" class="board-wrapper"></div>
+      <!-- 2. Diegetic Desk Hub Screen (Primary Hub) -->
+      <section id="screen-desk" class="screen-view">
+        <div id="desk-host" class="desk-host-inner"></div>
       </section>
 
-      <!-- Main Game Workspace Screen -->
-      <section id="screen-game" class="screen-view">
-        <!-- Top App Bar -->
-        <header class="game-top-bar">
-          <button class="btn-back-board" id="btn-game-back" aria-label="返回目錄">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <polyline points="15 18 9 12 15 6"></polyline>
+      <!-- 3. Scene Investigation Screen -->
+      <section id="screen-scene" class="screen-view">
+        <header class="scene-top-bar">
+          <button class="btn-desk-nav btn-back-to-desk" id="btn-scene-back-desk" aria-label="返回案頭">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
-            <span class="back-txt">卷宗</span>
+            <span>返回案頭</span>
           </button>
-          <div class="game-top-title-group">
-            <span class="game-case-badge" id="top-case-badge">CASE 01</span>
-            <h2 class="game-case-name" id="top-case-title">當舖驚魂</h2>
+          <div class="scene-top-title-group">
+            <span class="scene-case-badge" id="scene-case-badge">CASE 01</span>
+            <h2 class="scene-case-name" id="scene-case-title">德生大押 · 現場勘查</h2>
           </div>
-          <button class="btn-open-menu" id="btn-top-menu" aria-label="開啟選單">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="4" y1="7" x2="20" y2="7"></line>
-              <line x1="4" y1="12" x2="20" y2="12"></line>
-              <line x1="4" y1="17" x2="20" y2="17"></line>
-            </svg>
+          <button class="btn-desk-nav btn-jump-deduction" id="btn-scene-go-deduction">
+            ${ICONS.scroll(15, 'currentColor')}
+            <span>推理報告</span>
           </button>
         </header>
 
-        <!-- Onboarding Tutorial Banner (3-step progressive guide) -->
+        <!-- Onboarding Tutorial Banner (Case 1 only) -->
         <div id="onboarding-banner" class="onboarding-guide-banner is-hidden">
           <div class="guide-inner">
             <span class="guide-lightbulb">${ICONS.lamp(18, '#9A3B2C')}</span>
             <div class="guide-text" id="guide-text">
-              <strong>第 1 步：</strong>在現場點擊閃爍光圈，勘查物證細節。
+              <strong>第 1 步：</strong>在現場點擊紅色線索圈，勘查物證與證言。
             </div>
             <button class="guide-close-btn" id="btn-close-guide" aria-label="關閉引導">&times;</button>
           </div>
         </div>
 
-        <!-- Tab 1: Scene Viewport Container -->
-        <main id="tab-content-scene" class="game-tab-panel is-active">
+        <!-- Scene Viewport Host -->
+        <main class="scene-workspace">
           <div id="scene-host" class="scene-container-inner"></div>
         </main>
+      </section>
 
-        <!-- Tab 2: Notebook Container (SPEC §6 筆記) -->
-        <main id="tab-content-notebook" class="game-tab-panel">
-          <div id="notebook-host" class="notebook-container-inner"></div>
-        </main>
+      <!-- 4. Deduction Report Screen (police_report.webp) -->
+      <section id="screen-deduction" class="screen-view">
+        <div id="deduction-host" class="deduction-container-inner"></div>
+      </section>
 
-        <!-- Tab 3: Deduction Notebook Container -->
-        <main id="tab-content-deduction" class="game-tab-panel">
-          <div id="deduction-host" class="deduction-container-inner"></div>
-        </main>
+      <!-- 5. Corkboard Screen (corkboard.webp - Who's Who) -->
+      <section id="screen-cork" class="screen-view">
+        <div id="corkboard-host" class="corkboard-container-inner"></div>
+      </section>
 
-        <!-- Tab 4: Settings & Menu View -->
-        <main id="tab-content-menu" class="game-tab-panel">
-          <div class="menu-settings-card">
-            <div class="menu-header">
-              <h3 class="menu-title">卷宗設置與輔助</h3>
-              <p class="menu-subtitle">濠江疑案 · 1962 Archival Notebook</p>
-            </div>
+      <!-- 6. Notebook Screen (notebook_open.webp - Word Bank) -->
+      <section id="screen-notebook" class="screen-view">
+        <div id="notebook-host" class="notebook-container-inner"></div>
+      </section>
 
-            <div class="settings-group">
-              <h4 class="settings-group-title">配樂與音效</h4>
-              <div class="setting-item">
-                <span class="setting-label">背景音樂 (BGM)</span>
-                <label class="switch">
-                  <input type="checkbox" id="check-music" checked>
-                  <span class="slider"></span>
-                </label>
-              </div>
-              <div class="setting-slider-item">
-                <span class="setting-sublabel">音樂音量</span>
-                <input type="range" id="slider-music" min="0" max="1" step="0.05" value="0.7" class="archival-slider">
-              </div>
+      <!-- 7. Rotary Phone Menu Screen (Settings & Grokbot) -->
+      <section id="screen-menu" class="screen-view">
+        <div id="menu-host" class="menu-container-inner"></div>
+      </section>
 
-              <div class="setting-item">
-                <span class="setting-label">物證音效 (SFX)</span>
-                <label class="switch">
-                  <input type="checkbox" id="check-sfx" checked>
-                  <span class="slider"></span>
-                </label>
-              </div>
-              <div class="setting-slider-item">
-                <span class="setting-sublabel">音效音量</span>
-                <input type="range" id="slider-sfx" min="0" max="1" step="0.05" value="0.8" class="archival-slider">
-              </div>
-            </div>
-
-            <div class="settings-group">
-              <h4 class="settings-group-title">字級偏好</h4>
-              <div class="setting-item">
-                <span class="setting-label">文字大小</span>
-                <div class="text-size-toggle">
-                  <button class="btn-text-size is-active" data-size="normal">標準</button>
-                  <button class="btn-text-size" data-size="large">大字</button>
-                </div>
-              </div>
-            </div>
-
-            <div class="settings-group">
-              <h4 class="settings-group-title">外部導航</h4>
-              <a href="https://penny323mo.github.io/grokbot/" class="btn-menu-grokbot" target="_blank" rel="noopener noreferrer">
-                <span class="menu-link-icon">←</span> 返回 grokbot 主站
-              </a>
-            </div>
-
-            <div class="settings-group">
-              <h4 class="settings-group-title">進度重設</h4>
-              <button class="btn-danger-reset" id="btn-reset-progress">
-                清空本機存檔重新開始
-              </button>
-            </div>
-          </div>
-        </main>
-
-        <!-- Bottom Thumb Tab Bar (現場 / 筆記 / 推理 / 選單) -->
-        <nav class="bottom-tab-bar">
-          <button class="nav-tab-btn is-active" data-tab="scene" aria-label="勘驗現場">
-            <span class="tab-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
-              </svg>
-            </span>
-            <span class="tab-label">現場</span>
-            <span class="tab-badge" id="badge-clues">0</span>
-          </button>
-
-          <button class="nav-tab-btn" data-tab="notebook" aria-label="物證筆記">
-            <span class="tab-icon">
-              ${ICONS.notebook(20, 'currentColor')}
-            </span>
-            <span class="tab-label">筆記</span>
-          </button>
-
-          <button class="nav-tab-btn" data-tab="deduction" aria-label="推理卷宗">
-            <span class="tab-icon">
-              ${ICONS.scroll(20, 'currentColor')}
-            </span>
-            <span class="tab-label">推理</span>
-            <span class="tab-badge is-progress" id="badge-deduction">0/2</span>
-          </button>
-
-          <button class="nav-tab-btn" data-tab="menu" aria-label="系統選單">
-            <span class="tab-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="3"></circle>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-              </svg>
-            </span>
-            <span class="tab-label">選單</span>
-          </button>
-        </nav>
+      <!-- 8. Case Board Screen (Secondary Dossier Directory) -->
+      <section id="screen-board" class="screen-view">
+        <div id="board-container" class="board-wrapper"></div>
       </section>
     `;
   }
 
   initControllers() {
-    // 1. Bottom Sheet for clue inspection
+    // 1. Desk Hub Controller
+    const deskHost = document.getElementById('desk-host');
+    this.deskHub = new DeskHub(deskHost, {
+      onNavigate: (viewName) => {
+        if (viewName === 'scene') {
+          this.openScene();
+        } else if (viewName === 'deduction') {
+          this.openDeduction();
+        } else if (viewName === 'cork') {
+          this.openCorkboard();
+        } else if (viewName === 'notebook') {
+          this.openNotebook();
+        } else if (viewName === 'menu') {
+          this.openMenu();
+        } else if (viewName === 'board') {
+          this.showScreen('board');
+          this.caseBoard.render();
+        }
+      }
+    });
+
+    // 2. Bottom Sheet for clue inspection
     this.bottomSheet = new BottomSheet({
       onWordCollect: (word, hotspot) => {
         storage.collectWord(this.currentCaseId, word);
-        this.updateBadges();
         this.updateSceneState();
-        this.advanceOnboarding(2); // Word collected -> go to step 3
+        this.advanceOnboarding(2);
       },
       onClose: (hotspot) => {
-        this.updateBadges();
         this.updateSceneState();
       }
     });
 
-    // 2. Scene Renderer
+    // 3. Scene Renderer
     const sceneHost = document.getElementById('scene-host');
     this.sceneRenderer = new SceneRenderer(sceneHost, {
       onHotspotClick: (hotspot) => {
         storage.markHotspotDiscovered(this.currentCaseId, hotspot.id);
         const caseState = storage.getCaseState(this.currentCaseId);
         this.bottomSheet.show(hotspot, new Set(caseState.collectedWords || []));
-        this.updateBadges();
-        this.advanceOnboarding(1); // Hotspot inspected -> go to step 2
+        this.advanceOnboarding(1);
       }
     });
-
-    // 3. Notebook Tab
-    const notebookHost = document.getElementById('notebook-host');
-    this.notebookTab = new NotebookTab(notebookHost);
 
     // 4. Deduction Sheet
     const deductionHost = document.getElementById('deduction-host');
     this.deductionSheet = new DeductionSheet(deductionHost, {
       onCaseSolved: (caseData) => {
         this.advanceOnboarding(3);
-        this.updateBadges();
         this.caseBoard.render();
       },
       onViewEpilogue: (caseData) => {
@@ -276,29 +201,73 @@ class App {
       },
       onSlotFill: () => {
         this.advanceOnboarding(3);
+      },
+      onBackToDesk: () => {
+        this.openDeskHub();
+      },
+      onGoToScene: () => {
+        this.openScene();
+      },
+      onGoToCorkboard: () => {
+        this.openCorkboard();
       }
     });
 
-    // 5. Case Board
+    // 5. Corkboard (Who's Who)
+    const corkboardHost = document.getElementById('corkboard-host');
+    this.corkboard = new Corkboard(corkboardHost, {
+      onWhoSolved: (caseData) => {
+        this.deductionSheet.render(caseData);
+        this.caseBoard.render();
+      },
+      onBackToDesk: () => {
+        this.openDeskHub();
+      }
+    });
+
+    // 6. Notebook Tab (Word Bank)
+    const notebookHost = document.getElementById('notebook-host');
+    this.notebookTab = new NotebookTab(notebookHost, {
+      onBackToDesk: () => {
+        this.openDeskHub();
+      }
+    });
+
+    // 7. Phone Menu (Settings)
+    const menuHost = document.getElementById('menu-host');
+    this.phoneMenu = new PhoneMenu(menuHost, {
+      onBackToDesk: () => {
+        this.openDeskHub();
+      },
+      onResetGame: () => {
+        this.showScreen('title');
+      }
+    });
+
+    // 8. Case Board
     const boardContainer = document.getElementById('board-container');
     this.caseBoard = new CaseBoard(boardContainer, {
       cases: this.cases,
       onSelectCase: (caseId) => {
-        this.openCase(caseId);
+        this.currentCaseId = caseId;
+        this.openDeskHub();
       },
       onViewEpilogue: (caseData) => {
         this.epilogueModal.show(caseData);
+      },
+      onBackToDesk: () => {
+        this.openDeskHub();
       }
     });
 
-    // 6. Epilogue Modal
+    // 9. Epilogue Modal
     this.epilogueModal = new EpilogueModal({
       onNextCase: (nextCaseId) => {
-        this.openCase(nextCaseId);
+        this.currentCaseId = nextCaseId;
+        this.openDeskHub();
       },
       onBackToBoard: () => {
-        this.showScreen('board');
-        this.caseBoard.render();
+        this.openDeskHub();
       }
     });
   }
@@ -323,7 +292,8 @@ class App {
           break;
         }
       }
-      this.openCase(targetId);
+      this.currentCaseId = targetId;
+      this.openDeskHub();
     });
 
     document.getElementById('btn-view-board').addEventListener('click', () => {
@@ -332,24 +302,15 @@ class App {
       this.caseBoard.render();
     });
 
-    // Game screen top bar
-    document.getElementById('btn-game-back').addEventListener('click', () => {
+    // Scene Top Bar Navigation
+    document.getElementById('btn-scene-back-desk').addEventListener('click', () => {
       audio.playSFX('paper_slide');
-      this.showScreen('board');
-      this.caseBoard.render();
+      this.openDeskHub();
     });
 
-    document.getElementById('btn-top-menu').addEventListener('click', () => {
-      this.switchTab('menu');
-    });
-
-    // Bottom Tab Bar
-    document.querySelectorAll('.nav-tab-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const tab = btn.getAttribute('data-tab');
-        this.switchTab(tab);
-      });
+    document.getElementById('btn-scene-go-deduction').addEventListener('click', () => {
+      audio.playSFX('paper_slide');
+      this.openDeduction();
     });
 
     // Onboarding close
@@ -358,57 +319,67 @@ class App {
       storage.state.onboardingDone = true;
       storage.save();
     });
+  }
 
-    // Settings Menu toggles & volume sliders (MAJOR #6)
-    const checkMusic = document.getElementById('check-music');
-    const checkSfx = document.getElementById('check-sfx');
-    const sliderMusic = document.getElementById('slider-music');
-    const sliderSfx = document.getElementById('slider-sfx');
-    const settings = storage.getSettings();
+  openDeskHub() {
+    const curCase = this.cases.find(c => c.id === this.currentCaseId) || this.cases[0];
+    this.deskHub.render(curCase);
+    this.showScreen('desk');
+    // Subtle sparse ambient desk atmosphere
+    audio.playSFX('clock_tick');
+  }
 
-    checkMusic.checked = !settings.musicMuted;
-    checkSfx.checked = !settings.sfxMuted;
-    sliderMusic.value = settings.musicVolume !== undefined ? settings.musicVolume : 0.7;
-    sliderSfx.value = settings.sfxVolume !== undefined ? settings.sfxVolume : 0.8;
+  openScene() {
+    const caseData = this.cases.find(c => c.id === this.currentCaseId) || this.cases[0];
 
-    checkMusic.addEventListener('change', () => {
-      audio.setMusicMuted(!checkMusic.checked);
-    });
+    // Update Header
+    document.getElementById('scene-case-badge').textContent = `CASE 0${caseData.id}`;
+    document.getElementById('scene-case-title').textContent = `〈${caseData.symbol}〉 ${caseData.title}`;
 
-    checkSfx.addEventListener('change', () => {
-      audio.setSfxMuted(!checkSfx.checked);
-    });
+    // Onboarding guide for Case 1
+    const guideBanner = document.getElementById('onboarding-banner');
+    if (this.currentCaseId === 1 && !storage.state.onboardingDone) {
+      document.getElementById('guide-text').innerHTML = `<strong>第 1 步：</strong>在現場點擊紅色線索圈，勘查物證細節。`;
+      guideBanner.classList.remove('is-hidden');
+    } else {
+      guideBanner.classList.add('is-hidden');
+    }
 
-    sliderMusic.addEventListener('input', () => {
-      const val = parseFloat(sliderMusic.value);
-      audio.setMusicVolume(val);
-    });
+    // Load Scene
+    const caseState = storage.getCaseState(this.currentCaseId);
+    const discoveredIds = caseState.discoveredHotspots || [];
+    const harvestedIds = this.calculateHarvestedHotspots(caseData, caseState.collectedWords || []);
 
-    sliderSfx.addEventListener('input', () => {
-      const val = parseFloat(sliderSfx.value);
-      storage.updateSettings({ sfxVolume: val });
-    });
+    this.sceneRenderer.loadScene(caseData.sceneImage, caseData.hotspots, discoveredIds, harvestedIds);
+    this.showScreen('scene');
+  }
 
-    // Text size buttons
-    document.querySelectorAll('.btn-text-size').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.btn-text-size').forEach(b => b.classList.remove('is-active'));
-        btn.classList.add('is-active');
-        const size = btn.getAttribute('data-size');
-        storage.updateSettings({ textSize: size });
-        document.documentElement.classList.toggle('text-large', size === 'large');
-      });
-    });
+  openDeduction() {
+    const caseData = this.cases.find(c => c.id === this.currentCaseId) || this.cases[0];
+    this.deductionSheet.render(caseData);
+    this.showScreen('deduction');
+  }
 
-    // Reset progress
-    document.getElementById('btn-reset-progress').addEventListener('click', () => {
-      if (window.confirm('確定要清空所有偵查紀錄與推理筆記嗎？此操作不可逆。')) {
-        storage.resetAll();
-        audio.playSFX('stamp_thud');
-        alert('存檔已清空。即將返回主標題。');
-        this.showScreen('title');
-      }
-    });
+  openCorkboard() {
+    const caseData = this.cases.find(c => c.id === this.currentCaseId) || this.cases[0];
+    this.corkboard.render(caseData);
+    this.showScreen('cork');
+  }
+
+  openNotebook() {
+    const caseData = this.cases.find(c => c.id === this.currentCaseId) || this.cases[0];
+    this.notebookTab.render(caseData);
+    this.showScreen('notebook');
+  }
+
+  openMenu() {
+    this.phoneMenu.render();
+    this.showScreen('menu');
+  }
+
+  openCase(caseId) {
+    this.currentCaseId = caseId;
+    this.openScene();
   }
 
   advanceOnboarding(currentStep) {
@@ -418,15 +389,12 @@ class App {
     if (!banner || !textEl) return;
 
     if (currentStep === 1) {
-      // Hotspot inspected -> Step 2
       this.onboardingStep = 2;
-      textEl.innerHTML = `<strong>第 2 步：</strong>在物證描述中，點擊帶墨線的詞語收錄至筆記庫。`;
+      textEl.innerHTML = `<strong>第 2 步：</strong>在物證描述中，點擊帶底線詞語收錄至案頭筆記。`;
     } else if (currentStep === 2) {
-      // Word collected -> Step 3
       this.onboardingStep = 3;
-      textEl.innerHTML = `<strong>第 3 步：</strong>切換至「推理」頁籤，將已收集詞語填入空白重組真相。`;
+      textEl.innerHTML = `<strong>第 3 步：</strong>點擊右上角「推理報告」，將已收集詞語填入案卷空白重組真相。`;
     } else if (currentStep >= 3) {
-      // Step 3 finished (blank filled) -> Complete onboarding!
       this.onboardingStep = 4;
       storage.state.onboardingDone = true;
       storage.save();
@@ -442,68 +410,11 @@ class App {
       target.classList.add('is-active');
     }
 
-    if (screenName === 'game') {
-      audio.playBGM('investigation');
-    } else if (screenName === 'title') {
+    if (screenName === 'title') {
       audio.stopBGM();
-    }
-  }
-
-  switchTab(tabName) {
-    this.activeTab = tabName;
-    audio.playSFX('paper_slide');
-
-    document.querySelectorAll('.nav-tab-btn').forEach(btn => {
-      btn.classList.toggle('is-active', btn.getAttribute('data-tab') === tabName);
-    });
-
-    document.querySelectorAll('.game-tab-panel').forEach(panel => {
-      panel.classList.toggle('is-active', panel.id === `tab-content-${tabName}`);
-    });
-
-    const curCase = this.cases.find(c => c.id === this.currentCaseId);
-    if (tabName === 'scene') {
-      this.sceneRenderer.resetView();
-    } else if (tabName === 'notebook') {
-      if (curCase) this.notebookTab.render(curCase);
-    } else if (tabName === 'deduction') {
-      if (curCase) this.deductionSheet.render(curCase);
-    }
-  }
-
-  openCase(caseId) {
-    this.currentCaseId = caseId;
-    const caseData = this.cases.find(c => c.id === caseId) || this.cases[0];
-
-    // Update Header
-    document.getElementById('top-case-badge').textContent = `CASE 0${caseData.id}`;
-    document.getElementById('top-case-title').textContent = `〈${caseData.symbol}〉 ${caseData.title}`;
-
-    // Onboarding guide for Case 1 (progressive 3-step)
-    const guideBanner = document.getElementById('onboarding-banner');
-    if (caseId === 1 && !storage.state.onboardingDone) {
-      this.onboardingStep = 1;
-      document.getElementById('guide-text').innerHTML = `<strong>第 1 步：</strong>在現場點擊閃爍光圈，勘查物證細節。`;
-      guideBanner.classList.remove('is-hidden');
     } else {
-      guideBanner.classList.add('is-hidden');
+      audio.playBGM('investigation');
     }
-
-    // Load Scene
-    const caseState = storage.getCaseState(caseId);
-    const discoveredIds = caseState.discoveredHotspots || [];
-    const harvestedIds = this.calculateHarvestedHotspots(caseData, caseState.collectedWords || []);
-
-    this.sceneRenderer.loadScene(caseData.sceneImage, caseData.hotspots, discoveredIds, harvestedIds);
-
-    // Prepare Deduction Sheet & Notebook
-    this.deductionSheet.render(caseData);
-    this.notebookTab.render(caseData);
-
-    // Switch to Scene tab
-    this.showScreen('game');
-    this.switchTab('scene');
-    this.updateBadges();
   }
 
   calculateHarvestedHotspots(caseData, collectedWords = []) {
@@ -535,27 +446,6 @@ class App {
     const caseState = storage.getCaseState(this.currentCaseId);
     const harvestedIds = this.calculateHarvestedHotspots(caseData, caseState.collectedWords || []);
     this.sceneRenderer.updateHotspotState(caseState.discoveredHotspots, harvestedIds);
-  }
-
-  updateBadges() {
-    const caseData = this.cases.find(c => c.id === this.currentCaseId);
-    if (!caseData) return;
-    const caseState = storage.getCaseState(this.currentCaseId);
-
-    // Badge clues: count of collected words
-    const clueCount = (caseState.collectedWords || []).length;
-    const badgeClues = document.getElementById('badge-clues');
-    if (badgeClues) {
-      badgeClues.textContent = `${clueCount}`;
-    }
-
-    // Badge deduction: solved sections
-    const solvedCount = (caseState.solvedSections || []).length;
-    const totalSecs = caseData.deductionSections.length;
-    const badgeDed = document.getElementById('badge-deduction');
-    if (badgeDed) {
-      badgeDed.textContent = `${solvedCount}/${totalSecs}`;
-    }
   }
 }
 

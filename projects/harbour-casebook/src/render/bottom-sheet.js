@@ -114,19 +114,23 @@ export class BottomSheet {
 
   animateFlyingWord(sourceEl, word) {
     const rect = sourceEl.getBoundingClientRect();
-    const targetTab = document.querySelector('[data-tab="deduction"]') || document.querySelector('.nav-tab-active');
-    const targetRect = targetTab ? targetTab.getBoundingClientRect() : { left: 200, top: window.innerHeight - 30 };
 
     const flyer = document.createElement('div');
     flyer.className = 'flying-word-chip';
     flyer.textContent = word;
+    flyer.style.position = 'fixed';
     flyer.style.left = `${rect.left}px`;
     flyer.style.top = `${rect.top}px`;
+    flyer.style.zIndex = '9999';
+    flyer.style.pointerEvents = 'none';
+    flyer.style.transition = 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease';
+    flyer.style.transform = 'translate(0, 0) scale(1)';
+    flyer.style.opacity = '1';
     document.body.appendChild(flyer);
 
-    // Compute travel vector
     requestAnimationFrame(() => {
-      flyer.style.transform = `translate(${targetRect.left - rect.left}px, ${targetRect.top - rect.top}px) scale(0.4)`;
+      // Float up gently in place and fade out into harvested state
+      flyer.style.transform = 'translate(0, -28px) scale(1.1)';
       flyer.style.opacity = '0';
     });
 
@@ -134,10 +138,6 @@ export class BottomSheet {
       if (flyer.parentNode) {
         flyer.parentNode.removeChild(flyer);
       }
-      if (targetTab) {
-        targetTab.classList.add('tab-bounce');
-        setTimeout(() => targetTab.classList.remove('tab-bounce'), 300);
-      }
-    }, 450);
+    }, 420);
   }
 }

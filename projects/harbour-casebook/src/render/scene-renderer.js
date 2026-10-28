@@ -39,12 +39,17 @@ export class SceneRenderer {
 
   initDOM() {
     this.container.innerHTML = `
-      <div class="scene-viewport" style="touch-action: none; position: relative; width: 100%; height: 100%; overflow: hidden; background: #E8D9C0;">
+      <div class="scene-viewport" style="touch-action: none; position: relative; width: 100%; height: 100%; overflow: hidden; background: #171410;">
         <div class="scene-transform-layer" style="position: absolute; top: 0; left: 0; width: ${this.baseWidth}px; height: ${this.baseHeight}px; transform-origin: 0 0;">
           <div class="scene-image-host" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
             <img class="scene-img" src="" alt="現場圖景" style="width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; -webkit-user-select: none; user-select: none;" />
           </div>
-          <div class="scene-hotspots-layer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></div>
+          <div class="scene-hotspots-layer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;"></div>
+        </div>
+        <!-- Atmospheric Overlays: Lamp Vignette & Film Grain matching Desk Hub -->
+        <div class="scene-atmosphere-layer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 6;">
+          <div class="scene-vignette" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: url('assets/ui/lamp_vignette.webp') center / cover no-repeat; mix-blend-mode: multiply; opacity: 0.55;"></div>
+          <div class="scene-grain" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: url('assets/ui/film_grain.webp') repeat; mix-blend-mode: overlay; opacity: 0.10;"></div>
         </div>
         <!-- On-screen Zoom / Reset Controls -->
         <div class="scene-controls" style="position: absolute; right: 12px; bottom: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 10;">
@@ -144,14 +149,15 @@ export class SceneRenderer {
 
   resetView() {
     const vpW = this.viewportEl.clientWidth || this.baseWidth;
-    const vpH = this.viewportEl.clientHeight || 600;
+    const vpH = this.viewportEl.clientHeight || this.baseHeight;
 
-    this.scale = vpW / this.baseWidth;
+    // Cover scale fills the entire viewport without empty letterboxes
+    this.scale = Math.max(vpW / this.baseWidth, vpH / this.baseHeight);
     this.minScale = this.scale;
     this.maxScale = this.minScale * 2.8;
 
-    this.panX = 0;
-    this.panY = Math.max(0, (vpH - this.baseHeight * this.scale) / 2);
+    this.panX = (vpW - this.baseWidth * this.scale) / 2;
+    this.panY = (vpH - this.baseHeight * this.scale) / 2;
 
     this.applyTransform();
   }

@@ -28,6 +28,9 @@ export class DeductionSheet {
     this.onCaseSolved = options.onCaseSolved || (() => {});
     this.onViewEpilogue = options.onViewEpilogue || (() => {});
     this.onSlotFill = options.onSlotFill || (() => {});
+    this.onBackToDesk = options.onBackToDesk || (() => {});
+    this.onGoToScene = options.onGoToScene || (() => {});
+    this.onGoToCorkboard = options.onGoToCorkboard || (() => {});
 
     // Active slot being filled
     this.activeSlot = null; // { mode: 'section'|'who', sectionId, slotKey, slotType, slotLabel, portraitId }
@@ -84,36 +87,76 @@ export class DeductionSheet {
     this.caseData = caseData;
     const caseState = storage.getCaseState(caseData.id);
     const isCaseSolved = storage.isCaseSolved(caseData.id);
+    const isWhoComplete = storage.isWhoSolved(caseData.id);
 
     let html = `
-      <div class="deduction-scroll-area">
-        <!-- Case Top Header -->
-        <header class="deduction-header">
-          <div class="deduction-seal-badge">
-            <span class="seal-symbol">${caseData.symbol}</span>
-            <span class="case-number">CASE 0${caseData.id}</span>
+      <div class="deduction-screen-wrapper">
+        <header class="deduction-top-bar">
+          <button class="btn-desk-nav btn-back-to-desk" id="btn-deduction-back-desk">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            <span>返回案頭</span>
+          </button>
+          <div class="deduction-title-group">
+            <span class="deduction-badge">CASE 0${caseData.id} 司法警察司</span>
+            <h2 class="deduction-headline">破案審查表</h2>
           </div>
-          <div class="deduction-title-text">
-            <h2 class="deduction-case-title">〈${caseData.symbol}〉 ${caseData.title}</h2>
-            <p class="deduction-case-subtitle">${caseData.date} · ${caseData.location}</p>
-          </div>
+          <button class="btn-desk-nav btn-jump-scene" id="btn-deduction-go-scene">
+            ${ICONS.search(15, 'currentColor')}
+            <span>勘驗現場</span>
+          </button>
         </header>
 
-        <!-- Incident Summary Card -->
-        <div class="incident-summary-card">
-          <div class="archival-stamp-header">
-            <span class="archival-dot"></span> 案發陳述 · 待決疑雲
-          </div>
-          <p class="incident-intro-text">${caseData.incidentIntro}</p>
-        </div>
+        <div class="deduction-scroll-area">
+          <div class="deduction-police-report-folio">
+            <!-- Official Portuguese Colonial Crest / Header -->
+            <div class="police-report-official-head">
+              <div class="official-crest-seal">
+                <span class="crest-pt">GOVERNO DE MACAU</span>
+                <span class="crest-zh">澳門政務廳</span>
+              </div>
+              <span class="official-docket-no">PROC. CRIME N.º 62/1962</span>
+            </div>
 
-        <!-- Who's Who Character Portraits Matching Matrix -->
-        ${this.renderWhosWhoSection(caseData)}
+            <!-- Case Top Header -->
+            <div class="deduction-header">
+              <div class="deduction-seal-badge">
+                <span class="seal-symbol">${caseData.symbol}</span>
+                <span class="case-number">CASE 0${caseData.id}</span>
+              </div>
+              <div class="deduction-title-text">
+                <h2 class="deduction-case-title">〈${caseData.symbol}〉 ${caseData.title}</h2>
+                <p class="deduction-case-subtitle">${caseData.date} · ${caseData.location}</p>
+              </div>
+            </div>
 
-        <div class="archival-ink-rule-divider"></div>
+            <!-- Incident Summary Card -->
+            <div class="incident-summary-card">
+              <div class="archival-stamp-header">
+                <span class="archival-dot"></span> 案發陳述 · 待決疑雲
+              </div>
+              <p class="incident-intro-text">${caseData.incidentIntro}</p>
+            </div>
 
-        <!-- Deduction Sentence Sections -->
-        <div class="sections-list">
+            <!-- Corkboard Who's Who Quick Link -->
+            <div class="deduction-cork-banner">
+              <div class="cork-banner-left">
+                <span class="cork-banner-pin">${ICONS.pin(16, '#9A3B2C')}</span>
+                <div class="cork-banner-text">
+                  <strong>涉案人物關係牆：</strong>
+                  <span>${isWhoComplete ? '全數人物已指認歸位' : '前往軟木板指認涉案人名'}</span>
+                </div>
+              </div>
+              <button class="btn-open-cork-shortcut" id="btn-deduction-open-cork">
+                ${isWhoComplete ? '檢視人物牆 ✓' : '指認人物 →'}
+              </button>
+            </div>
+
+            <div class="archival-ink-rule-divider"></div>
+
+            <!-- Deduction Sentence Sections -->
+            <div class="sections-list">
     `;
 
     caseData.deductionSections.forEach((sec, idx) => {
@@ -165,17 +208,19 @@ export class DeductionSheet {
     html += `
         </div>
 
-        <!-- Case Resolution Block (Red Seal & Epilogue Button) -->
-        <div class="case-resolution-zone ${isFullySolved ? 'is-visible' : ''}">
-          <div class="stamp-seal-wrapper">
-            <img class="seal-jiean-img animate-stamp" src="assets/ui/seal_jiean_sm.webp" alt="結案硃砂印" />
-          </div>
-          <div class="resolution-actions">
-            <h3 class="resolution-title">全案推理告破！</h3>
-            <p class="resolution-desc">所有疑點均已釐清，物證與證言已嚴絲合縫形成完整證據鏈。</p>
-            <button class="btn-view-epilogue" id="btn-open-epilogue">
-              ${ICONS.scroll(18, '#FAF6EE')} 閱讀「破案始末」真相
-            </button>
+            <!-- Case Resolution Block (Red Seal & Epilogue Button) -->
+            <div class="case-resolution-zone ${isFullySolved ? 'is-visible' : ''}">
+              <div class="stamp-seal-wrapper">
+                <img class="seal-jiean-img animate-stamp" src="assets/ui/seal_jiean_sm.webp" alt="結案硃砂印" />
+              </div>
+              <div class="resolution-actions">
+                <h3 class="resolution-title">全案推理告破！</h3>
+                <p class="resolution-desc">所有疑點均已釐清，物證與證言已嚴絲合縫形成完整證據鏈。</p>
+                <button class="btn-view-epilogue" id="btn-open-epilogue">
+                  ${ICONS.scroll(18, '#FAF6EE')} 閱讀「破案始末」真相
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -255,6 +300,33 @@ export class DeductionSheet {
   }
 
   bindDOMEvents() {
+    // Back to desk
+    const backDeskBtn = this.container.querySelector('#btn-deduction-back-desk');
+    if (backDeskBtn) {
+      backDeskBtn.addEventListener('click', () => {
+        audio.playSFX('paper_slide');
+        this.onBackToDesk();
+      });
+    }
+
+    // Jump to scene
+    const goSceneBtn = this.container.querySelector('#btn-deduction-go-scene');
+    if (goSceneBtn) {
+      goSceneBtn.addEventListener('click', () => {
+        audio.playSFX('paper_slide');
+        this.onGoToScene();
+      });
+    }
+
+    // Open corkboard shortcut
+    const openCorkBtn = this.container.querySelector('#btn-deduction-open-cork');
+    if (openCorkBtn) {
+      openCorkBtn.addEventListener('click', () => {
+        audio.playSFX('paper_slide');
+        this.onGoToCorkboard();
+      });
+    }
+
     // Blank click -> open word picker
     this.container.querySelectorAll('.deduction-blank:not(.is-locked)').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -522,14 +594,13 @@ export class DeductionSheet {
     const sec = this.caseData.deductionSections.find(s => s.id === sectionId);
     if (!sec || !sec.hints || sec.hints.length === 0) return;
 
-    storage.incrementHintUsed(this.caseData.id);
+    const count = storage.incrementSectionHintUsed(this.caseData.id, sectionId);
     audio.playSFX('hint_chime');
 
     const banner = this.container.querySelector(`#feedback-${sectionId}`);
     if (!banner) return;
 
-    const caseState = storage.getCaseState(this.caseData.id);
-    const hintIdx = Math.min(sec.hints.length - 1, (caseState.hintsUsed || 1) - 1);
+    const hintIdx = Math.min(sec.hints.length - 1, count - 1);
     const hintText = sec.hints[hintIdx];
 
     banner.className = 'section-feedback-banner feedback-hint';
@@ -537,7 +608,7 @@ export class DeductionSheet {
       <div class="feedback-content">
         <span class="feedback-icon">${ICONS.lamp(16, '#244156')}</span>
         <div class="feedback-hint-body">
-          <strong>案件錦囊（層級 ${hintIdx + 1}/3）：</strong>
+          <strong>案件錦囊（層級 ${hintIdx + 1}/${sec.hints.length}）：</strong>
           <p>${hintText}</p>
         </div>
       </div>

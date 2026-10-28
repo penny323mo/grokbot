@@ -90,10 +90,13 @@ export class EpilogueModal {
     const paragraphs = caseData.epilogue.text.split('\n\n');
     this.bodyEl.innerHTML = paragraphs.map(p => `<p>${p.replace(/\n/g, '<br/>')}</p>`).join('');
 
+    const caseNumerals = ['', '第一案', '第二案', '第三案', '第四案'];
+    const nextCaseName = caseNumerals[caseData.id + 1] || `第 ${caseData.id + 1} 案`;
+
     if (caseData.id >= 4) {
       this.btnNext.textContent = '終章致謝 · 返回主卷';
     } else {
-      this.btnNext.textContent = `進入 Case 0${caseData.id + 1} →`;
+      this.btnNext.textContent = `進入${nextCaseName} →`;
     }
 
     this.modalEl.classList.add('is-open');

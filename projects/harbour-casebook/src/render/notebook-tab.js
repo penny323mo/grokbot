@@ -1,8 +1,7 @@
 /**
  * 濠江疑案 · Harbour Casebook
- * 偵查筆記本 (Notebook View)
- * 依照 SPEC §6 呈現「現場 / 筆記 / 推理 / 選單」四頁籤之一
- * 將已收錄詞條依人名、物證、動機、地點、兇器、時間等分類歸納
+ * 案頭物證手記 (Diegetic Notebook View)
+ * 點擊案頭皮質筆記本進入，將已收錄詞條依人名、物證、動機、地點、兇器、時間等分類歸納
  */
 
 import { storage } from '../engine/storage.js';
@@ -20,8 +19,9 @@ const CATEGORY_META = {
 };
 
 export class NotebookTab {
-  constructor(containerEl) {
+  constructor(containerEl, options = {}) {
     this.container = containerEl;
+    this.onBackToDesk = options.onBackToDesk || (() => {});
   }
 
   render(caseData) {
@@ -71,21 +71,38 @@ export class NotebookTab {
     });
 
     this.container.innerHTML = `
-      <div class="notebook-scroll-area">
-        <!-- Notebook Top Header -->
-        <header class="notebook-header">
+      <div class="notebook-screen-wrapper">
+        <!-- Notebook Top Bar -->
+        <header class="notebook-header-bar">
+          <button class="btn-desk-nav btn-back-to-desk" id="btn-notebook-back-desk">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            <span>返回案頭</span>
+          </button>
           <div class="notebook-title-group">
             <span class="notebook-badge">CASE 0${caseData.id} 偵查筆錄</span>
-            <h2 class="notebook-main-title">濠江搜證筆記</h2>
-            <p class="notebook-summary">現場勘驗詞彙歸檔：已收錄 ${collectedCount} 條，尚餘 ${totalWords - collectedCount} 條線索隱於現場。</p>
+            <h2 class="notebook-headline">案頭手記 · 物證詞庫</h2>
           </div>
+          <span class="notebook-stat-pill">${collectedCount}/${totalWords} 詞</span>
         </header>
 
-        <!-- Categories List -->
-        <div class="notebook-categories-grid">
-          ${categoriesHtml}
+        <div class="notebook-scroll-area">
+          <div class="notebook-paper-folio">
+            <!-- Categories List -->
+            <div class="notebook-categories-grid">
+              ${categoriesHtml}
+            </div>
+          </div>
         </div>
       </div>
     `;
+
+    const backBtn = this.container.querySelector('#btn-notebook-back-desk');
+    if (backBtn) {
+      backBtn.addEventListener('click', () => {
+        this.onBackToDesk();
+      });
+    }
   }
 }

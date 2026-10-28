@@ -23,7 +23,9 @@ class AudioManager {
       pen_scratch: 'assets/audio/pen_scratch.mp3',
       stamp_thud: 'assets/audio/stamp_thud.mp3',
       error_tick: 'assets/audio/error_tick.mp3',
-      hint_chime: 'assets/audio/hint_chime.mp3'
+      hint_chime: 'assets/audio/hint_chime.mp3',
+      fog_horn: 'assets/audio/fog_horn.mp3',
+      clock_tick: 'assets/audio/clock_tick.mp3'
     };
 
     // Available BGM map

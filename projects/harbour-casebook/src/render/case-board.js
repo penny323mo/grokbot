@@ -14,6 +14,7 @@ export class CaseBoard {
     this.cases = options.cases || [];
     this.onSelectCase = options.onSelectCase || (() => {});
     this.onViewEpilogue = options.onViewEpilogue || (() => {});
+    this.onBackToDesk = options.onBackToDesk || (() => {});
   }
 
   render() {
@@ -92,12 +93,17 @@ export class CaseBoard {
         <!-- Top Board Header -->
         <header class="board-header">
           <div class="board-title-line">
-            <span class="board-badge">總督府警務處 · 絕密檔案</span>
+            <button class="btn-desk-nav btn-back-to-desk" id="btn-board-back-desk">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+              <span>返回案頭</span>
+            </button>
             <a href="https://penny323mo.github.io/grokbot/" class="btn-return-grokbot" target="_blank" rel="noopener noreferrer">
               ← 返回 grokbot
             </a>
           </div>
-          <h1 class="board-main-title">濠江疑案 · 卷宗架</h1>
+          <h1 class="board-main-title">濠江疑案 · 卷宗目錄</h1>
           <p class="board-intro">一九六二年澳門內港。四樁命案，一條貫穿殖民黑幕的驚天伏線。</p>
         </header>
 
@@ -124,6 +130,14 @@ export class CaseBoard {
   }
 
   bindDOMEvents() {
+    const backBtn = this.container.querySelector('#btn-board-back-desk');
+    if (backBtn) {
+      backBtn.addEventListener('click', () => {
+        audio.playSFX('paper_slide');
+        this.onBackToDesk();
+      });
+    }
+
     this.container.querySelectorAll('.btn-open-case').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();

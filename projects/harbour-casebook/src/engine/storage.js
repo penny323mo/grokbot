@@ -8,10 +8,10 @@ const STORAGE_KEY = 'harbour_casebook_save_v1';
 const DEFAULT_STATE = {
   currentCaseId: 1,
   cases: {
-    1: { discoveredHotspots: [], collectedWords: [], filledSlots: {}, solvedSections: [], solved: false, timeSpent: 0, hintsUsed: 0 },
-    2: { discoveredHotspots: [], collectedWords: [], filledSlots: {}, solvedSections: [], solved: false, timeSpent: 0, hintsUsed: 0 },
-    3: { discoveredHotspots: [], collectedWords: [], filledSlots: {}, solvedSections: [], solved: false, timeSpent: 0, hintsUsed: 0 },
-    4: { discoveredHotspots: [], collectedWords: [], filledSlots: {}, solvedSections: [], solved: false, timeSpent: 0, hintsUsed: 0 }
+    1: { discoveredHotspots: [], collectedWords: [], filledSlots: {}, solvedSections: [], solved: false, timeSpent: 0, hintsUsed: 0, hintsBySection: {} },
+    2: { discoveredHotspots: [], collectedWords: [], filledSlots: {}, solvedSections: [], solved: false, timeSpent: 0, hintsUsed: 0, hintsBySection: {} },
+    3: { discoveredHotspots: [], collectedWords: [], filledSlots: {}, solvedSections: [], solved: false, timeSpent: 0, hintsUsed: 0, hintsBySection: {} },
+    4: { discoveredHotspots: [], collectedWords: [], filledSlots: {}, solvedSections: [], solved: false, timeSpent: 0, hintsUsed: 0, hintsBySection: {} }
   },
   settings: {
     musicMuted: false,
@@ -74,8 +74,12 @@ export class StorageEngine {
         solvedSections: [],
         solved: false,
         timeSpent: 0,
-        hintsUsed: 0
+        hintsUsed: 0,
+        hintsBySection: {}
       };
+    }
+    if (!this.state.cases[caseId].hintsBySection) {
+      this.state.cases[caseId].hintsBySection = {};
     }
     return this.state.cases[caseId];
   }
@@ -182,6 +186,21 @@ export class StorageEngine {
     const c = this.getCaseState(caseId);
     c.hintsUsed = (c.hintsUsed || 0) + 1;
     this.save();
+  }
+
+  incrementSectionHintUsed(caseId, sectionId) {
+    const c = this.getCaseState(caseId);
+    c.hintsUsed = (c.hintsUsed || 0) + 1;
+    if (!c.hintsBySection) c.hintsBySection = {};
+    c.hintsBySection[sectionId] = (c.hintsBySection[sectionId] || 0) + 1;
+    this.save();
+    return c.hintsBySection[sectionId];
+  }
+
+  getSectionHintUsed(caseId, sectionId) {
+    const c = this.getCaseState(caseId);
+    if (!c.hintsBySection) return 0;
+    return c.hintsBySection[sectionId] || 0;
   }
 
   addTimeSpent(caseId, seconds) {
