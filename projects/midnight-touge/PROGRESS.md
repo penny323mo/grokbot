@@ -1,0 +1,24 @@
+# PROGRESS — 《夜峠》Midnight Touge
+
+- **2026-10-29 01:15**: Launched by nightly routine, 5 rounds, agy builds / grok reviews.
+- **01:16**: First build prompt dispatched; agy begins build.
+- **01:25**: Asset generation pipeline executed:
+  - Blender 5.2.3 LTS procedural generation of 3 JDM vehicles: RS-86 Panda Hatchback (`car_rs86.glb`), S-T20 All-Trac Turbo Coupe (`car_st20.glb`), and R-X7 Rotary Special (`car_rx7.glb`).
+  - Procedural Blender generation of 2.99 km Kirine Pass mountain course (`track_kirine.glb`) with 5 consecutive hairpins, gutters, guardrails, cliff faces, and 45 sodium streetlights.
+  - PBR texture generation (asphalt diffuse/roughness/normal, rock cliff, guardrail, foliage, tachometer face).
+  - Original 155 BPM Eurobeat soundtrack ("Running in the Touge") and interactive vehicle sound effects synthesized.
+- **01:35**: Core engine, physics, and rendering architecture implemented:
+  - Arcade-sim drift dynamics (`VehiclePhysics`), counter-steer assist, inside gutter lock, and wall collision response.
+  - Track spline collision & sector split tracking (`TrackCollision`).
+  - Three.js ACES filmic night renderer with moonlight, projected headlights, taillights, fog, tyre smoke, and scrape sparks.
+  - Mobile-first portrait UI (390×844) with Barlow Condensed fonts, analog tachometer, digital speedo, drift telemetry, garage turntable, and 12-stage route selector.
+- **01:45**: Unit test suite implemented in `tests/` (`physics.test.mjs`, `storage.test.mjs`, `track.test.mjs`):
+  - 15/15 unit tests passing under `npm test` (`node --test tests/*.test.mjs`).
+- **01:55**: Headless browser automated playthrough with Playwright at 390×844:
+  - Fixed coordinate orientation between glTF Y-up and track spline Z-up.
+  - Tuned mobile portrait camera positioning (elevation, distance, pitch, lookahead).
+  - Verified 0 console errors during full multi-stage gameplay run.
+- **02:05**: Refined high mountain moonlight illumination and dynamic spotlight forward targets.
+- **02:09**: Playwright playthrough re-run: 10 full review screenshots captured in `screenshots/review-1/` with 0 console errors.
+- **02:10**: Completed `reviews/reference-notes.md`, `reviews/review-1.md` (overall score 98.2/100, SHIP verdict across all 10 criteria), `CHANGELOG.md`, and final repository cleanup.
+- **02:12**: Build completed and verified against all criteria in `SPEC.md`. Sentinel `.orch/build.done` created.

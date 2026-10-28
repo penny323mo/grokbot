@@ -1,0 +1,11 @@
+{
+  "name": "midnight-touge",
+  "version": "1.0.0",
+  "description": "3D Initial D-style mountain-pass night drift racing game",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  },
+  "keywords": ["touge", "initial-d", "drift", "racing", "threejs", "webgl"],
+  "license": "UNLICENSED"
+}

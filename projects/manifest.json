@@ -1,6 +1,17 @@
 {
   "projects": [
     {
+      "id": "midnight-touge",
+      "title": "夜峠",
+      "subtitle": "Midnight Touge",
+      "category": "賽車遊戲",
+      "description": "深夜山道 3D 甩尾競速：髮夾彎、霧氣、街燈與引擎咆哮，用指尖一路甩落山。",
+      "accent": "#D9822B",
+      "path": "projects/midnight-touge/",
+      "added": "2026-10-29",
+      "cover": "projects/midnight-touge/cover/cover.webp"
+    },
+    {
       "id": "harbour-casebook",
       "title": "濠江疑案",
       "subtitle": "Harbour Casebook",

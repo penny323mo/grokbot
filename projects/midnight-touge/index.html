@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>《夜峠》Midnight Touge — 3D 深夜山道甩尾競速</title>
+  <meta name="description" content="3D Initial D-style mountain-pass night drift racing game. 霧嶺 (Kirine Pass), 80s/90s JDM cars, Eurobeat soundtrack.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#070D12">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- 3D WebGL Canvas Layer -->
+  <canvas id="game-canvas"></canvas>
+
+  <!-- Atmospheric Post-FX Stack (Vignette, Film Grain, Chromatic Aberration & Speed Lines) -->
+  <div id="post-fx-layer" class="post-fx-layer">
+    <div id="fx-vignette" class="fx-vignette"></div>
+    <div id="fx-grain" class="fx-grain"></div>
+    <div id="fx-chromatic" class="fx-chromatic"></div>
+    <div id="fx-speed-lines" class="fx-speed-lines"></div>
+  </div>
+
+  <!-- Cockpit RHD Rear-View Mirror Bezel Overlay -->
+  <div id="cockpit-mirror-frame" class="cockpit-mirror-bezel" style="display:none;">
+    <span class="mirror-label">MIRROR / 後視鏡</span>
+  </div>
+
+  <!-- In-Game Telemetry & Racing HUD Layer -->
+  <div id="hud-container"></div>
+
+  <!-- Full-Bleed UI Screens Layer (Title, Garage, Event Select, Modals) -->
+  <div id="ui-container"></div>
+
+  <!-- ES Module Application Bootstrap -->
+  <script type="module">
+    import { TougeEngine } from './src/core/engine.js';
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const game = new TougeEngine();
+        window.__TOUGE_GAME__ = game;
+        await game.init();
+      } catch (err) {
+        console.error("Failed to initialize Midnight Touge engine:", err);
+      }
+    });
+  </script>
+</body>
+</html>
