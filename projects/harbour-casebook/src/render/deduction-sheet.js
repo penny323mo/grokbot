@@ -110,6 +110,8 @@ export class DeductionSheet {
         <!-- Who's Who Character Portraits Matching Matrix -->
         ${this.renderWhosWhoSection(caseData)}
 
+        <div class="archival-ink-rule-divider"></div>
+
         <!-- Deduction Sentence Sections -->
         <div class="sections-list">
     `;
@@ -165,12 +167,8 @@ export class DeductionSheet {
 
         <!-- Case Resolution Block (Red Seal & Epilogue Button) -->
         <div class="case-resolution-zone ${isFullySolved ? 'is-visible' : ''}">
-          <div class="big-vermilion-seal">
-            <div class="seal-inner-circle">
-              <span class="seal-word-top">濠江</span>
-              <span class="seal-word-main">結案</span>
-              <span class="seal-word-bottom">警務局印</span>
-            </div>
+          <div class="stamp-seal-wrapper">
+            <img class="seal-jiean-img animate-stamp" src="assets/ui/seal_jiean_sm.webp" alt="結案硃砂印" />
           </div>
           <div class="resolution-actions">
             <h3 class="resolution-title">全案推理告破！</h3>
@@ -218,7 +216,7 @@ export class DeductionSheet {
             return `
               <div class="portrait-card" data-char-id="${char.id}">
                 <div class="portrait-avatar" title="${isWhoSolved ? char.name : '點擊檢視肖像檔案'}">
-                  ${char.svg}
+                  <img class="portrait-img" src="${char.img}" alt="${isWhoSolved ? char.name : neutralLabel}" loading="lazy" />
                 </div>
                 <div class="portrait-slot-wrap">
                   ${isWhoSolved ? `
@@ -558,7 +556,9 @@ export class DeductionSheet {
     if (!isWhoSolved) {
       modal.innerHTML = `
         <div class="bio-modal-content">
-          <div class="bio-avatar-frame">${char.svg}</div>
+          <div class="bio-avatar-frame">
+            <img class="portrait-img bio-portrait-img" src="${char.img}" alt="涉案人物" />
+          </div>
           <div class="bio-text-group">
             <h3 class="bio-name">涉案人物 · 身份待查</h3>
             <div class="bio-meta">澳督府警務局 · 1962 卷宗肖像</div>
@@ -570,7 +570,9 @@ export class DeductionSheet {
     } else {
       modal.innerHTML = `
         <div class="bio-modal-content">
-          <div class="bio-avatar-frame">${char.svg}</div>
+          <div class="bio-avatar-frame">
+            <img class="portrait-img bio-portrait-img" src="${char.img}" alt="${char.name}" />
+          </div>
           <div class="bio-text-group">
             <h3 class="bio-name">${char.name}</h3>
             <div class="bio-meta">${char.age} · ${char.title}</div>

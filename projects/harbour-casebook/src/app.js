@@ -35,6 +35,8 @@ class App {
     this.appRoot.innerHTML = `
       <!-- Title Screen -->
       <section id="screen-title" class="screen-view is-active">
+        <div class="title-key-art-bg" aria-hidden="true"></div>
+        <div class="title-scrim-overlay" aria-hidden="true"></div>
         <div class="title-container">
           <div class="title-top-archival">
             <span class="title-date-badge">1962 · 澳門內港</span>
@@ -44,21 +46,20 @@ class App {
           </div>
 
           <div class="title-emblem-box">
-            <div class="title-vermilion-stamp">
-              <span>澳督府</span>
-              <span>偵查</span>
+            <div class="title-dossier-seal">
+              <img src="assets/ui/seal_title.webp" class="seal-title-img" alt="總督府案卷印" />
             </div>
             <h1 class="main-game-title">濠江疑案</h1>
-            <h2 class="main-game-subtitle">HARBOUR CASEBOOK</h2>
-            <div class="title-divider-line">
-              <span class="divider-diamond">◆</span>
+            <h2 class="main-game-subtitle">HARBOUR CASEBOOK · 1962</h2>
+            <div class="title-ink-divider">
+              <img src="assets/ui/ink_rule.webp" class="title-rule-img" alt="" />
             </div>
             <p class="title-pitch">重回一九六二年澳門內港。在泛黃案卷中蒐證、推演與指認，揭開橫跨四案的殖民黑幕。</p>
           </div>
 
           <div class="title-actions">
             <button class="btn-primary-start" id="btn-start-game">
-              <span class="btn-ink-symbol">${ICONS.pen(18, '#FAF6EE')}</span> 開啟案卷
+              <span class="btn-ink-symbol">${ICONS.pen(18, 'currentColor')}</span> 開始調查
             </button>
             <button class="btn-secondary-board" id="btn-view-board">
               案件目錄

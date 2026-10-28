@@ -79,9 +79,7 @@ export class CaseBoard {
 
             ${isSolved ? `
               <div class="dossier-card-stamp">
-                <div class="stamp-square">
-                  <span>結案</span>
-                </div>
+                <img class="card-seal-jiean" src="assets/ui/seal_jiean_sm.webp" alt="已結案" />
               </div>
             ` : ''}
           </div>
@@ -102,6 +100,8 @@ export class CaseBoard {
           <h1 class="board-main-title">濠江疑案 · 卷宗架</h1>
           <p class="board-intro">一九六二年澳門內港。四樁命案，一條貫穿殖民黑幕的驚天伏線。</p>
         </header>
+
+        <div class="archival-ink-rule-divider"></div>
 
         <!-- Cards List -->
         <div class="dossier-grid">

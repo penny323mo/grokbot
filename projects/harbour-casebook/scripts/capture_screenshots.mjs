@@ -43,6 +43,28 @@ async function run() {
   await new Promise(r => setTimeout(r, 800));
   await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '03_scene.png') });
 
+  // 3b. Scene View (Case 2)
+  console.log('3b. Capturing Case 2 Scene...');
+  await page.evaluate(() => { window.app.openCase(2); });
+  await new Promise(r => setTimeout(r, 800));
+  await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '03b_scene_case2.png') });
+
+  // 3c. Scene View (Case 3)
+  console.log('3c. Capturing Case 3 Scene...');
+  await page.evaluate(() => { window.app.openCase(3); });
+  await new Promise(r => setTimeout(r, 800));
+  await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '03c_scene_case3.png') });
+
+  // 3d. Scene View (Case 4)
+  console.log('3d. Capturing Case 4 Scene...');
+  await page.evaluate(() => { window.app.openCase(4); });
+  await new Promise(r => setTimeout(r, 800));
+  await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '03d_scene_case4.png') });
+
+  // Return to Case 1
+  await page.evaluate(() => { window.app.openCase(1); });
+  await new Promise(r => setTimeout(r, 600));
+
   // 4. Bottom Sheet with underlined words
   console.log('4. Tapping a hotspot to open Bottom Sheet...');
   const marker = await page.$('.hotspot-marker[data-hotspot-id="c1_victim"]');

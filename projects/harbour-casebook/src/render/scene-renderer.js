@@ -2,6 +2,7 @@
  * 濠江疑案 · Harbour Casebook
  * 現場畫布與縮放引擎 (Scene Viewport & Hotspots Renderer)
  * 針對 iPhone 390×844 一指滑動平移與捏合縮放優化
+ * 載入 1962 澳門現場 WebP 藝術圖景，支援高精度百分比物證標記
  */
 
 export class SceneRenderer {
@@ -12,7 +13,11 @@ export class SceneRenderer {
     this.discoveredIds = new Set();
     this.fullyHarvestedIds = new Set();
 
-    // Viewport transforms (Scene base: 390x700)
+    // Base scene coordinates (Aspect ratio 2:3 matching 832×1248 scenes: 390 × 585)
+    this.baseWidth = 390;
+    this.baseHeight = 585;
+
+    // Viewport transforms
     this.scale = 1.0;
     this.minScale = 1.0;
     this.maxScale = 2.8;
@@ -34,9 +39,11 @@ export class SceneRenderer {
 
   initDOM() {
     this.container.innerHTML = `
-      <div class="scene-viewport" style="touch-action: none; position: relative; width: 100%; height: 100%; overflow: hidden; background: #EFE6D8;">
-        <div class="scene-transform-layer" style="position: absolute; top: 0; left: 0; width: 390px; height: 700px; transform-origin: 0 0;">
-          <div class="scene-svg-host" style="width: 100%; height: 100%;"></div>
+      <div class="scene-viewport" style="touch-action: none; position: relative; width: 100%; height: 100%; overflow: hidden; background: #E8D9C0;">
+        <div class="scene-transform-layer" style="position: absolute; top: 0; left: 0; width: ${this.baseWidth}px; height: ${this.baseHeight}px; transform-origin: 0 0;">
+          <div class="scene-image-host" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
+            <img class="scene-img" src="" alt="現場圖景" style="width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; -webkit-user-select: none; user-select: none;" />
+          </div>
           <div class="scene-hotspots-layer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></div>
         </div>
         <!-- On-screen Zoom / Reset Controls -->
@@ -53,7 +60,8 @@ export class SceneRenderer {
 
     this.viewportEl = this.container.querySelector('.scene-viewport');
     this.layerEl = this.container.querySelector('.scene-transform-layer');
-    this.svgHost = this.container.querySelector('.scene-svg-host');
+    this.imageHost = this.container.querySelector('.scene-image-host');
+    this.sceneImg = this.container.querySelector('.scene-img');
     this.hotspotsLayer = this.container.querySelector('.scene-hotspots-layer');
     this.resetBtn = this.container.querySelector('.btn-reset-zoom');
 
@@ -63,23 +71,35 @@ export class SceneRenderer {
     });
   }
 
-  loadScene(svgUrl, hotspots, discoveredIds = [], fullyHarvestedIds = []) {
+  loadScene(imageUrl, hotspots, discoveredIds = [], fullyHarvestedIds = []) {
     this.hotspots = hotspots || [];
     this.discoveredIds = new Set(discoveredIds);
     this.fullyHarvestedIds = new Set(fullyHarvestedIds);
 
-    // Fetch and embed SVG inline so styling and rendering is seamless
-    fetch(svgUrl)
-      .then(res => res.text())
-      .then(svgText => {
-        this.svgHost.innerHTML = svgText;
+    const onImageLoaded = () => {
+      this.renderHotspots();
+      this.resetView();
+    };
+
+    if (this.sceneImg) {
+      if (this.sceneImg.src && this.sceneImg.src.endsWith(imageUrl)) {
         this.renderHotspots();
         this.resetView();
-      })
-      .catch(err => {
-        console.error('Failed to load scene SVG:', err);
-        this.svgHost.innerHTML = `<div class="error-msg" style="padding: 20px; color: #9A3B2C;">無法載入現場圖景</div>`;
-      });
+      } else {
+        this.sceneImg.onload = onImageLoaded;
+        this.sceneImg.onerror = (err) => {
+          console.error('Failed to load scene WebP:', err);
+          this.imageHost.innerHTML = `<div class="error-msg" style="padding: 20px; color: #9A3B2C;">無法載入現場圖景</div>`;
+        };
+        this.sceneImg.src = imageUrl;
+        if (this.sceneImg.complete && this.sceneImg.naturalWidth > 0) {
+          onImageLoaded();
+        }
+      }
+    } else {
+      this.renderHotspots();
+      this.resetView();
+    }
   }
 
   updateHotspotState(discoveredIds = [], fullyHarvestedIds = []) {
@@ -123,18 +143,15 @@ export class SceneRenderer {
   }
 
   resetView() {
-    // Fit to viewport width
-    const vpW = this.viewportEl.clientWidth || 390;
+    const vpW = this.viewportEl.clientWidth || this.baseWidth;
     const vpH = this.viewportEl.clientHeight || 600;
 
-    this.scale = vpW / 390;
+    this.scale = vpW / this.baseWidth;
     this.minScale = this.scale;
-    this.maxScale = this.minScale * 2.5;
+    this.maxScale = this.minScale * 2.8;
 
-    // Center horizontally
     this.panX = 0;
-    // Align near top with slight breathing room
-    this.panY = Math.max(0, (vpH - 700 * this.scale) / 2);
+    this.panY = Math.max(0, (vpH - this.baseHeight * this.scale) / 2);
 
     this.applyTransform();
   }
@@ -145,10 +162,10 @@ export class SceneRenderer {
   }
 
   clampPan() {
-    const vpW = this.viewportEl.clientWidth || 390;
+    const vpW = this.viewportEl.clientWidth || this.baseWidth;
     const vpH = this.viewportEl.clientHeight || 600;
-    const curW = 390 * this.scale;
-    const curH = 700 * this.scale;
+    const curW = this.baseWidth * this.scale;
+    const curH = this.baseHeight * this.scale;
 
     if (curW <= vpW) {
       this.panX = (vpW - curW) / 2;

@@ -120,3 +120,122 @@
 - **Verification & Screenshots**:
   - Re-verified all 7 test suites via `node --test tests/*.test.mjs` (all pass with 0 failures).
   - Recaptured updated 390px mobile screenshots `03_scene.png` and `04_bottom_sheet.png` reflecting the enhanced 3/4 pawnshop perspective.
+
+## Art overhaul
+
+### Commercial Art Asset Integration
+- **Full WebP Scene Integration**:
+  - Replaced SVG scene fetching in `src/render/scene-renderer.js` with direct WebP image loading (`<img>`), preserving pan, pinch, and zoom transforms.
+  - Aligned scene viewport transform layer to exact 2:3 aspect ratio (390×585) matching the 832×1248 painted illustrations.
+  - Updated all 4 cases in `src/data/cases.js` to point `sceneImage` at commercial WebP assets: `case1_pawnshop.webp`, `case2_pier.webp`, `case3_theatre.webp`, and `case4_penha.webp`.
+  - Remapped Case 1 hotspot coordinates using the binding table in `ART_DIRECTION.md` (`c1_victim` 48,58; `c1_abacus` 30,52; `c1_safe` 22,40; `c1_handkerchief` 24,45; `c1_desk_tea` 22,78; `c1_ticket_ledger` 58,65; `c1_noodle_basket` 72,58; `c1_drawer_ferry` 78,40; `c1_footprints` 42,72; `c1_alley_matches` 55,50; `c1_window_grille` 14,22; `c1_earring` 48,82), verified to land directly on painted objects.
+- **Commercial Painted Portraits (17 Characters)**:
+  - Updated `src/data/portraits.js` to replace inline SVG blobs with commercial painted portraits (`img: 'assets/portraits/<id>.webp'`), maintaining full character metadata.
+  - Added backward-compatible `get svg()` getter on every character record returning `<img class="portrait-img" ...>`.
+  - Updated `src/render/deduction-sheet.js` Who's Who cards and bio modals to render `<img class="portrait-img">` with circular archival photo framing and ink borders.
+  - Preserved neutral labels (「人物甲」, 「人物乙」, 「人物丙」...) in Who's Who to eliminate spoilers before case completion.
+- **Title Screen Rebuild**:
+  - Built full-bleed key art layout using `assets/art/title_key.webp` with an archival vignette scrim for crisp contrast.
+  - Added decorative dossier seal `assets/ui/seal_title.webp` and section flourish `assets/ui/ink_rule.webp`.
+  - Refined typography with Noto Serif CJK TC display title 「濠江疑案」, letter-spaced English subtitle 「HARBOUR CASEBOOK · 1962」, and mature 「開始調查」 primary CTA.
+- **Archival UI Polish & Seal Stamps**:
+  - Switched background texture tile across the app shell, screens, and modals to `assets/ui/paper_texture.webp`.
+  - Replaced CSS red square buttons with authentic vermilion 硃砂「結案」印 (`assets/ui/seal_jiean_sm.webp`) on case resolution (with -12° rotation and stamp thud animation), dossier cards on the case board, and the epilogue dialog.
+  - Embedded `assets/ui/ink_rule.webp` archival flourishes across the title screen, case board, and deduction sheet.
+  - Aligned color palette tokens with `ART_DIRECTION.md`: Paper `#F4EBDA`, Paper deep `#E8D9C0`, Ink `#2C2416`, Ink soft `#5A4A38`, Vermilion `#9A3B2C`, Azulejo `#3A6B7A`, Jade `#4F6F5F`, Gold `#B8975A`.
+- **CSS De-Cartooning Pass**:
+  - Removed childish comic solid offset drop shadows (`3px 3px 0 var(--color-ink)`) throughout buttons, cards, modals, and controls, replacing them with subtle archival borders and diffuse paper elevation.
+  - Enforced dossier card corner radii ≤ 6px with tight rhythm and clear typographical hierarchy.
+- **Automated Verification & Screenshots**:
+  - Ran all 7 test suites via `node --test tests/*.test.mjs` (all pass with 0 failures in ~150ms).
+  - Recaptured fresh 390px mobile screenshots (`01_title.png` through `08_epilogue.png`) and updated `screenshots/orch/` benchmarks.
+
+## Round 1 fixes
+
+### Art Overhaul Review Refinements (orch-r1-grok)
+- **CRITICAL #1: Warm Paper Grain Restored**:
+  - Re-generated `assets/ui/paper_texture.webp` (512×512 seamless wrap) with warm off-white tone (base `#F4EBDA`, mean RGB `[243.5, 234.5, 217.5]`, stddev `~1.8`), completely eliminating the analog TV noise across `#app`, `.screen-view`, `.bottom-sheet-content`, deduction sheet, notebook, and epilogue modal.
+- **CRITICAL #2: Authentic Vermilion 硃砂 Seals**:
+  - Re-generated `assets/ui/seal_jiean.webp`, `assets/ui/seal_jiean_sm.webp`, and `assets/ui/seal_title.webp` as authentic vermilion `#9A3B2C` (154, 59, 44) stone chop seals with eroded edges and crisp transparent alpha backgrounds, eliminating the black square bug across the title screen, solved case stamps, and epilogue.
+- **MAJOR #3: Title Screen Atmospheric Key Art & Archival Typography**:
+  - Dropped `.title-scrim-overlay` opacity to ≤0.35 over the painting with an atmospheric gradient, allowing the hand-painted 1962 Inner Harbour illustration `assets/art/title_key.webp` to prominently carry the cover.
+  - Placed title typography and subtitle on a distinguished archival parchment plaque (`rgba(244, 235, 218, 0.94)`) with ink borders and a subtle vermilion double-inset line.
+  - Restyled primary CTA 「開始調查」 as a refined typographic paper button with vermilion archival lacquer finish and letter-spaced serif typography.
+- **MAJOR #4: Precise Painted Object Hotspot Alignment**:
+  - Re-measured and re-mapped all 48 hotspot coordinates across all 4 cases in `src/data/cases.js` directly to the painted objects in the 832×1248 WebP scene illustrations:
+    - Case 1 (`pawnshop`): Re-aligned victim Chen Tak-sang body `(48, 68)`, abacus `(32, 58)`, ledger `(66, 68)`, noodle basket `(74, 58)`, footprints `(42, 84)`, matches `(54, 52)`, earring `(48, 88)`.
+    - Case 2 (`pier`): Re-aligned victim So Chi-keung floating corpse on pier `(48, 48)`, pocket ledger `(52, 52)`, tide clock on belfry tower `(12, 18)`, broken watch `(52, 82)`, cargo rope `(58, 70)`, police launch `(22, 32)`, Tai Sing junk `(72, 28)`, gold/opium crate `(82, 82)`.
+    - Case 3 (`theatre`): Re-aligned victim Fung Sin-ha collapsed at stage exit `(48, 54)`, purple clay teapot `(72, 46)`, vanity mirror `(78, 40)`, costume box `(24, 58)`, spilled tea dregs `(56, 76)`, Luk's box `(85, 26)`, backstage exit door `(16, 82)`.
+    - Case 4 (`penha`): Re-aligned Pereira body by balustrade `(52, 50)`, Walther PPK in rose bush `(70, 68)`, Father Stubbs at chapel arched door `(30, 44)`, bracelet box `(42, 54)`, dossier `(34, 58)`, Pak Lan `(22, 62)`, Roberto `(78, 54)`, Yuen So-kam `(84, 68)`, Leung Ah-sei cart `(18, 76)`, gardener `(62, 38)`.
+- **MAJOR #5: Epilogue Modal Period Painting Vignette**:
+  - Replaced the inline SVG vector clip-art in `src/render/epilogue-modal.js` with `assets/ui/epilogue_vignette.webp` (640×180 period painting strip), rendered within an archival ink frame with real vermilion 硃砂「結案」印 on warm parchment.
+- **Verification & Recaptured Visuals**:
+  - All 7 test suites passing in `node --test tests/*.test.mjs` (0 failures).
+  - Recaptured fresh 390px mobile screenshots `01_title.png` through `08_epilogue.png` and updated orchestrator review captures `screenshots/orch/live-390.png` and `live-390-full.png`.
+
+## Round 2 fixes
+
+### Visual Hotspot & Prop Precision Alignment (orch-r2-grok)
+- **MAJOR #1: Comprehensive Pin-on-Object Alignment (Cases 3 & 4 + Case 1 Residuals)**:
+  - **Case 4 (`penha`) Climax Clustered Realignment**:
+    - Re-aligned Pereira's corpse torso `c4_victim` to `(38, 62)`.
+    - Placed Walther PPK pistol `c4_gun` onto the foreground stone table at `(22, 88)`.
+    - Placed open jewelry box `c4_bracelet_box` holding the jade bracelet onto the stone table at `(38, 86)`.
+    - Placed secret dossier/briefcase `c4_dossier` onto the stone table at `(30, 85)`.
+    - Moved Pak Lan `c4_pak_lan` onto the standing figure in 旗袍 at `(62, 68)`.
+    - Moved police inspector Roberto Silva `c4_roberto` onto the uniformed policeman at `(30, 44)`.
+    - Placed Father Stubbs `c4_father_stubbs` at the Penha chapel arched doorway at `(58, 42)`.
+    - Placed Leung Ah-sei's rickshaw `c4_leung_cart` onto the left-hand cart at `(18, 48)`.
+    - Placed Yuen So-kam `c4_yuen_so_kam` beside Pak Lan at `(76, 68)` and the mute gardener `c4_gardener` at `(72, 82)`.
+    - Preserved `c4_fence_cloth` at `(88, 42)` and overlook balustrade `c4_overlook` at `(50, 20)`.
+  - **Case 3 (`theatre`) Props on Furniture & Stage Architecture**:
+    - Moved purple clay teapot `c3_teapot` onto the front-left tea table at `(18, 78)`.
+    - Moved arsenic wrapper `c3_poison_paper` onto the calling card/medicine paper by the front table at `(20, 84)`.
+    - Re-aligned backstage stage doorway `c3_backstage_door` to the black stage curtain opening at `(28, 22)`.
+    - Re-aligned Luk's balcony seat `c3_luk_box` onto the upstairs red upholstered box seat at `(80, 18)`.
+    - Placed wooden costume trunk `c3_costume_box` onto the backstage wardrobe trunk at `(16, 66)`.
+    - Placed medicine box key `c3_fong_key` on the wardrobe rack at `(14, 52)`.
+    - Placed torn love letter `c3_tse_letter` onto the vanity tabletop at `(76, 54)`, thermos flask `c3_yuen_tea` at `(86, 54)`, and insurance policy `c3_insurance` at `(82, 58)`.
+    - Placed collapsed victim Fung Sin-ha `c3_victim` at `(48, 52)` and spilled tea dregs / dead rat `c3_tea_dregs` beside her at `(44, 58)`.
+  - **Case 1 (`pawnshop`) Residual Fixes**:
+    - Restored `c1_ticket_ledger` to `(58, 65)` squarely on the open pawn ledger near the victim.
+    - Restored `c1_footprints` to `(42, 72)` on the muddy footprints leading from the doorway.
+    - Restored `c1_earring` to `(48, 82)` near the doorway threshold and planter.
+- **MINOR #2: Case 2 Fine Nudges**:
+  - Nudged `c2_blind_chuen` from the bamboo roof down onto the seated fortune-teller at `(18, 74)`.
+  - Nudged `c2_broken_watch` directly onto the shattered pocket watch glass on jetty timber at `(52, 86)`.
+  - Nudged `c2_cargo_hook` upward from the canvas gloves onto the hanging iron cargo hook at `(34, 68)`.
+- **MINOR #3: Typographic Text Button on Paper for Title CTA**:
+  - Refined primary CTA 「開始調查」 to an archival paper text button with double vermilion lacquer borders, off-white parchment background, letter-spaced serif typography, and stroke pen icon rendered in `currentColor`.
+- **Verification & Recaptured Visuals**:
+  - All 7 test suites passing in `node --test tests/*.test.mjs` (0 failures, ~122ms).
+  - Recaptured fresh 390px mobile screenshots `01_title.png` through `08_epilogue.png`, plus dedicated scene captures `03b_scene_case2.png`, `03c_scene_case3.png`, and `03d_scene_case4.png`.
+  - Updated orchestrator review captures `screenshots/orch/live-390.png` and `live-390-full.png`.
+
+## Round 3 fixes
+
+### Art Overhaul Pin-on-Object Alignment (orch-r3-grok)
+- **MAJOR #1: 100% Painted Clue & Prop Registration across all 4 Cases**:
+  - **Case 1 (`pawnshop`)**:
+    - Aligned `c1_ticket_ledger` to `(78, 72)` directly on the painted open 当簿 with the red chop.
+    - Aligned `c1_footprints` to `(50, 48)` on the threshold doorway muddy prints.
+    - Aligned `c1_earring` to `(50, 46)` on the doorway threshold stone.
+  - **Case 2 (`pier`)**:
+    - Aligned `c2_cargo_hook` to `(22, 78)` directly on the hanging iron cargo hook under the bamboo awning.
+    - Aligned `c2_blind_chuen` to `(16, 84)` squarely on the seated fortune-teller under the stall.
+  - **Case 3 (`theatre`)**:
+    - Aligned `c3_costume_box` to `(68, 56)` onto the large black costume wardrobe trunk.
+    - Aligned `c3_fong_key` to `(62, 32)` onto the backstage wardrobe locker.
+    - Aligned `c3_yuen_tea` to `(70, 62)` onto the thermos flask on the front-right desk.
+    - Aligned `c3_tse_letter` to `(76, 72)` onto the wax-sealed envelope on the front-right desk.
+    - Aligned `c3_insurance` to `(80, 68)` directly onto the LIFE INSURANCE policy document on the desk.
+  - **Case 4 (`penha`)**:
+    - Aligned `c4_gardener` to `(84, 90)` directly on the seated shears-man (啞巴花匠) in the lower right garden.
+    - Aligned `c4_father_stubbs` to `(64, 38)` on the Penha chapel doorway silhouette.
+    - Aligned `c4_yuen_so_kam` to `(58, 42)` on the woman in black holding the dossier document stand-in.
+    - Nudged `c4_overlook` to `(42, 28)` onto the Penha Hill stone balustrade view.
+- **Verification & Recaptured Visuals**:
+  - All 7 test suites passing in `node --test tests/*.test.mjs` (0 failures, ~145ms).
+  - Recaptured fresh 390px mobile screenshots `01_title.png` through `08_epilogue.png` and scene captures `03b_scene_case2.png`, `03c_scene_case3.png`, `03d_scene_case4.png`.
+  - Re-generated visual debug overlay maps `case1_round3_overlay.jpg` through `case4_round3_overlay.jpg` in `screenshots/debug/`.
+  - Updated orchestrator review captures `screenshots/orch/live-390.png` and `live-390-full.png`.
