@@ -1,12 +1,11 @@
 /**
  * 濠江疑案 · Harbour Casebook
- * 案件目錄卷宗架 (Case Board & Dossier Index Cards)
- * 純淨檔案卷宗卡片風格（不使用俗套軟木板），清晰展示進度、時間與結案印章
+ * 機密卷宗抽屜渲染器 (Diegetic Filing Drawer of Manila Folders)
+ * 模擬自上俯瞰之警司機密公文木抽屜：四份手寫標籤公文夾、封線火漆印、結案硃砂印、推回把手與名片
  */
 
 import { storage } from '../engine/storage.js';
 import { audio } from '../engine/audio.js';
-import { ICONS } from '../utils/icons.js';
 
 export class CaseBoard {
   constructor(containerEl, options = {}) {
@@ -15,61 +14,82 @@ export class CaseBoard {
     this.onSelectCase = options.onSelectCase || (() => {});
     this.onViewEpilogue = options.onViewEpilogue || (() => {});
     this.onBackToDesk = options.onBackToDesk || (() => {});
+    this.openFolderId = 1; // Default first unlocked case folder open
   }
 
   render() {
-    let cardsHtml = '';
+    let foldersHtml = '';
 
-    this.cases.forEach((c) => {
+    this.cases.forEach((c, idx) => {
       const isUnlocked = storage.isCaseUnlocked(c.id);
       const isSolved = storage.isCaseSolved(c.id);
-      const caseState = storage.getCaseState(c.id);
-      const solvedSectionsCount = (caseState.solvedSections || []).length;
-      const totalSections = c.deductionSections.length;
-      const hintsUsed = caseState.hintsUsed || 0;
-      const collectedCount = (caseState.collectedWords || []).length;
+      const isOpen = this.openFolderId === c.id;
 
-      cardsHtml += `
-        <article class="case-dossier-card manila-case-folder ${isUnlocked ? 'is-unlocked' : 'is-locked'} ${isSolved ? 'is-solved' : ''}" data-case-id="${c.id}">
-          <!-- Manila Folder Tab -->
-          <div class="manila-folder-tab">
-            <span class="tab-idx">CASE 0${c.id}</span>
-            <span class="tab-proc">PROC. CRIME N.º 62/1962</span>
-            <span class="tab-symbol">〈${c.symbol}〉</span>
+      // Staggered tab offset: 0, 24%, 48%, 72%
+      const tabLeftPercent = idx * 24;
+
+      foldersHtml += `
+        <article class="manila-filing-folder ${isUnlocked ? 'is-unlocked' : 'is-locked'} ${isSolved ? 'is-solved' : ''} ${isOpen ? 'is-open' : ''}" data-case-id="${c.id}">
+          <!-- Staggered Physical Manila Tab -->
+          <div class="folder-standing-tab" style="left: ${tabLeftPercent}%;" data-case-id="${c.id}">
+            <div class="tab-label-text">
+              <span class="tab-case-no">0${c.id}</span>
+              <span class="tab-case-title">〈${c.symbol}〉 ${c.title}</span>
+            </div>
+            ${isSolved ? `
+              <div class="tab-seal-jiean">
+                <img src="assets/ui/seal_jiean_sm.webp" alt="結" />
+              </div>
+            ` : ''}
+            ${!isUnlocked ? `
+              <div class="tab-wax-seal">
+                <span class="wax-seal-dot"></span>
+              </div>
+            ` : ''}
           </div>
 
-          <div class="manila-folder-body">
-            <div class="folder-typed-header">
-              <h3 class="folder-case-title">〈${c.symbol}〉 ${c.title}</h3>
-              <span class="folder-meta-date">${c.date} · ${c.location}</span>
+          <!-- Folder Face & Inside Page -->
+          <div class="folder-body-packet">
+            <div class="folder-packet-header">
+              <div class="folder-docket-line">
+                <span class="docket-ref">PROC. CRIME N.º 62/1962 · CASE 0${c.id}</span>
+                <span class="docket-loc">${c.location}</span>
+              </div>
+              <h3 class="folder-docket-title">〈${c.symbol}〉 ${c.title}</h3>
+              <span class="folder-docket-date">${c.date}</span>
             </div>
 
             ${!isUnlocked ? `
-              <div class="folder-string-and-seal">
-                <span class="twine-seal-string"></span>
-                <span class="string-tie-text">〔 機密封簽 · 待前案破獲開封 〕</span>
-                <span class="twine-seal-string"></span>
+              <div class="folder-locked-seals">
+                <span class="locked-twine-line"></span>
+                <div class="locked-twine-badge">
+                  <span class="wax-seal-emblem">密</span>
+                  <span class="wax-seal-text">〔 機密封簽 · 待前案破獲開封 〕</span>
+                </div>
+                <span class="locked-twine-line"></span>
               </div>
             ` : `
-              <p class="folder-intro-snip">${c.incidentIntro.substring(0, 60)}……</p>
-              ${isSolved ? `
-                <div class="folder-epilogue-strip">
-                  <button class="btn-card-epilogue" data-case-id="${c.id}">
-                    【檢閱破案始末 · 《濠江紀實報》號外】
-                  </button>
+              <div class="folder-inside-content">
+                <div class="telegram-dispatch-intro">
+                  <span class="dispatch-badge">【加急公電 · 司法警察司】</span>
+                  <p class="dispatch-body">${c.incidentIntro}</p>
                 </div>
-              ` : `
-                <div class="folder-open-prompt">
-                  <span class="open-tab-hint">【翻開卷宗 · 進入現場勘驗】</span>
-                </div>
-              `}
-            `}
 
-            ${isSolved ? `
-              <div class="dossier-card-stamp">
-                <img class="card-seal-jiean" src="assets/ui/seal_jiean_sm.webp" alt="已結案" />
+                ${isSolved ? `
+                  <div class="folder-action-row">
+                    <button class="btn-card-epilogue" data-case-id="${c.id}" type="button">
+                      【 檢閱破案始末 · 《濠江紀實報》號外 】
+                    </button>
+                  </div>
+                ` : `
+                  <div class="folder-action-row">
+                    <button class="btn-open-case folder-open-cta" data-case-id="${c.id}" type="button">
+                      【 翻開卷宗 · 進入現場勘驗 】
+                    </button>
+                  </div>
+                `}
               </div>
-            ` : ''}
+            `}
           </div>
         </article>
       `;
@@ -77,37 +97,45 @@ export class CaseBoard {
 
     this.container.innerHTML = `
       <div class="case-board-view filing-drawer-view">
-        <!-- Manila Drawer Header (In-world filing drawer, no boxed web bar) -->
-        <header class="board-drawer-header">
-          <div class="drawer-nav-row">
-            <button class="drawer-manila-tab btn-back-to-desk" id="btn-board-back-desk">
-              【推回抽屜 · 返回案頭】
+        <!-- Top Drawer Brass Lip & Push Back Handle -->
+        <header class="filing-drawer-header">
+          <div class="drawer-top-lip">
+            <button class="drawer-brass-pull-handle btn-back-to-desk" id="btn-board-back-desk" type="button" aria-label="推回抽屜返回案頭">
+              <span class="drawer-handle-bracket left"></span>
+              <span class="drawer-handle-bar">
+                <span class="handle-grip-lines"></span>
+                <span class="drawer-handle-label">推回抽屜 · 返回案頭</span>
+                <span class="handle-grip-lines"></span>
+              </span>
+              <span class="drawer-handle-bracket right"></span>
             </button>
-            <a href="https://penny323mo.github.io/grokbot/" class="drawer-grokbot-link" target="_blank" rel="noopener noreferrer">
-              【grokbot 總部專線 →】
+
+            <!-- Vintage Calling Card Tucked in Corner -->
+            <a href="https://penny323mo.github.io/grokbot/" class="drawer-tucked-calling-card" target="_blank" rel="noopener noreferrer" title="grokbot 總部專線">
+              <span class="calling-card-pin"></span>
+              <span class="calling-card-title">特派通訊員</span>
+              <span class="calling-card-link">grokbot 專線 →</span>
             </a>
           </div>
-          <div class="drawer-title-group">
-            <h1 class="drawer-main-title">澳門司法警察司 · 機密卷宗抽屜</h1>
-            <p class="drawer-intro">ARCHIVOS CONFIDENCIAIS · 1962年內港重案全四卷</p>
+
+          <!-- Stamped Drawer Frame Title -->
+          <div class="drawer-frame-plaque">
+            <h1 class="drawer-plaque-title">澳門司法警察司 · 機密卷宗抽屜</h1>
+            <span class="drawer-plaque-sub">ARCHIVOS CONFIDENCIAIS · 1962年內港重案全四卷</span>
           </div>
         </header>
 
-        <div class="archival-ink-rule-divider"></div>
-
-        <!-- Four Manila Folders Stack in Filing Drawer -->
-        <div class="dossier-grid filing-drawer-stack">
-          ${cardsHtml}
-        </div>
-
-        <!-- Bottom Footer info -->
-        <footer class="board-footer">
-          <div class="board-archival-note">
-            <span>澳門歷史檔案館 1962 巡督日誌複刻 · 離線本地存儲</span>
+        <!-- Filing Drawer Interior Box with Suspended Manila Folders -->
+        <main class="filing-drawer-cavity">
+          <div class="filing-drawer-guide-rails"></div>
+          <div class="filing-drawer-folders-stack">
+            ${foldersHtml}
           </div>
-          <a href="https://penny323mo.github.io/grokbot/" class="link-footer-grokbot" target="_blank" rel="noopener noreferrer">
-            返回 grokbot 主站
-          </a>
+        </main>
+
+        <!-- Drawer Bottom Sill -->
+        <footer class="drawer-bottom-sill">
+          <span class="drawer-sill-label">澳門歷史檔案館 1962 巡督日誌複刻 · 離線本地存儲</span>
         </footer>
       </div>
     `;
@@ -119,10 +147,23 @@ export class CaseBoard {
     const backBtn = this.container.querySelector('#btn-board-back-desk');
     if (backBtn) {
       backBtn.addEventListener('click', () => {
-        audio.playSFX('paper_slide');
+        audio.playSFX('drawer');
         this.onBackToDesk();
       });
     }
+
+    // Tab or card click to expand / open folder
+    this.container.querySelectorAll('.folder-standing-tab, .manila-filing-folder').forEach(el => {
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('button') || e.target.closest('a')) return;
+        const caseId = parseInt(el.getAttribute('data-case-id'), 10);
+        if (storage.isCaseUnlocked(caseId)) {
+          this.openFolderId = caseId;
+          audio.playSFX('paper_slide');
+          this.render();
+        }
+      });
+    });
 
     this.container.querySelectorAll('.btn-open-case').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -142,15 +183,6 @@ export class CaseBoard {
           audio.playSFX('paper_slide');
           this.onViewEpilogue(c);
         }
-      });
-    });
-
-    this.container.querySelectorAll('.case-dossier-card.is-unlocked').forEach(card => {
-      card.addEventListener('click', (e) => {
-        if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A') return;
-        const caseId = parseInt(card.getAttribute('data-case-id'), 10);
-        audio.playSFX('paper_slide');
-        this.onSelectCase(caseId);
       });
     });
   }

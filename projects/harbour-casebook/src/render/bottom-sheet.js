@@ -1,10 +1,11 @@
 /**
  * 濠江疑案 · Harbour Casebook
- * 現場物證勘驗底板 (Bottom Sheet Clue Inspector)
- * 限制最大高度 45%，點擊下劃線詞語收集並帶有飛入筆記本動畫與音效
+ * 現場物證勘驗底板 (Diegetic Torn Notebook Page / Evidence Tag)
+ * 模擬自現場掀起之撕角筆記與物證籤條，點擊墨線詞語錄入案頭手記，無白色圓角與現代拖拽條
  */
 
 import { audio } from '../engine/audio.js';
+import { ICONS } from '../utils/icons.js';
 
 export class BottomSheet {
   constructor(options = {}) {
@@ -21,27 +22,30 @@ export class BottomSheet {
     this.sheetEl.className = 'clue-bottom-sheet';
     this.sheetEl.innerHTML = `
       <div class="bottom-sheet-backdrop"></div>
-      <div class="bottom-sheet-content" role="dialog" aria-labelledby="sheet-title">
-        <div class="sheet-handle-bar">
-          <span class="sheet-drag-pill"></span>
-        </div>
-        <div class="sheet-header">
-          <div class="sheet-title-group">
-            <span class="sheet-icon-magnifier">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                <circle cx="11" cy="11" r="8"/>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-            </span>
-            <h3 id="sheet-title" class="sheet-title">勘驗物證</h3>
+      <div class="bottom-sheet-content evidence-torn-page" role="dialog" aria-labelledby="sheet-title">
+        <!-- Torn Paper Top Edge -->
+        <div class="torn-paper-edge" aria-hidden="true"></div>
+
+        <div class="evidence-tag-header">
+          <div class="evidence-docket-stamp">
+            <span class="stamp-org">POLÍCIA JUDICIÁRIA DE MACAU</span>
+            <span class="stamp-no">PROC. EVIDÊNCIA N.º 62/1962</span>
           </div>
-          <button class="sheet-close-btn" aria-label="關閉勘驗底板">&times;</button>
+          <div class="evidence-title-row">
+            <span class="evidence-tag-icon">${ICONS.clip(16, '#7A6246')}</span>
+            <h3 id="sheet-title" class="evidence-sheet-title">勘驗物證</h3>
+            <button class="sheet-close-btn evidence-dismiss-pin" aria-label="收卷歸位" type="button">
+              <span class="pin-head"></span>
+              <span class="pin-text">〔 收卷 ✕ 〕</span>
+            </button>
+          </div>
         </div>
-        <div class="sheet-body">
-          <div class="sheet-description" id="sheet-desc"></div>
-          <div class="sheet-hint-tip">
-            <span class="sheet-tip-dot"></span>
-            點擊<strong>帶墨線詞語</strong>即可收錄至推理筆記
+
+        <div class="sheet-body evidence-sheet-body">
+          <div class="sheet-description evidence-sheet-desc" id="sheet-desc"></div>
+          <div class="evidence-ink-footnote">
+            <span class="footnote-mark">※</span>
+            <span class="footnote-text">點擊<strong>帶墨線詞語</strong>錄入案頭手記</span>
           </div>
         </div>
       </div>
@@ -95,7 +99,6 @@ export class BottomSheet {
 
   handleChipClick(chipEl, word) {
     if (this.collectedWords.has(word)) {
-      // Gentle tick if already collected
       audio.playSFX('paper_slide');
       return;
     }
@@ -129,7 +132,6 @@ export class BottomSheet {
     document.body.appendChild(flyer);
 
     requestAnimationFrame(() => {
-      // Float up gently in place and fade out into harvested state
       flyer.style.transform = 'translate(0, -28px) scale(1.1)';
       flyer.style.opacity = '0';
     });

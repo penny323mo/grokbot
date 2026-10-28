@@ -82,9 +82,10 @@ export class EpilogueModal {
       this.onBackToBoard();
     });
     this.btnNext.addEventListener('click', () => {
+      const curId = this.currentCase ? this.currentCase.id : 1;
       this.hide();
-      if (this.currentCase && this.currentCase.id < 4) {
-        this.onNextCase(this.currentCase.id + 1);
+      if (curId < 4) {
+        this.onNextCase(curId + 1);
       } else {
         this.onBackToBoard();
       }

@@ -1,27 +1,26 @@
 # 濠江疑案 — orchestrator report
 
-- Generated: 2026-10-28 14:18 (Macau, UTC+8)
+- Generated: 2026-10-28 19:08 (Macau, UTC+8)
 - Live: https://penny323mo.github.io/grokbot/projects/harbour-casebook/ (HTTP 200)
-- Rounds: 5  ·  Started: 2026-10-28T13:13:30+08:00
+- Rounds: 3  ·  Started: 2026-10-28T14:57:43+08:00
 
 ## Phases
-- build finished 2026-10-28T13:43:42+08:00
-- review-1 finished 2026-10-28T13:52:36+08:00
-- fix-1 finished 2026-10-28T14:08:08+08:00
-- review-2 finished 2026-10-28T14:10:40+08:00
-- fix-2 finished 2026-10-28T14:13:12+08:00
-- review-3 finished 2026-10-28T14:14:33+08:00
-- fix-3 finished 2026-10-28T14:15:04+08:00
-- review-4 finished 2026-10-28T14:15:56+08:00
-- fix-4 finished 2026-10-28T14:16:47+08:00
-- review-5 finished 2026-10-28T14:17:38+08:00
-- fix-5 finished 2026-10-28T14:18:10+08:00
-- publish finished 2026-10-28T14:18:25+08:00
+- build finished 2026-10-28T15:44:03+08:00
+- review-1 finished 2026-10-28T15:47:54+08:00
+- fix-1 finished 2026-10-28T16:09:47+08:00
+- review-2 finished 2026-10-28T16:17:08+08:00
+- fix-2 finished 2026-10-28T17:10:13+08:00
+- review-3 finished 2026-10-28T17:20:11+08:00
+- fix-3 finished 2026-10-28T19:07:52+08:00
+- publish finished 2026-10-28T19:08:03+08:00
+
+## Timeouts
+- fix-3 gave up (agent never wrote sentinel)
 
 ## Reviews
 - orch-r1-grok.md: VERDICT: NOT READY
-- orch-r2-grok.md: VERDICT: SHIP
-- orch-r3-grok.md: VERDICT: SHIP
+- orch-r2-grok.md: VERDICT: NOT READY
+- orch-r3-grok.md: VERDICT: NOT READY
 - orch-r4-grok.md: VERDICT: SHIP
 - orch-r5-grok.md: VERDICT: SHIP
 
@@ -35,7 +34,7 @@
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 8.544423
+# duration_ms 10.323872
 ```
 ### tests-fix-1
 ```
@@ -46,7 +45,7 @@
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 8.972608
+# duration_ms 14.446593
 ```
 ### tests-fix-2
 ```
@@ -57,7 +56,7 @@
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 8.801195
+# duration_ms 11.706866
 ```
 ### tests-fix-3
 ```
@@ -68,29 +67,7 @@
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 8.995789
-```
-### tests-fix-4
-```
-# tests 1
-# suites 0
-# pass 1
-# fail 0
-# cancelled 0
-# skipped 0
-# todo 0
-# duration_ms 9.007695
-```
-### tests-fix-5
-```
-# tests 1
-# suites 0
-# pass 1
-# fail 0
-# cancelled 0
-# skipped 0
-# todo 0
-# duration_ms 9.710178
+# duration_ms 10.328362
 ```
 
 ## Screenshots
@@ -98,28 +75,28 @@
 - screenshots/orch/live-390.png
 
 ## Changelog (tail)
-
-## Round 4 fixes
-
-### Final Diegetic Polish & Verification
-- **Codebase Cleanliness & Comments**:
-  - Replaced last legacy comment hit in `src/app.js` to ensure zero remaining references to tabs across the entire codebase.
-- **Ship Gate Finalization**:
-  - Re-verified all 7 ship criteria under `orch-r4-grok.md`: 100% diegetic desk hub navigation, full-bleed title key art, Golden Idol-style deduction verification, full Case 1 fair-play solvability, ambient vignette and film grain layers, native investigation BGM/SFX, and aesthetic parity with classic mystery games at 390×844.
-  - Zero CRITICAL, zero MAJOR, zero MINOR issues remaining.
-- **Test Suite**:
-  - All 7 test suites pass cleanly with 0 failures (`node --test tests/*.test.mjs`).
-  - Verdict: SHIP.
-
-
-## Round 5 fixes
-
-### Final Diegetic Desk Review & Ship Sign-Off
-- **Comprehensive Ship Gate Verification**:
-  - Confirmed 0 CRITICAL, 0 MAJOR, and 0 MINOR defects remaining across all functional and visual inspection gates.
-  - Verified DOM tree and CSS stylesheets maintain strict diegetic structure with zero bottom navigation chrome or dead rules.
-  - Desk hub physical props (casebook, deduction report, corkboard, notebook, magnifier, telephone, and desk lamp) verified responsive, interactive, and precisely positioned on 390×844 mobile viewports.
-  - Case 1 fair-play investigation, progressive 3-tier hints, Who's Who wall deduction, and resolution flow verified 100% playable.
-- **Verification & Testing**:
-  - All 7 test suites pass (`node --test tests/*.test.mjs`, 0 failures, ~134ms).
-  - Final Verdict: SHIP.
+  - Painted dark salty mud footprints at `(46, 50)`.
+  - Painted natural pearl earring with antique gold setting at `(57, 56)`.
+  - Painted sulfur matchbox with spilled matches at `(66, 46)`.
+  - Updated `src/data/cases.js` coordinates: `c1_ticket_ledger` (73, 68), `c1_footprints` (46, 50), `c1_earring` (57, 56), `c1_alley_matches` (66, 46).
+  - Validated that all 12 hotspots align directly on painted visual objects with min-distance 55.43px (well above 44px tap target threshold).
+- **Noir Art Regrade & Painted Epilogue Plate (MAJOR #6)**:
+  - Regraded `assets/scenes/case1_pawnshop.webp` with warm amber lantern highlights, deep noir charcoal shadows, and film grain matching `desk_hub.webp`.
+  - Replaced vector vignette with a painted noir crime scene plate in `assets/ui/epilogue_vignette.webp`.
+- **Repainted Corkboard Cast in Background Art (MAJOR #7)**:
+  - Composited 1962 Macau Chinese cast portraits (Chan Tak Sang, Pak Lan, Ho Bing, Leung Ah Sei) onto the desk hub corkboard in `assets/art/desk_hub.webp` with vintage amber toning, cream Polaroid borders, and brass pushpins.
+- **Tutorial / Onboarding Completion (MAJOR #8)**:
+  - Linked tutorial completion to opening the deduction report or harvesting all 34 words.
+  - In `src/app.js`: sets `storage.state.onboardingDone = true`, saves to localStorage, and hides `#onboarding-banner`.
+- **Chrome Removal (MINOR #9)**:
+  - Dropped the web pill `34/34 詞` from notebook top bar.
+  - Dropped the white circular zoom button from the scene viewport.
+  - Restyled `#btn-desk-open-board` as a Manila folder index tab strip lying flat on the desk (`.btn-desk-board-folder`), and `.desk-prop-label-tag` as small tea-stained paper slips on objects.
+- **Epilogue Stamped Action on Paper (MINOR #10)**:
+  - Eliminated `.epilogue-footer-bar` from the bottom of the epilogue dialog.
+  - Placed `#btn-epilogue-next` directly onto the newsprint paper underneath the text column (`.newspaper-stamped-action`: `【續案號外】進入下一案 →`) with secondary archive link `〔 闔報歸檔 · 檢閱卷宗架 〕`, allowing the reading experience to end naturally on paper.
+- **Verification Gate**:
+  - `node scripts/harsh2_play.mjs http://127.0.0.1:8937/index.html /workspace/nightly/2026-10-28-harbour-casebook/screenshots/fix-r2`: printed `RESULT PASS` and exited code 0 with 0 errors.
+  - `node --test tests/*.test.mjs`: all 9 unit tests pass.
+  - `bash scripts/audio_check.sh`: all 4 BGM files pass.
+  - Complete set of 29 mobile screenshots captured in `screenshots/fix-r2/`.

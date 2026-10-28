@@ -70,20 +70,16 @@ export class NotebookTab {
 
     this.container.innerHTML = `
       <div class="notebook-screen-wrapper">
-        <!-- Notebook Top Bar -->
-        <header class="notebook-header-bar">
-          <button class="btn-desk-nav btn-back-to-desk" id="btn-notebook-back-desk">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
-            </svg>
-            <span>闔上手記 · 返回案頭</span>
+        <!-- Leather Bookmark Ribbon at Top (Diegetic Return Tag, No Boxed Top Bar) -->
+        <div class="notebook-top-controls">
+          <button class="notebook-leather-bookmark btn-back-to-desk" id="btn-notebook-back-desk" type="button" aria-label="闔上手記返回案頭">
+            <span class="bookmark-ribbon"></span>
+            <span class="bookmark-text">闔上手記 · 返回案頭</span>
           </button>
-          <div class="notebook-title-group">
-            <span class="notebook-badge">CASE 0${caseData.id} · 刑事偵查手記</span>
-            <h2 class="notebook-headline">搜獲物證與證言摘抄</h2>
+          <div class="notebook-docket-tag">
+            <span class="docket-text">〈${caseData.symbol}〉 刑事物證手記</span>
           </div>
-          <div class="notebook-header-right"></div>
-        </header>
+        </div>
 
         <div class="notebook-scroll-area">
           <div class="notebook-paper-folio">

@@ -14,7 +14,7 @@ export const CASES = [
     title: '當舖驚魂',
     subtitle: 'The Pawnshop Shock',
     date: '1962年5月12日 · 晚間八時半',
-    location: '福隆新街「德生大押」後櫃庫房',
+    location: '福隆新街德生大押',
     incidentIntro: '福隆新街的「德生大押」臨近打烊之時，掌櫃陳德生被發現倒臥於後櫃庫房，頭部遭鈍器重創身亡。昨午由名媛白蘭所抵押、價值連城的前清翡翠玉鐲不知所蹤，保險箱半掩卻無被撬痕跡……',
     sceneImage: 'assets/scenes/case1_pawnshop.webp',
     characters: ['chan_tak_sang', 'ho_bing', 'leung_ah_sei', 'pak_lan'],
@@ -29,35 +29,35 @@ export const CASES = [
       },
       {
         id: 'c1_abacus',
-        x: 32,
+        x: 35,
         y: 58,
         name: '帶血的紅木算盤',
         desc: '紫檀木書桌旁的地上，跌落著掌櫃日常所用的<span class="word-chip" data-word="紅木算盤">紅木算盤</span>，顯非<span class="word-chip" data-word="赤手空拳">赤手空拳</span>所能造成如此重創。邊角有明顯崩裂裂痕，沾附著凝固血跡，份量沉重，正是致命兇器。'
       },
       {
         id: 'c1_safe',
-        x: 20,
+        x: 21,
         y: 36,
         name: '半開的鐵皮保險箱',
         desc: '嵌在青磚牆內的重型<span class="word-chip" data-word="鐵皮保險箱">鐵皮保險箱</span>門微啟，位於<span class="word-chip" data-word="當舖庫房">當舖庫房</span>深處，雙重密碼鎖完好無損，並無撬痕。最底層原本存放貴重抵押品的錦盒已被打開，盒內原本放置的<span class="word-chip" data-word="翡翠玉鐲">翡翠玉鐲</span>已不知所蹤。'
       },
       {
         id: 'c1_handkerchief',
-        x: 16,
-        y: 48,
+        x: 22,
+        y: 50,
         name: '錦盒內的刺繡手帕',
         desc: '空錦盒內遺留下一條真絲<span class="word-chip" data-word="刺繡手帕">刺繡手帕</span>，角邊精工繡有白蘭花圖樣，散發著名貴典雅的<span class="word-chip" data-word="法國香水">法國香水</span>氣味，與當舖常年的樟腦霉味格格不入。'
       },
       {
         id: 'c1_desk_tea',
-        x: 22,
-        y: 78,
+        x: 23,
+        y: 74,
         name: '書桌上的茶具與鐵尺',
         desc: '書桌上放有陳掌櫃喝乾的普洱茶杯，以及客席的一隻<span class="word-chip" data-word="青瓷茶杯">青瓷茶杯</span>，杯緣赫然印有一道淡紅色唇膏印；桌旁還整齊擺放著掌櫃核算典當尺寸的黃銅<span class="word-chip" data-word="鐵尺">鐵尺</span>。'
       },
       {
         id: 'c1_ticket_ledger',
-        x: 86,
+        x: 76,
         y: 68,
         name: '檯面當簿與印台',
         desc: '翻開的押帳流水簿上，最後一筆登記錄於<span class="word-chip" data-word="大堂櫃檯">大堂櫃檯</span>：「甲字八號，前清老坑翡翠手鐲，持票人<span class="word-chip" data-word="白蘭">白蘭</span>女士，自述此乃為<span class="word-chip" data-word="贖回家族遺物">贖回家族遺物</span>而暫押銀葡幣八千圓，限期三個月。」'
@@ -78,29 +78,29 @@ export const CASES = [
       },
       {
         id: 'c1_footprints',
-        x: 46,
-        y: 50,
+        x: 50,
+        y: 54,
         name: '後巷通往門檻的泥印',
         desc: '從庫房側門通往<span class="word-chip" data-word="後巷天井">後巷天井</span>的地磚上，留有數個帶鹹水潮泥的<span class="word-chip" data-word="泥鞋印">泥鞋印</span>，方向通往<span class="word-chip" data-word="內港碼頭">內港碼頭</span>。排查得知碼頭苦力<span class="word-chip" data-word="梁阿四">梁阿四</span>曾路過此處送貨。'
       },
       {
         id: 'c1_alley_matches',
         x: 63,
-        y: 47,
+        y: 49,
         name: '後巷地上的洋火與煙頭',
         desc: '後巷石板縫隙中散落著數枚被踩熄的煙蒂，旁邊還有一盒碼頭工會印製的<span class="word-chip" data-word="硫磺洋火">硫磺洋火</span>。街坊透露近日有可疑的<span class="word-chip" data-word="賭檔打手">賭檔打手</span>與<span class="word-chip" data-word="外江盜賊">外江盜賊</span>出沒窺探。'
       },
       {
         id: 'c1_window_grille',
-        x: 16,
-        y: 20,
+        x: 23,
+        y: 22,
         name: '庫房被鋸斷的鐵花窗',
         desc: '高處鐵花窗被鋼鋸鋸斷，窗台有些許鐵屑。作案者究竟意在<span class="word-chip" data-word="私吞典當物資">私吞典當物資</span>，抑或意圖<span class="word-chip" data-word="滅口掩蓋走私">滅口掩蓋走私</span>、乃至純粹<span class="word-chip" data-word="尋仇洩憤">尋仇洩憤</span>？窗開口極窄，顯係事後偽造入室假象。'
       },
       {
         id: 'c1_earring',
-        x: 38,
-        y: 43,
+        x: 39,
+        y: 47,
         name: '後門石階跌落的珍珠耳環',
         desc: '後門石階門檻夾縫中，半掩著一顆泛著溫潤光澤的天然<span class="word-chip" data-word="珍珠耳環">珍珠耳環</span>，鑲嵌工藝極為考究，與白蘭右耳所戴的單隻耳飾完全一致。'
       }
@@ -173,7 +173,7 @@ export const CASES = [
     title: '內港碼頭',
     subtitle: 'The Inner Harbour Pier',
     date: '1962年6月18日 · 晨曦潮退',
-    location: '內港十六號碼頭「信達駁艇泊位」',
+    location: '內港十六號碼頭',
     incidentIntro: '清晨退潮之際，十六號碼頭的駁船底傳來驚呼。理貨員蘇志強浮屍於躉船木樁之間，雙手遭海纜緊縛，身上藏有一本沾滿海水、記有走私物資編號的秘密黑帳。海面晨霧未散，巡邏水警、帆船船長與碼頭工頭各執一詞……',
     sceneImage: 'assets/scenes/case2_pier.webp',
     characters: ['so_chi_keung', 'chiu_tai_sing', 'roberto_silva', 'leung_ah_sei', 'luk_chat_ye', 'blind_chuen'],
@@ -351,7 +351,7 @@ export const CASES = [
     title: '清平戲院後台',
     subtitle: 'Backstage at Cheng Peng Theatre',
     date: '1962年8月5日 · 晚間十時',
-    location: '清平直街「清平戲院」化妝間與後台',
+    location: '清平戲院後台',
     incidentIntro: '座無虛席的清平戲院正演至折子戲《六國大封相》。當紅文武生鳳仙霞於換幕之際步入後台飲下一盞專屬「參蜜潤喉茶」，回到台口時突然口吐紫沫、劇烈抽搐倒斃！戲班後台人人皆有嫌隙，一場華麗皮囊下的毒殺案驟然揭開……',
     sceneImage: 'assets/scenes/case3_theatre.webp',
     characters: ['fung_sin_ha', 'yuen_so_kam', 'master_liu', 'fong_jie', 'luk_chat_ye', 'young_master_tse'],

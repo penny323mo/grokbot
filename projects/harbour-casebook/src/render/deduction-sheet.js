@@ -65,12 +65,14 @@ export class DeductionSheet {
   }
 
   render(caseData) {
-    this.caseData = caseData;
-    const caseState = storage.getCaseState(caseData.id);
-    const isCaseSolved = storage.isCaseSolved(caseData.id);
-    const isWhoComplete = storage.isWhoSolved(caseData.id);
-    const isSectionsAllSolved = isAllSectionsSolved(caseData, caseState.solvedSections);
-    const isWhoSolved = !caseData.whosWho || caseData.whosWho.length === 0 || isWhoComplete;
+    if (caseData) this.caseData = caseData;
+    if (!this.caseData) return;
+    const currentCase = this.caseData;
+    const caseState = storage.getCaseState(currentCase.id);
+    const isCaseSolved = storage.isCaseSolved(currentCase.id);
+    const isWhoComplete = storage.isWhoSolved(currentCase.id);
+    const isSectionsAllSolved = isAllSectionsSolved(currentCase, caseState.solvedSections);
+    const isWhoSolved = !currentCase.whosWho || currentCase.whosWho.length === 0 || isWhoComplete;
     const isFullySolved = isCaseSolved || (isSectionsAllSolved && isWhoSolved);
 
     if (isFullySolved) {
@@ -96,7 +98,6 @@ export class DeductionSheet {
               </div>
               <div class="stamp-action-callout">
                 <span class="stamp-callout-primary">【 硃砂印落 · 全案告破 】</span>
-                <span class="stamp-callout-secondary">點擊硃砂大印 · 開閱《濠江紀實報》真相號外</span>
               </div>
             </button>
           </div>
@@ -108,30 +109,23 @@ export class DeductionSheet {
 
     let html = `
       <div class="deduction-screen-wrapper ${isFullySolved ? 'is-case-resolved' : ''}">
-        <header class="deduction-top-bar">
-          <button class="btn-desk-nav btn-back-to-desk" id="btn-deduction-back-desk">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
-            </svg>
-            <span>返回案頭</span>
+        <!-- Folio Paper Edge Tabs (Diegetic Tabs, No Boxed Top Bar) -->
+        <div class="folio-edge-tabs-strip">
+          <button class="folio-paper-tab tab-back-desk btn-back-to-desk" id="btn-deduction-back-desk" type="button" aria-label="返回案頭">
+            <span class="tab-label">← 案頭</span>
           </button>
-          <div class="deduction-title-group">
-            <span class="deduction-badge">CASE 0${caseData.id} 司法警察司</span>
-            <h2 class="deduction-headline">破案審查表</h2>
-          </div>
-          <button class="btn-desk-nav btn-jump-scene" id="btn-deduction-go-scene">
-            ${ICONS.search(15, 'currentColor')}
-            <span>勘驗現場</span>
+          <button class="folio-paper-tab tab-go-scene btn-jump-scene" id="btn-deduction-go-scene" type="button" aria-label="勘驗現場">
+            <span class="tab-label">現場 →</span>
           </button>
-        </header>
+        </div>
 
         <div class="deduction-scroll-area">
           <div class="deduction-police-report-folio">
             <!-- Official Portuguese Colonial Crest / Header -->
             <div class="police-report-official-head">
               <div class="official-crest-seal">
-                <span class="crest-pt">GOVERNO DE MACAU</span>
-                <span class="crest-zh">澳門政務廳</span>
+                <span class="crest-pt">GOVERNO DE MACAU · COMISSARIADO DA POLÍCIA JUDICIÁRIA</span>
+                <span class="crest-zh">澳門司法警察司 · 刑事偵查破案審查表</span>
               </div>
               <span class="official-docket-no">PROC. CRIME N.º 62/1962</span>
             </div>
@@ -143,31 +137,27 @@ export class DeductionSheet {
                 <span class="case-number">CASE 0${caseData.id}</span>
               </div>
               <div class="deduction-title-text">
-                <h2 class="deduction-case-title">〈${caseData.symbol}〉 ${caseData.title}</h2>
-                <p class="deduction-case-subtitle">${caseData.date} · ${caseData.location}</p>
+                <h2 class="deduction-case-title">〈${caseData.symbol}〉 <span style="white-space: nowrap;">${caseData.title}</span></h2>
+                <p class="deduction-case-subtitle">${caseData.date} · <span style="white-space: nowrap;">${caseData.location}</span></p>
               </div>
             </div>
 
-            <!-- Incident Summary Card -->
-            <div class="incident-summary-card">
-              <div class="archival-stamp-header">
-                <span class="archival-dot"></span> 案發陳述 · 待決疑雲
+            <!-- Incident Narrative (Typed Directly on Paper, No Border Box) -->
+            <div class="report-narrative-paragraph">
+              <div class="narrative-heading-line">
+                <span class="narrative-bullet">■</span>
+                <span class="narrative-heading">案發陳述 · 待決疑雲</span>
               </div>
-              <p class="incident-intro-text">${caseData.incidentIntro}</p>
+              <p class="narrative-body-text">${caseData.incidentIntro}</p>
             </div>
 
-            <!-- Corkboard Who's Who Quick Link -->
-            <div class="deduction-cork-banner">
-              <div class="cork-banner-left">
-                <span class="cork-banner-pin">${ICONS.pin(16, '#9A3B2C')}</span>
-                <div class="cork-banner-text">
-                  <strong>涉案人物關係牆：</strong>
-                  <span>${isWhoComplete ? '全數人物已指認歸位' : '前往軟木板指認涉案人名'}</span>
-                </div>
+            <!-- Paper-Clipped Character Strip (No Border Box) -->
+            <div class="report-clipped-strip" id="btn-deduction-open-cork" role="button" tabindex="0" aria-label="檢視涉案人物關係名冊">
+              <span class="paperclip-bracket">${ICONS.clip(16, '#7A6246')}</span>
+              <div class="clipped-strip-text">
+                <span class="clipped-tag">涉案人物名冊：</span>
+                <span class="clipped-state">${isWhoComplete ? '全數人物已指認歸位 ✓' : '前往軟木板查驗姓名 →'}</span>
               </div>
-              <button class="btn-open-cork-shortcut" id="btn-deduction-open-cork">
-                ${isWhoComplete ? '檢視人物牆 ✓' : '指認人物 →'}
-              </button>
             </div>
 
             <div class="archival-ink-rule-divider"></div>
@@ -203,7 +193,7 @@ export class DeductionSheet {
           <div class="section-footer-actions">
             ${!isSolved ? `
               <button class="btn-check-section" data-section-id="${sec.id}">
-                ${ICONS.scale(16, '#FAF6EE')} 【 鈐印核實此節 】
+                ${ICONS.scale(16, '#9A3B2C')} 【 鈐印核實此節 】
               </button>
             ` : `
               <div class="section-solved-stamp">
@@ -429,6 +419,18 @@ export class DeductionSheet {
     const collectedWords = new Set(caseState.collectedWords || []);
     const categoryName = CATEGORY_NAMES[params.slotType] || params.slotType;
 
+    // Keep sentence readable: park cards under active blank by scrolling card into upper view
+    if (mode === 'section' && params.sectionId) {
+      const card = this.container.querySelector(`.deduction-section-card[data-section-id="${params.sectionId}"]`);
+      const scrollArea = this.container.querySelector('.deduction-scroll-area');
+      if (card && scrollArea) {
+        const cardRect = card.getBoundingClientRect();
+        const scrollRect = scrollArea.getBoundingClientRect();
+        const targetScrollTop = scrollArea.scrollTop + (cardRect.top - scrollRect.top) - 64;
+        scrollArea.scrollTo({ top: Math.max(0, targetScrollTop), behavior: 'auto' });
+      }
+    }
+
     if (this.pickerTypeTag) this.pickerTypeTag.textContent = categoryName;
     if (this.pickerTitle) {
       if (mode === 'who') {
@@ -497,7 +499,7 @@ export class DeductionSheet {
 
   fillSlot(sectionId, slotKey, word) {
     storage.setSlotValue(this.caseData.id, sectionId, slotKey, word);
-    audio.playSFX('pen_scratch');
+    audio.playSFX('typewriter');
     if (this.onSlotFill) this.onSlotFill();
     this.render(this.caseData);
   }

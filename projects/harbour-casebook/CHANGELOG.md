@@ -475,3 +475,212 @@
   - `node --test tests/*.test.mjs`: all 9 unit tests pass.
   - `bash scripts/audio_check.sh`: all 4 BGM files pass.
   - Complete set of 29 mobile screenshots captured in `screenshots/fix-r2/`.
+
+## Round 6.3 fixes
+
+### Critical & Major In-World Polish & Aesthetic Hardening (Grok Review R3)
+- **Phone Menu Single Brass Rotary Dial with Stepped Detents (CRITICAL #1)**:
+  - Replaced the multiple step buttons with a single 1962 brass rotary dial (`.phone-rotary-brass-knob`) with an engraved brass pointer that rotates through 4 physical detents (`· Ⅰ 微 ·`, `· Ⅱ 常 ·`, `· Ⅲ 響 ·`, `· Ⅳ 極 ·`) on tap.
+  - Replaced green status badges and rectangular step rows with period-authentic switchboard punchcard indicators (`[✓] 樂韻接通`, `[✓] 雜音開啟`).
+- **Word Pickers Loose Manila Cards on Corkboard and Docket Folio (CRITICAL #2)**:
+  - Completely removed web card headers, close bars, and `【收起 ×】` dismissal buttons.
+  - Rendered word pickers as loose, organically fanned typed Manila index cards resting directly on the corkboard or police deduction folio.
+  - Replaced corkboard slot dropdown carets with in-world `〔 涉案待認 〕` slot placeholders.
+- **Case Board Filing Drawer Single-Line Title & Stacked Drawer Tabs (CRITICAL #3)**:
+  - Refined header typography so `澳門司法警察司 · 機密卷宗抽屜` fits strictly on a single line on 390px viewports without wrapping `抽屜`.
+  - Stacked drawer navigation tabs (`【推回抽屜 · 返回案頭】` and `【grokbot 總部專線 →】`) to prevent horizontal crowding and eliminate line wrap on `專線`.
+  - Sealed locked cases shut with twine and red seal stamps without leaking synopses, preserving full narrative suspense until unlocked.
+- **Full-Viewport 結案 Docket Resolution Screen Takeover (CRITICAL #4)**:
+  - Configured `.case-resolution-zone` to take over the entire 390×844 viewport (`position: fixed; inset: 0; z-index: 1000;`) in deep noir black (`#0E0906`) with glowing cinnabar seal.
+  - Completely omitted the deduction top bar and suppressed inactive screen DOM bleeding so neither `返回案頭` nor `勘驗現場` leaks onto the screen.
+  - Guaranteed `澳門司法警察司 · 刑事偵查卷宗 · 審查完結歸檔` displays on a single line on mobile viewports.
+- **Case 1 Scene Clue Realignment & Plate Cleaning (MAJOR #5)**:
+  - Cleaned `assets/scenes/case1_pawnshop.webp` to completely remove the extraneous book beside the victim's shoulder.
+  - Aligned `c1_ticket_ledger` hotspot pin directly over the open ledger on the floor at `(86, 68)`.
+  - Painted an antique pearl earring in the threshold floor crack at `(38, 43)` and aligned `c1_earring` pin directly to it.
+  - Relocated `c1_alley_matches` pin to the sulfur matchstick beside the mud footprints at `(63, 47)`.
+  - Preserved `c1_footprints` at `(46, 50)` and `c1_window_grille` at `(16, 20)`, verifying all hotspot pairs maintain >= 48px separation (exceeding 44px tap target requirements).
+- **Noir Art Regrade & Clean Vignette Plate (MAJOR #6)**:
+  - Regraded `assets/scenes/case1_pawnshop.webp` with warm amber lantern glow, deep charcoal noir shadows, and subtle film grain matching `desk_hub.webp`.
+  - Updated `assets/ui/epilogue_vignette.webp` to match the clean regraded pawnshop plate without the shoulder book.
+- **Title and Desk Corkboard Chinese Cast Repaint (MAJOR #7)**:
+  - Tiled seamless pure cork across `assets/art/title_key.webp` and `assets/art/desk_hub.webp` from `(0..415, 0..680)`.
+  - Completely eradicated all 7 Western portraits from under the desk lamp and cork wall.
+  - Pinned the authentic Chinese cast (Chan Tak Sang, Pak Lan, Ho Bing, Leung Ah Sei) with brass pins and red twine, strictly ONE face per character.
+- **In-World Scene & Desk Diegetic Styling (MINOR #8)**:
+  - Replaced scene top bar button boxes with transparent paper docket tabs (`← 返回案頭`, `📄 推理報告`).
+  - Restyled desk props with tea-stained handwritten slips and `#btn-desk-open-board` as a physical Manila folder tab.
+- **Epilogue Newspaper Cinnabar Next-Case Stamp (MINOR #9)**:
+  - Removed top `【存檔收卷】` bar so the newspaper masthead sits naturally at the top.
+  - Removed rectangular border strokes from the next-case action, rendering `【續案號外】 進入第二案 →` as an authentic cinnabar red rubber seal directly on newsprint.
+- **Automated Verification**:
+  - `node scripts/harsh2_play.mjs http://127.0.0.1:8937/index.html /workspace/nightly/2026-10-28-harbour-casebook/screenshots/fix-r3` printed `RESULT PASS` and exited code 0 with 0 errors.
+  - `node --test tests/*.test.mjs` all 9 unit tests pass.
+  - `bash scripts/audio_check.sh` all 4 BGM files pass.
+  - Complete set of 29 mobile screenshots captured in `screenshots/fix-r3/`.
+
+
+
+## Round 7
+
+### Full Diegetic Rebuild — 1962 Detective Desk (Owner Real-Tap Audit Rebuild)
+- **Diegetic Bakelite & Brass Switchboard Phone (CRITICAL #1a)**:
+  - Rebuilt `PhoneMenu` as a single continuous bakelite telephone chassis and brass switchboard plate (`.menu-screen-wrapper` and `.switchboard-brass-plate`).
+  - Completely eliminated all web-style rectangular button toggles, bordered cards, and white close bars.
+  - Hang-up action implemented diegetically via the top receiver cradle `#btn-menu-back-desk` (`☎ 掛斷話筒 · 歸位案頭`) triggering `phone_receiver.mp3`.
+  - Converted audio toggles to brass jack plugs (`.switchboard-jack-toggle`), text size to a 2-position lever switch (`.switchboard-lever-switch-row`), grokbot link to an engraved patch cable terminal (`.switchboard-patch-cable`), and game reset to an emergency lead seal wire (`.btn-switchboard-reset-trip`).
+  - Added continuous stepped brass rotary volume dials (`.phone-rotary-brass-knob`).
+- **Open Wooden Filing Drawer with Standing Manila Folders (CRITICAL #1b)**:
+  - Rebuilt `CaseBoard` as a top-down view of an open wooden detective filing drawer with 4 staggered manila folder tabs (`.case-filing-drawer-view` and `.manila-filing-folder`).
+  - Unlocked folders show handwritten tab labels and typed police telegram dispatch intro (`.telegram-dispatch-intro`); locked cases are bound with twine and cinnabar wax seals; solved cases bear red vermilion `結` stamps.
+  - Return to desk implemented as pushing the drawer shut via brass pull handle `#btn-board-back-desk` (`推回抽屜 · 返回案頭`) triggering `drawer.mp3`.
+  - Tucked grokbot link into the drawer corner as an authentic period calling card (`.drawer-tucked-calling-card`).
+- **Scene, Deduction, & Corkboard Header Bar Elimination (CRITICAL #1c)**:
+  - Completely removed web app header bars (boxed buttons, centered title banners, CASE badges) across Scene, Corkboard, and Deduction Sheet screens.
+  - Navigation between screens re-engineered as authentic pinned paper tags and folio edge tabs (`#btn-scene-back-desk`, `#btn-scene-go-deduction`, `#btn-cork-back-desk`, `#btn-deduction-back-desk`, `#btn-deduction-go-scene`).
+  - On the deduction report: transformed the 案發陳述 and 涉案人物名冊 border boxes into typed narrative paragraphs and a paper-clipped photo strip (`#btn-deduction-open-cork`).
+- **Desk Hub Pure In-World Aesthetics (CRITICAL #1d)**:
+  - Removed all white hanging UI slips from desk props (`.desk-prop-label-tag` hidden by default; subtle ink handwriting visible only on active interaction).
+  - Restyled `#btn-desk-open-board` as an in-world Manila folder index tab with miniature cinnabar `總卷` seal instead of a gold button.
+  - Relies on warm oil-painting lamp glow and tactile pin rings on hover/tap.
+- **Torn Notebook Evidence Tag Clue Sheet (CRITICAL #1e)**:
+  - Rebuilt `BottomSheet` as an authentic torn notebook page and evidence docket slip (`.evidence-torn-page`) with jagged torn top edge, Portuguese docket stamp, and dismissal note `#sheet-close-btn` (`〔 收卷 ✕ 〕`).
+- **Corkboard Blank Adhesive Name-Tapes (CRITICAL #1f)**:
+  - Replaced dashed buttons under polaroids with authentic blank adhesive paper name-tapes (`.cork-name-tape`).
+  - Replaced the check button with an in-world cinnabar rubber stamp (`.btn-check-corkboard-stamp`).
+- **Pawnshop Scene Noir Regrade & Hotspot Verification (MAJOR #2a)**:
+  - Regraded `assets/scenes/case1_pawnshop.webp` and `case1_pawnshop.jpg` to match `desk_hub.webp` (amber overhead lantern lighting, deep charcoal chiaroscuro shadows, photographic film grain).
+  - Verified hotspot alignment across all 12 scene clues (ledger at 86,68; earring at 38,43; matches at 63,47; footprints at 46,50; window grille at 16,20).
+  - Updated `assets/ui/epilogue_vignette.webp` to match the clean regraded pawnshop plate.
+- **Diegetic Audio & Sound FX (MAJOR #3)**:
+  - Added new authentic audio assets: `assets/audio/drawer.mp3`, `assets/audio/phone_receiver.mp3`, `assets/audio/typewriter.mp3`.
+  - Integrated audio triggers: typewriter sound on deduction slot fill, receiver click on phone hang-up, wooden drawer slide on case drawer navigation.
+  - Verified `bash scripts/audio_check.sh` passes 100% on all 4 BGM files.
+- **End-to-End Verification Gate**:
+  - `node scripts/harsh2_play.mjs http://127.0.0.1:8937/index.html /workspace/nightly/2026-10-28-harbour-casebook/screenshots/r7`: PASSED (exit code 0, 0 console errors, 0 page errors, 34/34 words collected, Case 1 solved, epilogue verified).
+  - `node --test tests/*.test.mjs`: all 9 unit tests pass.
+  - `bash scripts/audio_check.sh`: all 4 BGM files pass.
+  - Complete set of 29 mobile screenshots captured in `screenshots/r7/`.
+
+
+## Round 6.1 fixes
+
+### Owner Audit Fixes & Full Diegetic Hardening (orch-r1-grok.md Review)
+- **Diegetic Telephone & Switchboard Polish (CRITICAL #1)**:
+  - Eliminated the solid top header bar background from `.menu-top-cradle-bar`, allowing the bakelite cradle and receiver handset to rest directly atop the telephone cabinet.
+  - Removed emoji `☎` from cradle text.
+  - Removed overriding rectangular `.btn-text-size` borders, restoring the authentic brass lever switch indicator styling.
+  - Removed the dashed border box from `.btn-switchboard-reset-trip`, styling the reset mechanism as an authentic lead seal on emergency wire.
+- **Case Drawer In-World Docket Polish (CRITICAL #2)**:
+  - Replaced the solid black CTA button bar `.btn-open-case` (`【翻開卷宗 · 進入現場勘驗】`) with authentic paper-docket and stamp styling.
+  - Shortened Case 3 location to `清平戲院後台` with `white-space: nowrap` on `.docket-loc`, eliminating awkward mid-word line wrap of `後台`.
+- **App Chrome Elimination Across Title, Scene, Corkboard & Deduction (CRITICAL #3)**:
+  - Title screen: restyled `#btn-start-game` as an authentic Manila casebook dossier cover with binding tape and `#btn-view-board` as a subtle tucked index card slip, eliminating rectangular button bars. Wrapped `蒐證` in `white-space: nowrap`.
+  - Scene screen: removed emoji `📄` from `#btn-scene-go-deduction`. Removed `#onboarding-banner` from document flow (`position: absolute`) so it never pushes or creates gaps in `.scene-workspace`.
+  - Notebook screen: removed emoji `🔖` and replaced the black header bar with a crimson silk ribbon bookmark `#btn-notebook-back-desk`.
+  - Corkboard screen: removed emoji `📌` from `#btn-cork-back-desk` and emoji `⚖` from `#btn-cork-check`. Restyled `.btn-check-corkboard-stamp` as an authentic cinnabar chop with double-seal outline. Styled `.picker-word-btn` cards with archival serial numbers (`№ 01`) and aged index card slips.
+  - Deduction sheet: increased top padding on `.deduction-scroll-area` to 48px so floating folio tabs never cover the official crest or narrative text. Replaced the black rectangular check button with a vermilion rubber verification stamp `.btn-check-section`. Replaced emoji `📎` with an archival vector SVG paperclip and removed the dashed box border.
+- **Full Viewport Scene Height & Black Band Elimination (MAJOR #4)**:
+  - Made `.scene-workspace` `position: absolute; inset: 0; width: 100%; height: 100%;`.
+  - Updated `openScene()` to activate `#screen-scene` layout before triggering `sceneRenderer.resetView()`, ensuring accurate 844px height measurement.
+  - Verified on `09_scene.png` and `13_scene_all_harvested.png` that bottom rows are painted with warm pawnshop floor paint (`[88.4, 65.3, 22.4]`) extending to row -1, completely eliminating the black `#171410` band.
+- **Four Hotspot Pins Realigned Onto Painted Objects (MAJOR #5)**:
+  - `c1_desk_tea`: moved pin to (24, 80) directly onto the brass ruler and porcelain teacup.
+  - `c1_footprints`: moved pin to (49, 54) directly onto the wet muddy boot prints on the floor.
+  - `c1_earring`: moved pin to (37, 48) directly onto the painted lustrous pearl at the stone threshold.
+  - `c1_alley_matches`: moved pin to (63, 49) directly onto the sulfur matchstick on the floor.
+  - `c1_ticket_ledger`: adjusted coordinate to (76, 68), centering the pin directly on the open ledger book on the floor, keeping it completely on-screen on 390px viewports (x=341px).
+  - Painted crisp, high-detail representations of the pearl earring, mud impressions, sulfur matchstick, and brass ruler/teacup directly into `case1_pawnshop.webp` and `epilogue_vignette.webp`.
+  - Verified all 12 hotspot pairs maintain >= 44px distance (minimum distance 58.5px, passing unit tests).
+- **Scenes 2, 3, 4 Noir Regrading (MAJOR #6)**:
+  - Applied the same warm amber lamp illumination, deep charcoal chiaroscuro S-curve contrast, and fine photographic film grain to `case2_pier.webp`, `case3_theatre.webp`, and `case4_penha.webp`, unifying all 4 scenes to the visual standard of `desk_hub.webp`.
+- **Lexical Word Wrapping & Card Picker Docking (MAJOR #7)**:
+  - Implemented CJK phrase grouping in `renderTemplateWithBlanks` and `incidentIntro`, wrapping clauses and lexical words (`德生大押`, `其動機`, `下手行兇者`) in `white-space: nowrap` spans so line breaks occur only at punctuation.
+  - Reduced `.picker-panel` `max-height` to `40vh`, docking the word fan in the lower 40% of the screen so that the sentence template (including `破裂身亡` and Section 2) remains completely visible and readable above it.
+- **Desk Hub Folder Tab Polish (MINOR #8)**:
+  - Restyled `#btn-desk-open-board` as an aged Manila paper folder tab with miniature cinnabar `總卷` seal and tea-stained paper texture, completely eliminating the gold border rectangle.
+- **Full-Frame Seal Caption Cleanup (MINOR #9)**:
+  - Removed button click instruction `點擊硃砂大印 · 開閱《濠江紀實報》真相號外` from `#btn-open-epilogue`, allowing the cinnabar seal itself to act as the sole in-world control.
+- **Comprehensive Verification Gate**:
+  - `node scripts/harsh2_play.mjs http://127.0.0.1:8937/index.html /workspace/nightly/2026-10-28-harbour-casebook/screenshots/fix-r1`: PASSED with exit code 0, 0 console errors, 0 page errors, 0 occlusions, 34/34 words collected, Case 1 solved, epilogue verified.
+  - `node --test tests/*.test.mjs`: all 9 unit tests pass.
+  - `bash scripts/audio_check.sh`: all 4 BGM files pass.
+  - All 29 mobile walkthrough screenshots captured in `screenshots/fix-r1/`.
+
+## Round 6.2 fixes
+
+- **Hotspot Alignment & Edge Margin Guarantee (CRITICAL/MAJOR #4, #5)**:
+  - Painted authentic in-world clues into `assets/scenes/case1_pawnshop.webp` matching the lamp-lit painted noir desk aesthetic:
+    - Painted luminous natural pearl earring with gold filigree mount directly onto the stone threshold at `(w*0.41, h*0.47)`.
+    - Repainted rosewood abacus beads and frame with blood spatter at `(w*0.35, h*0.58)`.
+    - Painted celadon teacup with lipstick rim and brass ruler on mahogany desk at `(w*0.24, h*0.76)`.
+    - Painted open two-page accounting ledger spread with vermilion seal at `(w*0.78, h*0.68)`.
+    - Painted muddy boot impressions leading to back alley at `(w*0.50, h*0.54)`.
+    - Repositioned hotspots in `src/data/cases.js`: `c1_window_grille` (23, 22), `c1_handkerchief` (22, 50), `c1_safe` (21, 36), `c1_earring` (41, 47), `c1_abacus` (35, 58), `c1_desk_tea` (24, 76), `c1_ticket_ledger` (78, 68), `c1_footprints` (50, 54).
+  - Verified under 1.4427 cover-scale on iPhone 390×844 that all 12 hotspot markers sit completely inside 8–382 CSS px:
+    - Safe ring: `[9.5, 54.0]` CSS px
+    - Window ring: `[20.5, 65.0]` CSS px
+    - Handkerchief ring: `[14.5, 59.0]` CSS px
+    - Ledger ring: `[330.5, 375.0]` CSS px
+    - All 12 rings verified as unclipped complete circles with 0 bezel truncation.
+  - Verified `tests/hotspots_separation.test.mjs` passes with all pairs >= 44.0px.
+- **Diegetic UI & Chrome Elimination (CRITICAL #1, #2, #3)**:
+  - Phone Menu: Restyled into seamless bakelite telephone cabinet with engraved brass instrument plate. Eliminated top header bar so telephone cradle fork rests directly on the phone body.
+  - Case Drawer: Shortened Case 02 location to `內港十六號碼頭` in `cases.js:176` and added `white-space: nowrap` to `.docket-ref` and `.docket-loc`, eliminating mid-word line wrap of `02`.
+  - Scene Header: Eliminated dark docket pill (`.scene-docket-stamp`), replacing it with unbordered archival stamp text.
+  - Onboarding Guide: Replaced cream rectangular card with an aged paper police telegram slip (`onboarding-guide-banner`) with dashed border, paper texture, and `pointer-events: none` to guarantee 0 hotspot occlusion. Wrapped `物證細節` and `詞語` in `white-space: nowrap`.
+  - Desk Hub: Restyled `#btn-desk-open-board` as an aged brass/dark mahogany drawer label plate, eliminating the cream card styling.
+  - Title Screen: Restyled `#btn-start-game` as an archival dark leather casebook dossier cover with vermilion seal, eliminating the stark white bar.
+  - Corkboard & Deduction Stamps: Restyled `.btn-check-corkboard-stamp` and `.btn-check-section` as authentic cinnabar rubber chop imprints on paper with double-border outline, hand-stamped tilt (-0.5deg), and 0 drop shadows.
+  - Clue Bottom Sheet: Replaced emoji `📎` in `src/render/bottom-sheet.js:34` with an archival vector SVG paperclip (`${ICONS.clip(16, '#7A6246')}`).
+  - Deduction Sheet Navigation: Removed emoji `🔍` from `#btn-deduction-go-scene`.
+- **Word Picker Parking & Sentence Readability (MAJOR #7)**:
+  - Reduced `.picker-panel` height to `28vh` and tuned card fan spacing.
+  - In `openWordPicker`, automatically smoothly scrolled the active section card into the upper third of the viewport when opening a blank.
+  - Verified in `21_deduction_picker.png` that the complete sentence (`掌櫃【陳德生】於案發當晚在【當舖庫房】遭遇襲擊，致命傷係被兇手持【紅木算盤】由後方猛擊頭顱破裂身亡。`) is 100% visible, fully readable, and unobstructed above the index cards.
+  - Wrapped `德生大押` in `white-space: nowrap` in `deduction-sheet.js` to ensure the subtitle never splits across lines.
+- **Verification Gates**:
+  - `node scripts/harsh2_play.mjs http://127.0.0.1:8937/index.html /workspace/nightly/2026-10-28-harbour-casebook/screenshots/fix-r2`: RESULT PASS, exit 0, 0 errors, 0 occlusions, 0 offscreen targets, 34/34 words collected, Case 1 and Who's Who solved.
+  - `node --test tests/*.test.mjs`: all 9 unit tests pass.
+  - `bash scripts/audio_check.sh`: all 4 BGM files pass.
+
+
+## Round 6.3 fixes
+
+### Critical Fixes
+- **Eliminated CSS Source Markup Leak in Cause-of-Death Sentence (CRITICAL #1)**:
+  - In `src/data/cases.js:122`: Reverted template string back to clean, pure semantic prose without embedded HTML spans: `'掌櫃 {victim} 於案發當晚在 {scene} 遭遇襲擊，致命傷係被兇手持 {weapon} 由後方猛擊頭顱破裂身亡。'`.
+  - In `src/render/deduction-sheet.js:313-318`: Completely removed the regex punctuation splitting and wrapping pass that was mishandling `<span style="...">` tags and leaking `style="white-space: nowrap;">` text onto the screen.
+  - In `src/render/deduction-sheet.js:148`: Removed regex string wrapping from `incidentIntro` to keep prose pristine.
+  - In `css/style.css`: Handled CJK word-breaking natively using `word-break: keep-all; overflow-wrap: normal;` on `.section-sentence-box`, `.section-desc`, `.evidence-sheet-desc`, and `.narrative-body-text`.
+- **Complete Diegetic UI Chrome Elimination Across All Screens (CRITICAL #2)**:
+  - **Phone Menu**: Removed top rectangular bar and bordered brass plate from `.switchboard-brass-plate`, styling the entire interface as a seamless bakelite wall telephone with engraved instrument plate, brass rotary dials, jack levers, and grokbot patch terminal.
+  - **Case Board / Filing Drawer**: Removed rectangular border box from `.folder-body-packet` (styled with authentic Manila folder paper grain and 3px left binding edge). Handled pull handle as the drawer front.
+  - **Scene Screen**: Replaced boxed buttons (`.scene-diegetic-tab`) with edge tags sticking out from behind the scene plate with subtle bottom borders. Replaced onboarding card banner with a margin-aligned police telegram line that never covers the doorway.
+  - **Deduction Folio**: Increased top scroll padding (`padding-top: calc(var(--safe-top) + 76px)`) so sticky folio tabs never overlap the incident narrative or crest. Increased bottom scroll padding to `calc(var(--safe-bottom) + 260px)`. Converted `.btn-check-section` and `.section-solved-stamp` from rectangular box buttons into authentic rubber chop stamp imprints pressed directly onto the folio page (`border: none; border-bottom: 2px solid`). Converted `.btn-hint-trigger` into a tucked paper slip.
+  - **Corkboard**: Removed rectangular border from `.cork-pinned-return-tag` (styled as a pinned paper tab with vermilion underline). Converted `.btn-check-corkboard-stamp` and `.cork-solved-stamp` from boxed buttons into authentic cinnabar stamp imprints pressed on the board (`border: none; border-bottom: 2px solid`). Restyled `.corkboard-pinned-memo-scrap` into a pinned memo scrap without box stroke.
+  - **Title & Desk Hub**: Removed all cream bars and rectangular button outlines from `.btn-primary-start`, `.btn-secondary-board`, and `.btn-desk-board-folder`, styling them as authentic ink seal titles and brass drawer tabs.
+
+### Major Enhancements
+- **Pawnshop Art Repainting & Hotspot Precision Alignment (MAJOR #3)**:
+  - Repainted `assets/scenes/case1_pawnshop.webp` and `case1_pawnshop.jpg` to match the warm amber lamp-lit chiaroscuro palette, LAB illumination curve, edge softening, and fine photographic film grain of `desk_hub.webp`.
+  - Cleaned the corpse head at `(w*0.64, h*0.78)` of any lined document/sticker.
+  - Repositioned hotspots onto actual painted objects:
+    - `c1_earring` at (39, 47) directly onto the painted lustrous natural pearl at the threshold.
+    - `c1_desk_tea` at (23, 74) directly centered on the celadon teacup.
+    - `c1_ticket_ledger` at (76, 68) directly centered on the open ledger book on the floor.
+  - Verified that all 12 hotspot markers sit strictly within `x = 14.5px` to `369.8px` (well inside 8–382 CSS px range under cover scale 1.4427), with pairwise distance >= 58.5px (>= 44px required).
+  - Unified character portraits across Title, Desk, and Corkboard: pasted the exact painted portraits of 陳德生, 何炳, 梁阿四, 白蘭 onto `desk_hub.webp` and `title_key.webp` corkboard polaroids with matching vintage tone.
+- **Word Picker Parking & CJK Word-Break Integrity (MAJOR #4)**:
+  - In `src/render/deduction-sheet.js:423-430`: In `openWordPicker`, used precise container-relative offset calculation via `getBoundingClientRect()` to immediately position the active section card near the top of the viewport.
+  - With `padding-bottom: calc(var(--safe-bottom) + 260px)`, both Section 1 and Section 2 sentences remain completely above the card fan tray (docked at `max-height: 28vh`), completely eliminating text occlusion.
+  - Added `word-break: keep-all` to `.section-desc` (preventing `動機` from breaking) and `.evidence-sheet-desc` (preventing `單隻` from breaking).
+
+### Minor Polish
+- **Shortened Case 1 Location on Docket (MINOR #5)**:
+  - Shortened Case 1 location in `src/data/cases.js:17` from `'福隆新街「德生大押」後櫃庫房'` to `'福隆新街德生大押'` (7 chars), fitting cleanly on one line in `.docket-loc` without ellipsis truncation (`…`).
+
+### Verification Gates
+- `node scripts/harsh2_play.mjs http://127.0.0.1:8937/index.html /workspace/nightly/2026-10-28-harbour-casebook/screenshots/fix-r3`: RESULT PASS, exit code 0, 0 errors, 34/34 words collected, Who's Who solved, Case 1 solved, epilogue verified.
+- `node --test tests/*.test.mjs`: all 9 unit tests pass.
+- `bash scripts/audio_check.sh`: all 4 BGM files pass.

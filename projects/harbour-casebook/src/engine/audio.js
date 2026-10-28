@@ -27,7 +27,10 @@ class AudioManager {
       fog_horn: 'assets/audio/fog_horn.mp3',
       clock_tick: 'assets/audio/clock_tick.mp3',
       tension_sting: 'assets/audio/tension_sting.mp3',
-      solve_sting: 'assets/audio/solve_sting.mp3'
+      solve_sting: 'assets/audio/solve_sting.mp3',
+      drawer: 'assets/audio/drawer.mp3',
+      phone_receiver: 'assets/audio/phone_receiver.mp3',
+      typewriter: 'assets/audio/typewriter.mp3'
     };
 
     // Available BGM map
@@ -239,6 +242,42 @@ class AudioManager {
           osc.start(now + idx * 0.08);
           osc.stop(now + idx * 0.08 + 1.2);
         });
+      } else if (name === 'drawer') {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(90, now);
+        osc.frequency.linearRampToValueAtTime(60, now + 0.3);
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      } else if (name === 'phone_receiver') {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.exponentialRampToValueAtTime(200, now + 0.12);
+        gain.gain.setValueAtTime(0.5, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.12);
+      } else if (name === 'typewriter') {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(2200, now);
+        osc.frequency.exponentialRampToValueAtTime(400, now + 0.08);
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.08);
       } else {
         // paper slide
         const osc = ctx.createOscillator();

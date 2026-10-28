@@ -56,7 +56,7 @@ class App {
             <div class="title-ink-divider">
               <img src="assets/ui/ink_rule.webp" class="title-rule-img" alt="" />
             </div>
-            <p class="title-pitch">重回一九六二年澳門內港。在案頭泛黃案卷中蒐證、推演與指認，揭開橫跨四案的殖民黑幕。</p>
+            <p class="title-pitch">重回一九六二年澳門內港。在案頭泛黃案卷中<span style="white-space: nowrap;">蒐證</span>、推演與指認，揭開橫跨四案的殖民黑幕。</p>
           </div>
 
           <div class="title-actions">
@@ -82,22 +82,18 @@ class App {
         <div id="desk-host" class="desk-host-inner"></div>
       </section>
 
-      <!-- 3. Scene Investigation Screen -->
+      <!-- 3. Scene Investigation Screen (Diegetic Paper Tags, No Boxed Top Bar) -->
       <section id="screen-scene" class="screen-view">
         <header class="scene-top-bar">
-          <button class="btn-desk-nav btn-back-to-desk" id="btn-scene-back-desk" aria-label="返回案頭">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
-            </svg>
-            <span>返回案頭</span>
+          <button class="scene-diegetic-tab scene-tab-back btn-back-to-desk" id="btn-scene-back-desk" aria-label="返回案頭">
+            <span class="tag-grommet"></span>
+            <span class="tag-label">← 案頭</span>
           </button>
-          <div class="scene-top-title-group">
-            <span class="scene-case-badge" id="scene-case-badge">CASE 01</span>
-            <h2 class="scene-case-name" id="scene-case-title">德生大押 · 現場勘查</h2>
+          <div class="scene-docket-stamp">
+            <span class="scene-docket-text" id="scene-case-title">〈押〉德生大押 · 現場勘查</span>
           </div>
-          <button class="btn-desk-nav btn-jump-deduction" id="btn-scene-go-deduction">
-            ${ICONS.scroll(15, 'currentColor')}
-            <span>推理報告</span>
+          <button class="scene-diegetic-tab scene-tab-report" id="btn-scene-go-deduction" aria-label="推理報告">
+            <span class="tag-label">推理報告 →</span>
           </button>
         </header>
 
@@ -224,7 +220,8 @@ class App {
     const corkboardHost = document.getElementById('corkboard-host');
     this.corkboard = new Corkboard(corkboardHost, {
       onWhoSolved: (caseData) => {
-        this.deductionSheet.render(caseData);
+        const cd = caseData || this.cases.find(c => c.id === this.currentCaseId) || this.cases[0];
+        this.deductionSheet.render(cd);
         this.caseBoard.render();
       },
       onBackToDesk: () => {
@@ -339,9 +336,11 @@ class App {
   openScene() {
     const caseData = this.cases.find(c => c.id === this.currentCaseId) || this.cases[0];
 
-    // Update Header
-    document.getElementById('scene-case-badge').textContent = `CASE 0${caseData.id}`;
-    document.getElementById('scene-case-title').textContent = `〈${caseData.symbol}〉 ${caseData.title}`;
+    // Update Header if elements exist
+    const badge = document.getElementById('scene-case-badge');
+    if (badge) badge.textContent = `CASE 0${caseData.id}`;
+    const title = document.getElementById('scene-case-title');
+    if (title) title.textContent = `〈${caseData.symbol}〉 ${caseData.title}`;
 
     // Onboarding guide for Case 1 (strictly monotonic & dismissible)
     this.updateOnboardingBanner();
@@ -351,8 +350,9 @@ class App {
     const discoveredIds = caseState.discoveredHotspots || [];
     const harvestedIds = this.calculateHarvestedHotspots(caseData, caseState.collectedWords || []);
 
-    this.sceneRenderer.loadScene(caseData.sceneImage, caseData.hotspots, discoveredIds, harvestedIds);
     this.showScreen('scene');
+    this.sceneRenderer.loadScene(caseData.sceneImage, caseData.hotspots, discoveredIds, harvestedIds);
+    this.sceneRenderer.resetView();
   }
 
   openDeduction() {
@@ -393,11 +393,11 @@ class App {
       return;
     }
     if (this.onboardingStep === 1) {
-      textEl.innerHTML = `<strong>第 1 步：</strong>在現場點擊紅色線索圈，勘查物證細節。`;
+      textEl.innerHTML = `<strong>第 1 步：</strong>在現場點擊紅色線索圈，勘查<span style="white-space: nowrap;">物證細節</span>。`;
     } else if (this.onboardingStep === 2) {
-      textEl.innerHTML = `<strong>第 2 步：</strong>在物證描述中，點擊帶底線詞語收錄至案頭筆記。`;
+      textEl.innerHTML = `<strong>第 2 步：</strong>在物證描述中，點擊帶底線<span style="white-space: nowrap;">詞語</span>收錄至案頭筆記。`;
     } else if (this.onboardingStep === 3) {
-      textEl.innerHTML = `<strong>第 3 步：</strong>點擊右上角「推理報告」，將已收集詞語填入案卷空白重組真相。`;
+      textEl.innerHTML = `<strong>第 3 步：</strong>點擊右上角「推理報告」，將已收集<span style="white-space: nowrap;">詞語</span>填入案卷空白重組真相。`;
     }
     banner.classList.remove('is-hidden');
   }

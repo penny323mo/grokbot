@@ -1,7 +1,7 @@
 /**
  * 濠江疑案 · Harbour Casebook
- * 軟木板人物關係牆渲染器 (Diegetic Corkboard Renderer)
- * 渲染於 assets/art/corkboard.webp 上，展示圖釘照片、人物甲/乙/丙代稱與歸位核對
+ * 軟木板人物關係牆渲染器 (Diegetic Corkboard & Polaroid Name Tapes)
+ * 渲染於 assets/art/corkboard.webp 上：大頭針固定相片、膠布名條、手寫便條、無方形頂欄與虛線框
  */
 
 import { PORTRAITS } from '../data/portraits.js';
@@ -46,11 +46,12 @@ export class Corkboard {
     const peopleList = this.caseData.wordBank.people || [];
     const currentGuess = storage.getWhoGuesses(this.caseData.id)[charId];
 
-    this.pickerGrid.innerHTML = peopleList.map(name => {
+    this.pickerGrid.innerHTML = peopleList.map((name, idx) => {
       const isSelected = name === currentGuess;
       return `
-        <button class="picker-word-btn ${isSelected ? 'is-selected' : ''}" data-word="${name}">
-          ${name}
+        <button class="picker-word-btn ${isSelected ? 'is-selected' : ''}" data-word="${name}" type="button">
+          <span class="card-serial">№ 0${idx + 1}</span>
+          <span class="word-text">${name}</span>
         </button>
       `;
     }).join('');
@@ -65,6 +66,7 @@ export class Corkboard {
     });
 
     this.pickerModal.classList.add('is-open');
+    audio.playSFX('paper_slide');
   }
 
   hidePicker() {
@@ -83,35 +85,31 @@ export class Corkboard {
 
     let html = `
       <div class="corkboard-screen-wrapper">
-        <header class="corkboard-top-bar">
-          <button class="btn-desk-nav btn-back-to-desk" id="btn-cork-back-desk">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
-            </svg>
-            <span>返回案頭</span>
+        <!-- Floating Diegetic Tags, No Solid Top Bar -->
+        <div class="corkboard-top-controls">
+          <button class="cork-pinned-return-tag btn-back-to-desk" id="btn-cork-back-desk" type="button" aria-label="返回案頭">
+            <span class="tag-pushpin"></span>
+            <span class="tag-label">← 返回案頭</span>
           </button>
-          <div class="corkboard-title-group">
-            <span class="corkboard-badge">CASE 0${caseData.id} 涉案人物</span>
-            <h2 class="corkboard-headline">軟木板 · 人物歸位</h2>
+          <div class="cork-pinned-header-tag">
+            <span class="cork-header-text">〈${caseData.symbol}〉 ${caseData.title} · 人物指認牆</span>
           </div>
-          <div class="corkboard-status-badge">
-            ${isWhoSolved 
-              ? `<span class="badge-who-done">${ICONS.check(14, '#4F6F5F')} 已歸位</span>`
-              : `<span class="badge-who-pending">待指認</span>`
-            }
-          </div>
-        </header>
+        </div>
 
         <div class="corkboard-scroll-area">
           <div class="corkboard-folio">
-            <div class="corkboard-pinned-memo">
-              <div class="memo-brass-tack"></div>
-              <div class="memo-header-line">POLÍCIA DE SEGURANÇA PÚBLICA · 涉案人物指認板</div>
-              <p class="cork-instruction">
-                每張黑白檔案相片均以大頭針釘於板上。依據供詞與物證，點擊照片下方名牌指認真實姓名。未結案前暫以代稱稱之。
-              </p>
+            <!-- Small Vintage Pinned Memo Scrap -->
+            <div class="corkboard-pinned-memo-scrap">
+              <span class="memo-brass-tack"></span>
+              <div class="memo-scrap-content">
+                <span class="memo-tag-line">POLÍCIA DE MACAU · 涉案指認板</span>
+                <p class="cork-instruction">
+                  依證詞物證點擊相片下方膠布名條指認姓名。
+                </p>
+              </div>
             </div>
 
+            <!-- Polaroid Grid with Blank Name-Tape Strips -->
             <div class="corkboard-pins-grid">
               ${chars.map((charId, idx) => {
                 const char = PORTRAITS[charId];
@@ -119,7 +117,7 @@ export class Corkboard {
                 const guess = whoGuesses[charId];
                 const isFilled = !!guess;
                 const neutralLabel = `人物${labels[idx] || (idx + 1)}`;
-                const displayName = isWhoSolved ? char.name : (guess || '〔 涉案待認 〕');
+                const displayName = isWhoSolved ? char.name : (guess || '──────');
 
                 return `
                   <div class="cork-polaroid-card ${isFilled ? 'is-filled' : ''} ${isWhoSolved ? 'is-solved' : ''}" data-char-id="${char.id}">
@@ -129,10 +127,14 @@ export class Corkboard {
                     </div>
                     <div class="cork-card-caption">
                       <span class="cork-code-label">${neutralLabel}</span>
-                      <div class="cork-string-tie" aria-hidden="true"></div>
-                      <button class="cork-name-slot ${isFilled ? 'has-value' : 'is-empty'}" data-char-id="${char.id}" ${isWhoSolved ? 'disabled' : ''}>
+                      
+                      <!-- Blank Name-Tape Strip (No dashed button) -->
+                      <button class="cork-name-slot cork-name-tape ${isFilled ? 'has-value' : 'is-empty'}" data-char-id="${char.id}" ${isWhoSolved ? 'disabled' : ''} type="button" aria-label="指認 ${neutralLabel} 姓名">
+                        <span class="tape-edge left"></span>
                         <span class="slot-text">${displayName}</span>
+                        <span class="tape-edge right"></span>
                       </button>
+
                       ${isWhoSolved ? `<div class="cork-solved-chip">${char.role || ''}</div>` : ''}
                     </div>
                   </div>
@@ -140,15 +142,16 @@ export class Corkboard {
               }).join('')}
             </div>
 
+            <!-- Verification Rubber Stamp -->
             <div class="corkboard-action-section">
               <div id="corkboard-feedback" class="cork-feedback-banner"></div>
               ${!isWhoSolved ? `
-                <button class="btn-check-corkboard" id="btn-cork-check">
-                  ${ICONS.scale(16, 'currentColor')} 核對人物名冊
+                <button class="btn-check-corkboard-stamp" id="btn-cork-check" type="button">
+                  <span class="stamp-text">【 鈐印核實人物名冊 】</span>
                 </button>
               ` : `
                 <div class="cork-solved-stamp">
-                  <span class="stamp-seal-text">【人物全數歸位】</span>
+                  <span class="stamp-seal-text">【 司法警察司 · 人物全數歸位 】</span>
                 </div>
               `}
             </div>
@@ -162,7 +165,6 @@ export class Corkboard {
   }
 
   bindEvents() {
-    // Back to desk
     const backBtn = this.container.querySelector('#btn-cork-back-desk');
     if (backBtn) {
       backBtn.addEventListener('click', () => {
@@ -171,8 +173,7 @@ export class Corkboard {
       });
     }
 
-    // Name slot click -> open picker
-    this.container.querySelectorAll('.cork-name-slot:not([disabled])').forEach(slot => {
+    this.container.querySelectorAll('.cork-name-slot').forEach(slot => {
       slot.addEventListener('click', (e) => {
         e.stopPropagation();
         const charId = slot.getAttribute('data-char-id');
@@ -180,50 +181,46 @@ export class Corkboard {
       });
     });
 
-    // Check button
     const checkBtn = this.container.querySelector('#btn-cork-check');
     if (checkBtn) {
       checkBtn.addEventListener('click', () => {
-        this.validateWho();
+        this.handleCheck();
       });
     }
   }
 
-  validateWho() {
+  fillSlot(charId, word) {
     if (!this.caseData) return;
-    const result = checkWhosWho(this.caseData.whosWho || [], storage.getWhoGuesses(this.caseData.id));
-    const fbEl = this.container.querySelector('#corkboard-feedback');
-    if (!fbEl) return;
-
-    fbEl.className = 'cork-feedback-banner is-visible';
-
-    if (result.status === CHECK_STATUS.INCOMPLETE) {
-      audio.playSFX('error_tick');
-      fbEl.classList.add('status-incomplete');
-      fbEl.innerHTML = `<strong>尚未填妥：</strong>請先為每位人物選定身分再行核對。`;
-    } else if (result.status === CHECK_STATUS.CORRECT) {
-      audio.playSFX('stamp_thud');
-      audio.playSFX('solve_sting');
-      fbEl.classList.add('status-correct');
-      fbEl.innerHTML = `<strong>全數正確！</strong>所有涉案人物之真實姓名已完全吻合。`;
-      storage.setWhoSolved(this.caseData.id, true);
-      this.onWhoSolved(this.caseData);
-      setTimeout(() => this.render(this.caseData), 600);
-    } else if (result.status === CHECK_STATUS.PARTIAL) {
-      audio.playSFX('paper_slide');
-      fbEl.classList.add('status-partial');
-      fbEl.innerHTML = `<strong>接近真相：</strong>目前有 2 處或以下錯誤，請再加審思。`;
-    } else {
-      audio.playSFX('tension_sting');
-      fbEl.classList.add('status-incorrect');
-      fbEl.innerHTML = `<strong>身分不符：</strong>多處指認有誤，請詳查口供與物證。`;
-    }
-  }
-
-  fillSlot(charId, value) {
-    if (!this.caseData) return;
-    storage.setWhoGuess(this.caseData.id, charId, value);
+    storage.setWhoGuess(this.caseData.id, charId, word);
     audio.playSFX('pen_scratch');
     this.render(this.caseData);
+  }
+
+  handleCheck() {
+    if (!this.caseData) return;
+    const caseId = this.caseData.id;
+    const guesses = storage.getWhoGuesses(caseId);
+
+    const result = checkWhosWho(this.caseData.whosWho, guesses);
+    const feedbackEl = document.getElementById('corkboard-feedback');
+
+    if (result.status === CHECK_STATUS.INCOMPLETE) {
+      feedbackEl.className = 'cork-feedback-banner is-incomplete';
+      feedbackEl.innerHTML = `<span>還有人物尚未填寫姓名，請核對案卷線索。</span>`;
+      audio.playSFX('error_tick');
+    } else if (result.status === CHECK_STATUS.CORRECT) {
+      storage.setWhoSolved(caseId, true);
+      audio.playSFX('stamp_thud');
+      this.render(this.caseData);
+      this.onWhoSolved(this.caseData);
+    } else if (result.status === CHECK_STATUS.FEW_ERRORS) {
+      feedbackEl.className = 'cork-feedback-banner is-few-errors';
+      feedbackEl.innerHTML = `<span>【初步指認】名冊中有 <strong>2 處或以下</strong> 姓名有誤，已極為接近。</span>`;
+      audio.playSFX('error_tick');
+    } else {
+      feedbackEl.className = 'cork-feedback-banner is-many-errors';
+      feedbackEl.innerHTML = `<span>【指認有誤】名冊中有多處錯誤，請比對口供與證言。</span>`;
+      audio.playSFX('error_tick');
+    }
   }
 }

@@ -97,3 +97,10 @@ cat $P/REBUILD_PROGRESS.md
 - 2026-10-28 18:07 loop check: orch phase=fix-3 (attempt 1 timed out 18:05, waiting on busy agy-pane for attempt 2) RUNNING, heartbeat fresh 18:06; no action.
 - 2026-10-28 18:36 loop check: orch phase=fix-3 attempt 2 (sent 18:22) RUNNING, heartbeat fresh 18:36, agy actively working; no action.
 - 2026-10-28 19:07 loop check: orch phase=fix-3 attempt 2 (sent 18:22, times out ~19:07+) RUNNING, heartbeat fresh 19:07; no action.
+- 2026-10-28 19:38 loop: round-6 orch DONE 19:08 (live 200, tests pass, fix-3 timed out x2). restore-cover run; studio thumb live (256², std 44). Own live play screenshots/loop-1934 RESULT PASS. Harsh score: Art 80, UI 65, Music 84, Interaction 85, Story 87 — phone/switchboard still a form, case drawer = card stack, scene/report app header bars + boxed buttons, white slips on desk props. Wrote prompts/improve-r7.txt (= orch-build.txt + sentinel); review/fix prompts now point to improve-r7; old r1-3 reviews → reviews/archive-r6, prompts → prompts/archive-r6; old state → .orch-prev-6. Relaunched --rounds 3 at 19:38. Next DONE: restore-cover, play live into screenshots/loop-<time>, score; repeat.
+- 2026-10-28 20:02 loop check: round-7 orch phase=build attempt 1 (sent 19:38) RUNNING, heartbeat fresh 20:01; no action.
+- 2026-10-28 20:36 loop check: round-7 orch phase=build attempt 2 (attempt 1 timed out 20:23, attempt 2 sent 20:23) RUNNING, heartbeat fresh 20:35; no action.
+- 2026-10-28 21:14 loop check: round-7 orch phase=fix-1 (round 1/3; build PASS 20:55, review-1 done 21:08, fix-1 sent 21:08) RUNNING, heartbeat fresh 21:13; no action.
+- 2026-10-28 21:36 loop check: round-7 orch phase=fix-1 (round 1/3, sent 21:08) RUNNING, heartbeat fresh 21:35; no action.
+- 2026-10-28 22:07 loop check: round-7 orch phase=review-3 (round 3/3; fix-2 done 22:05, tests PASS, review-3 sent 22:05) RUNNING, heartbeat fresh 22:06; no action.
+- 2026-10-28 22:39 loop check: round-7 orch phase=fix-3 (round 3/3, sent 22:15) RUNNING, heartbeat fresh 22:38; no action.
