@@ -26,37 +26,18 @@ export class Corkboard {
     this.pickerModal.className = 'word-picker-modal cork-picker-modal';
     this.pickerModal.innerHTML = `
       <div class="picker-backdrop"></div>
-      <div class="picker-panel" role="dialog" aria-labelledby="cork-picker-title">
-        <div class="picker-header">
-          <div class="picker-title-group">
-            <span class="picker-tag">涉案人名</span>
-            <h4 class="picker-title" id="cork-picker-title">指認人物姓名</h4>
-          </div>
-          <button class="picker-close-btn" aria-label="取消選詞">&times;</button>
-        </div>
+      <div class="picker-panel loose-fan-tray" role="dialog" aria-label="涉案姓名籤條">
         <div class="picker-body">
-          <div class="picker-words-grid" id="cork-picker-grid"></div>
-        </div>
-        <div class="picker-footer">
-          <button class="picker-clear-btn" id="cork-picker-clear">清空此格</button>
+          <div class="picker-slips-fan" id="cork-picker-grid"></div>
         </div>
       </div>
     `;
     document.body.appendChild(this.pickerModal);
 
     this.pickerBackdrop = this.pickerModal.querySelector('.picker-backdrop');
-    this.pickerCloseBtn = this.pickerModal.querySelector('.picker-close-btn');
-    this.pickerClearBtn = this.pickerModal.querySelector('#cork-picker-clear');
     this.pickerGrid = this.pickerModal.querySelector('#cork-picker-grid');
 
     this.pickerBackdrop.addEventListener('click', () => this.hidePicker());
-    this.pickerCloseBtn.addEventListener('click', () => this.hidePicker());
-    this.pickerClearBtn.addEventListener('click', () => {
-      if (this.activeCharId && this.caseData) {
-        this.fillSlot(this.activeCharId, null);
-        this.hidePicker();
-      }
-    });
   }
 
   showPicker(charId) {
@@ -123,9 +104,11 @@ export class Corkboard {
 
         <div class="corkboard-scroll-area">
           <div class="corkboard-folio">
-            <div class="corkboard-note-card">
+            <div class="corkboard-pinned-memo">
+              <div class="memo-brass-tack"></div>
+              <div class="memo-header-line">POLÍCIA DE SEGURANÇA PÚBLICA · 涉案人物指認板</div>
               <p class="cork-instruction">
-                每張黑白檔案照片均以大頭針釘於牆上。依據供詞、信件與物證，點擊照片下方名牌指認各人真實姓名。未結案前，均以「人物甲、人物乙…」稱之。
+                每張黑白檔案相片均以大頭針釘於板上。依據供詞與物證，點擊照片下方名牌指認真實姓名。未結案前暫以代稱稱之。
               </p>
             </div>
 
@@ -136,7 +119,7 @@ export class Corkboard {
                 const guess = whoGuesses[charId];
                 const isFilled = !!guess;
                 const neutralLabel = `人物${labels[idx] || (idx + 1)}`;
-                const displayName = isWhoSolved ? char.name : (guess || '點擊指認姓名');
+                const displayName = isWhoSolved ? char.name : (guess || '〔 涉案待認 〕');
 
                 return `
                   <div class="cork-polaroid-card ${isFilled ? 'is-filled' : ''} ${isWhoSolved ? 'is-solved' : ''}" data-char-id="${char.id}">
@@ -146,9 +129,9 @@ export class Corkboard {
                     </div>
                     <div class="cork-card-caption">
                       <span class="cork-code-label">${neutralLabel}</span>
+                      <div class="cork-string-tie" aria-hidden="true"></div>
                       <button class="cork-name-slot ${isFilled ? 'has-value' : 'is-empty'}" data-char-id="${char.id}" ${isWhoSolved ? 'disabled' : ''}>
                         <span class="slot-text">${displayName}</span>
-                        ${!isWhoSolved ? `<span class="slot-caret">▾</span>` : ''}
                       </button>
                       ${isWhoSolved ? `<div class="cork-solved-chip">${char.role || ''}</div>` : ''}
                     </div>
@@ -208,7 +191,7 @@ export class Corkboard {
 
   validateWho() {
     if (!this.caseData) return;
-    const result = checkWhosWho(this.caseData, storage.getWhoGuesses(this.caseData.id));
+    const result = checkWhosWho(this.caseData.whosWho || [], storage.getWhoGuesses(this.caseData.id));
     const fbEl = this.container.querySelector('#corkboard-feedback');
     if (!fbEl) return;
 
@@ -218,19 +201,20 @@ export class Corkboard {
       audio.playSFX('error_tick');
       fbEl.classList.add('status-incomplete');
       fbEl.innerHTML = `<strong>尚未填妥：</strong>請先為每位人物選定身分再行核對。`;
-    } else if (result.status === CHECK_STATUS.ALL_CORRECT) {
+    } else if (result.status === CHECK_STATUS.CORRECT) {
       audio.playSFX('stamp_thud');
+      audio.playSFX('solve_sting');
       fbEl.classList.add('status-correct');
       fbEl.innerHTML = `<strong>全數正確！</strong>所有涉案人物之真實姓名已完全吻合。`;
       storage.setWhoSolved(this.caseData.id, true);
       this.onWhoSolved(this.caseData);
       setTimeout(() => this.render(this.caseData), 600);
     } else if (result.status === CHECK_STATUS.PARTIAL) {
-      audio.playSFX('error_tick');
+      audio.playSFX('paper_slide');
       fbEl.classList.add('status-partial');
       fbEl.innerHTML = `<strong>接近真相：</strong>目前有 2 處或以下錯誤，請再加審思。`;
     } else {
-      audio.playSFX('error_tick');
+      audio.playSFX('tension_sting');
       fbEl.classList.add('status-incorrect');
       fbEl.innerHTML = `<strong>身分不符：</strong>多處指認有誤，請詳查口供與物證。`;
     }

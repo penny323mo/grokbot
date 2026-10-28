@@ -45,10 +45,8 @@ export class DeskHub {
           </div>
           <div class="desk-header-actions">
             <button class="btn-desk-board-folder" id="btn-desk-open-board" title="案件目錄卷宗夾">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-              </svg>
-              <span>案件目錄</span>
+              <span class="folder-tab-seal-mini">總卷</span>
+              <span class="desk-folder-tab-text">抽屜卷宗目錄</span>
             </button>
           </div>
         </header>
@@ -58,37 +56,51 @@ export class DeskHub {
           
           <!-- 1. Casebook Center (Left Page): 現場手繪 / 勘驗現場 -->
           <button class="desk-prop-target prop-casebook" id="prop-casebook" style="left: 36%; top: 56%;" aria-label="勘驗現場手繪案卷">
+            <div class="desk-prop-glow"></div>
             <div class="desk-prop-pin-ring"></div>
+            <span class="desk-prop-label-tag">現場案卷</span>
           </button>
 
           <!-- 2. Police Report / Deduction (Right Page): 推理結案報告 -->
           <button class="desk-prop-target prop-deduction" id="prop-deduction" style="left: 64%; top: 56%;" aria-label="破案審查與推理報告">
+            <div class="desk-prop-glow"></div>
             <div class="desk-prop-pin-ring ${isCaseSolved ? 'is-solved' : ''}"></div>
+            <span class="desk-prop-label-tag">破案報告</span>
           </button>
 
-          <!-- 3. Corkboard on Wall: 涉案人物關係牆 -->
-          <button class="desk-prop-target prop-corkboard" id="prop-corkboard" style="left: 18%; top: 28%;" aria-label="涉案人物關係牆">
+          <!-- 3. Corkboard on Wall: 涉案人物關係牆 (Upper left wall, separated from lamp) -->
+          <button class="desk-prop-target prop-corkboard" id="prop-corkboard" style="left: 20%; top: 32%;" aria-label="涉案人物關係牆">
+            <div class="desk-prop-glow"></div>
             <div class="desk-prop-pin-ring ${isWhoSolved ? 'is-solved' : ''}"></div>
+            <span class="desk-prop-label-tag">人物關係</span>
           </button>
 
           <!-- 4. Leather Notebook (Bottom Left): 物證詞語庫 (Leather Cover) -->
           <button class="desk-prop-target prop-notebook" id="prop-notebook" style="left: 18%; top: 83%;" aria-label="案頭物證手記">
+            <div class="desk-prop-glow"></div>
             <div class="desk-prop-pin-ring"></div>
+            <span class="desk-prop-label-tag">物證手記</span>
           </button>
 
           <!-- 5. Magnifier (Bottom Right): 現場放大鏡捷徑 (Glass Rim / Lens Center) -->
           <button class="desk-prop-target prop-magnifier" id="prop-magnifier" style="left: 68%; top: 85%;" aria-label="手持放大鏡">
+            <div class="desk-prop-glow"></div>
             <div class="desk-prop-pin-ring"></div>
+            <span class="desk-prop-label-tag">放大鏡</span>
           </button>
 
           <!-- 6. Rotary Telephone (Right): 總機選單 / 設置 / grokbot -->
           <button class="desk-prop-target prop-phone" id="prop-phone" style="left: 82%; top: 46%;" aria-label="探署總機電話">
+            <div class="desk-prop-glow"></div>
             <div class="desk-prop-pin-ring"></div>
+            <span class="desk-prop-label-tag">總機通訊</span>
           </button>
 
-          <!-- 7. Desk Lamp (Left): 檯燈罩 (Shade / Glow) -->
-          <button class="desk-prop-target prop-lamp" id="prop-lamp" style="left: 14%; top: 24%;" aria-label="檯燈調光">
+          <!-- 7. Desk Lamp (Upper Left Shade / Switch, separated from corkboard) -->
+          <button class="desk-prop-target prop-lamp" id="prop-lamp" style="left: 10%; top: 14%;" aria-label="檯燈開關">
+            <div class="desk-prop-glow"></div>
             <div class="desk-prop-pin-ring is-subtle"></div>
+            <span class="desk-prop-label-tag">檯燈</span>
           </button>
         </nav>
       </div>

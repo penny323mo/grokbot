@@ -25,7 +25,9 @@ class AudioManager {
       error_tick: 'assets/audio/error_tick.mp3',
       hint_chime: 'assets/audio/hint_chime.mp3',
       fog_horn: 'assets/audio/fog_horn.mp3',
-      clock_tick: 'assets/audio/clock_tick.mp3'
+      clock_tick: 'assets/audio/clock_tick.mp3',
+      tension_sting: 'assets/audio/tension_sting.mp3',
+      solve_sting: 'assets/audio/solve_sting.mp3'
     };
 
     // Available BGM map
@@ -60,18 +62,6 @@ class AudioManager {
       console.warn('Web Audio Context initialization error:', e);
     }
 
-    // Preload SFX
-    Object.entries(this.sfxPaths).forEach(([key, path]) => {
-      try {
-        const audio = new Audio();
-        audio.src = path;
-        audio.preload = 'auto';
-        this.sfxAudios[key] = audio;
-      } catch (err) {
-        // Ignored
-      }
-    });
-
     // Start playing stored BGM if any
     const settings = storage.getSettings();
     if (!settings.musicMuted && this.currentBgmName) {
@@ -93,16 +83,16 @@ class AudioManager {
       const canOgg = this.bgmAudio.canPlayType('audio/ogg; codecs="vorbis"');
       const src = (canOgg && canOgg !== '') ? track.ogg : track.mp3;
       
-      if (this.bgmAudio.src !== src && !this.bgmAudio.src.endsWith(src)) {
+      const isSameSrc = this.bgmAudio.src === src || this.bgmAudio.src.endsWith(src);
+      if (!isSameSrc) {
         this.bgmAudio.src = src;
       }
       this.bgmAudio.volume = Math.max(0, Math.min(1, settings.musicVolume || 0.7));
-      const playPromise = this.bgmAudio.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(err => {
-          // Autoplay blocked until gesture
-          console.log('BGM play deferred pending user tap:', err.message);
-        });
+      if (!isSameSrc || this.bgmAudio.paused) {
+        const playPromise = this.bgmAudio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {});
+        }
       }
     } catch (e) {
       console.warn('BGM play error:', e);
@@ -222,6 +212,32 @@ class AudioManager {
           gain.connect(ctx.destination);
           osc.start(now + idx * 0.05);
           osc.stop(now + idx * 0.05 + 0.4);
+        });
+      } else if (name === 'tension_sting') {
+        [160, 226, 320].forEach((freq) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.8);
+        });
+      } else if (name === 'solve_sting') {
+        [293.66, 369.99, 440, 587.33].forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+          gain.gain.setValueAtTime(0.35, now + idx * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 1.2);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + idx * 0.08);
+          osc.stop(now + idx * 0.08 + 1.2);
         });
       } else {
         // paper slide

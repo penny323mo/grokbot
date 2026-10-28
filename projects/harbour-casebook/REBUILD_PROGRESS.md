@@ -1,5 +1,31 @@
 # Harbour Casebook — Diegetic Rebuild Checkpoint
-Updated: 2026-10-28 14:01 Asia/Macau (UTC+8) — orch detaches; resume via REBUILD_PROGRESS
+Updated: 2026-10-28 15:00 Asia/Macau (UTC+8) — harsh real-tap audit after orch r1–5; round 6 (3 review/fix rounds) LAUNCHED 14:57
+
+## Harsh audit 2026-10-28 ~14:30–15:00 (real taps, Playwright 390x844 DPR2)
+grok r5 "SHIP" was code-only ("No browser") → INVALID.
+Scores: Art 70 · UI 50 · Music 55 · Interaction 40 · Story 80  (none = 100)
+- CRITICAL: live Case 1 UNWINNABLE — corkboard checkWhosWho(this.caseData,...) → "whosWhoList.filter is not a function"; CHECK_STATUS.ALL_CORRECT undefined. Confirmed on live (screenshots/harsh2/live_03_cork_check.png).
+  FIXED LOCALLY in src/render/corkboard.js (whosWho array + CHECK_STATUS.CORRECT). NOT yet published — goes out with round-6 publish.
+- c1_footprints hotspot occluded by earring ring → 30/34 words; 梁阿四 locked.
+- UI = web cards/forms: phone menu (iOS toggles/sliders, scroll broken), case board, notebook, cork instruction box + grey picker, deduction boxed cards (scroll jumps to top after check), 結案 card, epilogue generic modal w/ flat-vector art; title has web buttons/boxed top bar.
+- Art: title+desk good; scene art flat comic style, pins off objects, earring "flower pot" not painted, ledger cut off; desk cork photos = Western men; lamp pin overlaps cork pin.
+- Story: 「仓皇」 simplified typo; no ceremonial reveal. Onboarding regresses step3→2.
+- Music: investigation.ogg = 24s phrase ×2, dropout 23–24.5s, tail -84 dBFS → loop gap; energy <120Hz, ~nothing >2kHz; GM soundfont. resolution.ogg RMS 0.013 (too quiet).
+Shots: screenshots/harsh2/ (pre-fix = live), screenshots/harsh2/fixed/ (local fix, full solve), harsh2/live_*.png, harsh2/studio_index.png.
+
+## Infra changes this run
+- scripts/harsh2_play.mjs now a GATE: prints RESULT PASS/FAIL, exit 1 on occlusion/miss/console error/unsolved/<34 words. Currently FAIL (footprints occluded) as expected.
+- Round-6 prompts: prompts/improve-r6.txt (= orch-build.txt + sentinel), new orch-review-1..3 (REAL-TAP browser review required; SHIP only if gate PASS + all areas ≥95) and orch-fix-1..3. Old r1–5 prompts → prompts/archive-r1-5/. Old state → .orch-prev-5 (config.env carried over).
+- Cover: /workspace/orchestrator/publish.sh now honours orch.json "cover_src"/"thumb_src" (backup publish.sh.bak-20261028); orch.json set to assets/art/cover.webp + thumb.webp → publish should no longer blank the studio thumbnail. Still run scripts/restore-cover.sh after publish as belt-and-braces.
+- Studio thumbnail check 15:00: live cover.webp 780x1040 mean 49.8 std 44.9; thumb std 46.4 → OK (not blank).
+
+## Next (for the 30-min loop)
+1. `/workspace/orchestrator/status.sh /workspace/nightly/2026-10-28-harbour-casebook` — if RUNNING with fresh heartbeat, do nothing. If stuck (heartbeat >15 min stale or agy at login prompt), investigate.
+2. When .orch/DONE exists: (a) `bash scripts/restore-cover.sh`; (b) verify studio thumb std ≫10; (c) run gate on local (`python3 -m http.server 8937` in project) AND live: `node scripts/harsh2_play.mjs https://penny323mo.github.io/grokbot/projects/harbour-casebook/index.html screenshots/harsh3-live` — must RESULT PASS; (d) LOOK at every screenshot and score harshly; (e) if any area <100, write prompts/improve-r7.txt, move .orch → .orch-prev-6, relaunch `--rounds 3` (same prompt layout as round 6).
+3. If round 6 fails to publish the corkboard fix for any reason, publish manually (`/workspace/orchestrator/publish.sh <project>` then restore-cover.sh) — live is unwinnable until then.
+
+---
+## Previous checkpoint (14:01)
 
 ## Goal (Penny)
 Commercial 100/100 diegetic 1962 detective desk (Golden Idol / Her Story / Papers Please / Obra Dinn).
@@ -63,3 +89,11 @@ cat $P/REBUILD_PROGRESS.md
 # If grok stuck: grok --always-approve (no -c) then send review prompt
 # After publish: $P/scripts/restore-cover.sh
 ```
+- 2026-10-28 15:32 loop check: orch build#1 RUNNING, heartbeat fresh, agy actively running harsh2_play.mjs (screenshots/r6); no action.
+- 2026-10-28 16:05 loop check: orch phase=fix-1 (round 1, after build#2 + review-1) RUNNING, heartbeat fresh 16:04, agy actively editing style.css; no action.
+- 2026-10-28 16:33 loop check: orch phase=fix-2 (round 2/3, after review-2) RUNNING, heartbeat fresh 16:33; no action.
+- 2026-10-28 17:05 loop check: orch phase=fix-2 attempt 2 (attempt 1 timed out 17:02) RUNNING, heartbeat fresh 17:05; no action.
+- 2026-10-28 17:33 loop check: orch phase=fix-3 (round 3/3, after review-3) RUNNING, heartbeat fresh 17:33; no action.
+- 2026-10-28 18:07 loop check: orch phase=fix-3 (attempt 1 timed out 18:05, waiting on busy agy-pane for attempt 2) RUNNING, heartbeat fresh 18:06; no action.
+- 2026-10-28 18:36 loop check: orch phase=fix-3 attempt 2 (sent 18:22) RUNNING, heartbeat fresh 18:36, agy actively working; no action.
+- 2026-10-28 19:07 loop check: orch phase=fix-3 attempt 2 (sent 18:22, times out ~19:07+) RUNNING, heartbeat fresh 19:07; no action.

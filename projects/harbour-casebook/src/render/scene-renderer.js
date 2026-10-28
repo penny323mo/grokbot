@@ -51,15 +51,6 @@ export class SceneRenderer {
           <div class="scene-vignette" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: url('assets/ui/lamp_vignette.webp') center / cover no-repeat; mix-blend-mode: multiply; opacity: 0.55;"></div>
           <div class="scene-grain" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: url('assets/ui/film_grain.webp') repeat; mix-blend-mode: overlay; opacity: 0.10;"></div>
         </div>
-        <!-- On-screen Zoom / Reset Controls -->
-        <div class="scene-controls" style="position: absolute; right: 12px; bottom: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 10;">
-          <button class="scene-control-btn btn-reset-zoom" title="重設視角" aria-label="重設視角">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="9"/>
-              <path d="M12 8v8M8 12h8"/>
-            </svg>
-          </button>
-        </div>
       </div>
     `;
 
@@ -70,10 +61,12 @@ export class SceneRenderer {
     this.hotspotsLayer = this.container.querySelector('.scene-hotspots-layer');
     this.resetBtn = this.container.querySelector('.btn-reset-zoom');
 
-    this.resetBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.resetView();
-    });
+    if (this.resetBtn) {
+      this.resetBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.resetView();
+      });
+    }
   }
 
   loadScene(imageUrl, hotspots, discoveredIds = [], fullyHarvestedIds = []) {

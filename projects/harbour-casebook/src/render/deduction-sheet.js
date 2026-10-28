@@ -44,19 +44,9 @@ export class DeductionSheet {
     this.pickerModal.className = 'word-picker-modal';
     this.pickerModal.innerHTML = `
       <div class="picker-backdrop"></div>
-      <div class="picker-panel" role="dialog" aria-labelledby="picker-title">
-        <div class="picker-header">
-          <div class="picker-title-group">
-            <span class="picker-tag" id="picker-type-tag">人名</span>
-            <h4 class="picker-title" id="picker-title">選取詞語填入</h4>
-          </div>
-          <button class="picker-close-btn" aria-label="取消選詞">&times;</button>
-        </div>
+      <div class="picker-panel loose-fan-tray" role="dialog" aria-label="案卷卡片">
         <div class="picker-body">
-          <div class="picker-words-grid" id="picker-grid"></div>
-        </div>
-        <div class="picker-footer">
-          <button class="picker-clear-btn" id="picker-clear">清空此格</button>
+          <div class="picker-cards-fan" id="picker-grid"></div>
         </div>
       </div>
     `;
@@ -64,23 +54,14 @@ export class DeductionSheet {
 
     this.pickerBackdrop = this.pickerModal.querySelector('.picker-backdrop');
     this.pickerCloseBtn = this.pickerModal.querySelector('.picker-close-btn');
-    this.pickerClearBtn = this.pickerModal.querySelector('#picker-clear');
     this.pickerGrid = this.pickerModal.querySelector('#picker-grid');
     this.pickerTypeTag = this.pickerModal.querySelector('#picker-type-tag');
     this.pickerTitle = this.pickerModal.querySelector('#picker-title');
 
     this.pickerBackdrop.addEventListener('click', () => this.hideWordPicker());
-    this.pickerCloseBtn.addEventListener('click', () => this.hideWordPicker());
-    this.pickerClearBtn.addEventListener('click', () => {
-      if (this.activeSlot) {
-        if (this.activeSlot.mode === 'who') {
-          this.fillWhoSlot(this.activeSlot.portraitId, null);
-        } else {
-          this.fillSlot(this.activeSlot.sectionId, this.activeSlot.slotKey, null);
-        }
-        this.hideWordPicker();
-      }
-    });
+    if (this.pickerCloseBtn) {
+      this.pickerCloseBtn.addEventListener('click', () => this.hideWordPicker());
+    }
   }
 
   render(caseData) {
@@ -88,9 +69,45 @@ export class DeductionSheet {
     const caseState = storage.getCaseState(caseData.id);
     const isCaseSolved = storage.isCaseSolved(caseData.id);
     const isWhoComplete = storage.isWhoSolved(caseData.id);
+    const isSectionsAllSolved = isAllSectionsSolved(caseData, caseState.solvedSections);
+    const isWhoSolved = !caseData.whosWho || caseData.whosWho.length === 0 || isWhoComplete;
+    const isFullySolved = isCaseSolved || (isSectionsAllSolved && isWhoSolved);
+
+    if (isFullySolved) {
+      this.container.innerHTML = `
+        <div class="deduction-screen-wrapper is-case-resolved">
+          <div class="case-resolution-zone is-visible">
+            <div class="docket-closure-banner">
+              <div class="docket-colonial-stamp">
+                <span class="docket-pt">GOVERNO DE MACAU · COMISSARIADO DA POLÍCIA JUDICIÁRIA</span>
+                <span class="docket-zh">澳門司法警察司 · 刑事偵查卷宗 · 審查完結歸檔</span>
+              </div>
+              <div class="docket-ref-line">
+                <span>PROC. CRIME N.º 62/1962</span>
+                <span>CONFIDENCIAL · 機密存檔</span>
+              </div>
+            </div>
+
+            <!-- Official Red Vermilion Case Seal -->
+            <button class="btn-dossier-seal-trigger" id="btn-open-epilogue" aria-label="全案告破，點擊硃砂大印開閱破案始末">
+              <div class="stamp-seal-ceremony-wrapper">
+                <img class="seal-jiean-img animate-stamp" src="assets/ui/seal_jiean_sm.webp" alt="結案硃砂印" />
+                <div class="stamp-ink-splatter"></div>
+              </div>
+              <div class="stamp-action-callout">
+                <span class="stamp-callout-primary">【 硃砂印落 · 全案告破 】</span>
+                <span class="stamp-callout-secondary">點擊硃砂大印 · 開閱《濠江紀實報》真相號外</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      `;
+      this.bindDOMEvents();
+      return;
+    }
 
     let html = `
-      <div class="deduction-screen-wrapper">
+      <div class="deduction-screen-wrapper ${isFullySolved ? 'is-case-resolved' : ''}">
         <header class="deduction-top-bar">
           <button class="btn-desk-nav btn-back-to-desk" id="btn-deduction-back-desk">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -186,40 +203,47 @@ export class DeductionSheet {
           <div class="section-footer-actions">
             ${!isSolved ? `
               <button class="btn-check-section" data-section-id="${sec.id}">
-                ${ICONS.scale(16, '#FAF6EE')} 驗證此節推理
+                ${ICONS.scale(16, '#FAF6EE')} 【 鈐印核實此節 】
               </button>
             ` : `
               <div class="section-solved-stamp">
-                <span class="solved-ink-text">【核實定案】</span>
+                <span class="solved-ink-text">【 司法警察司 · 查結定案 】</span>
               </div>
             `}
             <button class="btn-hint-trigger" data-section-id="${sec.id}" title="案件錦囊提示">
-              ${ICONS.lamp(16, 'currentColor')} 錦囊提示
+              ${ICONS.lamp(16, 'currentColor')} 〔 卷宗錦囊 〕
             </button>
           </div>
         </article>
       `;
     });
 
-    const isSectionsAllSolved = isAllSectionsSolved(caseData, caseState.solvedSections);
-    const isWhoSolved = !caseData.whosWho || caseData.whosWho.length === 0 || storage.isWhoSolved(caseData.id);
-    const isFullySolved = isCaseSolved || (isSectionsAllSolved && isWhoSolved);
-
     html += `
         </div>
 
-            <!-- Case Resolution Block (Red Seal & Epilogue Button) -->
+            <!-- Case Resolution Docket Closing Sheet (Diegetic 1962 Macau Police Closure) -->
             <div class="case-resolution-zone ${isFullySolved ? 'is-visible' : ''}">
-              <div class="stamp-seal-wrapper">
-                <img class="seal-jiean-img animate-stamp" src="assets/ui/seal_jiean_sm.webp" alt="結案硃砂印" />
+              <div class="docket-closure-banner">
+                <div class="docket-colonial-stamp">
+                  <span class="docket-pt">GOVERNO DE MACAU · COMISSARIADO DA POLÍCIA JUDICIÁRIA</span>
+                  <span class="docket-zh">澳門司法警察司 · 刑事偵查卷宗 · 審查完結歸檔</span>
+                </div>
+                <div class="docket-ref-line">
+                  <span>PROC. CRIME N.º 62/1962</span>
+                  <span>ARCHIVO CONFIDENCIAL · 機密存檔</span>
+                </div>
               </div>
-              <div class="resolution-actions">
-                <h3 class="resolution-title">全案推理告破！</h3>
-                <p class="resolution-desc">所有疑點均已釐清，物證與證言已嚴絲合縫形成完整證據鏈。</p>
-                <button class="btn-view-epilogue" id="btn-open-epilogue">
-                  ${ICONS.scroll(18, '#FAF6EE')} 閱讀「破案始末」真相
-                </button>
-              </div>
+
+              <button class="btn-dossier-seal-trigger" id="btn-open-epilogue" aria-label="全案告破，點擊硃砂大印開閱破案始末">
+                <div class="stamp-seal-ceremony-wrapper">
+                  <img class="seal-jiean-img animate-stamp" src="assets/ui/seal_jiean_sm.webp" alt="結案硃砂印" />
+                  <div class="stamp-ink-splatter"></div>
+                </div>
+                <div class="stamp-action-callout">
+                  <span class="stamp-callout-primary">【 硃砂印落 · 全案告破 】</span>
+                  <span class="stamp-callout-secondary">點擊硃砂大印 · 開閱《濠江紀實報》真相號外</span>
+                </div>
+              </button>
             </div>
           </div>
         </div>
@@ -405,11 +429,13 @@ export class DeductionSheet {
     const collectedWords = new Set(caseState.collectedWords || []);
     const categoryName = CATEGORY_NAMES[params.slotType] || params.slotType;
 
-    this.pickerTypeTag.textContent = categoryName;
-    if (mode === 'who') {
-      this.pickerTitle.textContent = `選取【${params.slotLabel}】姓名`;
-    } else {
-      this.pickerTitle.textContent = `選取【${params.slotLabel}】`;
+    if (this.pickerTypeTag) this.pickerTypeTag.textContent = categoryName;
+    if (this.pickerTitle) {
+      if (mode === 'who') {
+        this.pickerTitle.textContent = `選取【${params.slotLabel}】姓名`;
+      } else {
+        this.pickerTitle.textContent = `選取【${params.slotLabel}】`;
+      }
     }
 
     // Retrieve all words in case wordBank of this type
@@ -567,22 +593,56 @@ export class DeductionSheet {
         storage.markCaseSolved(this.caseData.id);
         this.triggerBigSolveCelebration();
       } else {
-        setTimeout(() => this.render(this.caseData), 600);
+        const scrollArea = this.container.querySelector('.deduction-scroll-area');
+        const prevScrollTop = scrollArea ? scrollArea.scrollTop : 0;
+        setTimeout(() => {
+          this.render(this.caseData);
+          const newScrollArea = this.container.querySelector('.deduction-scroll-area');
+          if (newScrollArea) {
+            newScrollArea.scrollTop = prevScrollTop;
+          }
+        }, 500);
       }
     } else if (result.status === CHECK_STATUS.PARTIAL) {
       audio.playSFX('paper_slide');
     } else {
-      audio.playSFX('error_tick');
+      audio.playSFX('tension_sting');
     }
   }
 
   triggerBigSolveCelebration() {
     this.render(this.caseData);
     audio.playSFX('stamp_thud');
+    audio.playSFX('solve_sting');
+
+    // Create cinematic full-screen solve ceremony
+    const ceremony = document.createElement('div');
+    ceremony.className = 'solve-ceremony-overlay';
+    ceremony.innerHTML = `
+      <div class="ceremony-backdrop"></div>
+      <div class="ceremony-content">
+        <div class="ceremony-seal-wrap">
+          <img class="ceremony-seal-img" src="assets/ui/seal_jiean_sm.webp" alt="結案" />
+          <div class="ceremony-splatter"></div>
+        </div>
+        <h2 class="ceremony-headline">全案告破 · 結案落定</h2>
+        <p class="ceremony-subtext">GOVERNO DE MACAU · 司法警察司存檔</p>
+      </div>
+    `;
+    document.body.appendChild(ceremony);
+
+    setTimeout(() => {
+      ceremony.classList.add('is-fade-out');
+      setTimeout(() => {
+        if (ceremony.parentNode) ceremony.parentNode.removeChild(ceremony);
+      }, 500);
+    }, 1800);
 
     const zone = this.container.querySelector('.case-resolution-zone');
     if (zone) {
-      zone.scrollIntoView({ behavior: 'smooth' });
+      setTimeout(() => {
+        zone.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 300);
     }
 
     if (this.onCaseSolved) {

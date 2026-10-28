@@ -41,29 +41,27 @@ export class NotebookTab {
       const uncollectedCount = list.length - collectedInCat.length;
 
       categoriesHtml += `
-        <div class="notebook-cat-block">
+        <div class="notebook-cat-block notebook-ruled-section">
           <div class="notebook-cat-header">
             <div class="notebook-cat-title-wrap">
-              <span class="cat-color-dot" style="background-color: ${meta.color};"></span>
-              <h4 class="notebook-cat-title">${meta.name}</h4>
+              <span class="notebook-ink-doodle">§</span>
+              <h4 class="notebook-cat-title">【${meta.name}】</h4>
               <span class="notebook-cat-count">${collectedInCat.length}/${list.length}</span>
             </div>
             <span class="notebook-cat-desc">${meta.desc}</span>
           </div>
 
-          <div class="notebook-chips-wrap">
+          <div class="notebook-jottings-flow">
             ${collectedInCat.map(word => `
-              <div class="notebook-word-chip is-harvested">
-                <span class="chip-dot">${ICONS.check(12, '#4F6F5F')}</span>
-                <span class="chip-text">${word}</span>
-              </div>
+              <span class="notebook-ink-word">
+                <span class="ink-tick">✓</span> ${word}
+              </span>
             `).join('')}
 
             ${Array.from({ length: uncollectedCount }).map(() => `
-              <div class="notebook-word-chip is-missing">
-                <span class="chip-dot">${ICONS.lock(10, 'currentColor')}</span>
-                <span class="chip-text">＿＿＿＿</span>
-              </div>
+              <span class="notebook-blank-word">
+                <span class="pencil-slot">＿＿＿＿</span>
+              </span>
             `).join('')}
           </div>
         </div>
@@ -78,13 +76,13 @@ export class NotebookTab {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
-            <span>返回案頭</span>
+            <span>闔上手記 · 返回案頭</span>
           </button>
           <div class="notebook-title-group">
-            <span class="notebook-badge">CASE 0${caseData.id} 偵查筆錄</span>
-            <h2 class="notebook-headline">案頭手記 · 物證詞庫</h2>
+            <span class="notebook-badge">CASE 0${caseData.id} · 刑事偵查手記</span>
+            <h2 class="notebook-headline">搜獲物證與證言摘抄</h2>
           </div>
-          <span class="notebook-stat-pill">${collectedCount}/${totalWords} 詞</span>
+          <div class="notebook-header-right"></div>
         </header>
 
         <div class="notebook-scroll-area">

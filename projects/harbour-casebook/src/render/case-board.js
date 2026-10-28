@@ -30,52 +30,39 @@ export class CaseBoard {
       const collectedCount = (caseState.collectedWords || []).length;
 
       cardsHtml += `
-        <article class="case-dossier-card ${isUnlocked ? 'is-unlocked' : 'is-locked'} ${isSolved ? 'is-solved' : ''}" data-case-id="${c.id}">
-          <div class="dossier-card-side-tag">
-            <span class="dossier-symbol">${c.symbol}</span>
-            <span class="dossier-idx">0${c.id}</span>
+        <article class="case-dossier-card manila-case-folder ${isUnlocked ? 'is-unlocked' : 'is-locked'} ${isSolved ? 'is-solved' : ''}" data-case-id="${c.id}">
+          <!-- Manila Folder Tab -->
+          <div class="manila-folder-tab">
+            <span class="tab-idx">CASE 0${c.id}</span>
+            <span class="tab-proc">PROC. CRIME N.º 62/1962</span>
+            <span class="tab-symbol">〈${c.symbol}〉</span>
           </div>
-          <div class="dossier-card-main">
-            <div class="dossier-top-meta">
-              <span class="dossier-date">${c.date}</span>
-              ${isSolved ? '<span class="dossier-solved-tag">結案歸檔</span>' : (isUnlocked ? '<span class="dossier-active-tag">偵查中</span>' : '<span class="dossier-lock-tag">尚未解鎖</span>')}
-            </div>
-            <h3 class="dossier-title">〈${c.symbol}〉 ${c.title}</h3>
-            <div class="dossier-location">
-              <span class="loc-pin">${ICONS.pin(13, 'currentColor')}</span> ${c.location}
-            </div>
-            <p class="dossier-intro-snip">${c.incidentIntro.substring(0, 54)}……</p>
 
-            ${isUnlocked ? `
-              <div class="dossier-progress-row">
-                <div class="progress-item">
-                  <span class="p-label">已收錄詞彙</span>
-                  <span class="p-val">${collectedCount}</span>
-                </div>
-                <div class="progress-item">
-                  <span class="p-label">推理進度</span>
-                  <span class="p-val">${solvedSectionsCount}/${totalSections}</span>
-                </div>
-                <div class="progress-item">
-                  <span class="p-label">錦囊次數</span>
-                  <span class="p-val">${hintsUsed}</span>
-                </div>
-              </div>
+          <div class="manila-folder-body">
+            <div class="folder-typed-header">
+              <h3 class="folder-case-title">〈${c.symbol}〉 ${c.title}</h3>
+              <span class="folder-meta-date">${c.date} · ${c.location}</span>
+            </div>
 
-              <div class="dossier-btn-bar">
-                <button class="btn-open-case" data-case-id="${c.id}">
-                  ${isSolved ? '複查卷宗現場' : '進入現場偵查'} →
-                </button>
-                ${isSolved ? `
-                  <button class="btn-card-epilogue" data-case-id="${c.id}">
-                    破案始末
-                  </button>
-                ` : ''}
+            ${!isUnlocked ? `
+              <div class="folder-string-and-seal">
+                <span class="twine-seal-string"></span>
+                <span class="string-tie-text">〔 機密封簽 · 待前案破獲開封 〕</span>
+                <span class="twine-seal-string"></span>
               </div>
             ` : `
-              <div class="dossier-locked-hint">
-                <span>需破獲前案方可解密此卷</span>
-              </div>
+              <p class="folder-intro-snip">${c.incidentIntro.substring(0, 60)}……</p>
+              ${isSolved ? `
+                <div class="folder-epilogue-strip">
+                  <button class="btn-card-epilogue" data-case-id="${c.id}">
+                    【檢閱破案始末 · 《濠江紀實報》號外】
+                  </button>
+                </div>
+              ` : `
+                <div class="folder-open-prompt">
+                  <span class="open-tab-hint">【翻開卷宗 · 進入現場勘驗】</span>
+                </div>
+              `}
             `}
 
             ${isSolved ? `
@@ -89,28 +76,27 @@ export class CaseBoard {
     });
 
     this.container.innerHTML = `
-      <div class="case-board-view">
-        <!-- Top Board Header -->
-        <header class="board-header">
-          <div class="board-title-line">
-            <button class="btn-desk-nav btn-back-to-desk" id="btn-board-back-desk">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M19 12H5M12 19l-7-7 7-7"/>
-              </svg>
-              <span>返回案頭</span>
+      <div class="case-board-view filing-drawer-view">
+        <!-- Manila Drawer Header (In-world filing drawer, no boxed web bar) -->
+        <header class="board-drawer-header">
+          <div class="drawer-nav-row">
+            <button class="drawer-manila-tab btn-back-to-desk" id="btn-board-back-desk">
+              【推回抽屜 · 返回案頭】
             </button>
-            <a href="https://penny323mo.github.io/grokbot/" class="btn-return-grokbot" target="_blank" rel="noopener noreferrer">
-              ← 返回 grokbot
+            <a href="https://penny323mo.github.io/grokbot/" class="drawer-grokbot-link" target="_blank" rel="noopener noreferrer">
+              【grokbot 總部專線 →】
             </a>
           </div>
-          <h1 class="board-main-title">濠江疑案 · 卷宗目錄</h1>
-          <p class="board-intro">一九六二年澳門內港。四樁命案，一條貫穿殖民黑幕的驚天伏線。</p>
+          <div class="drawer-title-group">
+            <h1 class="drawer-main-title">澳門司法警察司 · 機密卷宗抽屜</h1>
+            <p class="drawer-intro">ARCHIVOS CONFIDENCIAIS · 1962年內港重案全四卷</p>
+          </div>
         </header>
 
         <div class="archival-ink-rule-divider"></div>
 
-        <!-- Cards List -->
-        <div class="dossier-grid">
+        <!-- Four Manila Folders Stack in Filing Drawer -->
+        <div class="dossier-grid filing-drawer-stack">
           ${cardsHtml}
         </div>
 

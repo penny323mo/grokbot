@@ -36,15 +36,15 @@ export const CASES = [
       },
       {
         id: 'c1_safe',
-        x: 22,
-        y: 40,
+        x: 20,
+        y: 36,
         name: '半開的鐵皮保險箱',
         desc: '嵌在青磚牆內的重型<span class="word-chip" data-word="鐵皮保險箱">鐵皮保險箱</span>門微啟，位於<span class="word-chip" data-word="當舖庫房">當舖庫房</span>深處，雙重密碼鎖完好無損，並無撬痕。最底層原本存放貴重抵押品的錦盒已被打開，盒內原本放置的<span class="word-chip" data-word="翡翠玉鐲">翡翠玉鐲</span>已不知所蹤。'
       },
       {
         id: 'c1_handkerchief',
-        x: 24,
-        y: 45,
+        x: 16,
+        y: 48,
         name: '錦盒內的刺繡手帕',
         desc: '空錦盒內遺留下一條真絲<span class="word-chip" data-word="刺繡手帕">刺繡手帕</span>，角邊精工繡有白蘭花圖樣，散發著名貴典雅的<span class="word-chip" data-word="法國香水">法國香水</span>氣味，與當舖常年的樟腦霉味格格不入。'
       },
@@ -57,52 +57,52 @@ export const CASES = [
       },
       {
         id: 'c1_ticket_ledger',
-        x: 78,
-        y: 72,
+        x: 86,
+        y: 68,
         name: '檯面當簿與印台',
         desc: '翻開的押帳流水簿上，最後一筆登記錄於<span class="word-chip" data-word="大堂櫃檯">大堂櫃檯</span>：「甲字八號，前清老坑翡翠手鐲，持票人<span class="word-chip" data-word="白蘭">白蘭</span>女士，自述此乃為<span class="word-chip" data-word="贖回家族遺物">贖回家族遺物</span>而暫押銀葡幣八千圓，限期三個月。」'
       },
       {
         id: 'c1_noodle_basket',
-        x: 74,
-        y: 58,
+        x: 76,
+        y: 56,
         name: '何炳的雲吞麵竹籃',
         desc: '夥計<span class="word-chip" data-word="何炳">何炳</span>聲稱八時許外出買宵夜帶回的竹籃，裡面的<span class="word-chip" data-word="雲吞麵">雲吞麵</span>早已漲開冷透，底層壓著的<span class="word-chip" data-word="福隆新街">福隆新街</span>茶樓收據時間為七時十五分，顯有偽造不在場證明之嫌。'
       },
       {
         id: 'c1_drawer_ferry',
         x: 78,
-        y: 40,
+        y: 36,
         name: '夥計衣櫃中的船票',
         desc: '夥計何炳的衣櫃抽屜夾層中，藏有一張明早開往<span class="word-chip" data-word="香港">香港</span>的夜航<span class="word-chip" data-word="輪渡客票">輪渡客票</span>，以及數張高利貸字條，顯示其急需巨款用以<span class="word-chip" data-word="償還巨額賭債">償還巨額賭債</span>，甚至企圖<span class="word-chip" data-word="變賣套現逃亡">變賣套現逃亡</span>。'
       },
       {
         id: 'c1_footprints',
-        x: 50,
-        y: 48,
+        x: 46,
+        y: 50,
         name: '後巷通往門檻的泥印',
         desc: '從庫房側門通往<span class="word-chip" data-word="後巷天井">後巷天井</span>的地磚上，留有數個帶鹹水潮泥的<span class="word-chip" data-word="泥鞋印">泥鞋印</span>，方向通往<span class="word-chip" data-word="內港碼頭">內港碼頭</span>。排查得知碼頭苦力<span class="word-chip" data-word="梁阿四">梁阿四</span>曾路過此處送貨。'
       },
       {
         id: 'c1_alley_matches',
-        x: 54,
-        y: 52,
+        x: 63,
+        y: 47,
         name: '後巷地上的洋火與煙頭',
         desc: '後巷石板縫隙中散落著數枚被踩熄的煙蒂，旁邊還有一盒碼頭工會印製的<span class="word-chip" data-word="硫磺洋火">硫磺洋火</span>。街坊透露近日有可疑的<span class="word-chip" data-word="賭檔打手">賭檔打手</span>與<span class="word-chip" data-word="外江盜賊">外江盜賊</span>出沒窺探。'
       },
       {
         id: 'c1_window_grille',
-        x: 14,
-        y: 22,
+        x: 16,
+        y: 20,
         name: '庫房被鋸斷的鐵花窗',
         desc: '高處鐵花窗被鋼鋸鋸斷，窗台有些許鐵屑。作案者究竟意在<span class="word-chip" data-word="私吞典當物資">私吞典當物資</span>，抑或意圖<span class="word-chip" data-word="滅口掩蓋走私">滅口掩蓋走私</span>、乃至純粹<span class="word-chip" data-word="尋仇洩憤">尋仇洩憤</span>？窗開口極窄，顯係事後偽造入室假象。'
       },
       {
         id: 'c1_earring',
-        x: 50,
-        y: 46,
-        name: '花盆角落跌落的珍珠耳環',
-        desc: '後門天井的大花盆泥土中，半掩著一顆泛著溫潤光澤的天然<span class="word-chip" data-word="珍珠耳環">珍珠耳環</span>，鑲嵌工藝極為考究，與白蘭右耳所戴的單隻耳飾完全一致。'
+        x: 38,
+        y: 43,
+        name: '後門石階跌落的珍珠耳環',
+        desc: '後門石階門檻夾縫中，半掩著一顆泛著溫潤光澤的天然<span class="word-chip" data-word="珍珠耳環">珍珠耳環</span>，鑲嵌工藝極為考究，與白蘭右耳所戴的單隻耳飾完全一致。'
       }
     ],
 
@@ -159,7 +159,7 @@ export const CASES = [
 
     epilogue: {
       title: '破案始末 · 福隆殘照',
-      text: '當水警搜查何炳的隨身衣物，在其內襯暗袋搜出已被白蘭轉交的定金與香港夜船船票。在確鑿證據面前，何炳心理防線崩潰。\n\n原來何炳深陷字花賭局，欠下巨額高利貸，面臨被斬斷手腳的威脅。白蘭得知此事後暗中接觸何炳，以重金承諾，策劃以「夜間贖當」為名，誘騙掌櫃打開保險箱。白蘭藉敬茶分散陳掌櫃注意，何炳則持沉重算盤自背後暴起行兇，並奪走翡翠玉鐲！白蘭仓皇逃逸時跌落珍珠耳環，玉鐲則被其悄然帶走。\n\n然而，白蘭在審訊中雖承認取回玉鐲，卻堅稱玉鐲牽涉到一樁更驚人的內港秘密：「這玉鐲本非尋常飾物，乃是運往內港十六號碼頭、用以贖回先夫絕密走私暗帳的信物……」'
+      text: '當水警搜查何炳的隨身衣物，在其內襯暗袋搜出已被白蘭轉交的定金與香港夜船船票。在確鑿證據面前，何炳心理防線崩潰。\n\n原來何炳深陷字花賭局，欠下巨額高利貸，面臨被斬斷手腳的威脅。白蘭得知此事後暗中接觸何炳，以重金承諾，策劃以「夜間贖當」為名，誘騙掌櫃打開保險箱。白蘭藉敬茶分散陳掌櫃注意，何炳則持沉重算盤自背後暴起行兇，並奪走翡翠玉鐲！白蘭倉皇逃逸時跌落珍珠耳環，玉鐲則被其悄然帶走。\n\n然而，白蘭在審訊中雖承認取回玉鐲，卻堅稱玉鐲牽涉到一樁更驚人的內港秘密：「這玉鐲本非尋常飾物，乃是運往內港十六號碼頭、用以贖回先夫絕密走私暗帳的信物……」'
     }
   },
 
@@ -181,15 +181,15 @@ export const CASES = [
     hotspots: [
       {
         id: 'c2_victim',
-        x: 48,
-        y: 48,
+        x: 46,
+        y: 44,
         name: '蘇志強之浮屍',
         desc: '死者<span class="word-chip" data-word="蘇志強">蘇志強</span>雙腕被粗麻繩反綁，頸項處有深紫黑色勒痕。法醫推斷致命死因係遭兇徒以<span class="word-chip" data-word="麻繩絞殺">麻繩絞殺</span>窒息，非遭<span class="word-chip" data-word="槍擊身亡">槍擊身亡</span>或<span class="word-chip" data-word="利刃刺胸">利刃刺胸</span>，兇手更偽裝成<span class="word-chip" data-word="推入海中溺斃">推入海中溺斃</span>。'
       },
       {
         id: 'c2_ledger',
-        x: 52,
-        y: 52,
+        x: 58,
+        y: 56,
         name: '死者懷中的走私黑帳',
         desc: '自蘇志強貼身口袋搜出的油布包裹中，夾有一本浸濕的<span class="word-chip" data-word="秘密暗帳">秘密暗帳</span>。上面清晰記錄著每逢大潮由大眼雞帆船運往香港的違禁<span class="word-chip" data-word="鴉片煙膏">鴉片煙膏</span>，以及當舖流出的<span class="word-chip" data-word="翡翠玉鐲">翡翠玉鐲</span>運送代號。'
       },
@@ -209,15 +209,15 @@ export const CASES = [
       },
       {
         id: 'c2_button',
-        x: 42,
-        y: 54,
+        x: 36,
+        y: 58,
         name: '躉船甲板的黃銅警鈕',
         desc: '案發第一現場<span class="word-chip" data-word="十六號碼頭躉船">十六號碼頭躉船</span>木樁夾縫中，卡著一枚刻有澳葡徽號的<span class="word-chip" data-word="黃銅警服鈕扣">黃銅警服鈕扣</span>，縫線斷裂處沾有血跡，顯然是行兇搏鬥時被生生扯落。'
       },
       {
         id: 'c2_rope',
-        x: 58,
-        y: 70,
+        x: 60,
+        y: 72,
         name: '沾有海蛇油的棕櫚麻繩',
         desc: '碼頭貨堆旁遺落了一截塗有海蛇油的<span class="word-chip" data-word="棕櫚麻繩">棕櫚麻繩</span>。死者生前發現帳簿意圖舉報，兇徒痛下殺手係為了<span class="word-chip" data-word="掩蓋警匪勾結走私">掩蓋警匪勾結走私</span>，亦或是內部因<span class="word-chip" data-word="分贓不均激起殺機">分贓不均激起殺機</span>？'
       },
@@ -230,15 +230,15 @@ export const CASES = [
       },
       {
         id: 'c2_blind_chuen',
-        x: 16,
-        y: 84,
+        x: 14,
+        y: 86,
         name: '算命棚下的盲公全',
         desc: '算命盲人<span class="word-chip" data-word="盲公全">盲公全</span>作供：「昨夜大雨初歇，我聽見爭吵，有人聲稱要<span class="word-chip" data-word="揭發黑幕遭滅口">揭發黑幕遭滅口</span>，又有人企圖<span class="word-chip" data-word="侵吞走私金條">侵吞走私金條</span>，甚至叫囂要借機<span class="word-chip" data-word="報復誣陷私怨">報復誣陷私怨</span>！」'
       },
       {
         id: 'c2_cargo_hook',
-        x: 22,
-        y: 78,
+        x: 26,
+        y: 74,
         name: '梁阿四的鐵製搬運貨鉤',
         desc: '碼頭苦力工頭<span class="word-chip" data-word="梁阿四">梁阿四</span>隨身攜帶的<span class="word-chip" data-word="鐵製貨鉤">鐵製貨鉤</span>與麻布手套。梁阿四承認昨夜受陸七爺僱用起卸木箱，但堅稱自己只管搬貨，下半夜在工寮睡覺。'
       },
@@ -251,15 +251,15 @@ export const CASES = [
       },
       {
         id: 'c2_broken_watch',
-        x: 52,
-        y: 86,
+        x: 50,
+        y: 88,
         name: '棧橋邊碎裂的懷錶',
         desc: '死者隨身佩戴的鐵殼<span class="word-chip" data-word="碎裂懷錶">碎裂懷錶</span>，指針停留在<span class="word-chip" data-word="十一時四十分">十一時四十分</span>，表面玻璃被踩碎，旁邊留有帶釘皮靴的深刻壓痕。'
       },
       {
         id: 'c2_opium_box',
-        x: 82,
-        y: 82,
+        x: 84,
+        y: 84,
         name: '假冒茶葉箱的暗格木盒',
         desc: '堆疊在十六號貨倉角落的「龍井茶葉」木箱，底層雙層暗板敲擊聲音空洞，內裡竟藏有四條未經完稅的<span class="word-chip" data-word="金條">金條</span>與走私分配清單。'
       }
@@ -360,70 +360,70 @@ export const CASES = [
       {
         id: 'c3_victim',
         x: 48,
-        y: 52,
+        y: 50,
         name: '鳳仙霞之遺體',
         desc: '名伶<span class="word-chip" data-word="鳳仙霞">鳳仙霞</span>倒於<span class="word-chip" data-word="舞台出將口">舞台出將口</span>，口唇深紫發黑，檢驗證實服下劇毒<span class="word-chip" data-word="紅砒霜">紅砒霜</span>，並非服食<span class="word-chip" data-word="生鴉片毒液">生鴉片毒液</span>或<span class="word-chip" data-word="斷腸草汁">斷腸草汁</span>，亦非罕見的<span class="word-chip" data-word="鶴頂紅">鶴頂紅</span>。'
       },
       {
         id: 'c3_teapot',
-        x: 18,
-        y: 78,
+        x: 16,
+        y: 74,
         name: '專屬朱泥紫砂壺',
         desc: '化妝枱上擺放著鳳仙霞專用的<span class="word-chip" data-word="紫砂茶壺">紫砂茶壺</span>，內殘留有沖泡的<span class="word-chip" data-word="參蜜潤喉茶">參蜜潤喉茶</span>，散發出一股微弱苦味。'
       },
       {
         id: 'c3_poison_paper',
-        x: 20,
-        y: 84,
+        x: 24,
+        y: 86,
         name: '垃圾簍內的黃色藥紙包',
         desc: '廢紙簍中搜出一張被揉皺的<span class="word-chip" data-word="黃色藥紙包">黃色藥紙包</span>，紙角印有生藥行砒石字樣，旁邊還有一名<span class="word-chip" data-word="戲班琴師">戲班琴師</span>落下的樂譜。'
       },
       {
         id: 'c3_makeup_mirror',
-        x: 78,
-        y: 40,
+        x: 82,
+        y: 38,
         name: '化妝枱鏡與勒索信',
         desc: '位於<span class="word-chip" data-word="化妝枱鏡前">化妝枱鏡前</span>，插著一封匿名<span class="word-chip" data-word="威脅恐嚇信">威脅恐嚇信</span>，兇徒意圖恐嚇鳳仙霞，動機究竟是<span class="word-chip" data-word="滅口防止走私曝光">滅口防止走私曝光</span>，還是後台內部<span class="word-chip" data-word="同僚私怨報復">同僚私怨報復</span>？'
       },
       {
         id: 'c3_costume_box',
-        x: 68,
-        y: 56,
+        x: 66,
+        y: 52,
         name: '衣箱夾層的巨額借條',
         desc: '衣箱夾層內搜出班主<span class="word-chip" data-word="廖班主">廖班主</span>簽署的<span class="word-chip" data-word="巨額賭債借據">巨額賭債借據</span>，債權人正是戲院大股東<span class="word-chip" data-word="陸七爺">陸七爺</span>。'
       },
       {
         id: 'c3_yuen_tea',
-        x: 70,
-        y: 62,
+        x: 74,
+        y: 60,
         name: '阮素琴的保溫水瓶',
         desc: '花旦<span class="word-chip" data-word="阮素琴">阮素琴</span>隨身手袋中有一枚小小的<span class="word-chip" data-word="銀髮簪">銀髮簪</span>，簪尖已變黑。有人指控她下毒是為<span class="word-chip" data-word="爭奪劇團首席文武生">爭奪劇團首席文武生</span>，但她神色從容。'
       },
       {
         id: 'c3_tse_letter',
-        x: 76,
-        y: 72,
+        x: 70,
+        y: 74,
         name: '謝少爺的求愛信函',
         desc: '紈絝子弟<span class="word-chip" data-word="謝少爺">謝少爺</span>派人送至後台的錦盒，內有被撕爛的<span class="word-chip" data-word="求愛信函">求愛信函</span>，顯示其因求婚被拒可能<span class="word-chip" data-word="情感受挫因愛生恨">情感受挫因愛生恨</span>。'
       },
       {
         id: 'c3_insurance',
-        x: 80,
-        y: 68,
+        x: 84,
+        y: 72,
         name: '班主辦公桌的人壽保單',
         desc: '廖班主桌內藏有一份巨額<span class="word-chip" data-word="意外人壽保單">意外人壽保單</span>，受益人為班主本人，揭示出兇手下毒乃是為了謀害台柱以<span class="word-chip" data-word="詐領巨額保險金還債">詐領巨額保險金還債</span>。'
       },
       {
         id: 'c3_fong_key',
-        x: 62,
+        x: 58,
         y: 32,
         name: '芳姐腰間的藥箱鑰匙',
         desc: '衣箱管事<span class="word-chip" data-word="芳姐">芳姐</span>掌管後台急救藥箱鑰匙，整個<span class="word-chip" data-word="清平戲院後台">清平戲院後台</span>人心惶惶。'
       },
       {
         id: 'c3_tea_dregs',
-        x: 44,
-        y: 58,
+        x: 40,
+        y: 60,
         name: '台口側幕散落的茶漬',
         desc: '通往舞台口的地毯上，有一攤剛打翻的茶水污漬，旁邊停著一隻被毒死的後台大老鼠，四肢僵直。'
       },
@@ -542,22 +542,22 @@ export const CASES = [
       },
       {
         id: 'c4_gun',
-        x: 22,
-        y: 88,
+        x: 18,
+        y: 90,
         name: '玫瑰花叢中之手槍',
         desc: '紅玫瑰灌木叢中拋棄了一柄消音<span class="word-chip" data-word="德製瓦爾特手槍">德製瓦爾特手槍</span>，非警用<span class="word-chip" data-word="配槍制式駁殼">配槍制式駁殼</span>，握柄刻有走私梟雄<span class="word-chip" data-word="陸七爺">陸七爺</span>德興行的暗記。'
       },
       {
         id: 'c4_bracelet_box',
-        x: 38,
-        y: 86,
+        x: 44,
+        y: 88,
         name: '石桌上的紅木首飾盒',
         desc: '觀景石桌上打開的雕花木盒內，失蹤數月的福隆新街當舖國寶<span class="word-chip" data-word="翡翠玉鐲">翡翠玉鐲</span>正靜臥於黃金絨布上！旁邊放有海外買家的<span class="word-chip" data-word="巨額美金本票">巨額美金本票</span>，引發了二人<span class="word-chip" data-word="黑吃黑分贓內訌">黑吃黑分贓內訌</span>，陸七爺更企圖<span class="word-chip" data-word="私吞走私巨款逃亡">私吞走私巨款逃亡</span>。'
       },
       {
         id: 'c4_dossier',
         x: 30,
-        y: 85,
+        y: 78,
         name: '佩雷拉公事包的絕密名單',
         desc: '草地上的公文袋中，有佩雷拉簽署的<span class="word-chip" data-word="特許走私名單">特許走私名單</span>，記載警界在碼頭的分贓比率，更附有碼頭案中那本染血的<span class="word-chip" data-word="秘密暗帳">秘密暗帳</span>抄本副本。'
       },
@@ -577,22 +577,22 @@ export const CASES = [
       },
       {
         id: 'c4_yuen_so_kam',
-        x: 58,
-        y: 42,
+        x: 54,
+        y: 46,
         name: '阮素琴帶來的戲院黑帳',
         desc: '花旦<span class="word-chip" data-word="阮素琴">阮素琴</span>呈上戲班秘密帳簿，誓要<span class="word-chip" data-word="為死難船員復仇">為死難船員復仇</span>，揭發陸七爺與佩雷拉洗錢罪狀。'
       },
       {
         id: 'c4_leung_cart',
-        x: 18,
+        x: 16,
         y: 48,
         name: '梁阿四拉來的人力黃包車',
         desc: '苦力<span class="word-chip" data-word="梁阿四">梁阿四</span>拉黃包車上山送客，目睹陸七爺進入花園與佩雷拉爭吵拔槍。'
       },
       {
         id: 'c4_father_stubbs',
-        x: 64,
-        y: 38,
+        x: 68,
+        y: 36,
         name: '主教山小堂門前的神父',
         desc: '位於<span class="word-chip" data-word="主教山小堂門前">主教山小堂門前</span>，司鐸<span class="word-chip" data-word="司徒拔神父">司徒拔神父</span>手持聖經，指證陸七爺行兇後曾試圖闖入小堂避難。'
       },
@@ -613,7 +613,7 @@ export const CASES = [
       {
         id: 'c4_overlook',
         x: 42,
-        y: 28,
+        y: 26,
         name: '西望洋石欄觀景台',
         desc: '登上<span class="word-chip" data-word="西望洋石欄觀景台">西望洋石欄觀景台</span>遠眺，內港與南灣夜景盡收眼底，月光普照濠江。'
       }

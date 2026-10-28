@@ -41,9 +41,9 @@ class App {
         <div class="title-scrim-overlay" aria-hidden="true"></div>
         <div class="title-container">
           <div class="title-top-archival">
-            <span class="title-date-badge">1962 · 澳門內港探署</span>
+            <span class="title-archival-docket">POLÍCIA DE SEGURANÇA PÚBLICA · PROC. 1962</span>
             <a href="https://penny323mo.github.io/grokbot/" class="link-grokbot-title" target="_blank" rel="noopener noreferrer">
-              ← 返回 grokbot
+              檔案主站 grokbot
             </a>
           </div>
 
@@ -60,18 +60,19 @@ class App {
           </div>
 
           <div class="title-actions">
-            <button class="btn-primary-start" id="btn-start-game">
-              <span class="btn-ink-symbol">${ICONS.pen(18, 'currentColor')}</span> 開始調查
+            <button class="btn-primary-start folder-tab-button" id="btn-start-game" aria-label="開卷調查">
+              <span class="folder-tab-badge">CASE 01</span>
+              <span class="folder-tab-title">開卷 · 調查現場</span>
+              <span class="folder-tab-seal-stamp">密卷</span>
             </button>
-            <button class="btn-secondary-board" id="btn-view-board">
-              案件目錄
+            <button class="btn-secondary-board index-card-button" id="btn-view-board" aria-label="案件目錄">
+              <span class="index-card-serial">DOC-001/004</span>
+              <span class="index-card-title">檔案抽屜 · 案件目錄</span>
             </button>
           </div>
 
-          <div class="title-footer-links">
-            <a href="https://penny323mo.github.io/grokbot/" class="btn-title-grokbot" target="_blank" rel="noopener noreferrer">
-              返回 grokbot 主站
-            </a>
+          <div class="title-footer-credits">
+            <span class="credits-tag">澳門治安警察廳 · 刑事偵查檔案 · 1962年十月存案</span>
           </div>
         </div>
       </section>
@@ -171,7 +172,13 @@ class App {
       onWordCollect: (word, hotspot) => {
         storage.collectWord(this.currentCaseId, word);
         this.updateSceneState();
-        this.advanceOnboarding(2);
+        const caseState = storage.getCaseState(this.currentCaseId);
+        const collectedCount = (caseState.collectedWords || []).length;
+        if (collectedCount >= 34) {
+          this.advanceOnboarding(4);
+        } else {
+          this.advanceOnboarding(3);
+        }
       },
       onClose: (hotspot) => {
         this.updateSceneState();
@@ -185,7 +192,7 @@ class App {
         storage.markHotspotDiscovered(this.currentCaseId, hotspot.id);
         const caseState = storage.getCaseState(this.currentCaseId);
         this.bottomSheet.show(hotspot, new Set(caseState.collectedWords || []));
-        this.advanceOnboarding(1);
+        this.advanceOnboarding(2);
       }
     });
 
@@ -336,14 +343,8 @@ class App {
     document.getElementById('scene-case-badge').textContent = `CASE 0${caseData.id}`;
     document.getElementById('scene-case-title').textContent = `〈${caseData.symbol}〉 ${caseData.title}`;
 
-    // Onboarding guide for Case 1
-    const guideBanner = document.getElementById('onboarding-banner');
-    if (this.currentCaseId === 1 && !storage.state.onboardingDone) {
-      document.getElementById('guide-text').innerHTML = `<strong>第 1 步：</strong>在現場點擊紅色線索圈，勘查物證細節。`;
-      guideBanner.classList.remove('is-hidden');
-    } else {
-      guideBanner.classList.add('is-hidden');
-    }
+    // Onboarding guide for Case 1 (strictly monotonic & dismissible)
+    this.updateOnboardingBanner();
 
     // Load Scene
     const caseState = storage.getCaseState(this.currentCaseId);
@@ -355,6 +356,7 @@ class App {
   }
 
   openDeduction() {
+    this.advanceOnboarding(4);
     const caseData = this.cases.find(c => c.id === this.currentCaseId) || this.cases[0];
     this.deductionSheet.render(caseData);
     this.showScreen('deduction');
@@ -382,23 +384,36 @@ class App {
     this.openScene();
   }
 
-  advanceOnboarding(currentStep) {
-    if (this.currentCaseId !== 1 || storage.state.onboardingDone) return;
+  updateOnboardingBanner() {
     const banner = document.getElementById('onboarding-banner');
     const textEl = document.getElementById('guide-text');
     if (!banner || !textEl) return;
-
-    if (currentStep === 1) {
-      this.onboardingStep = 2;
-      textEl.innerHTML = `<strong>第 2 步：</strong>在物證描述中，點擊帶底線詞語收錄至案頭筆記。`;
-    } else if (currentStep === 2) {
-      this.onboardingStep = 3;
-      textEl.innerHTML = `<strong>第 3 步：</strong>點擊右上角「推理報告」，將已收集詞語填入案卷空白重組真相。`;
-    } else if (currentStep >= 3) {
-      this.onboardingStep = 4;
-      storage.state.onboardingDone = true;
-      storage.save();
+    if (this.currentCaseId !== 1 || storage.state.onboardingDone || this.onboardingStep >= 4) {
       banner.classList.add('is-hidden');
+      return;
+    }
+    if (this.onboardingStep === 1) {
+      textEl.innerHTML = `<strong>第 1 步：</strong>在現場點擊紅色線索圈，勘查物證細節。`;
+    } else if (this.onboardingStep === 2) {
+      textEl.innerHTML = `<strong>第 2 步：</strong>在物證描述中，點擊帶底線詞語收錄至案頭筆記。`;
+    } else if (this.onboardingStep === 3) {
+      textEl.innerHTML = `<strong>第 3 步：</strong>點擊右上角「推理報告」，將已收集詞語填入案卷空白重組真相。`;
+    }
+    banner.classList.remove('is-hidden');
+  }
+
+  advanceOnboarding(toStep) {
+    if (this.currentCaseId !== 1 || storage.state.onboardingDone) return;
+    // Strictly monotonic progression: never decrease
+    if (toStep > this.onboardingStep) {
+      this.onboardingStep = toStep;
+      if (this.onboardingStep >= 4) {
+        storage.state.onboardingDone = true;
+        storage.save();
+        const banner = document.getElementById('onboarding-banner');
+        if (banner) banner.classList.add('is-hidden');
+      }
+      this.updateOnboardingBanner();
     }
   }
 

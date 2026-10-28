@@ -21,33 +21,42 @@ export class EpilogueModal {
     this.modalEl.innerHTML = `
       <div class="epilogue-backdrop"></div>
       <div class="epilogue-dialog" role="dialog" aria-labelledby="epilogue-title">
-        <header class="epilogue-header">
-          <div class="epilogue-header-badge">
-            <span class="epilogue-symbol" id="epilogue-sym">押</span>
-            <span class="epilogue-case-tag" id="epilogue-tag">CASE 01 · 破案始末</span>
-          </div>
-          <button class="epilogue-close-btn" aria-label="關閉檔案">&times;</button>
-        </header>
-
         <div class="epilogue-scroll-body">
-          <div class="epilogue-paper-card">
+          <div class="epilogue-paper-card newspaper-paper-layout">
+            <div class="newspaper-masthead">
+              <div class="masthead-main-title">《濠江紀實報》· 警情號外</div>
+              <div class="masthead-pt-line">DIÁRIO DE MACAU · EDIÇÃO ESPECIAL</div>
+              <div class="masthead-date-line">一九六二年十月 · 司法警察司存檔公報</div>
+              <div class="masthead-double-rule"></div>
+            </div>
+
             <div class="epilogue-stamp-mark">
               <img class="epilogue-seal-img" src="assets/ui/seal_jiean_sm.webp" alt="結案" />
             </div>
-            <!-- Archival Vignette Illustration (WebP period painting) -->
+            <!-- Archival Noir Crime Scene Painting -->
             <div class="epilogue-vignette-art">
-              <img src="assets/ui/epilogue_vignette.webp" class="epilogue-vignette-img" alt="1962 澳門內港" />
+              <img src="assets/ui/epilogue_vignette.webp" class="epilogue-vignette-img" alt="1962 澳門內港案發現場" />
+              <span class="vignette-caption">【案發現場勘驗檔案照 · 刑事偵查司存】</span>
             </div>
             <h2 class="epilogue-headline" id="epilogue-title">破案始末</h2>
             <div class="epilogue-meta" id="epilogue-meta"></div>
             <div class="epilogue-content-text" id="epilogue-body"></div>
+
+            <!-- Stamped Action Line on the Newspaper Paper under the Column -->
+            <div class="newspaper-dispatch-section">
+              <div class="newspaper-dispatch-divider"></div>
+              <div class="newspaper-dispatch-actions">
+                <button class="newspaper-stamped-action" id="btn-epilogue-next">
+                  <span class="stamped-action-seal">【續案號外】</span>
+                  <span class="stamped-action-text" id="epilogue-next-text">進入下一案 →</span>
+                </button>
+                <button class="newspaper-board-link" id="btn-epilogue-board">
+                  〔 闔報歸檔 · 檢閱卷宗架 〕
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-
-        <footer class="epilogue-footer-bar">
-          <button class="btn-epilogue-board" id="btn-epilogue-board">返回卷宗架</button>
-          <button class="btn-epilogue-next" id="btn-epilogue-next">進入下一案 →</button>
-        </footer>
       </div>
     `;
 
@@ -62,9 +71,12 @@ export class EpilogueModal {
     this.bodyEl = this.modalEl.querySelector('#epilogue-body');
     this.btnBoard = this.modalEl.querySelector('#btn-epilogue-board');
     this.btnNext = this.modalEl.querySelector('#btn-epilogue-next');
+    this.btnNextText = this.modalEl.querySelector('#epilogue-next-text');
 
     this.backdrop.addEventListener('click', () => this.hide());
-    this.closeBtn.addEventListener('click', () => this.hide());
+    if (this.closeBtn) {
+      this.closeBtn.addEventListener('click', () => this.hide());
+    }
     this.btnBoard.addEventListener('click', () => {
       this.hide();
       this.onBackToBoard();
@@ -81,8 +93,8 @@ export class EpilogueModal {
 
   show(caseData) {
     this.currentCase = caseData;
-    this.symEl.textContent = caseData.symbol;
-    this.tagEl.textContent = `CASE 0${caseData.id} · 破案始末`;
+    if (this.symEl) this.symEl.textContent = caseData.symbol;
+    if (this.tagEl) this.tagEl.textContent = `CASE 0${caseData.id} · 破案始末`;
     this.titleEl.textContent = caseData.epilogue.title;
     this.metaEl.textContent = `${caseData.date} · ${caseData.location}`;
 
@@ -94,9 +106,11 @@ export class EpilogueModal {
     const nextCaseName = caseNumerals[caseData.id + 1] || `第 ${caseData.id + 1} 案`;
 
     if (caseData.id >= 4) {
-      this.btnNext.textContent = '終章致謝 · 返回主卷';
+      if (this.btnNextText) this.btnNextText.textContent = '終章致謝 · 返回主卷';
+      else this.btnNext.textContent = '終章致謝 · 返回主卷';
     } else {
-      this.btnNext.textContent = `進入${nextCaseName} →`;
+      if (this.btnNextText) this.btnNextText.textContent = `進入${nextCaseName} →`;
+      else this.btnNext.textContent = `進入${nextCaseName} →`;
     }
 
     this.modalEl.classList.add('is-open');

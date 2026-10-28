@@ -84,6 +84,10 @@ export class StorageEngine {
     return this.state.cases[caseId];
   }
 
+  getCollectedWords(caseId) {
+    return this.getCaseState(caseId).collectedWords || [];
+  }
+
   markHotspotDiscovered(caseId, hotspotId) {
     const c = this.getCaseState(caseId);
     if (!c.discoveredHotspots.includes(hotspotId)) {
