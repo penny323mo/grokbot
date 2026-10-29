@@ -119,12 +119,12 @@ export class TrackCollision {
     // Smooth interpolated distance along track
     this.distanceAlongTrack = activeWp.dist + (nextWp.dist - activeWp.dist) * segT;
 
-    // Lateral Offset from Centerline
+    // Lateral Offset from Centerline (strictly clamped to wide shoulder mesh)
     const projX = activeWp.x + segX * segT;
     const projY = activeWp.y + segY * segT;
     const toCarX = carX - projX;
     const toCarY = carY - projY;
-    this.lateralOffset = toCarX * activeWp.rx + toCarY * activeWp.ry;
+    this.lateralOffset = Math.max(-5.2, Math.min(5.2, toCarX * activeWp.rx + toCarY * activeWp.ry));
     const wp = activeWp;
 
     // 3. Current Sector Tracking
@@ -148,10 +148,10 @@ export class TrackCollision {
     }
     this.isInGutter = inGutter;
 
-    // 5. Wall Collision Detection
+    // 5. Wall Collision Detection (Clamped strictly to road edge so body never hangs outside mesh)
     let wallHit = null;
     const carHalfWidth = 0.9;
-    const outerBoundary = this.roadHalfWidth + 0.2;
+    const outerBoundary = 5.0;
 
     if (this.lateralOffset + carHalfWidth > outerBoundary) {
       // Hit right guardrail

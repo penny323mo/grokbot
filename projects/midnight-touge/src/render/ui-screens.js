@@ -278,9 +278,7 @@ export class UIScreens {
             <span class="back-text">返回主頁</span>
           </button>
           <div class="events-medal-tally">
-            <span class="medal-tally-item gold">${getMedalSvg('gold')} ${medals.gold}</span>
-            <span class="medal-tally-item silver">${getMedalSvg('silver')} ${medals.silver}</span>
-            <span class="medal-tally-item bronze">${getMedalSvg('bronze')} ${medals.bronze}</span>
+            <span class="medal-tally-slash"><span class="medal-lbl gold">金</span> ${medals.gold} <span class="slash-div">//</span> <span class="medal-lbl silver">銀</span> ${medals.silver} <span class="slash-div">//</span> <span class="medal-lbl bronze">銅</span> ${medals.bronze}</span>
           </div>
         </header>
 
@@ -324,7 +322,6 @@ export class UIScreens {
         <div class="stage-inworld-banner">
           <div class="inworld-banner-meta">
             <div class="inworld-title-line">
-              <span class="inworld-stage-num">STAGE 0${currentEvt.id}</span>
               <span class="inworld-stage-name">${currentEvt.title}</span>
               ${currentMedalBadge || ''}
             </div>
@@ -338,7 +335,7 @@ export class UIScreens {
 
           <button class="btn-stage-enter btn-inworld-slash-launch" data-event-id="${currentEvt.id}" type="button">
             <span class="btn-skew-accent"></span>
-            <span class="btn-label">// 出擊 STAGE 0${currentEvt.id} START //</span>
+            <span class="btn-label">// 出擊 START //</span>
           </button>
         </div>
 
@@ -348,6 +345,17 @@ export class UIScreens {
           <span class="freerun-title">自由練習試車 · ${FREE_RUN_EVENT.title}</span>
           <span class="freerun-arrow">→</span>
         </button>
+
+        <!-- Stage Intel & Course Lore (Fills lower screen with authentic touge racing briefing) -->
+        <div class="stage-intel-briefing">
+          <div class="intel-header">// 賽道情報 · STAGE BRIEFING //</div>
+          <div class="intel-desc">${currentEvt.desc || '霧嶺連續急彎路段，全線設有內側排水溝與夜間低溫柏油路面。'}</div>
+          <div class="intel-metrics-grid">
+            <div class="intel-metric-row"><span class="im-key">// 全長 LENGTH</span><span class="im-val">${(Math.abs((currentEvt.targetDist ?? 2990) - (currentEvt.startDist ?? 0))).toFixed(0)}m</span></div>
+            <div class="intel-metric-row"><span class="im-key">// 路面 SURFACE</span><span class="im-val">冷卻柏油 · 高抓地排水溝</span></div>
+            <div class="intel-metric-row"><span class="im-key">// 推薦戰術 TACTIC</span><span class="im-val">${currentEvt.direction === 'uphill' ? '高轉速出彎 · 內線鎖定' : '重心前移 · 排水溝落とし入彎'}</span></div>
+          </div>
+        </div>
       </section>
     `;
 
@@ -520,19 +528,27 @@ export class UIScreens {
     modal.className = "pause-modal-overlay";
     modal.innerHTML = `
       <div class="pause-panel-box">
-        <h2 class="pause-title">暫停中 · PAUSED</h2>
+        <h2 class="pause-title">// 暫停中 · PAUSED //</h2>
         <div class="pause-actions-list">
           <button class="btn-pause-action resume" id="btn-pause-resume" type="button">
-            繼續狂飆 · RESUME
+            <span class="menu-slash">//</span>
+            <span class="btn-main-text">繼續賽事 · RESUME</span>
+            <span class="menu-arrow">→</span>
           </button>
           <button class="btn-pause-action restart" id="btn-pause-restart" type="button">
-            重新出發 · RESTART
+            <span class="menu-slash">//</span>
+            <span class="btn-main-text">重新開始 · RESTART</span>
+            <span class="menu-arrow">→</span>
           </button>
           <button class="btn-pause-action settings" id="btn-pause-settings" type="button">
-            遊戲設定 · SETTINGS
+            <span class="menu-slash">//</span>
+            <span class="btn-main-text">遊戲設定 · SETTINGS</span>
+            <span class="menu-arrow">→</span>
           </button>
           <button class="btn-pause-action quit" id="btn-pause-quit" type="button">
-            放棄比賽 · QUIT
+            <span class="menu-slash">//</span>
+            <span class="btn-main-text">放棄比賽 · QUIT</span>
+            <span class="menu-arrow">→</span>
           </button>
         </div>
       </div>
@@ -567,6 +583,9 @@ export class UIScreens {
   showSettingsModal() {
     const existing = document.getElementById("settings-modal");
     if (existing) existing.remove();
+
+    const titleScreen = document.getElementById("screen-title");
+    if (titleScreen) titleScreen.style.display = "none";
 
     const s = storage.data.settings;
     const modal = document.createElement("div");
@@ -703,6 +722,7 @@ export class UIScreens {
         this.callbacks.onSettingsChanged(newSettings);
       }
       modal.remove();
+      if (titleScreen) titleScreen.style.display = "";
     };
 
     modal.querySelector("#btn-settings-close").addEventListener("click", closeAndSave);

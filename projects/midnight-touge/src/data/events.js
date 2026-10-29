@@ -21,8 +21,9 @@ export function resolveMedal(event, result = {}) {
     return null;
   }
 
-  // time_attack & free_run
+  // time_attack & free_run (A zero clock must never write a medal)
   const time = result.time !== undefined ? result.time : (result.totalTime || 999.0);
+  if (time <= 0.1) return null;
   const targets = event.timeTargets || { gold: 60.0, silver: 70.0, bronze: 80.0 };
   if (time <= targets.gold) return "gold";
   if (time <= targets.silver) return "silver";

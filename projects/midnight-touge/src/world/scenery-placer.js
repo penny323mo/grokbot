@@ -7,8 +7,22 @@ const PROP_ROOT = 'assets/models/props/';
 
 /** Landmark placements keyed by approx distance along centreline (metres). */
 const LANDMARKS = [
-  { dist: 40,   prop: 'road_start',       side: 0,   scale: 1.2, yaw: 0,    yOff: 0 },
-  { dist: 80,   prop: 'overhead_lights',  side: 0,   scale: 1.0, yaw: 0,    yOff: 0 },
+  // Start line dense staging area (0 - 80m) with overhead gantry framed 18m ahead
+  { dist: 4,    prop: 'street_light',     side: 1,   scale: 8.5, yaw: 0,    yOff: 0 },
+  { dist: 8,    prop: 'tree_pine',        side: -1,  scale: 7.5, yaw: 0.4,   yOff: 0 },
+  { dist: 12,   prop: 'cliff_rock',       side: -1,  scale: 2.5, yaw: 0.1,   yOff: 0 },
+  { dist: 16,   prop: 'street_light',     side: 1,   scale: 8.5, yaw: 0,    yOff: 0 },
+  { dist: 18,   prop: 'overhead_gantry',  side: 0,   scale: 7.8, yaw: 0,    yOff: 0 },
+  { dist: 22,   prop: 'tree_large',       side: 1,   scale: 7.5, yaw: -0.3,  yOff: 0 },
+  { dist: 26,   prop: 'tree_pine',        side: -1,  scale: 7.8, yaw: 0.2,   yOff: 0 },
+  { dist: 32,   prop: 'street_light',     side: 1,   scale: 8.5, yaw: 0,    yOff: 0 },
+  { dist: 40,   prop: 'fence_low',        side: 1,   scale: 1.5, yaw: 0,    yOff: 0 },
+  { dist: 48,   prop: 'street_light',     side: 1,   scale: 8.5, yaw: 0,    yOff: 0 },
+  { dist: 54,   prop: 'tree_pine',        side: -1,  scale: 8.0, yaw: 0.3,   yOff: 0 },
+  { dist: 64,   prop: 'street_light',     side: 1,   scale: 8.5, yaw: 0,    yOff: 0 },
+  { dist: 74,   prop: 'tree_pine',        side: -1,  scale: 7.5, yaw: 0.2,   yOff: 0 },
+  { dist: 80,   prop: 'street_light',     side: 1,   scale: 8.5, yaw: 0,    yOff: 0 },
+  { dist: 82,   prop: 'overhead_lights',  side: 0,   scale: 7.5, yaw: 0,    yOff: 0 },
   { dist: 120,  prop: 'sign_street',      side: -1,  scale: 1.4, yaw: 0,    yOff: 0 },
   { dist: 160,  prop: 'sign_highway',     side: 1,   scale: 1.3, yaw: 0,    yOff: 0 },
   { dist: 180,  prop: 'power_pole',       side: 1,   scale: 1.6, yaw: 0,    yOff: 0 },
@@ -42,7 +56,7 @@ const LANDMARKS = [
   { dist: 2100, prop: 'barrier_wall',     side: 0,   scale: 1.4, yaw: 0,    yOff: 0 },
   { dist: 2150, prop: 'barrier_red',      side: -1,  scale: 1.2, yaw: 0,    yOff: 0 },
   { dist: 2200, prop: 'barrier_red',      side: 1,   scale: 1.2, yaw: 0,    yOff: 0 },
-  { dist: 2250, prop: 'overhead_gantry',  side: 0,   scale: 1.2, yaw: 0,    yOff: 0 },
+  { dist: 2250, prop: 'overhead_gantry',  side: 0,   scale: 7.8, yaw: 0,    yOff: 0 },
   { dist: 2300, prop: 'light_red_double', side: 0,   scale: 1.3, yaw: 0,    yOff: 0 },
   { dist: 2400, prop: 'flag_checkers',    side: 1,   scale: 1.5, yaw: 0,    yOff: 0 },
   { dist: 2500, prop: 'house_c',          side: -1,  scale: 0.9, yaw: 0.4,  yOff: 0 },
@@ -51,27 +65,27 @@ const LANDMARKS = [
   { dist: 2750, prop: 'shop_b',           side: -1,  scale: 0.7, yaw: 0.5,  yOff: 0 },
   { dist: 2850, prop: 'sign_highway_wide',side: -1,  scale: 1.2, yaw: 0,    yOff: 0 },
   { dist: 2900, prop: 'sign_street',      side: 1,   scale: 1.3, yaw: 0,    yOff: 0 },
-  { dist: 2950, prop: 'overhead_lights',  side: 0,   scale: 1.0, yaw: 0,    yOff: 0 },
+  { dist: 2950, prop: 'overhead_lights',  side: 0,   scale: 7.5, yaw: 0,    yOff: 0 },
 ];
 
 /** Repeating filler props every N metres. */
 const FILLERS = [
-  { every: 55,  prop: 'tree_large',      side: 1,  scale: [1.8, 2.6], lat: [9, 16] },
-  { every: 60,  prop: 'tree_small',      side: -1, scale: [1.4, 2.0], lat: [8, 14] },
-  { every: 65,  prop: 'tree_pine',       side: 1,  scale: [1.6, 2.4], lat: [11, 18] },
-  { every: 70,  prop: 'tree_large',      side: -1, scale: [1.6, 2.4], lat: [12, 20] },
-  { every: 85,  prop: 'tree_pine',       side: -1, scale: [1.5, 2.2], lat: [10, 17] },
-  { every: 90,  prop: 'rock_large_a',    side: 1,  scale: [1.2, 2.0], lat: [10, 18] },
-  { every: 95,  prop: 'rock_tall_a',     side: -1, scale: [1.3, 2.2], lat: [11, 19] },
-  { every: 110, prop: 'cliff_rock',      side: 1,  scale: [1.5, 2.5], lat: [14, 22] },
-  { every: 125, prop: 'cliff_block',     side: -1, scale: [1.4, 2.2], lat: [15, 24] },
-  { every: 120, prop: 'power_pole',      side: -1, scale: [1.4, 1.7], lat: [6, 8] },
-  { every: 140, prop: 'street_light',    side: 1,  scale: [1.0, 1.2], lat: [5.5, 7] },
-  { every: 160, prop: 'plant_bush_large',side: -1, scale: [1.2, 1.8], lat: [7, 11] },
-  { every: 180, prop: 'rock_large_b',    side: 1,  scale: [1.0, 1.8], lat: [9, 15] },
-  { every: 200, prop: 'sign_warning',    side: -1, scale: [1.1, 1.3], lat: [5, 6.5] },
-  { every: 240, prop: 'fence_low',       side: 1,  scale: [1.0, 1.2], lat: [6, 8] },
-  { every: 320, prop: 'stone_large',     side: -1, scale: [1.2, 1.8], lat: [12, 18] },
+  { every: 55,  prop: 'tree_large',      side: 1,  scale: [6.5, 9.0], lat: [9, 16] },
+  { every: 60,  prop: 'tree_small',      side: -1, scale: [4.5, 7.0], lat: [8, 14] },
+  { every: 65,  prop: 'tree_pine',       side: 1,  scale: [6.5, 9.5], lat: [11, 18] },
+  { every: 70,  prop: 'tree_large',      side: -1, scale: [6.5, 9.0], lat: [12, 20] },
+  { every: 85,  prop: 'tree_pine',       side: -1, scale: [6.0, 9.0], lat: [10, 17] },
+  { every: 90,  prop: 'rock_large_a',    side: 1,  scale: [1.5, 2.5], lat: [10, 18] },
+  { every: 95,  prop: 'rock_tall_a',     side: -1, scale: [1.5, 2.5], lat: [11, 19] },
+  { every: 110, prop: 'cliff_rock',      side: 1,  scale: [2.0, 3.0], lat: [14, 22] },
+  { every: 125, prop: 'cliff_block',     side: -1, scale: [1.8, 2.8], lat: [15, 24] },
+  { every: 120, prop: 'power_pole',      side: -1, scale: [1.5, 2.0], lat: [6, 8] },
+  { every: 140, prop: 'street_light',    side: 1,  scale: [7.5, 9.5], lat: [5.5, 7] },
+  { every: 160, prop: 'plant_bush_large',side: -1, scale: [1.5, 2.2], lat: [7, 11] },
+  { every: 180, prop: 'rock_large_b',    side: 1,  scale: [1.5, 2.5], lat: [9, 15] },
+  { every: 200, prop: 'sign_warning',    side: -1, scale: [1.2, 1.5], lat: [5, 6.5] },
+  { every: 240, prop: 'fence_low',       side: 1,  scale: [1.2, 1.6], lat: [6, 8] },
+  { every: 320, prop: 'stone_large',     side: -1, scale: [1.5, 2.2], lat: [12, 18] },
 ];
 
 function lerpWaypoint(dist) {
@@ -160,6 +174,46 @@ export class SceneryPlacer {
       }
     });
     this.group.add(obj);
+
+    // Add glowing amber sodium ground light pool under street lamps & gantries
+    if (name.includes('light') || name.includes('gantry')) {
+      if (!this.poolMat) {
+        const c = document.createElement('canvas');
+        c.width = 64; c.height = 64;
+        const ctx = c.getContext('2d');
+        const g = ctx.createRadialGradient(32, 32, 4, 32, 32, 32);
+        g.addColorStop(0, 'rgba(242, 175, 65, 0.45)');
+        g.addColorStop(0.5, 'rgba(242, 175, 65, 0.16)');
+        g.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, 64, 64);
+        const tex = new THREE.CanvasTexture(c);
+        this.poolMat = new THREE.MeshBasicMaterial({
+          map: tex,
+          transparent: true,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending
+        });
+      }
+      const pool = new THREE.Mesh(new THREE.PlaneGeometry(8.5, 8.5), this.poolMat);
+      pool.position.set(pose.ox, pose.oy, pose.oz + 0.04);
+      pool.rotation.z = pose.yawExtra || 0;
+      this.group.add(pool);
+    }
+  }
+
+  updateCulling(playerPos, maxDist = 85) {
+    if (!playerPos || !this.group.visible) return;
+    const maxSq = maxDist * maxDist;
+    const px = playerPos.x;
+    const py = playerPos.y;
+    const children = this.group.children;
+    for (let i = 0; i < children.length; i++) {
+      const child = children[i];
+      const dx = child.position.x - px;
+      const dy = child.position.y - py;
+      child.visible = (dx * dx + dy * dy) < maxSq;
+    }
   }
 
   async populate() {

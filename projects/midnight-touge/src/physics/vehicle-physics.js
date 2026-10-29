@@ -143,7 +143,7 @@ export class VehiclePhysics {
     // Feint or handbrake initiation breaks rear traction
     let rearGripLoss = 1.0;
     if (handbrake) {
-      rearGripLoss = 0.15; // Rear wheels locked!
+      rearGripLoss = 0.22; // Rear wheels sliding, preserves forward momentum
     } else if (brakeInput > 0.4 && Math.abs(this.steerAngle) > 0.18) {
       // Weight transfer drift entry (lift-off / trail-braking oversteer)
       rearGripLoss = 0.48 / frontWeightRatio;
@@ -227,7 +227,7 @@ export class VehiclePhysics {
   }
 
   updateDriftScoring(dt) {
-    if (this.driftAngleDeg >= 12.0 && this.speedKmh >= 35.0) {
+    if (this.driftAngleDeg >= 10.0 && this.speedKmh >= 18.0) {
       this.isDrifting = true;
       // Formula: speed (km/h) * sin(drift angle) * angle bonus * multiplier combo
       const angleMultiplier = Math.min(2.5, this.driftAngleDeg / 25.0);
@@ -253,16 +253,16 @@ export class VehiclePhysics {
     // Reflect & scrub velocity: remove velocity directed into the wall
     const dot = this.vx * normalX + this.vy * normalY;
     if (dot < 0) {
-      this.vx -= 1.4 * dot * normalX;
-      this.vy -= 1.4 * dot * normalY;
+      this.vx -= 1.1 * dot * normalX;
+      this.vy -= 1.1 * dot * normalY;
     }
 
-    // Scrub forward speed by 18% and dampen yaw rate ONCE per contact
+    // Scrub speed gently and dampen yaw rate ONCE per contact
     // (gated by cooldown in engine so a continuous wall slide doesn't stop the car)
     if (isInitialImpact) {
-      this.vx *= 0.82;
-      this.vy *= 0.82;
-      this.yawRate *= 0.3;
+      this.vx *= 0.88;
+      this.vy *= 0.88;
+      this.yawRate *= 0.55;
     }
     this.speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
     this.speedKmh = this.speed * 3.6;

@@ -62,8 +62,9 @@ export class CarBuilder {
         this.loadedModels[cacheKey] = gltf;
       }
       const root = gltf.scene.clone(true);
-      // Blender GLTF export is Y-up. Game is Z-up → rotate +90° around X.
-      root.rotation.x = Math.PI / 2;
+      // Blender GLTF export is Y-up. Game is Z-up with Forward = +Y.
+      // Rotate +90° around X, and 180° around Y (local) so car faces forward (+Y)
+      root.rotation.set(Math.PI / 2, Math.PI, 0);
       root.updateMatrixWorld(true);
 
       root.traverse(child => {
@@ -100,15 +101,35 @@ export class CarBuilder {
                 if (this.envMap) { m.envMap = this.envMap; m.envMapIntensity = 1.5; }
               }
             }
-            if (n.includes('glass')) {
-              m.transparent = true;
-              m.opacity = Math.min(m.opacity ?? 0.45, 0.55);
-              m.depthWrite = false;
+            if (n.includes('tire') || n.includes('tyre') || n.includes('rubber') || n.includes('trim')) {
+              m.color.setHex(0x141618);
+              m.metalness = 0.05;
+              m.roughness = 0.88;
+            } else if (n.includes('rim') || n.includes('alloy') || n.includes('chrome')) {
+              // Contrasting 3D alloy wheel finish: mirror chrome lip with titanium alloy spokes
+              if (n.includes('alloy') || n.includes('chrome') || n.includes('008') || n.includes('009') || n.includes('010') || n.includes('011')) {
+                m.color.setHex(0xDEE2EA);
+                m.metalness = 0.98;
+                m.roughness = 0.10;
+              } else {
+                m.color.setHex(0x282C34);
+                m.metalness = 0.88;
+                m.roughness = 0.24;
+              }
+              if (this.envMap) { m.envMap = this.envMap; m.envMapIntensity = 2.2; }
+            }
+            if (n.includes('glass') || n.includes('window')) {
+              m.color.setHex(0x081016);
+              m.transparent = false; // Closed solid tinted glass — eliminates hollow see-through cabin holes
+              m.roughness = 0.08;
+              m.metalness = 0.90;
+              m.depthWrite = true;
               m.side = THREE.DoubleSide;
+              if (this.envMap) { m.envMap = this.envMap; m.envMapIntensity = 2.4; }
             }
             if (n.includes('hl') || n.includes('tl') || n.includes('am') || (m.emissive && m.emissive.getHex() > 0)) {
-              m.emissiveIntensity = Math.max(m.emissiveIntensity || 1, 2.5);
-              m.toneMapped = false;
+              m.emissiveIntensity = Math.min(m.emissiveIntensity || 1, 1.2);
+              m.toneMapped = true; // Keep ACES tone mapped so tail lamps maintain crisp geometric outlines without pink bloom block
             }
           }
           m.side = m.side === THREE.DoubleSide ? THREE.DoubleSide : THREE.FrontSide;
@@ -119,6 +140,75 @@ export class CarBuilder {
         child.castShadow = true;
         child.receiveShadow = true;
       });
+
+      // Ensure wheels are seated cleanly inside arches without clipping through fenders
+      root.traverse(child => {
+        if (child.name && WHEEL_EMPTY_RE.test(child.name)) {
+          if (carId === 'h86') {
+            child.position.y = 0.245; // Seated cleanly with authentic touge stance
+          }
+        }
+      });
+
+      if (carId === 're7') {
+        // Correct RE-7 asymmetric / detached wheels: tuck all 4 wheels inside arches symmetrically
+        root.traverse(child => {
+          if (child.name === 'wheel-front-right' || child.name === 'Wheel_RR') {
+            child.position.x = 0.69;
+            child.position.y = 0.28;
+          } else if (child.name === 'Wheel_FR' || child.name === 'wheel-front-left' || child.name === 'Wheel_RL' || child.name === 'Wheel_FL') {
+            child.position.x = -0.69;
+            child.position.y = 0.28;
+          }
+        });
+      }
+
+      // Grounding contact shadow tucked strictly underneath chassis wheelbase
+      const shadowCanvas = document.createElement('canvas');
+      shadowCanvas.width = 128;
+      shadowCanvas.height = 128;
+      const sCtx = shadowCanvas.getContext('2d');
+      const sGrad = sCtx.createRadialGradient(64, 64, 10, 64, 64, 64);
+      sGrad.addColorStop(0, 'rgba(2, 4, 8, 0.90)');
+      sGrad.addColorStop(0.55, 'rgba(2, 4, 8, 0.50)');
+      sGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      sCtx.fillStyle = sGrad;
+      sCtx.fillRect(0, 0, 128, 128);
+      const shadowTex = new THREE.CanvasTexture(shadowCanvas);
+
+      const shadowGeo = new THREE.PlaneGeometry(2.0, 3.4);
+      const shadowMat = new THREE.MeshBasicMaterial({
+        map: shadowTex,
+        transparent: true,
+        opacity: 0.85,
+        depthWrite: false
+      });
+      const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
+      shadowMesh.name = 'CarContactShadow';
+      shadowMesh.position.set(0, -0.05, 0.015);
+      modelGroup.add(shadowMesh);
+
+      // Chrome dual exhaust tips mounted directly onto the rear valance
+      const exhaustGroup = new THREE.Group();
+      exhaustGroup.name = 'CarExhaust';
+      const tipGeo = new THREE.CylinderGeometry(0.042, 0.042, 0.16, 16);
+      tipGeo.rotateX(Math.PI / 2);
+      const tipMat = new THREE.MeshStandardMaterial({
+        color: 0xDCE0E8,
+        metalness: 0.98,
+        roughness: 0.12
+      });
+      const tipInnerMat = new THREE.MeshBasicMaterial({ color: 0x080808 });
+      for (const xOff of [0.38, 0.46]) {
+        const tipMesh = new THREE.Mesh(tipGeo, tipMat);
+        tipMesh.position.set(xOff, -2.06, 0.22);
+        exhaustGroup.add(tipMesh);
+        const innerMesh = new THREE.Mesh(new THREE.CircleGeometry(0.038, 16), tipInnerMat);
+        innerMesh.position.set(xOff, -2.14, 0.22);
+        innerMesh.rotation.y = Math.PI;
+        exhaustGroup.add(innerMesh);
+      }
+      modelGroup.add(exhaustGroup);
 
       modelGroup.add(root);
 
@@ -161,12 +251,12 @@ export class CarBuilder {
         modelGroup.position.set(pos.x, pos.y, pos.z);
         modelGroup.rotation.set(pitchRad, rollRad, -heading, 'ZYX');
 
-        const wheelRot = (speedKmh / 3.6) * 0.55 * (1 / 0.31); // ≈ v/r
+        const wheelRot = (speedKmh / 3.6) * (1.0 / 0.32); // v/r (rad/s)
         wheelEmpties.forEach(w => {
-          // Roll around local X (wheel axle after Blender Y-up→Z-up)
+          // Roll around local X (wheel axle)
           w.rotation.x += wheelRot * (1 / 60);
           if (w.name.includes('FL') || w.name.includes('FR')) {
-            w.rotation.z = -steerAngle;
+            w.rotation.y = steerAngle;
           }
         });
       }

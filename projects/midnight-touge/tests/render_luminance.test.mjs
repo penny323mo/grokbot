@@ -1,4 +1,5 @@
 // Headless WebGL Render Luminance & Variance Verification for Midnight Touge
+process.env.DISPLAY = process.env.DISPLAY || ':1';
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert';
 import http from 'node:http';
@@ -11,6 +12,7 @@ describe('Headless WebGL 3D World Render & Luminance Verification', () => {
   let server;
   let serverPort;
   let browser;
+  let xvfbProcess;
 
   function parsePngStats(buf) {
     let offset = 8;
@@ -84,12 +86,16 @@ describe('Headless WebGL 3D World Render & Luminance Verification', () => {
     await new Promise(resolve => server.listen(0, resolve));
     serverPort = server.address().port;
 
+    process.env.DISPLAY = process.env.DISPLAY || ':1';
+
     // 2. Launch Playwright Chromium with SwiftShader (strictly matching audit environment)
     browser = await chromium.launch({
       executablePath: '/workspace/stage/autobet/research/pw-browsers/chromium-1248/chrome-linux64/chrome',
+      env: { ...process.env, DISPLAY: process.env.DISPLAY || ':1' },
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
+        '--use-gl=angle',
         '--use-angle=swiftshader',
         '--enable-unsafe-swiftshader',
         '--ignore-gpu-blocklist'
@@ -100,6 +106,9 @@ describe('Headless WebGL 3D World Render & Luminance Verification', () => {
   after(async () => {
     if (browser) await browser.close();
     if (server) await new Promise(resolve => server.close(resolve));
+    if (xvfbProcess) {
+      try { xvfbProcess.kill(); } catch (_) {}
+    }
   });
 
   test('Garage 3D car turntable renders non-black pixels under SwiftShader', async () => {

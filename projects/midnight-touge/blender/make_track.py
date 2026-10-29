@@ -32,7 +32,19 @@ def generate_spline_points(total_length=2800.0, step=8.0):
     # Segment 3 (1100-2100m): Famous 5 Consecutive Hairpins (五連髮夾彎)
     # Segment 4 (2100-2800m): Rock tunnel & fast downhill sprint to valley finish
     
-    points = []
+    points = [{
+        "dist": 0.0,
+        "x": 0.0,
+        "y": 0.0,
+        "z": 380.0,
+        "heading": 0.0,
+        "fx": 0.0,
+        "fy": 1.0,
+        "rx": 1.0,
+        "ry": 0.0,
+        "bank": 0.0,
+        "tag": None
+    }]
     
     cur_x = 0.0
     cur_y = 0.0

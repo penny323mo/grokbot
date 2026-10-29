@@ -228,7 +228,7 @@ export class AudioEngine {
 
   updateTyreSqueal(slipAngleDeg, speedKmh) {
     // Dynamic tyre sound based on drift angle and speed
-    if (slipAngleDeg > 12.0 && speedKmh > 30.0) {
+    if (slipAngleDeg > 10.0 && speedKmh > 22.0) {
       if (!this.tyreInterval || Date.now() - this.tyreInterval > 180) {
         this.tyreInterval = Date.now();
         const pitch = 0.85 + (speedKmh / 150.0) * 0.45;

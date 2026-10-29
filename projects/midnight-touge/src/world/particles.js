@@ -75,11 +75,29 @@ export class ParticleSystem {
     geo.setAttribute('opacity', new THREE.BufferAttribute(opacities, 1));
     geo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
 
+    // Fluffy billboard particle texture for authentic voluminous tyre smoke
+    let smokeTex = null;
+    try {
+      const c = document.createElement('canvas');
+      c.width = 64; c.height = 64;
+      const ctx = c.getContext('2d');
+      const g = ctx.createRadialGradient(32, 32, 2, 32, 32, 32);
+      g.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+      g.addColorStop(0.35, 'rgba(240, 245, 252, 0.75)');
+      g.addColorStop(0.70, 'rgba(215, 225, 238, 0.35)');
+      g.addColorStop(1, 'rgba(200, 215, 230, 0.0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 64, 64);
+      smokeTex = new THREE.CanvasTexture(c);
+    } catch (_) {}
+
     const mat = new THREE.PointsMaterial({
-      color: 0xDCE4EC,
-      size: 3.5,
+      map: smokeTex,
+      color: 0xEEF2F6,
+      size: 1.35,
+      sizeAttenuation: true,
       transparent: true,
-      opacity: 0.35,
+      opacity: 0.75,
       blending: THREE.NormalBlending,
       depthWrite: false
     });
@@ -104,7 +122,8 @@ export class ParticleSystem {
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     const mat = new THREE.PointsMaterial({
       color: 0xFFA020,
-      size: 2.5,
+      size: 0.22,
+      sizeAttenuation: true,
       transparent: true,
       opacity: 0.9,
       blending: THREE.AdditiveBlending
@@ -131,32 +150,32 @@ export class ParticleSystem {
   }
 
   spawnSmoke(carPos, carHeading, slipAngleDeg, speedKmh) {
-    if (slipAngleDeg < 12.0 || speedKmh < 30.0) return;
+    if (slipAngleDeg < 7.0 || speedKmh < 15.0) return;
 
-    // Spawn 2 smoke puffs at rear tires
+    // Spawn 2 smoke puffs at rear contact patches just behind rear bumper
     const rtX = Math.cos(carHeading);
     const rtY = -Math.sin(carHeading);
     const fwX = Math.sin(carHeading);
     const fwY = Math.cos(carHeading);
 
-    const rearDist = -1.2;
-    const wheelOffset = 0.75;
+    const rearDist = -2.15; // Placed cleanly behind rear bumper to billow into chase camera
+    const wheelOffset = 0.78;
 
     for (const side of [-1, 1]) {
       const p = this.smokePool.find(s => !s.active);
       if (!p) break;
 
       p.active = true;
-      p.x = carPos.x + fwX * rearDist + rtX * (wheelOffset * side) + (Math.random() - 0.5) * 0.2;
-      p.y = carPos.y + fwY * rearDist + rtY * (wheelOffset * side) + (Math.random() - 0.5) * 0.2;
-      p.z = carPos.z + 0.2;
-      p.vx = -fwX * 1.5 + (Math.random() - 0.5) * 1.2;
-      p.vy = -fwY * 1.5 + (Math.random() - 0.5) * 1.2;
-      p.vz = 0.6 + Math.random() * 0.8;
+      p.x = carPos.x + fwX * rearDist + rtX * (wheelOffset * side) + (Math.random() - 0.5) * 0.25;
+      p.y = carPos.y + fwY * rearDist + rtY * (wheelOffset * side) + (Math.random() - 0.5) * 0.25;
+      p.z = carPos.z + 0.35;
+      p.vx = -fwX * 2.2 + (Math.random() - 0.5) * 1.5;
+      p.vy = -fwY * 2.2 + (Math.random() - 0.5) * 1.5;
+      p.vz = 0.8 + Math.random() * 0.9;
       p.life = 0.0;
-      p.maxLife = 0.7 + Math.random() * 0.4;
-      p.size = 1.8 + (speedKmh / 100.0);
-      p.opacity = Math.min(0.65, (slipAngleDeg / 40.0) * 0.6);
+      p.maxLife = 0.85 + Math.random() * 0.45;
+      p.size = 2.4 + (speedKmh / 80.0);
+      p.opacity = Math.min(0.90, 0.45 + (slipAngleDeg / 40.0) * 0.5);
     }
   }
 

@@ -63,14 +63,13 @@ export class GarageView {
             <span class="car-brand-tag">${car.badge}</span>
             <h1 class="car-main-title">${car.name}</h1>
             <span class="car-subtitle">${car.subtitle}</span>
+            <div class="turntable-hint">左右滑動旋轉檢閱車體</div>
           </div>
           <button class="car-nav-btn next" id="btn-car-next" type="button" aria-label="下一車輛">▶</button>
         </div>
 
         <!-- 3D Turntable Stage Container (Transparent overlay for WebGL viewport) -->
-        <div class="garage-turntable-canvas-slot" id="garage-turntable-slot">
-          <div class="turntable-hint">左右滑動旋轉檢閱車體</div>
-        </div>
+        <div class="garage-turntable-canvas-slot" id="garage-turntable-slot"></div>
 
         <!-- Specs & Customization Panel (Slim Angled HUD Strip Over 3D Scene) -->
         <div class="garage-hud-strip">
@@ -133,14 +132,16 @@ export class GarageView {
           <!-- Primary CTA Button (Select / Purchase / Drive) -->
           <div class="garage-action-row">
             ${isUnlocked ? `
-              <button class="btn-garage-launch btn-drive-car" id="btn-garage-drive" type="button">
-                <span class="btn-skew-accent"></span>
-                <span class="btn-label">// 選用此車 · 前往山道 DRIVE //</span>
+              <button class="arcade-menu-item btn-garage-launch btn-drive-car" id="btn-garage-drive" type="button">
+                <span class="menu-slash">//</span>
+                <span class="btn-main-text">選用出擊 · DRIVE</span>
+                <span class="menu-arrow">→</span>
               </button>
             ` : `
-              <button class="btn-garage-launch btn-unlock-car ${canUnlock ? '' : 'is-disabled'}" id="btn-garage-unlock" type="button">
-                <span class="btn-skew-accent"></span>
-                <span class="btn-label">// ${unlockBtnLabel} //</span>
+              <button class="arcade-menu-item btn-garage-launch btn-unlock-car ${canUnlock ? '' : 'is-disabled'}" id="btn-garage-unlock" type="button">
+                <span class="menu-slash">//</span>
+                <span class="btn-main-text">${unlockBtnLabel}</span>
+                <span class="menu-arrow">→</span>
               </button>
             `}
           </div>

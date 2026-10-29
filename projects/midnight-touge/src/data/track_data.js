@@ -4,8 +4,8 @@
 export const KIRINE_PASS_TRACK = {
   name: "霧嶺 (Kirine Pass)",
   totalLength: 2990.0,
-  elevationDrop: 366.3,
-  startElevation: 379.36,
+  elevationDrop: 366.9,
+  startElevation: 380.0,
   finishElevation: 13.1,
   sectors: [
     { id: 1, name: "第一區段 · 高原連彎 (Highland Esses)", startDist: 0, endDist: 650, landmark: "起點站台" },
@@ -23,6 +23,19 @@ export const KIRINE_PASS_TRACK = {
     { name: "五連髮夾彎 · 終章", dist: 2185, direction: "right", hasGutter: true }
   ],
   waypoints: [
+  {
+    "dist": 0.0,
+    "x": 0.0,
+    "y": 0.0,
+    "z": 380.0,
+    "heading": 0.0,
+    "fx": 0.0,
+    "fy": 1.0,
+    "rx": 1.0,
+    "ry": 0.0,
+    "bank": 0.0,
+    "tag": null
+  },
   {
     "dist": 8.0,
     "x": 0.0,

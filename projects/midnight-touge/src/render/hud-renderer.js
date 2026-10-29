@@ -13,33 +13,49 @@ export class HudRenderer {
     this.container.innerHTML = `
       <div id="hud-overlay" class="hud-screen-layer">
         <!-- 1. Top Section: Time, Sector Split, Distance Progress -->
-        <header class="hud-top-bar">
-          <div class="hud-stage-badge">
-            <span class="hud-badge-tag" id="hud-event-mode">TIME ATTACK</span>
-            <span class="hud-badge-title" id="hud-event-title">STAGE 01 · 霧嶺初試</span>
-          </div>
+        <div class="hud-top-section">
+          <header class="hud-top-bar">
+            <div class="hud-stage-badge">
+              <span class="hud-badge-tag" id="hud-event-mode">TIME ATTACK</span>
+              <span class="hud-badge-title" id="hud-event-title">STAGE 01 · 霧嶺初試</span>
+            </div>
 
-          <!-- Big Italic Lap Timer -->
-          <div class="hud-timer-block">
-            <div class="hud-timer-digits" id="hud-timer">00:00.00</div>
-            <div class="hud-sector-split" id="hud-split">SEC 1 · 0.00</div>
-          </div>
+            <!-- Big Italic Lap Timer -->
+            <div class="hud-timer-block">
+              <div class="hud-timer-digits" id="hud-timer">00:00.00</div>
+              <div class="hud-sector-split" id="hud-split">SEC 1 · 0.00</div>
+            </div>
 
-          <!-- Quick Action Buttons (Cam & Pause) -->
-          <div class="hud-top-actions">
-            <button class="hud-icon-btn" id="btn-cam-switch" type="button" aria-label="切換視角">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                <path d="M4 6h3.5L9 4h6l1.5 2H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2zm8 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0-2a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
+            <!-- Quick Action Buttons (Cam & Pause) -->
+            <div class="hud-top-actions">
+              <button class="hud-icon-btn" id="btn-cam-switch" type="button" aria-label="切換視角">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                  <path d="M4 6h3.5L9 4h6l1.5 2H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2zm8 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0-2a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
+                </svg>
+              </button>
+              <button class="hud-icon-btn" id="btn-pause" type="button" aria-label="暫停">
+                <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor">
+                  <rect x="4" y="3" width="4" height="14" rx="1.5" />
+                  <rect x="12" y="3" width="4" height="14" rx="1.5" />
+                </svg>
+              </button>
+            </div>
+          </header>
+
+          <!-- Mountain Downhill Descent Progress Bar -->
+          <div class="hud-track-progress-wrap">
+            <div class="hud-progress-mountain-icon">▲</div>
+            <div class="hud-progress-track-line">
+              <div class="hud-progress-fill" id="hud-track-fill"></div>
+              <div class="hud-progress-car-marker" id="hud-track-marker"></div>
+            </div>
+            <div class="hud-progress-flag-icon">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="#F3EDE2">
+                <path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/>
               </svg>
-            </button>
-            <button class="hud-icon-btn" id="btn-pause" type="button" aria-label="暫停">
-              <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor">
-                <rect x="4" y="3" width="4" height="14" rx="1.5" />
-                <rect x="12" y="3" width="4" height="14" rx="1.5" />
-              </svg>
-            </button>
+            </div>
           </div>
-        </header>
+        </div>
 
         <!-- Start Lights Gantry & Kinetic Countdown -->
         <div id="hud-countdown-gantry" class="hud-countdown-gantry is-hidden">
@@ -49,20 +65,6 @@ export class HudRenderer {
             <div class="gantry-pod" id="cd-pod-3"><span class="pod-lamp"></span></div>
           </div>
           <div class="countdown-kinetic-num" id="hud-countdown-num">3</div>
-        </div>
-
-        <!-- Mountain Downhill Descent Progress Bar -->
-        <div class="hud-track-progress-wrap">
-          <div class="hud-progress-mountain-icon">▲</div>
-          <div class="hud-progress-track-line">
-            <div class="hud-progress-fill" id="hud-track-fill"></div>
-            <div class="hud-progress-car-marker" id="hud-track-marker"></div>
-          </div>
-          <div class="hud-progress-flag-icon">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="#F3EDE2">
-              <path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/>
-            </svg>
-          </div>
         </div>
 
         <!-- 2. Center Alert: Rival Battle Gap Bar (Active in Battle Mode) -->
@@ -79,26 +81,29 @@ export class HudRenderer {
           <div class="battle-gap-text" id="hud-gap-text">+0.00s</div>
         </div>
 
-        <!-- 3. Dynamic Drift Score Callout -->
+        <!-- 3. Dynamic Drift Score Callout (Initial D Arcade Single Slash Line) -->
         <div class="hud-drift-callout is-hidden" id="hud-drift-banner">
-          <div class="drift-header">
-            <span class="drift-title">DRIFT</span>
-            <span class="drift-combo" id="hud-drift-combo">x2.0</span>
-          </div>
-          <div class="drift-points" id="hud-drift-pts">1,480</div>
-          <div class="drift-meta">
-            <span class="drift-angle" id="hud-drift-angle">ANGLE 36°</span>
-            <span class="gutter-drop-tag is-hidden" id="hud-gutter-tag">溝落とし!</span>
-          </div>
+          <span class="drift-slash-title">// DRIFT</span>
+          <span class="drift-combo" id="hud-drift-combo">x1.0</span>
+          <span class="drift-slash-sep">·</span>
+          <span class="drift-angle" id="hud-drift-angle">31°</span>
+          <span class="drift-slash-sep">·</span>
+          <span class="drift-points" id="hud-drift-pts">1,480 PTS //</span>
+          <span class="gutter-drop-tag is-hidden" id="hud-gutter-tag">溝落とし!</span>
         </div>
 
         <!-- 4. Bottom Right Cluster: Big Speedometer & Analog Tachometer Arc -->
         <div class="hud-telemetry-cluster">
           <!-- Digital Speed & Gear -->
           <div class="hud-speedo-box">
-            <div class="hud-gear-badge" id="hud-gear">3</div>
-            <div class="hud-speed-num" id="hud-speed">124</div>
-            <span class="hud-speed-unit">KM/H</span>
+            <div class="hud-gear-row">
+              <span class="hud-gear-prefix">GEAR</span>
+              <span class="hud-gear-badge" id="hud-gear">1</span>
+            </div>
+            <div class="hud-speed-row">
+              <span class="hud-speed-num" id="hud-speed">0</span>
+              <span class="hud-speed-unit">KM/H</span>
+            </div>
           </div>
 
           <!-- Curved Tachometer SVG Gauge -->
@@ -210,7 +215,11 @@ export class HudRenderer {
   setEventInfo(eventData) {
     if (!eventData) return;
     this.updateSettingsLayout();
-    this.elEventTitle.textContent = eventData.title || eventData.name || "STAGE";
+    let displayTitle = eventData.title || eventData.name || "STAGE";
+    if (displayTitle.includes(" · ") && displayTitle.split(" · ").length > 2) {
+      displayTitle = displayTitle.split(" · ").slice(0, 2).join(" · ");
+    }
+    this.elEventTitle.textContent = displayTitle;
     const mode = eventData.mode || (eventData.isBattle ? "battle" : "time_attack");
     this.elEventMode.textContent = mode.toUpperCase().replace("_", " ");
     if (mode === "battle" || eventData.isBattle) {
@@ -266,9 +275,9 @@ export class HudRenderer {
     const isGutter = collision.isInGutter || collision.inGutter || physics.inGutter || false;
     if (physics.isDrifting) {
       this.elDriftBanner.classList.remove("is-hidden");
-      this.elDriftPts.textContent = Math.floor(physics.driftScore).toLocaleString();
+      this.elDriftPts.textContent = `${Math.floor(physics.driftScore).toLocaleString()} PTS //`;
       this.elDriftCombo.textContent = `x${(physics.driftMultiplier || 1.0).toFixed(1)}`;
-      this.elDriftAngle.textContent = `ANGLE ${Math.floor(physics.driftAngleDeg || 0)}°`;
+      this.elDriftAngle.textContent = `${Math.floor(physics.driftAngleDeg || 0)}°`;
       if (isGutter) {
         this.elGutterTag.classList.remove("is-hidden");
       } else {

@@ -3,9 +3,10 @@
 import * as THREE from '../../libs/three.module.js';
 
 export class LightingWeather {
-  constructor(scene, renderer) {
+  constructor(scene, renderer, isSoftware = false) {
     this.scene = scene;
     this.renderer = renderer;
+    this.isSoftware = isSoftware;
 
     // Headlight Spotlights (Mounted to player car)
     this.headlightL = null;
@@ -25,7 +26,40 @@ export class LightingWeather {
     this.valleyCityPoints = null;
 
     this.setupLighting();
+    this.setupSky();
     this.setupValleyCity();
+  }
+
+  setupSky() {
+    // Night sky gradient dome (Deep midnight blue-black to horizon teal)
+    const skyGeo = new THREE.SphereGeometry(1800, 16, 16);
+    const skyMat = new THREE.ShaderMaterial({
+      side: THREE.BackSide,
+      depthWrite: false,
+      uniforms: {
+        topColor: { value: new THREE.Color(0x060C12) },
+        bottomColor: { value: new THREE.Color(0x162A3C) },
+      },
+      vertexShader: `
+        varying vec3 vWorldPosition;
+        void main() {
+          vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+          vWorldPosition = worldPosition.xyz;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 topColor;
+        uniform vec3 bottomColor;
+        varying vec3 vWorldPosition;
+        void main() {
+          float h = normalize(vWorldPosition).z;
+          gl_FragColor = vec4(mix(bottomColor, topColor, max(h, 0.0)), 1.0);
+        }
+      `
+    });
+    this.skyMesh = new THREE.Mesh(skyGeo, skyMat);
+    this.scene.add(this.skyMesh);
   }
 
   setupLighting() {
@@ -41,25 +75,36 @@ export class LightingWeather {
     // 3. Fog (Deep night mist)
     this.scene.fog = new THREE.FogExp2(0x0C1822, 0.0035);
 
-    // 4. Player Car Dual Headlights
-    this.headlightL = new THREE.SpotLight(0xFFF6E0, 18.0, 85.0, Math.PI / 5.5, 0.45, 1.1);
-    this.headlightR = new THREE.SpotLight(0xFFF6E0, 18.0, 85.0, Math.PI / 5.5, 0.45, 1.1);
-    this.headlightTargetL = new THREE.Object3D();
-    this.headlightTargetR = new THREE.Object3D();
+    // 4. Player Car Dual Headlights & Taillights (Bypassed on software renderer to keep CPU rasterizer at high FPS)
+    if (!this.isSoftware) {
+      this.headlightL = new THREE.SpotLight(0xFFF6E0, 18.0, 85.0, Math.PI / 5.5, 0.45, 1.1);
+      this.headlightR = new THREE.SpotLight(0xFFF6E0, 18.0, 85.0, Math.PI / 5.5, 0.45, 1.1);
+      this.headlightTargetL = new THREE.Object3D();
+      this.headlightTargetR = new THREE.Object3D();
 
-    this.scene.add(this.headlightL);
-    this.scene.add(this.headlightR);
-    this.scene.add(this.headlightTargetL);
-    this.scene.add(this.headlightTargetR);
+      this.scene.add(this.headlightL);
+      this.scene.add(this.headlightR);
+      this.scene.add(this.headlightTargetL);
+      this.scene.add(this.headlightTargetR);
 
-    this.headlightL.target = this.headlightTargetL;
-    this.headlightR.target = this.headlightTargetR;
+      this.headlightL.target = this.headlightTargetL;
+      this.headlightR.target = this.headlightTargetR;
 
-    // 5. Dual Taillight Points (Red glow behind car)
-    this.taillightL = new THREE.PointLight(0xE02820, 3.5, 12.0);
-    this.taillightR = new THREE.PointLight(0xE02820, 3.5, 12.0);
-    this.scene.add(this.taillightL);
-    this.scene.add(this.taillightR);
+      // 5. Dual Taillight Points (Red glow behind car)
+      this.taillightL = new THREE.PointLight(0xE02820, 3.5, 12.0);
+      this.taillightR = new THREE.PointLight(0xE02820, 3.5, 12.0);
+      this.scene.add(this.taillightL);
+      this.scene.add(this.taillightR);
+    } else {
+      this.headlightL = new THREE.Object3D();
+      this.headlightR = new THREE.Object3D();
+      this.headlightTargetL = new THREE.Object3D();
+      this.headlightTargetR = new THREE.Object3D();
+      this.headlightL.target = this.headlightTargetL;
+      this.headlightR.target = this.headlightTargetR;
+      this.taillightL = new THREE.Object3D();
+      this.taillightR = new THREE.Object3D();
+    }
   }
 
   setupValleyCity() {
@@ -193,5 +238,18 @@ export class LightingWeather {
     const tlIntensity = isBraking ? 6.5 : 2.5;
     this.taillightL.intensity = tlIntensity;
     this.taillightR.intensity = tlIntensity;
+  }
+
+  setGarageMode(isGarage) {
+    if (this.valleyCityPoints) {
+      this.valleyCityPoints.visible = !isGarage;
+    }
+    if (this.skyMesh) {
+      this.skyMesh.visible = !isGarage;
+    }
+    if (this.headlightL) this.headlightL.visible = !isGarage;
+    if (this.headlightR) this.headlightR.visible = !isGarage;
+    if (this.taillightL) this.taillightL.visible = !isGarage;
+    if (this.taillightR) this.taillightR.visible = !isGarage;
   }
 }
