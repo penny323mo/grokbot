@@ -692,6 +692,10 @@ export class TougeEngine {
       hudContainer.style.display = "block";
       const screens = document.querySelectorAll(".ui-screen-view");
       screens.forEach(s => s.classList.remove("is-active"));
+      // Clear garage HTML overlay so race canvas is not covered
+      if (this.garageView && this.garageView.container) {
+        this.garageView.container.innerHTML = "";
+      }
       audio.duckBGM(false);
 
     } else if (newState === "PAUSED") {
@@ -718,7 +722,8 @@ export class TougeEngine {
     // Ensure selected unlocked player car is loaded into scene and physics
     await this.loadPlayerCar(storage.data.selectedCarId || "h86");
 
-    // Weather & Atmosphere
+    // Restore fog if garage cleared it, then apply weather
+    if (!this.scene.fog && this._savedFog) this.scene.fog = this._savedFog;
     this.lighting.setWeather(eventData.weather || "midnight");
 
     // Sector & Direction Track Setup

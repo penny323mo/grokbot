@@ -102,6 +102,10 @@ export class LightingWeather {
   }
 
   setWeather(weatherName) {
+    // Garage nulls fog for clear car reads; recreate before tinting
+    if (!this.scene.fog) {
+      this.scene.fog = new THREE.FogExp2(0x0C1822, 0.0035);
+    }
     if (weatherName === "rainy_night") {
       this.hemiLight.color.setHex(0x0C1820);
       this.hemiLight.intensity = 0.45;

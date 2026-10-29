@@ -16,7 +16,7 @@ export const CARS_DATA = [
     driftEase: 96,
     unlocked: true,
     price: 0,
-    modelPath: "assets/models/car_h86.glb",
+    modelPath: "assets/models/car_h86.glb?v=blender2",
     desc: "八十年代末期原創輕量化後驅掀背。車重不足一噸，前後配重極致均衡，底盤反饋清晰靈敏。在急彎與五連髮夾彎中，能憑藉重心轉移與手煞輕易切入大角度甩尾。",
     colors: [
       { name: "熊貓雙色 (Panda White)", hex: "#F2F4F8", isTwoTone: true },
@@ -48,7 +48,7 @@ export const CARS_DATA = [
     unlocked: false,
     price: 1500,
     unlockCondition: "獲得 3 枚金牌或 1500 峠幣解鎖",
-    modelPath: "assets/models/car_gt20.glb",
+    modelPath: "assets/models/car_gt20.glb?v=blender2",
     desc: "九十年代黃金期代表性渦輪跑車。強勁扭力在中高轉速爆發，直線加速迅猛凌厲。甩尾時需要更細膩的油門控制，出彎時伴隨濃密白煙與令人著迷的渦輪洩壓聲。",
     colors: [
       { name: "深海墨綠 (Midnight Emerald)", hex: "#0A2022", isTwoTone: false },
@@ -80,7 +80,7 @@ export const CARS_DATA = [
     unlocked: false,
     price: 3500,
     unlockCondition: "擊敗霧嶺魔王或 3500 峠幣解鎖",
-    modelPath: "assets/models/car_re7.glb",
+    modelPath: "assets/models/car_re7.glb?v=blender2",
     desc: "殿堂級轉子跑車，極致的前中置引擎佈局與50:50完美配重。高達8,500轉的尖銳轉子咆哮，入彎時擁有極高物理極限，能以難以置信的高速滑移橫切過每一個髮夾彎心。",
     colors: [
       { name: "烈焰紅 (Formula Red)", hex: "#B81414", isTwoTone: false },
