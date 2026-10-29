@@ -1,6 +1,17 @@
 {
   "projects": [
     {
+      "id": "herbalist-ledger",
+      "title": "百草堂",
+      "subtitle": "The Herbalist's Ledger",
+      "category": "解謎經營",
+      "description": "1931 年廣州西關一間老藥材舖：翻藥典、辨百草、對症執藥，在一本帳簿入面揭開一段家族秘密。",
+      "accent": "#6B4A2B",
+      "path": "projects/herbalist-ledger/",
+      "added": "2026-10-30",
+      "cover": "projects/herbalist-ledger/cover/cover.webp"
+    },
+    {
       "id": "midnight-touge",
       "title": "夜峠",
       "subtitle": "Midnight Touge",
