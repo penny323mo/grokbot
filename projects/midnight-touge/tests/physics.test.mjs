@@ -171,4 +171,72 @@ describe('VehiclePhysics & Drift Dynamics', () => {
     assert.ok(physics.y > 0, 'Car should have traveled forward while stopping');
     assert.ok(physics.vy >= 0, 'Car must never have negative forward velocity');
   });
+
+  test('Hairpin drift maintains non-zero slip angle and exits faster than pure braking', () => {
+    const dt = 1.0 / 60.0;
+    const initialSpeed = 22.0; // ~80 km/h
+
+    // 1. Drifting car navigating the hairpin
+    const driftCar = new VehiclePhysics(starterCar);
+    driftCar.reset(0, 0, 0, 0);
+    driftCar.vy = initialSpeed;
+    driftCar.speed = initialSpeed;
+
+    let maxDriftSlipAngle = 0;
+    let didDrift = false;
+
+    // Corner Entry (0.3s): flick steer right and tap handbrake
+    for (let t = 0; t < 0.3; t += dt) {
+      driftCar.update(dt, { throttle: 0.4, steer: 0.9, brake: 0.0, handbrake: true });
+      if (driftCar.isDrifting) didDrift = true;
+      if (Math.abs(driftCar.slipAngle) > maxDriftSlipAngle) {
+        maxDriftSlipAngle = Math.abs(driftCar.slipAngle);
+      }
+    }
+
+    // Mid-corner apex (0.7s): throttle power-over with counter-steer
+    for (let t = 0; t < 0.7; t += dt) {
+      driftCar.update(dt, { throttle: 0.9, steer: -0.35, brake: 0.0, handbrake: false });
+      if (driftCar.isDrifting) didDrift = true;
+      if (Math.abs(driftCar.slipAngle) > maxDriftSlipAngle) {
+        maxDriftSlipAngle = Math.abs(driftCar.slipAngle);
+      }
+    }
+
+    // Exit punch (0.5s): full throttle straightening out
+    for (let t = 0; t < 0.5; t += dt) {
+      driftCar.update(dt, { throttle: 1.0, steer: 0.0, brake: 0.0, handbrake: false });
+    }
+
+    // 2. Pure braking car navigating the same hairpin by heavy braking to avoid slide
+    const brakeCar = new VehiclePhysics(starterCar);
+    brakeCar.reset(0, 0, 0, 0);
+    brakeCar.vy = initialSpeed;
+    brakeCar.speed = initialSpeed;
+
+    // Corner Entry (0.3s): hard braking before turn
+    for (let t = 0; t < 0.3; t += dt) {
+      brakeCar.update(dt, { throttle: 0.0, steer: 0.0, brake: 1.0, handbrake: false });
+    }
+
+    // Mid-corner apex (0.7s): slow speed steer through corner
+    for (let t = 0; t < 0.7; t += dt) {
+      brakeCar.update(dt, { throttle: 0.2, steer: 0.6, brake: 0.5, handbrake: false });
+    }
+
+    // Exit punch (0.5s): full throttle reacceleration from stop/crawl
+    for (let t = 0; t < 0.5; t += dt) {
+      brakeCar.update(dt, { throttle: 1.0, steer: 0.0, brake: 0.0, handbrake: false });
+    }
+
+    // Drift car must maintain non-zero slip angle during hairpin
+    assert.ok(didDrift, 'Drift car must enter drift state during hairpin');
+    assert.ok(maxDriftSlipAngle > 0.15, `Drift car slip angle (${maxDriftSlipAngle.toFixed(3)}) must be non-zero (> 0.15 rad)`);
+
+    // Drift car exits corner faster than pure braking car
+    assert.ok(
+      driftCar.speed > brakeCar.speed,
+      `Drift exit speed (${driftCar.speed.toFixed(2)} m/s) must exceed pure braking speed (${brakeCar.speed.toFixed(2)} m/s)`
+    );
+  });
 });

@@ -72,49 +72,57 @@ export class GarageView {
           <button class="car-nav-btn next" id="btn-car-next" type="button" aria-label="下一車輛">▶</button>
         </div>
 
-        <!-- Specs & Customization Panel -->
-        <div class="garage-specs-sheet">
+        <!-- Specs & Customization Panel (Slim Angled HUD Strip Over 3D Scene) -->
+        <div class="garage-hud-strip">
           <!-- Power / Weight / Handling Meters -->
-          <div class="garage-stats-grid">
+          <div class="garage-stats-strip">
             <div class="spec-stat-item">
-              <span class="stat-name">馬力 (HP)</span>
+              <div class="stat-name-row">
+                <span class="stat-name">馬力 (HP)</span>
+                <span class="stat-val">${car.horsepower} PS</span>
+              </div>
               <div class="stat-bar-track">
                 <div class="stat-bar-fill" style="width: ${(car.horsepower / 300) * 100}%"></div>
               </div>
-              <span class="stat-val">${car.horsepower} PS</span>
             </div>
 
             <div class="spec-stat-item">
-              <span class="stat-name">車重 (WEIGHT)</span>
+              <div class="stat-name-row">
+                <span class="stat-name">車重 (WEIGHT)</span>
+                <span class="stat-val">${car.weight} KG</span>
+              </div>
               <div class="stat-bar-track">
                 <div class="stat-bar-fill" style="width: ${(1.0 - (car.weight - 900) / 600) * 100}%"></div>
               </div>
-              <span class="stat-val">${car.weight} KG</span>
             </div>
 
             <div class="spec-stat-item">
-              <span class="stat-name">操控 (HANDLING)</span>
+              <div class="stat-name-row">
+                <span class="stat-name">操控 (HANDLING)</span>
+                <span class="stat-val">${car.handling}</span>
+              </div>
               <div class="stat-bar-track">
                 <div class="stat-bar-fill" style="width: ${car.handling}%"></div>
               </div>
-              <span class="stat-val">${car.handling}</span>
             </div>
 
             <div class="spec-stat-item">
-              <span class="stat-name">甩尾適性 (DRIFT)</span>
+              <div class="stat-name-row">
+                <span class="stat-name">甩尾 (DRIFT)</span>
+                <span class="stat-val">${car.driftEase}</span>
+              </div>
               <div class="stat-bar-track">
                 <div class="stat-bar-fill" style="width: ${car.driftEase}%"></div>
               </div>
-              <span class="stat-val">${car.driftEase}</span>
             </div>
           </div>
 
-          <!-- Color Swatches -->
-          <div class="garage-color-palette">
-            <span class="color-palette-label">塗裝選擇 (LIVERY)</span>
+          <!-- Livery Paint Chips Floor Rail -->
+          <div class="garage-livery-rail">
+            <span class="color-palette-label">塗裝 / LIVERY</span>
             <div class="color-swatches-row">
               ${car.colors.map((col, idx) => `
-                <button class="color-swatch-btn ${curColorIdx === idx ? 'is-selected' : ''}" data-color-idx="${idx}" style="background-color: ${col.hex}" title="${col.name}"></button>
+                <button class="color-swatch-chip ${curColorIdx === idx ? 'is-selected' : ''}" data-color-idx="${idx}" style="background-color: ${col.hex}" title="${col.name}"></button>
               `).join('')}
             </div>
           </div>
@@ -125,13 +133,14 @@ export class GarageView {
           <!-- Primary CTA Button (Select / Purchase / Drive) -->
           <div class="garage-action-row">
             ${isUnlocked ? `
-              <button class="btn-primary-action btn-drive-car" id="btn-garage-drive" type="button">
-                <span class="btn-glow"></span>
-                <span class="btn-label">選用此車 · 前往山道 →</span>
+              <button class="btn-garage-launch btn-drive-car" id="btn-garage-drive" type="button">
+                <span class="btn-skew-accent"></span>
+                <span class="btn-label">// 選用此車 · 前往山道 DRIVE //</span>
               </button>
             ` : `
-              <button class="btn-primary-action btn-unlock-car ${canUnlock ? '' : 'is-disabled'}" id="btn-garage-unlock" type="button">
-                <span class="btn-label">${unlockBtnLabel}</span>
+              <button class="btn-garage-launch btn-unlock-car ${canUnlock ? '' : 'is-disabled'}" id="btn-garage-unlock" type="button">
+                <span class="btn-skew-accent"></span>
+                <span class="btn-label">// ${unlockBtnLabel} //</span>
               </button>
             `}
           </div>

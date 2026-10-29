@@ -30,16 +30,16 @@ export class LightingWeather {
 
   setupLighting() {
     // 1. Ambient & Hemispherical Night Light (Deep night teal / cool blue-black)
-    this.hemiLight = new THREE.HemisphereLight(0x182C38, 0x070B0E, 0.55);
+    this.hemiLight = new THREE.HemisphereLight(0x608AA0, 0x20303C, 2.0);
     this.scene.add(this.hemiLight);
 
     // 2. Moonlight directional (High mountain moonlight shining down across the touge)
-    this.moonLight = new THREE.DirectionalLight(0x98C8E0, 0.85);
+    this.moonLight = new THREE.DirectionalLight(0xB8E0F8, 2.4);
     this.moonLight.position.set(-300, 200, 850);
     this.scene.add(this.moonLight);
 
     // 3. Fog (Deep night mist)
-    this.scene.fog = new THREE.FogExp2(0x0A1218, 0.0070);
+    this.scene.fog = new THREE.FogExp2(0x0C1822, 0.0035);
 
     // 4. Player Car Dual Headlights
     this.headlightL = new THREE.SpotLight(0xFFF6E0, 18.0, 85.0, Math.PI / 5.5, 0.45, 1.1);
@@ -120,13 +120,14 @@ export class LightingWeather {
       this.renderer.toneMappingExposure = 1.20;
     } else {
       // Midnight (Default)
-      this.hemiLight.color.setHex(0x182C38);
-      this.hemiLight.intensity = 0.55;
-      this.moonLight.color.setHex(0x98C8E0);
-      this.moonLight.intensity = 0.85;
-      this.scene.fog.color.setHex(0x0A1218);
-      this.scene.fog.density = 0.0070;
-      this.renderer.toneMappingExposure = 1.10;
+      this.hemiLight.color.setHex(0x608AA0);
+      this.hemiLight.groundColor.setHex(0x20303C);
+      this.hemiLight.intensity = 2.0;
+      this.moonLight.color.setHex(0xB8E0F8);
+      this.moonLight.intensity = 2.4;
+      this.scene.fog.color.setHex(0x0C1822);
+      this.scene.fog.density = 0.0035;
+      this.renderer.toneMappingExposure = 1.35;
     }
   }
 

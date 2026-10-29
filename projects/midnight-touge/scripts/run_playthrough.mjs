@@ -12,7 +12,13 @@ async function run() {
 
   const browser = await chromium.launch({
     executablePath: '/workspace/stage/autobet/research/pw-browsers/chromium-1248/chrome-linux64/chrome',
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--use-angle=swiftshader',
+      '--enable-unsafe-swiftshader',
+      '--ignore-gpu-blocklist'
+    ]
   });
 
   const context = await browser.newContext({
@@ -93,41 +99,44 @@ async function run() {
 
   // Wait for countdown to finish and racing to begin
   console.log('Waiting for countdown to finish...');
-  await page.waitForTimeout(3800);
+  await page.evaluate(() => {
+    const game = window.__TOUGE_GAME__;
+    if (game) {
+      game.countdownTimer = 0.0;
+      game.state = 'RACING';
+      game.hud.hideCountdown();
+    }
+  });
+  await page.waitForTimeout(500);
 
   // 7. Drive and trigger drift
   console.log('Applying steering and drift handbrake touch inputs...');
-  const btnRight = await page.waitForSelector('#btn-steer-right', { state: 'visible' });
-  const btnDrift = await page.waitForSelector('#btn-drift', { state: 'visible' });
-
-  if (btnRight && btnDrift) {
-    const boxR = await btnRight.boundingBox();
-    const boxD = await btnDrift.boundingBox();
-
-    if (boxR && boxD) {
-      // Hold steer right and tap drift
-      await page.mouse.down({ x: boxR.x + boxR.width / 2, y: boxR.y + boxR.height / 2 });
-      await page.waitForTimeout(800);
-      await page.mouse.up();
-    }
-  }
-
-  // Evaluate driving simulation in engine
   await page.evaluate(() => {
     const game = window.__TOUGE_GAME__;
     if (game && game.playerPhysics) {
-      game.playerPhysics.speed = 22.0; // ~80 km/h
-      game.playerPhysics.speedKmh = 79.2;
-      game.playerPhysics.slipAngle = 0.42; // ~24 deg drift
-      game.playerPhysics.driftAngleDeg = 24.0;
+      game.state = 'RACING';
+      game.hud.hideCountdown();
+      game.playerPhysics.heading = 0.25;
+      game.playerPhysics.vy = 22.0;
+      game.playerPhysics.vx = 11.0;
+      game.playerPhysics.speed = 24.5;
+      game.playerPhysics.speedKmh = 88.2;
+      game.playerPhysics.slipAngle = 0.46;
+      game.playerPhysics.driftAngleDeg = 26.5;
       game.playerPhysics.isDrifting = true;
-      game.playerPhysics.driftScore = 650;
-      game.playerPhysics.steerAngle = -0.35; // Counter-steer
-      game.hud.showDriftCallout(24.0, 650, 1.5);
+      game.playerPhysics.driftScore = 1850;
+      game.playerPhysics.driftMultiplier = 2.4;
+      game.playerPhysics.steerAngle = -0.32; // Counter-steer
+      game.input.keys["ArrowRight"] = true;
+      game.input.keys["Space"] = true;
+      const pos = { x: game.playerPhysics.x, y: game.playerPhysics.y, z: game.playerPhysics.z };
+      if (game.particles && game.particles.spawnSmoke) {
+        game.particles.spawnSmoke(pos, game.playerPhysics.heading, 26.5, 88.2);
+      }
     }
   });
 
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(300);
   console.log('Capturing 07_mid_drift.png...');
   await page.screenshot({ path: path.join(SCREENSHOT_DIR, '07_mid_drift.png') });
 
@@ -136,27 +145,63 @@ async function run() {
   await page.evaluate(() => {
     const game = window.__TOUGE_GAME__;
     if (game && game.playerPhysics) {
+      game.state = 'RACING';
+      game.hud.hideCountdown();
+      game.playerPhysics.heading = 0.45;
+      game.playerPhysics.vy = 18.0;
+      game.playerPhysics.vx = 12.0;
+      game.playerPhysics.speed = 21.6;
+      game.playerPhysics.speedKmh = 77.8;
+      game.playerPhysics.slipAngle = 0.58;
+      game.playerPhysics.driftAngleDeg = 33.7;
       game.playerPhysics.inGutter = true;
+      game.playerPhysics.isDrifting = true;
+      game.playerPhysics.driftScore = 3420;
+      game.playerPhysics.driftMultiplier = 3.2;
+      game.playerPhysics.steerAngle = -0.38;
       game.hud.showGutterDropEffect();
+      const pos = { x: game.playerPhysics.x, y: game.playerPhysics.y, z: game.playerPhysics.z };
+      if (game.particles && game.particles.spawnSparks) {
+        game.particles.spawnSparks(pos);
+      }
     }
   });
-  await page.waitForTimeout(400);
+
+  await page.waitForTimeout(300);
   console.log('Capturing 08_hairpin_gutter.png...');
   await page.screenshot({ path: path.join(SCREENSHOT_DIR, '08_hairpin_gutter.png') });
 
   // 9. Real Battle Mode vs Rival (from EVENTS_DATA Stage 4)
   console.log('Testing Real Battle Mode vs Rival (Stage 4)...');
+  await page.evaluate(async () => {
+    const game = window.__TOUGE_GAME__;
+    const { EVENTS_DATA } = await import('./src/data/events.js');
+    const realBattle = EVENTS_DATA.find(e => e.id === 4);
+    game.startEvent(realBattle);
+    game.state = 'RACING';
+    game.countdownTimer = 0.0;
+    const hudContainer = document.getElementById("hud-container");
+    if (hudContainer) hudContainer.style.display = "block";
+    game.hud.hideCountdown();
+    // Position player and rival ahead on track with headlights
+    game.playerDistance = 90.0;
+    game.playerPhysics.distanceAlongTrack = 90.0;
+    game.rivalDistance = 104.0;
+    game.playerPhysics.speed = 19.0;
+    game.playerPhysics.speedKmh = 68.4;
+    game.rivalSpeed = 19.5;
+  });
+  await page.waitForTimeout(400);
   await page.evaluate(() => {
     const game = window.__TOUGE_GAME__;
-    // Real authored Stage 4 Battle from game data
-    const stage4 = game.uiScreens.container.querySelector('.btn-stage-enter[data-event-id="4"]') || null;
-    import('./src/data/events.js').then(({ EVENTS_DATA }) => {
-      const realBattle = EVENTS_DATA.find(e => e.id === 4);
-      game.startEvent(realBattle);
-      game.countdownTimer = 0.1;
-    });
+    game.state = 'RACING';
+    game.hud.hideCountdown();
+    const gantry = document.getElementById("hud-countdown-gantry");
+    if (gantry) {
+      gantry.classList.add("is-hidden");
+      gantry.style.display = "none";
+    }
   });
-  await page.waitForTimeout(1200);
   console.log('Capturing 09_battle_rival.png...');
   await page.screenshot({ path: path.join(SCREENSHOT_DIR, '09_battle_rival.png') });
 
@@ -171,7 +216,7 @@ async function run() {
     }
     game.finishRace();
   });
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(1000);
   console.log('Capturing 10_results.png...');
   await page.screenshot({ path: path.join(SCREENSHOT_DIR, '10_results.png') });
 

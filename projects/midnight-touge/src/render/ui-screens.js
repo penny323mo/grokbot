@@ -79,26 +79,35 @@ export class UIScreens {
           <p class="title-pitch-desc">深夜山道 3D 甩尾競速 · 五連髮夾彎 · 霧氣 · 引擎咆哮</p>
         </div>
 
-        <!-- Primary Menus (Diegetic Racing HUD Style) -->
-        <div class="title-menu-actions">
-          <button class="btn-menu-action btn-start-race" id="btn-title-start" type="button">
-            <span class="btn-skew-accent"></span>
-            <span class="btn-main-text">出走山道 · START</span>
-            <span class="btn-sub-text">第一賽事 · 霧嶺初試</span>
+        <!-- Arcade Typographic Selections (No boxed web cards) -->
+        <nav class="title-arcade-menu" aria-label="主選單">
+          <button class="arcade-menu-item btn-menu-action item-start-race" id="btn-title-start" type="button">
+            <span class="menu-slash">//</span>
+            <div class="menu-text-col">
+              <span class="btn-main-text">出走山道 · START</span>
+              <span class="btn-sub-text">第一賽事 · 霧嶺初試</span>
+            </div>
+            <span class="menu-streak"></span>
           </button>
 
-          <button class="btn-menu-action btn-open-garage" id="btn-title-garage" type="button">
-            <span class="btn-skew-accent"></span>
-            <span class="btn-main-text">車庫整備 · GARAGE</span>
-            <span class="btn-sub-text">檢閱跑車 · 塗裝調校</span>
+          <button class="arcade-menu-item btn-menu-action item-garage" id="btn-title-garage" type="button">
+            <span class="menu-slash">//</span>
+            <div class="menu-text-col">
+              <span class="btn-main-text">車庫整備 · GARAGE</span>
+              <span class="btn-sub-text">檢閱跑車 · 塗裝調校</span>
+            </div>
+            <span class="menu-streak"></span>
           </button>
 
-          <button class="btn-menu-action btn-open-events" id="btn-title-events" type="button">
-            <span class="btn-skew-accent"></span>
-            <span class="btn-main-text">賽事地圖 · STAGES</span>
-            <span class="btn-sub-text">12 關卡 · 追擊與逆走</span>
+          <button class="arcade-menu-item btn-menu-action item-events" id="btn-title-events" type="button">
+            <span class="menu-slash">//</span>
+            <div class="menu-text-col">
+              <span class="btn-main-text">賽事地圖 · STAGES</span>
+              <span class="btn-sub-text">12 關卡 · 追擊與逆走</span>
+            </div>
+            <span class="menu-streak"></span>
           </button>
-        </div>
+        </nav>
 
         <!-- Title Footer -->
         <footer class="title-footer-sill">
@@ -256,37 +265,34 @@ export class UIScreens {
           </div>
         </div>
 
-        <!-- Active Stage Briefing / Launch Bar -->
-        <div class="stage-briefing-bar">
-          <div class="briefing-header">
-            <div class="briefing-title-group">
-              <span class="briefing-num">STAGE 0${currentEvt.id}</span>
-              <span class="briefing-name">${currentEvt.title}</span>
-            </div>
-            <div class="briefing-tags">
-              ${currentWeatherBadge}
-              ${currentEvt.direction === 'uphill' ? '<span class="stage-mode-tag uphill">逆走上坡</span>' : '<span class="stage-mode-tag">下坡疾走</span>'}
-              ${currentEvt.mode === 'battle' ? '<span class="stage-mode-tag battle">追擊決鬥</span>' : ''}
+        <!-- In-World Slim Stage Banner & Big Angled Launch Slash (No boxed card!) -->
+        <div class="stage-inworld-banner">
+          <div class="inworld-banner-meta">
+            <div class="inworld-title-line">
+              <span class="inworld-stage-num">STAGE 0${currentEvt.id}</span>
+              <span class="inworld-stage-name">${currentEvt.title}</span>
               ${currentMedalBadge || ''}
             </div>
+            <div class="inworld-tags-line">
+              ${currentWeatherBadge}
+              <span class="stage-mode-tag ${currentEvt.direction === 'uphill' ? 'uphill' : ''}">${currentEvt.direction === 'uphill' ? '逆走上坡' : '下坡疾走'}</span>
+              ${currentEvt.mode === 'battle' ? '<span class="stage-mode-tag battle">追擊決鬥</span>' : ''}
+              <span class="inworld-target-tag">${currentProg.bestTime ? `最佳: ${currentProg.bestTime.toFixed(2)}s` : `目標金牌: ${currentEvt.timeTargets ? currentEvt.timeTargets.gold + 's' : (currentEvt.targetGap ? '+' + currentEvt.targetGap + 's' : '8500分')}`}</span>
+            </div>
           </div>
-          <div class="briefing-meta">
-            <span class="briefing-desc">${currentEvt.desc}</span>
-            ${currentProg.bestTime ? `<span class="briefing-target">最佳紀錄: ${currentProg.bestTime.toFixed(2)}s</span>` : `<span class="briefing-target">目標金牌: ${currentEvt.timeTargets ? currentEvt.timeTargets.gold + 's' : (currentEvt.targetGap ? '+' + currentEvt.targetGap + 's' : '8500分')}</span>`}
-          </div>
-          <button class="btn-stage-enter btn-primary-action briefing-action-btn" data-event-id="${currentEvt.id}" type="button">
-            <span class="btn-label">出擊 STAGE 0${currentEvt.id} →</span>
+
+          <button class="btn-stage-enter btn-inworld-slash-launch" data-event-id="${currentEvt.id}" type="button">
+            <span class="btn-skew-accent"></span>
+            <span class="btn-label">// 出擊 STAGE 0${currentEvt.id} START //</span>
           </button>
         </div>
 
-        <!-- Free Run Mode Banner -->
-        <div class="free-run-banner" id="btn-enter-free-run">
-          <div class="free-run-content">
-            <span class="free-run-tag">PRACTICE · 練習試車</span>
-            <h3 class="free-run-title">${FREE_RUN_EVENT.title}</h3>
-          </div>
-          <button class="btn-free-run-go" type="button">進入練習 →</button>
-        </div>
+        <!-- In-World Practice Link (No boxed card) -->
+        <button class="btn-freerun-link" id="btn-enter-free-run" type="button">
+          <span class="freerun-tag">// FREE RUN</span>
+          <span class="freerun-title">自由練習試車 · ${FREE_RUN_EVENT.title}</span>
+          <span class="freerun-arrow">→</span>
+        </button>
       </section>
     `;
 
@@ -312,7 +318,12 @@ export class UIScreens {
       if (!evt) return;
       const prog = storage.data.stageProgress[evt.id] || { unlocked: false };
       const isUnlocked = prog.unlocked || evt.id === 1;
-      if (isUnlocked) {
+      if (!isUnlocked) {
+        audio.playSFX("menu_click");
+        return;
+      }
+
+      if (this.selectedEventId === id || !this.selectedEventId) {
         audio.playSFX("gear_shift");
         if (this.callbacks.onStartEvent) {
           this.callbacks.onStartEvent(evt);
@@ -321,10 +332,12 @@ export class UIScreens {
         }
       } else {
         audio.playSFX("menu_click");
+        this.selectedEventId = id;
+        this.showEventSelect();
       }
     };
 
-    // Clicking route SVG waypoint or enter button starts the stage directly
+    // Clicking route SVG waypoint or enter button starts or selects the stage
     this.container.querySelectorAll(".btn-stage-enter, .svg-route-node").forEach(btn => {
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -351,48 +364,53 @@ export class UIScreens {
 
     this.container.innerHTML = `
       <div class="results-screen-overlay is-active" id="screen-results">
-        <div class="results-panel-box">
-          <div class="results-header">
-            <span class="results-tag">FINISH CHECKPOINT · 完賽</span>
-            <h2 class="results-event-title">${titleText}</h2>
-          </div>
+        <div class="results-fullbleed-ceremony">
+          <header class="results-top-header">
+            <span class="results-tag">// FINISH CHECKPOINT · 完賽 //</span>
+            <h1 class="results-event-title">${titleText}</h1>
+          </header>
 
           <!-- Big Medal Award Stamp (Vector Drawn) -->
           <div class="results-medal-ceremony ${medal || 'no-medal'}">
             <div class="medal-big-icon">
-              ${medalBadge || `<span class="no-medal-flag"><svg viewBox="0 0 24 24" width="48" height="48"><path fill="#6A7782" d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/></svg></span>`}
+              ${medalBadge || `<span class="no-medal-flag"><svg viewBox="0 0 24 24" width="56" height="56"><path fill="#6A7782" d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/></svg></span>`}
             </div>
             <div class="medal-callout-text">${medalText}</div>
           </div>
 
-          <!-- Times & Score Grid -->
-          <div class="results-metrics-grid">
-            <div class="metric-row">
-              <span class="metric-label">完賽時間 (TIME)</span>
-              <span class="metric-val highlight">${timeFormatted}</span>
+          <!-- Big Kinetic Time Readout -->
+          <div class="results-time-block">
+            <span class="results-time-label">RECORD TIME</span>
+            <div class="results-big-digits">${timeFormatted}</div>
+          </div>
+
+          <!-- In-world Slim Metrics Strip -->
+          <div class="results-metrics-strip">
+            <div class="metric-pill">
+              <span class="metric-label">甩尾 DRIFT</span>
+              <span class="metric-val highlight">${Math.floor(driftScore).toLocaleString()} PTS</span>
             </div>
-            <div class="metric-row">
-              <span class="metric-label">甩尾積分 (DRIFT)</span>
-              <span class="metric-val">${Math.floor(driftScore).toLocaleString()} PTS</span>
-            </div>
-            <div class="metric-row">
-              <span class="metric-label">獲得峠幣 (COINS)</span>
+            <div class="metric-pill">
+              <span class="metric-label">獲得 COINS</span>
               <span class="metric-val coin-gold">+${coinsEarned} 幣</span>
             </div>
           </div>
 
-          <!-- Actions -->
-          <div class="results-actions-column">
+          <!-- Angled Arcade Action Slashes (No boxed buttons!) -->
+          <div class="results-arcade-actions">
             ${eventData.id < 12 && medal ? `
-              <button class="btn-primary-action btn-next-stage" id="btn-results-next" type="button">
-                下一賽事 (STAGE 0${eventData.id + 1}) →
+              <button class="btn-arcade-slash btn-next-stage" id="btn-results-next" type="button">
+                <span class="btn-skew-accent"></span>
+                <span class="btn-label">// 下一賽事 NEXT (STAGE 0${eventData.id + 1}) //</span>
               </button>
             ` : ''}
-            <button class="btn-secondary-action btn-retry-stage" id="btn-results-retry" type="button">
-              再戰一次 · RETRY
+            <button class="btn-arcade-slash btn-retry-stage" id="btn-results-retry" type="button">
+              <span class="btn-skew-accent"></span>
+              <span class="btn-label">// 再戰一次 RETRY //</span>
             </button>
-            <button class="btn-secondary-action btn-return-garage" id="btn-results-garage" type="button">
-              返回車庫 · GARAGE
+            <button class="btn-arcade-slash btn-return-garage" id="btn-results-garage" type="button">
+              <span class="btn-skew-accent"></span>
+              <span class="btn-label">// 返回車庫 GARAGE //</span>
             </button>
           </div>
         </div>

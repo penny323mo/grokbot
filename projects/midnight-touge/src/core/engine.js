@@ -139,7 +139,7 @@ export class TougeEngine {
     this.rearCamera.up.set(0, 0, 1);
     this.scene.add(this.rearCamera);
 
-    // Framebuffer Render Target for Post-Processing (HDR Half-Float Bloom & Chromatic Aberration)
+    // Framebuffer Render Target for Post-Processing (Bloom & Chromatic Aberration)
     const dpr = Math.min(window.devicePixelRatio || 1, 2.0);
     this.mainRenderTarget = new THREE.WebGLRenderTarget(
       Math.round(width * dpr),
@@ -148,7 +148,7 @@ export class TougeEngine {
         minFilter: THREE.LinearFilter,
         magFilter: THREE.LinearFilter,
         format: THREE.RGBAFormat,
-        type: THREE.HalfFloatType,
+        type: THREE.UnsignedByteType,
         depthBuffer: true
       }
     );
@@ -233,15 +233,63 @@ export class TougeEngine {
     this.cameraController = new CameraController(this.camera);
 
     // Garage Showroom Lighting
-    this.garageShowroomLight = new THREE.SpotLight(0xFFF2D8, 14.0, 30.0, Math.PI / 3, 0.45, 1.0);
-    this.garageShowroomLight.position.set(0, 0, 6.0);
-    this.garageShowroomLight.target.position.set(0, 0, 0);
+    this.garageShowroomLight = new THREE.SpotLight(0xFFF6E8, 55.0, 40.0, Math.PI / 2.6, 0.35, 1.0);
+    this.garageShowroomLight.position.set(0, 0, 6.5);
+    this.garageShowroomLight.target.position.set(0, 0, 0.4);
     this.garageShowroomLight.visible = false;
     this.scene.add(this.garageShowroomLight);
     this.scene.add(this.garageShowroomLight.target);
 
-    this.garageFillLight = new THREE.HemisphereLight(0x7090A8, 0x182028, 0.0);
+    this.garageKeyLight = new THREE.DirectionalLight(0xFFE2B0, 4.5);
+    this.garageKeyLight.position.set(3.5, 4.0, 5.0);
+    this.garageKeyLight.visible = false;
+    this.scene.add(this.garageKeyLight);
+
+    this.garageRimLight = new THREE.DirectionalLight(0x7EB8E0, 5.5);
+    this.garageRimLight.position.set(4, -4, 3);
+    this.garageRimLight.visible = false;
+    this.scene.add(this.garageRimLight);
+
+    this.garageFillLight = new THREE.HemisphereLight(0x6088A8, 0x182028, 0.0);
     this.scene.add(this.garageFillLight);
+
+    // Garage Showroom Turntable Pedestal
+    this.garagePedestal = new THREE.Group();
+    const discGeo = new THREE.CylinderGeometry(2.4, 2.5, 0.08, 48);
+    discGeo.rotateX(Math.PI / 2);
+    const discMat = new THREE.MeshStandardMaterial({
+      color: 0x161A20,
+      roughness: 0.25,
+      metalness: 0.85
+    });
+    const discMesh = new THREE.Mesh(discGeo, discMat);
+    discMesh.position.set(0, 0, -0.04);
+    this.garagePedestal.add(discMesh);
+
+    // Bevel rim with brushed highlight
+    const rimGeo = new THREE.TorusGeometry(2.45, 0.025, 16, 48);
+    const rimMat = new THREE.MeshStandardMaterial({
+      color: 0x8899A6,
+      roughness: 0.2,
+      metalness: 0.9
+    });
+    const rimMesh = new THREE.Mesh(rimGeo, rimMat);
+    rimMesh.position.set(0, 0, 0.001);
+    this.garagePedestal.add(rimMesh);
+
+    // Subtle dark contact shadow underneath car
+    const shadowGeo = new THREE.PlaneGeometry(4.2, 2.2);
+    const shadowMat = new THREE.MeshBasicMaterial({
+      color: 0x020406,
+      transparent: true,
+      opacity: 0.7
+    });
+    const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
+    shadowMesh.position.set(0, 0, 0.005);
+    this.garagePedestal.add(shadowMesh);
+
+    this.garagePedestal.visible = false;
+    this.scene.add(this.garagePedestal);
 
     const hudContainer = document.getElementById("hud-container");
     const uiContainer = document.getElementById("ui-container");
@@ -382,35 +430,72 @@ export class TougeEngine {
 
       this.trackModel.traverse(child => {
         if (child.isMesh) {
-          if (child.name === "Road") {
+          const n = (child.name || "").toLowerCase();
+          if (n === "road" || n.includes("asphalt")) {
             child.material = new THREE.MeshStandardMaterial({
+              color: 0x6A7380,
               map: aspDiff,
               roughnessMap: aspRough,
-              roughness: 0.65,
-              metalness: 0.10
+              roughness: 0.55,
+              metalness: 0.08,
+              side: THREE.DoubleSide
             });
-          } else if (child.name === "CliffWalls") {
+            child.receiveShadow = true;
+          } else if (n.includes("cliff") || n.includes("rock") || n.includes("wall")) {
             child.material = new THREE.MeshStandardMaterial({
+              color: 0x8A9098,
               map: rkDiff,
-              roughness: 0.92,
-              metalness: 0.05
+              roughness: 0.88,
+              metalness: 0.04,
+              side: THREE.DoubleSide
             });
-          } else if (child.name === "Guardrails") {
+          } else if (n.includes("rail") || n.includes("guard") || n.includes("post")) {
             child.material = new THREE.MeshStandardMaterial({
-              color: 0xCCD4DC,
-              roughness: 0.30,
-              metalness: 0.85
+              color: 0xE8ECF0,
+              roughness: 0.22,
+              metalness: 0.82,
+              side: THREE.DoubleSide
             });
+          } else if (n.includes("lamp") || n.includes("light")) {
+            if (child.material) {
+              child.material.emissive = child.material.emissive || new THREE.Color(0xffcc66);
+              child.material.emissiveIntensity = Math.max(child.material.emissiveIntensity || 1, 3);
+              child.material.toneMapped = false;
+            }
+          } else if (n.includes("pine") || n.includes("needle") || n.includes("bark") || n.includes("crown")) {
+            // keep authored materials, just double-side
+            if (child.material) child.material.side = THREE.DoubleSide;
+          } else if (n.includes("line") || n.includes("lane") || n.includes("center")) {
+            child.material = new THREE.MeshStandardMaterial({
+              color: 0xE8D978,
+              roughness: 0.5,
+              metalness: 0.05,
+              side: THREE.DoubleSide
+            });
+          } else {
+            if (child.material) {
+              child.material.side = THREE.DoubleSide;
+            }
           }
         }
       });
 
       this.scene.add(this.trackModel);
 
+      // Start line sodium lights (arcade start atmosphere)
+      const wp0 = KIRINE_PASS_TRACK.waypoints[0];
+      const startLight = new THREE.PointLight(0xF2A83B, 24.0, 60.0, 1.0);
+      startLight.position.set(wp0.x + 3.0, wp0.y + 2.0, wp0.z + 5.5);
+      this.scene.add(startLight);
+
+      const startFill = new THREE.PointLight(0x7EB8E0, 12.0, 45.0, 1.0);
+      startFill.position.set(wp0.x - 3.5, wp0.y - 2.0, wp0.z + 4.5);
+      this.scene.add(startFill);
+
       // Warm sodium streetlights along hairpins
       KIRINE_PASS_TRACK.hairpins.forEach((hp) => {
         const wp = KIRINE_PASS_TRACK.waypoints.find(w => w.dist >= hp.dist) || KIRINE_PASS_TRACK.waypoints[0];
-        const light = new THREE.PointLight(0xF2B451, 8.0, 36.0, 1.2);
+        const light = new THREE.PointLight(0xF2B451, 18.0, 50.0, 1.0);
         light.position.set(wp.x + (wp.rx || 0) * 5.0, wp.y + (wp.ry || 0) * 5.0, wp.z + 5.5);
         this.scene.add(light);
       });
@@ -559,36 +644,59 @@ export class TougeEngine {
 
     const isGarage = (newState === "GARAGE");
     if (this.garageShowroomLight) this.garageShowroomLight.visible = isGarage;
-    if (this.garageFillLight) this.garageFillLight.intensity = isGarage ? 1.6 : 0.0;
+    if (this.garageKeyLight) this.garageKeyLight.visible = isGarage;
+    if (this.garageRimLight) this.garageRimLight.visible = isGarage;
+    if (this.garageFillLight) this.garageFillLight.intensity = isGarage ? 3.2 : 0.0;
+    if (this.garagePedestal) this.garagePedestal.visible = isGarage;
     if (this.trackModel) this.trackModel.visible = !isGarage;
+    // Kill fog + boost exposure in garage so the Blender car reads clearly
+    if (this.scene) {
+      if (isGarage) {
+        this._savedFog = this.scene.fog;
+        this.scene.fog = null;
+        if (this.renderer) this.renderer.toneMappingExposure = 1.35;
+        if (this.lighting && this.lighting.hemiLight) this.lighting.hemiLight.intensity = 0.35;
+        if (this.lighting && this.lighting.moonLight) this.lighting.moonLight.intensity = 0.2;
+      } else {
+        if (this._savedFog !== undefined) this.scene.fog = this._savedFog;
+        if (this.renderer) this.renderer.toneMappingExposure = 1.05;
+        if (this.lighting && this.lighting.hemiLight) this.lighting.hemiLight.intensity = 2.0;
+        if (this.lighting && this.lighting.moonLight) this.lighting.moonLight.intensity = 2.4;
+      }
+    }
 
     if (newState === "TITLE") {
       hudContainer.style.display = "none";
       this.uiScreens.showTitle();
       audio.stopEngineSound();
+      audio.duckBGM(false);
 
     } else if (newState === "GARAGE") {
       hudContainer.style.display = "none";
       this.garageView.render();
       audio.stopEngineSound();
+      audio.duckBGM(false);
 
       // Position car at garage pedestal
       this.playerPhysics.reset(0, 0, 0, 0);
-      this.camera.position.set(5.5, -4.5, 1.9);
-      this.camera.lookAt(0, 0, 0.5);
+      this.camera.position.set(5.8, -4.2, 1.7);
+      this.camera.lookAt(0, 0, 0.55);
 
     } else if (newState === "EVENT_SELECT") {
       hudContainer.style.display = "none";
       this.uiScreens.showEventSelect();
       audio.stopEngineSound();
+      audio.duckBGM(false);
 
     } else if (newState === "COUNTDOWN" || newState === "RACING") {
       hudContainer.style.display = "block";
       const screens = document.querySelectorAll(".ui-screen-view");
       screens.forEach(s => s.classList.remove("is-active"));
+      audio.duckBGM(false);
 
     } else if (newState === "PAUSED") {
       audio.stopEngineSound();
+      audio.duckBGM(true);
       this.uiScreens.showPauseModal(
         () => this.resumeGame(),
         () => this.startEvent(this.currentEvent),
@@ -597,6 +705,7 @@ export class TougeEngine {
 
     } else if (newState === "RESULTS") {
       audio.stopEngineSound();
+      audio.duckBGM(true);
       audio.playSFX("countdown_go");
       if (hudContainer) hudContainer.style.display = "none";
     }
@@ -626,7 +735,7 @@ export class TougeEngine {
     this.playerPhysics.reset(startWp.x, startWp.y, startWp.z, startHeading);
     this.cameraController.snap(startWp, startHeading);
     this.raceTimer = 0.0;
-    this.countdownTimer = 3.5;
+    this.countdownTimer = 3.0;
     this.countdownInt = 3;
     this.isCountdownActive = true;
     this.gutterDropActive = false;
@@ -644,6 +753,7 @@ export class TougeEngine {
       const targetTime = eventData.rivalTargetTime || (eventData.timeTargets && eventData.timeTargets.silver) || 122.0;
       this.rivalSpeed = totalDist / targetTime;
       this.rivalFinishTime = null;
+      this.setRivalPoseAtDistance(this.rivalDistance);
     } else {
       if (this.rivalRig && this.rivalRig.group) {
         this.scene.remove(this.rivalRig.group);
@@ -666,8 +776,10 @@ export class TougeEngine {
     audio.unlockAudio();
     audio.playBGM();
     audio.startEngineSound();
+    audio.playSFX("countdown_beep", 1.0);
 
     this.transitionTo("COUNTDOWN");
+    this.hud.showCountdownGantry(3);
   }
 
   pauseGame() {
@@ -681,17 +793,22 @@ export class TougeEngine {
     const modal = document.getElementById("pause-modal");
     if (modal) modal.remove();
     this.state = this.pausedFromState || "RACING";
+    audio.duckBGM(false);
     audio.startEngineSound();
+    if (this.state === "COUNTDOWN") {
+      this.hud.showCountdownGantry(this.countdownInt);
+    }
   }
 
   updateCountdown(dt) {
     this.countdownTimer -= dt;
-    const curInt = Math.ceil(this.countdownTimer);
+    const curInt = Math.max(1, Math.ceil(this.countdownTimer));
 
-    if (curInt > 0 && curInt !== this.countdownInt) {
+    if (this.countdownTimer > 0 && curInt !== this.countdownInt) {
       this.countdownInt = curInt;
-      audio.playSFX("countdown_beep");
-      this.hud.showCountdownNumber(curInt);
+      const pitch = curInt === 1 ? 1.25 : (curInt === 2 ? 1.1 : 1.0);
+      audio.playSFX("countdown_beep", pitch);
+      this.hud.showCountdownGantry(curInt);
     }
 
     if (this.countdownTimer <= 0) {
@@ -704,12 +821,34 @@ export class TougeEngine {
         this.rivalDistance = isUphill ? startDist - 15.0 : startDist + 15.0;
       }
       audio.playSFX("countdown_go");
-      this.hud.showCountdownNumber("GO!");
+      this.hud.showCountdownGantry(0);
       setTimeout(() => {
         this.hud.hideCountdown();
-      }, 900);
+      }, 950);
       this.updateRacing(dt, false);
     }
+  }
+
+  setRivalPoseAtDistance(dist) {
+    if (!this.rivalRig) return;
+    const isUphill = this.currentEvent && this.currentEvent.direction === "uphill";
+    const waypoints = KIRINE_PASS_TRACK.waypoints;
+    let rivalWpIdx = 0;
+    let minDistDiff = Infinity;
+    for (let i = 0; i < waypoints.length; i++) {
+      const diff = Math.abs(waypoints[i].dist - dist);
+      if (diff < minDistDiff) {
+        minDistDiff = diff;
+        rivalWpIdx = i;
+      }
+    }
+    const wp = waypoints[rivalWpIdx] || waypoints[0];
+    const heading = isUphill ? (wp.heading + Math.PI) % (Math.PI * 2) : wp.heading;
+    this.rivalRig.updatePose(
+      { x: wp.x, y: wp.y, z: wp.z },
+      heading,
+      0, 0, 0, 0
+    );
   }
 
   updateRival(dt) {
@@ -828,46 +967,52 @@ export class TougeEngine {
 
     if (this.renderer && this.scene && this.camera) {
       if (this.mainRenderTarget && this.postScene && this.postMaterial) {
-        // 1. Render 3D scene into offscreen framebuffer render target
-        this.renderer.setRenderTarget(this.mainRenderTarget);
-        this.renderer.setViewport(0, 0, this.mainRenderTarget.width, this.mainRenderTarget.height);
-        this.renderer.setScissorTest(false);
-        this.renderer.clear();
-        this.renderer.render(this.scene, this.camera);
-
-        // Scissor render top-center rear-view mirror inset (RHD cockpit mirror)
-        const isCockpit = this.cameraController.mode === "cockpit" && (this.state === "RACING" || this.state === "COUNTDOWN");
-        const mirrorBezel = document.getElementById("cockpit-mirror-frame");
-        if (mirrorBezel) {
-          mirrorBezel.style.display = isCockpit ? "block" : "none";
-        }
-
-        if (isCockpit && this.rearCamera) {
-          const rtW = this.mainRenderTarget.width;
-          const rtH = this.mainRenderTarget.height;
-          const scaleX = rtW / (this.canvas.clientWidth || window.innerWidth || 390);
-          const scaleY = rtH / (this.canvas.clientHeight || window.innerHeight || 844);
-
-          const mirrorW = Math.round(COCKPIT_MIRROR_CONFIG.width * scaleX);
-          const mirrorH = Math.round(COCKPIT_MIRROR_CONFIG.height * scaleY);
-          const mirrorX = Math.round((rtW - mirrorW) / 2);
-          const mirrorY = Math.round(rtH - (COCKPIT_MIRROR_CONFIG.top + COCKPIT_MIRROR_CONFIG.height) * scaleY);
-
-          this.renderer.setScissor(mirrorX, mirrorY, mirrorW, mirrorH);
-          this.renderer.setViewport(mirrorX, mirrorY, mirrorW, mirrorH);
-          this.renderer.setScissorTest(true);
-          this.renderer.render(this.scene, this.rearCamera);
+        try {
+          // 1. Render 3D scene into offscreen framebuffer render target
+          this.renderer.setRenderTarget(this.mainRenderTarget);
           this.renderer.setScissorTest(false);
-        }
+          this.renderer.clear();
+          this.renderer.render(this.scene, this.camera);
 
-        // 2. Render post-processing composite quad to screen canvas
-        this.renderer.setRenderTarget(null);
-        this.renderer.setViewport(0, 0, this.canvas.width, this.canvas.height);
-        this.renderer.setScissorTest(false);
-        this.postMaterial.uniforms.tDiffuse.value = this.mainRenderTarget.texture;
-        this.postMaterial.uniforms.uAberration.value = (this.state === "RACING" || this.state === "COUNTDOWN") ? (this.speedAberrationRatio || 0.0) : 0.0;
-        this.postMaterial.uniforms.uBloomIntensity.value = 0.65;
-        this.renderer.render(this.postScene, this.postCamera);
+          // Scissor render top-center rear-view mirror inset (RHD cockpit mirror)
+          const isCockpit = this.cameraController.mode === "cockpit" && (this.state === "RACING" || this.state === "COUNTDOWN");
+          const mirrorBezel = document.getElementById("cockpit-mirror-frame");
+          if (mirrorBezel) {
+            mirrorBezel.style.display = isCockpit ? "block" : "none";
+          }
+
+          if (isCockpit && this.rearCamera) {
+            const rtW = this.mainRenderTarget.width;
+            const rtH = this.mainRenderTarget.height;
+            const dprVal = this.renderer.getPixelRatio() || 1;
+            const scaleX = (rtW / dprVal) / (this.canvas.clientWidth || window.innerWidth || 390);
+            const scaleY = (rtH / dprVal) / (this.canvas.clientHeight || window.innerHeight || 844);
+
+            const mirrorW = Math.round(COCKPIT_MIRROR_CONFIG.width * scaleX);
+            const mirrorH = Math.round(COCKPIT_MIRROR_CONFIG.height * scaleY);
+            const mirrorX = Math.round(((rtW / dprVal) - mirrorW) / 2);
+            const mirrorY = Math.round((rtH / dprVal) - (COCKPIT_MIRROR_CONFIG.top + COCKPIT_MIRROR_CONFIG.height) * scaleY);
+
+            this.renderer.setScissor(mirrorX, mirrorY, mirrorW, mirrorH);
+            this.renderer.setViewport(mirrorX, mirrorY, mirrorW, mirrorH);
+            this.renderer.setScissorTest(true);
+            this.renderer.render(this.scene, this.rearCamera);
+            this.renderer.setScissorTest(false);
+          }
+
+          // 2. Render post-processing composite quad to screen canvas
+          this.renderer.setRenderTarget(null);
+          this.renderer.setScissorTest(false);
+          this.postMaterial.uniforms.tDiffuse.value = this.mainRenderTarget.texture;
+          this.postMaterial.uniforms.uAberration.value = (this.state === "RACING" || this.state === "COUNTDOWN") ? (this.speedAberrationRatio || 0.0) : 0.0;
+          this.postMaterial.uniforms.uBloomIntensity.value = 0.65;
+          this.renderer.render(this.postScene, this.postCamera);
+        } catch (e) {
+          console.warn("Post-processing render failed, falling back to direct render:", e);
+          this.renderer.setRenderTarget(null);
+          this.renderer.setScissorTest(false);
+          this.renderer.render(this.scene, this.camera);
+        }
       } else {
         this.renderer.render(this.scene, this.camera);
       }
@@ -888,12 +1033,14 @@ export class TougeEngine {
     }
 
     // Garage camera smooth angle tailored for portrait 390×844
-    const camDist = 6.2;
-    const camZ = 1.65;
-    const camX = Math.sin(this.garageTurntableAngle * 0.35) * camDist;
-    const camY = -Math.cos(this.garageTurntableAngle * 0.35) * camDist;
+    // Hero 3/4 orbit — keep camera elevated so roof/glass/wheels read clearly
+    const camDist = 6.0;
+    const camZ = 1.85;
+    const ang = this.garageTurntableAngle * 0.55 + 0.55; // bias toward 3/4 front
+    const camX = Math.sin(ang) * camDist;
+    const camY = -Math.cos(ang) * camDist;
     this.camera.position.set(camX, camY, camZ);
-    this.camera.lookAt(0, 0, 0.45);
+    this.camera.lookAt(0, 0, 0.55);
   }
 
   updateTitle(dt, elapsedTime = 0) {
@@ -1070,25 +1217,14 @@ export class TougeEngine {
     let rivalProgress = null;
     if (isBattle) {
       const isUphill = this.currentEvent.direction === "uphill";
-      const targetDist = this.trackCollision.targetDist;
+      const playerDist = this.trackCollision.distanceAlongTrack;
+      const distDelta = isUphill ?
+        (this.rivalDistance - playerDist) :
+        (playerDist - this.rivalDistance);
 
-      // Projected rival arrival time at finish
-      let rivalArrival = this.rivalFinishTime;
-      if (rivalArrival === null) {
-        const rivalDistRemaining = isUphill ?
-          Math.max(0, this.rivalDistance - targetDist) :
-          Math.max(0, targetDist - this.rivalDistance);
-        rivalArrival = this.raceTimer + (rivalDistRemaining / Math.max(8.0, this.rivalSpeed));
-      }
-
-      // Projected player arrival time at finish (using player's actual speed)
-      const playerDistRemaining = isUphill ?
-        Math.max(0, this.trackCollision.distanceAlongTrack - targetDist) :
-        Math.max(0, targetDist - this.trackCollision.distanceAlongTrack);
-      const playerArrival = this.raceTimer + (playerDistRemaining / Math.max(8.0, p.speed));
-
-      // Arrival gap in seconds (positive when player leads, matching finishRace & targetGap)
-      const gapSeconds = rivalArrival - playerArrival;
+      // Clean Initial D battle gap in seconds based on relative track distance
+      const avgSpeed = Math.max(20.0, (Math.max(p.speed, 0) + this.rivalSpeed) * 0.5);
+      const gapSeconds = distDelta / avgSpeed;
 
       rivalProgress = {
         distance: this.rivalDistance,

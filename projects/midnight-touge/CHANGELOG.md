@@ -249,3 +249,33 @@ All notable changes and milestones for the development of **《夜峠》Midnight
 - **Test Suite & Headless Playthrough Verification**:
   - Expanded test suite to 31/31 unit tests passing under `node --test tests/*.test.mjs` (`npm test`).
   - Executed headless Playwright playthrough at 390×844 with 0 console errors, refreshing all review screenshots in `screenshots/review-1/`.
+
+## Round 6 fixes
+
+### Critical Fixes
+- **Headless WebGL & iPhone Safari 3D Rendering (Retina DPR Fix)**:
+  - Identified root cause of blank/black 3D scene: Three.js `WebGLRenderer.setViewport(x, y, w, h)` expects coordinates in logical units and internally multiplies them by `_pixelRatio`. Calling `setViewport(0, 0, this.canvas.width, this.canvas.height)` with physical buffer dimensions multiplied by DPR twice, blowing up the viewport to 4x screen size on Retina displays (`devicePixelRatio = 2`) and casting the 3D scene off-screen.
+  - Removed erroneous manual `setViewport` overrides in `src/core/engine.js` `animate()`, letting Three.js correctly and automatically manage drawing buffer viewports for both offscreen `WebGLRenderTarget` and screen canvas.
+  - Set `side: THREE.DoubleSide` across all track meshes (Road, CliffWalls, Guardrails) and vehicle bodies to eliminate backface culling.
+  - Converted `mainRenderTarget` to `THREE.UnsignedByteType` and added a graceful `try/catch` fallback rendering directly to canvas if post-processing fails.
+  - Added automated pixel luminance and variance check in `tests/render_luminance.test.mjs` asserting bare 3D canvas is not near-black (`stats.mean > 15`, `stats.variance > 10`) under SwiftShader in both garage and race scenes.
+
+### Major Enhancements
+- **Arcade Race Flow & Countdown Gantry**:
+  - Fixed countdown cadence strictly to 3-2-1-GO! (`countdownTimer = 3.0s`, never 4).
+  - Designed Initial D arcade starting lights gantry (`hud-countdown-gantry`) with 3 red pods turning green on GO! and kinetic animated numerals.
+  - Positioned rival car stationary on starting grid during countdown (`setRivalPoseAtDistance`) so rival does not move before the green light.
+  - Fixed battle mode live gap calculation to use distance along track divided by nominal touge speed, displaying clean `±0.00s ADV / CHASE` (eliminating negative `-240s` overflow).
+  - Added unit test in `tests/physics.test.mjs` asserting hairpin drift maintains non-zero slip angle and exits faster than pure braking.
+  - Added audio ducking on pause and results screens (`duckBGM(true)`).
+
+### Complete UI Overhaul (Eliminated Cheap Boxed Cards Everywhere)
+- **Title Screen (01)**: Full-bleed touge key art backdrop with arcade typographic menu selections (`// 出走山道 · START //`, `// 車庫整備 · GARAGE //`, `// 賽事地圖 · STAGES //`), angled slashes and laser streaks, and balanced subtitle wrapping.
+- **Garage Showroom (02–04)**: Eliminated white card stat sheets. Added slim angled HUD strip over the 3D car on lit showroom turntable, slanted floor rail paint chips, and angled slash launcher `// 選用此車 · 前往山道 DRIVE //`.
+- **Event Select (05)**: Elevation route map is the hero. Eliminated boxed stage cards and practice card; replaced with slim in-world stage briefing banner with stage name, weather, gold time target, and prominent angled `// 出擊 STAGE 01 START //` slash launcher.
+- **Results Ceremony (10)**: Full-bleed finish ceremony directly over the 3D scene (car under finish line, rival car ahead, gold medal hit, big kinetic time digits `01:44.81`, and angled arcade action buttons).
+- **HUD Mobile Controls**: Translucent ergonomic arcade thumb pads with crisp vector SVG icons (arrow navigation, drift handbrake, brake pedal).
+
+### Verification
+- **Test Suite**: 34/34 tests passing across 6 suites in `npm test` (`events_battle`, `headless_load`, `physics`, `render_luminance`, `storage`, `track`).
+- **Playthrough Verification**: Complete 10-step Playwright playthrough verified at 390×844 with 0 console errors, refreshing all review screenshots in `screenshots/review-1/`.

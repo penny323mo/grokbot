@@ -72,6 +72,13 @@ export class AudioEngine {
     }
   }
 
+  duckBGM(ducked = true) {
+    if (this.bgmAudio) {
+      const normalVol = storage.data.settings.musicVolume ?? 0.8;
+      this.bgmAudio.volume = this.isMuted ? 0 : (ducked ? normalVol * 0.22 : normalVol);
+    }
+  }
+
   updateVolumes() {
     const settings = storage.data.settings;
     if (this.bgmAudio) {

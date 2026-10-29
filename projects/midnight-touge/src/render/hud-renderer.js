@@ -28,18 +28,28 @@ export class HudRenderer {
           <!-- Quick Action Buttons (Cam & Pause) -->
           <div class="hud-top-actions">
             <button class="hud-icon-btn" id="btn-cam-switch" type="button" aria-label="切換視角">
-              <span class="cam-icon">CAM</span>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                <path d="M4 6h3.5L9 4h6l1.5 2H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2zm8 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0-2a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
+              </svg>
             </button>
             <button class="hud-icon-btn" id="btn-pause" type="button" aria-label="暫停">
-              <span class="pause-bars">
-                <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor">
-                  <rect x="4" y="3" width="4" height="14" rx="1.5" />
-                  <rect x="12" y="3" width="4" height="14" rx="1.5" />
-                </svg>
-              </span>
+              <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor">
+                <rect x="4" y="3" width="4" height="14" rx="1.5" />
+                <rect x="12" y="3" width="4" height="14" rx="1.5" />
+              </svg>
             </button>
           </div>
         </header>
+
+        <!-- Start Lights Gantry & Kinetic Countdown -->
+        <div id="hud-countdown-gantry" class="hud-countdown-gantry is-hidden">
+          <div class="gantry-light-bar">
+            <div class="gantry-pod" id="cd-pod-1"><span class="pod-lamp"></span></div>
+            <div class="gantry-pod" id="cd-pod-2"><span class="pod-lamp"></span></div>
+            <div class="gantry-pod" id="cd-pod-3"><span class="pod-lamp"></span></div>
+          </div>
+          <div class="countdown-kinetic-num" id="hud-countdown-num">3</div>
+        </div>
 
         <!-- Mountain Downhill Descent Progress Bar -->
         <div class="hud-track-progress-wrap">
@@ -109,29 +119,49 @@ export class HudRenderer {
         <div class="hud-touch-controls" id="touch-controls-layer">
           <!-- Left Steering Thumb Pad -->
           <div class="touch-steer-zone">
-            <button class="touch-btn btn-steer-left" id="btn-steer-left" type="button" aria-label="左轉">
-              <span class="arrow-shape left">
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M15.5 5L8.5 12L15.5 19Z"/></svg>
-              </span>
+            <button class="touch-btn touch-thumb-pad btn-steer-left" id="btn-steer-left" type="button" aria-label="左轉">
+              <svg viewBox="0 0 32 32" class="pad-svg-icon" width="28" height="28" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 6L10 16L20 26"/>
+              </svg>
             </button>
-            <button class="touch-btn btn-steer-right" id="btn-steer-right" type="button" aria-label="右轉">
-              <span class="arrow-shape right">
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M8.5 5L15.5 12L8.5 19Z"/></svg>
-              </span>
+            <button class="touch-btn touch-thumb-pad btn-steer-right" id="btn-steer-right" type="button" aria-label="右轉">
+              <svg viewBox="0 0 32 32" class="pad-svg-icon" width="28" height="28" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 6L22 16L12 26"/>
+              </svg>
             </button>
           </div>
 
           <!-- Right Pedals: Brake & Handbrake / Drift & Optional Manual Throttle -->
           <div class="touch-pedals-zone">
-            <button class="touch-btn btn-drift-trigger" id="btn-drift" type="button" aria-label="甩尾手煞">
+            <button class="touch-btn touch-thumb-pad btn-drift-trigger" id="btn-drift" type="button" aria-label="甩尾手煞">
+              <span class="pad-icon-wrap">
+                <svg viewBox="0 0 24 24" class="pad-svg-icon" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 18c3-4 6-6 10-6h6"/>
+                  <path d="M17 9l4 3-4 3"/>
+                  <circle cx="6" cy="18" r="3"/>
+                </svg>
+              </span>
               <span class="drift-icon-text">DRIFT</span>
               <span class="drift-sub">手煞</span>
             </button>
-            <button class="touch-btn btn-brake-pedal" id="btn-brake" type="button" aria-label="腳煞減速">
+            <button class="touch-btn touch-thumb-pad btn-brake-pedal" id="btn-brake" type="button" aria-label="腳煞減速">
+              <span class="pad-icon-wrap">
+                <svg viewBox="0 0 24 24" class="pad-svg-icon" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                  <rect x="5" y="4" width="14" height="16" rx="3"/>
+                  <line x1="8" y1="8" x2="16" y2="8"/>
+                  <line x1="8" y1="12" x2="16" y2="12"/>
+                  <line x1="8" y1="16" x2="16" y2="16"/>
+                </svg>
+              </span>
               <span class="brake-icon-text">BRAKE</span>
-              <span class="brake-sub">腳煞 · 減速</span>
+              <span class="brake-sub">腳煞</span>
             </button>
-            <button class="touch-btn btn-throttle-pedal is-hidden" id="btn-throttle" type="button" aria-label="油門加速">
+            <button class="touch-btn touch-thumb-pad btn-throttle-pedal is-hidden" id="btn-throttle" type="button" aria-label="油門加速">
+              <span class="pad-icon-wrap">
+                <svg viewBox="0 0 24 24" class="pad-svg-icon" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="12,4 20,20 4,20"/>
+                </svg>
+              </span>
               <span class="throttle-icon-text">GAS</span>
               <span class="throttle-sub">油門</span>
             </button>
@@ -265,39 +295,65 @@ export class HudRenderer {
     }
   }
 
-  showCountdownNumber(val) {
-    let cdEl = this.container.querySelector("#hud-countdown-banner");
-    if (!cdEl) {
-      cdEl = document.createElement("div");
-      cdEl.id = "hud-countdown-banner";
-      cdEl.style.cssText = `
-        position: absolute;
-        top: 35%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-family: var(--font-race-num);
-        font-size: 88px;
-        font-weight: 900;
-        font-style: italic;
-        color: #FFF;
-        text-shadow: 0 0 25px rgba(242, 180, 81, 0.8), 0 4px 15px rgba(0,0,0,0.9);
-        pointer-events: none;
-        z-index: 100;
-        animation: cd-pop 0.4s ease-out;
-      `;
-      this.container.appendChild(cdEl);
+  showCountdownGantry(stage) {
+    const gantry = this.container.querySelector("#hud-countdown-gantry");
+    if (!gantry) return;
+    gantry.classList.remove("is-hidden");
+    gantry.style.display = "flex";
+
+    const pod1 = gantry.querySelector("#cd-pod-1");
+    const pod2 = gantry.querySelector("#cd-pod-2");
+    const pod3 = gantry.querySelector("#cd-pod-3");
+    const numEl = gantry.querySelector("#hud-countdown-num");
+
+    if (stage === 3) {
+      if (pod1) pod1.className = "gantry-pod lamp-red-on";
+      if (pod2) pod2.className = "gantry-pod lamp-off";
+      if (pod3) pod3.className = "gantry-pod lamp-off";
+      if (numEl) {
+        numEl.textContent = "3";
+        numEl.className = "countdown-kinetic-num num-step-3";
+      }
+    } else if (stage === 2) {
+      if (pod1) pod1.className = "gantry-pod lamp-red-on";
+      if (pod2) pod2.className = "gantry-pod lamp-red-on";
+      if (pod3) pod3.className = "gantry-pod lamp-off";
+      if (numEl) {
+        numEl.textContent = "2";
+        numEl.className = "countdown-kinetic-num num-step-2";
+      }
+    } else if (stage === 1) {
+      if (pod1) pod1.className = "gantry-pod lamp-red-on";
+      if (pod2) pod2.className = "gantry-pod lamp-red-on";
+      if (pod3) pod3.className = "gantry-pod lamp-red-on";
+      if (numEl) {
+        numEl.textContent = "1";
+        numEl.className = "countdown-kinetic-num num-step-1";
+      }
+    } else if (stage === 0 || stage === "GO!") {
+      if (pod1) pod1.className = "gantry-pod lamp-green-on";
+      if (pod2) pod2.className = "gantry-pod lamp-green-on";
+      if (pod3) pod3.className = "gantry-pod lamp-green-on";
+      if (numEl) {
+        numEl.textContent = "GO!";
+        numEl.className = "countdown-kinetic-num num-step-go";
+      }
     }
-    cdEl.textContent = val;
-    cdEl.style.display = "block";
-    if (val === "GO!") {
-      cdEl.style.color = "var(--color-sodium-amber)";
+  }
+
+  showCountdownNumber(val) {
+    if (val === "GO!" || val === 0) {
+      this.showCountdownGantry(0);
+    } else {
+      this.showCountdownGantry(parseInt(val, 10) || 3);
     }
   }
 
   hideCountdown() {
-    const cdEl = this.container.querySelector("#hud-countdown-banner");
-    if (cdEl) {
-      cdEl.style.display = "none";
+    const gantry = this.container.querySelector("#hud-countdown-gantry");
+    if (gantry) {
+      gantry.classList.add("is-hidden");
+      gantry.style.display = "none";
     }
   }
 
