@@ -56,12 +56,7 @@ export class GarageView {
           </div>
         </header>
 
-        <!-- 3D Turntable Stage Container (Transparent overlay for WebGL viewport) -->
-        <div class="garage-turntable-canvas-slot" id="garage-turntable-slot">
-          <div class="turntable-hint">左右滑動旋轉檢閱車體</div>
-        </div>
-
-        <!-- Car Switcher Carousel -->
+        <!-- Car nameplate ABOVE the 3D car (not overlapping body) -->
         <div class="garage-car-switcher">
           <button class="car-nav-btn prev" id="btn-car-prev" type="button" aria-label="上一車輛">◀</button>
           <div class="car-title-box">
@@ -70,6 +65,11 @@ export class GarageView {
             <span class="car-subtitle">${car.subtitle}</span>
           </div>
           <button class="car-nav-btn next" id="btn-car-next" type="button" aria-label="下一車輛">▶</button>
+        </div>
+
+        <!-- 3D Turntable Stage Container (Transparent overlay for WebGL viewport) -->
+        <div class="garage-turntable-canvas-slot" id="garage-turntable-slot">
+          <div class="turntable-hint">左右滑動旋轉檢閱車體</div>
         </div>
 
         <!-- Specs & Customization Panel (Slim Angled HUD Strip Over 3D Scene) -->

@@ -12,6 +12,7 @@ import { ParticleSystem } from '../world/particles.js';
 import { CameraController } from '../render/camera-controller.js';
 import { HudRenderer } from '../render/hud-renderer.js';
 import { GarageView } from '../render/garage-view.js';
+import { SceneryPlacer } from '../world/scenery-placer.js';
 import { UIScreens } from '../render/ui-screens.js';
 import { audio } from './audio.js';
 import { storage } from './storage.js';
@@ -48,6 +49,7 @@ export class TougeEngine {
     // Track & Collision
     this.trackCollision = new TrackCollision(KIRINE_PASS_TRACK);
     this.trackModel = null;
+    this.sceneryPlacer = null;
 
     // Player Car Rig & Dynamics
     this.selectedCarData = CARS_DATA[0];
@@ -501,6 +503,14 @@ export class TougeEngine {
       });
 
       console.log("Track GLTF loaded with PBR textures and sodium hairpin lights");
+
+      // CC0 roadside props (tea house, torii, poles, signs, trees, tunnel mouth…)
+      try {
+        this.sceneryPlacer = new SceneryPlacer(this.scene);
+        await this.sceneryPlacer.populate();
+      } catch (scErr) {
+        console.warn("Scenery populate failed", scErr);
+      }
     } catch (e) {
       console.warn("Failed to load track GLTF, building fallback procedural ribbon:", e);
       this.createFallbackTrack();
@@ -642,6 +652,11 @@ export class TougeEngine {
     this.state = newState;
     const hudContainer = document.getElementById("hud-container");
 
+    // Never leave the arcade gantry stuck after COUNTDOWN (RESULTS/PAUSED/TITLE)
+    if (newState !== "COUNTDOWN" && this.hud && typeof this.hud.hideCountdown === "function") {
+      this.hud.hideCountdown();
+    }
+
     const isGarage = (newState === "GARAGE");
     if (this.garageShowroomLight) this.garageShowroomLight.visible = isGarage;
     if (this.garageKeyLight) this.garageKeyLight.visible = isGarage;
@@ -649,6 +664,7 @@ export class TougeEngine {
     if (this.garageFillLight) this.garageFillLight.intensity = isGarage ? 3.2 : 0.0;
     if (this.garagePedestal) this.garagePedestal.visible = isGarage;
     if (this.trackModel) this.trackModel.visible = !isGarage;
+    if (this.sceneryPlacer) this.sceneryPlacer.setVisible(!isGarage);
     // Kill fog + boost exposure in garage so the Blender car reads clearly
     if (this.scene) {
       if (isGarage) {

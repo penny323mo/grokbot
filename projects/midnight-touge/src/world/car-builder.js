@@ -80,7 +80,7 @@ export class CarBuilder {
             }
             // Boost clearcoat on paint-like mats
             const n = (m.name || '').toLowerCase();
-            if (n.includes('paint') || n.includes('white') || n.includes('teal') || n.includes('red')) {
+            if (n.includes('paint') || n.includes('body') || n.includes('white') || n.includes('teal') || n.includes('red')) {
               if (!m.isMeshPhysicalMaterial) {
                 const phys = new THREE.MeshPhysicalMaterial();
                 phys.color.copy(m.color);
@@ -128,6 +128,7 @@ export class CarBuilder {
     } catch (e) {
       console.warn(`Failed to load ${carData.modelPath}, falling back to procedural model:`, e);
       usedProcedural = true;
+      if (typeof window !== 'undefined') window.__lastCarBuild = { path: carData.modelPath, usedProcedural: true, err: String(e) };
       const proceduralCar = this.createProceduralCar(carId, colorHex || '#F2F4F8');
       modelGroup.add(proceduralCar);
     }
@@ -154,6 +155,8 @@ export class CarBuilder {
       group: modelGroup,
       wheels: wheelEmpties,
       usedProcedural,
+      // diagnostic
+      ...(typeof window !== 'undefined' ? (window.__lastCarBuild = { path: carData.modelPath, usedProcedural, at: Date.now() }, {}) : {}),
       updatePose: (pos, heading, steerAngle, rollRad, pitchRad, speedKmh) => {
         modelGroup.position.set(pos.x, pos.y, pos.z);
         modelGroup.rotation.set(pitchRad, rollRad, -heading, 'ZYX');
@@ -183,7 +186,7 @@ export class CarBuilder {
       const mats = Array.isArray(child.material) ? child.material : [child.material];
       mats.forEach((mat, idx) => {
         const matName = mat.name || '';
-        if (/Paint|WhitePaint|TealPaint|RedPaint/i.test(matName)) {
+        if (/^(Paint|WhitePaint|TealPaint|RedPaint)$/i.test(matName) || /^Paint\./i.test(matName)) {
           let m = mat.clone();
           m.color.copy(col);
           m.needsUpdate = true;

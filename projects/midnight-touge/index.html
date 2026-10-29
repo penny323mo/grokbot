@@ -41,6 +41,7 @@
     window.addEventListener('DOMContentLoaded', async () => {
       try {
         const game = new TougeEngine();
+        window.__engine = game;
         window.__TOUGE_GAME__ = game;
         await game.init();
       } catch (err) {

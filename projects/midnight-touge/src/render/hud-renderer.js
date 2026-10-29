@@ -300,6 +300,8 @@ export class HudRenderer {
     if (!gantry) return;
     gantry.classList.remove("is-hidden");
     gantry.style.display = "flex";
+    gantry.style.visibility = "visible";
+    gantry.style.opacity = "1";
 
     const pod1 = gantry.querySelector("#cd-pod-1");
     const pod2 = gantry.querySelector("#cd-pod-2");
@@ -354,6 +356,11 @@ export class HudRenderer {
     if (gantry) {
       gantry.classList.add("is-hidden");
       gantry.style.display = "none";
+      gantry.style.visibility = "hidden";
+      gantry.style.opacity = "0";
+      gantry.querySelectorAll(".gantry-pod").forEach(p => { p.className = "gantry-pod lamp-off"; });
+      const numEl = gantry.querySelector("#hud-countdown-num");
+      if (numEl) { numEl.textContent = ""; numEl.className = "countdown-kinetic-num"; }
     }
   }
 

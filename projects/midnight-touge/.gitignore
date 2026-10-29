@@ -1,0 +1,6 @@
+
+# Local CC0 source packs (re-downloadable; game uses assets/models + textures)
+assets/source/
+logs/
+.orch/
+*.blend1

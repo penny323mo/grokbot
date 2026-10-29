@@ -112,6 +112,7 @@ export class UIScreens {
         <!-- Title Footer -->
         <footer class="title-footer-sill">
           <span class="footer-credit">霧嶺傳說 · 3D DRIFT ENGINE · STORE READY</span>
+          <button class="btn-credits-link" id="btn-credits" type="button">CREDITS / 素材致謝</button>
         </footer>
       </section>
     `;
@@ -157,6 +158,60 @@ export class UIScreens {
         this.showSettingsModal();
       });
     }
+
+    const btnCredits = this.container.querySelector("#btn-credits");
+    if (btnCredits) {
+      btnCredits.addEventListener("click", () => {
+        audio.playSFX("menu_click");
+        this.showCreditsModal();
+      });
+    }
+  }
+
+  showCreditsModal() {
+    const existing = document.getElementById("credits-modal");
+    if (existing) existing.remove();
+    const modal = document.createElement("div");
+    modal.id = "credits-modal";
+    modal.className = "credits-modal-overlay";
+    modal.innerHTML = `
+      <div class="credits-modal-card" role="dialog" aria-labelledby="credits-title">
+        <header class="credits-modal-head">
+          <h2 id="credits-title">CREDITS · 素材致謝</h2>
+          <button type="button" class="credits-close" id="btn-credits-close" aria-label="關閉">×</button>
+        </header>
+        <div class="credits-scroll">
+          <p class="credits-lead">《夜峠》使用可商用自由授權素材（CC0 / CC-BY）。無品牌徽章。</p>
+          <h3>Cars · 車體 (CC0)</h3>
+          <ul>
+            <li>H-86 — Grab3D <em>1980s sports-car</em> · panda clearcoat</li>
+            <li>GT-20 — Grab3D <em>sports-car</em> · midnight emerald</li>
+            <li>RE-7 — 3DAssets / Grab3D <em>midengine-sports</em> · formula red</li>
+          </ul>
+          <h3>Roadside · 路旁建築 (CC0)</h3>
+          <ul>
+            <li>Tea house / terrace / feudal tea house / covered bridge / stone house / vending — Grab3D</li>
+            <li>Torii shrine gate — Quaternius (Poly Pizza)</li>
+            <li>Tunnel mouth (cliff cave) · mountain houses · rest-stop shops · toll booth · highway signs · power poles — Kenney City / Nature kits</li>
+          </ul>
+          <h3>Kits · 套件 (CC0 · Kenney.nl via OpenGameArt)</h3>
+          <ul>
+            <li>Kenney Car Kit · Racing Kit (gantry, pits, billboards, flags)</li>
+            <li>Kenney Nature Kit (pines, rocks, cave tunnel mouths, stone bridge)</li>
+            <li>Kenney City Kit Roads / Suburban / Commercial</li>
+          </ul>
+          <h3>Environment · 環境 (CC0 · Poly Haven)</h3>
+          <ul>
+            <li>HDRI <em>narrow_moonlit_road</em></li>
+            <li>Textures asphalt_02 · rock_face_03 · street_lamp_01</li>
+          </ul>
+          <p class="credits-foot">完整列表見專案 <code>CREDITS.md</code>。<br/>Game code &amp; Kirine Pass waypoints © Midnight Touge.</p>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    const close = () => modal.remove();
+    modal.querySelector("#btn-credits-close").addEventListener("click", close);
+    modal.addEventListener("click", (e) => { if (e.target === modal) close(); });
   }
 
   showEventSelect() {
