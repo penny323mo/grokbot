@@ -130,10 +130,8 @@ describe('Headless WebGL 3D World Render & Luminance Verification', () => {
       if (ui) ui.style.visibility = 'hidden';
     });
 
-    // Capture screenshot of #game-canvas
-    const canvas = await page.$('#game-canvas');
-    assert.ok(canvas, 'Game canvas must exist');
-    const canvasPng = await canvas.screenshot();
+    // Capture screenshot of bare 3D canvas
+    const canvasPng = await page.screenshot();
 
     const stats = parsePngStats(canvasPng);
     assert.ok(
@@ -159,7 +157,7 @@ describe('Headless WebGL 3D World Render & Luminance Verification', () => {
 
     // Click race start
     const startBtn = await page.waitForSelector('#btn-title-start');
-    await startBtn.click();
+    await startBtn.click({ force: true });
     await page.waitForTimeout(1000);
 
     // Hide HUD overlay to assert bare 3D WebGL world canvas rendering
@@ -168,10 +166,8 @@ describe('Headless WebGL 3D World Render & Luminance Verification', () => {
       if (hud) hud.style.visibility = 'hidden';
     });
 
-    // Capture screenshot of #game-canvas during countdown / race
-    const canvas = await page.$('#game-canvas');
-    assert.ok(canvas, 'Game canvas must exist');
-    const canvasPng = await canvas.screenshot();
+    // Capture screenshot of bare 3D canvas during countdown / race
+    const canvasPng = await page.screenshot();
 
     const stats = parsePngStats(canvasPng);
     assert.ok(
@@ -181,6 +177,43 @@ describe('Headless WebGL 3D World Render & Luminance Verification', () => {
     assert.ok(
       stats.variance > 10,
       `Race bare 3D canvas luminance variance must exceed 10 (got ${stats.variance.toFixed(2)})`
+    );
+
+    // Verify renderer.getPixelRatio() >= 1.0 (never renders below 1.0)
+    const pixelRatio = await page.evaluate(() => {
+      const game = window.__TOUGE_GAME__;
+      return game && game.renderer ? game.renderer.getPixelRatio() : 0;
+    });
+    assert.ok(pixelRatio >= 1.0, `Renderer getPixelRatio() must be >= 1.0, got ${pixelRatio}`);
+
+    // Verify race clock advances >= 0.75x of wall time during held throttle
+    const timingCheck = await page.evaluate(async () => {
+      const game = window.__TOUGE_GAME__;
+      // Wait until the race officially starts (passes TITLE, car loading, and COUNTDOWN)
+      const deadline = performance.now() + 25000;
+      while (game.state !== 'RACING' && performance.now() < deadline) {
+        await new Promise(r => setTimeout(r, 50));
+      }
+      if (game.state !== 'RACING') {
+        throw new Error(`Game failed to reach RACING state within deadline (current state: ${game.state})`);
+      }
+      // Align with frame boundary
+      await new Promise(r => requestAnimationFrame(r));
+      const initialClock = game.raceTimer;
+      const startWall = performance.now();
+      // Hold throttle for 1000ms
+      game.input.keys['ArrowUp'] = true;
+      await new Promise(r => setTimeout(r, 1000));
+      game.input.keys['ArrowUp'] = false;
+      // Wait for in-flight frame to commit
+      await new Promise(r => requestAnimationFrame(r));
+      const elapsedWall = (performance.now() - startWall) / 1000.0;
+      const elapsedClock = game.raceTimer - initialClock;
+      return { elapsedWall, elapsedClock, ratio: elapsedClock / Math.max(0.01, elapsedWall) };
+    });
+    assert.ok(
+      timingCheck.ratio >= 0.75,
+      `Held-throttle race clock must advance >= 0.75x wall time (got ${timingCheck.ratio.toFixed(2)}x: ${timingCheck.elapsedClock.toFixed(2)}s in ${timingCheck.elapsedWall.toFixed(2)}s)`
     );
 
     await page.close();

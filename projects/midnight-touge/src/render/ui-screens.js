@@ -414,7 +414,9 @@ export class UIScreens {
     const timeVal = Math.max(0, resultData.time || resultData.totalTime || 0);
     const driftScore = resultData.driftScore || 0;
     const medal = resultData.medal || null;
-    const coinsEarned = resultData.coinsEarned || 150;
+    const coinsEarned = (resultData.coinsEarned !== undefined && resultData.coinsEarned !== null)
+      ? resultData.coinsEarned
+      : (medal ? 150 : 0);
     const titleText = eventData.title || eventData.name || "STAGE COMPLETED";
 
     const mins = Math.floor(timeVal / 60);

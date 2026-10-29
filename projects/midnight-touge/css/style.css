@@ -1055,63 +1055,51 @@ button {
   transform: translateX(-50%);
 }
 
-/* Battle Gap Bar */
+/* Battle Gap Bar — one compact gap row centered cleanly below the progress bar */
 .hud-battle-gap-container {
+  position: absolute;
+  top: calc(var(--sat) + 78px);
+  left: 50%;
+  transform: translateX(-50%) skewX(-6deg);
   background: transparent;
   border: none;
-  border-radius: 0;
-  padding: 2px 0;
-  margin: 4px auto 0;
+  padding: 0;
+  margin: 0;
   width: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  transform: skewX(-10deg);
+  gap: 2px;
+  z-index: 15;
+  pointer-events: none;
 }
 
 .hud-battle-gap-container.is-hidden {
-  display: none;
+  display: none !important;
 }
 
 .battle-rival-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
-}
-
-.rival-tag {
-  color: var(--color-tail-red);
-  font-weight: 900;
-  letter-spacing: 1px;
-  text-shadow: 0 0 6px rgba(224, 40, 32, 0.6);
-}
-
-.rival-name {
-  color: #FFF;
-  font-weight: 700;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+  display: none;
 }
 
 .battle-gap-text {
   font-family: var(--font-race-num);
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 900;
   font-style: italic;
+  letter-spacing: 1px;
   color: var(--color-sodium-amber);
   text-shadow: 0 0 8px rgba(242, 180, 81, 0.6);
 }
 
 .battle-gap-bar-wrap {
   display: flex;
-  width: 140px;
-  height: 4px;
+  width: 96px;
+  height: 3px;
   background: rgba(255, 255, 255, 0.15);
   position: relative;
   overflow: hidden;
-  border-left: 2px solid var(--color-sodium-amber);
-  border-right: 2px solid var(--color-tail-red);
+  border-radius: 2px;
 }
 
 .gap-bar-lead {
@@ -1135,10 +1123,41 @@ button {
   background: #FFF;
 }
 
+/* 3D Projected Rival Slash Tag directly above rival car in world (pure slash typography, no red box) */
+.hud-rival-projected-tag {
+  position: absolute;
+  transform: translate(-50%, -100%) skewX(-8deg);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-family: var(--font-chinese);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  color: #FF5A52;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95), 0 0 10px rgba(224, 50, 43, 0.75);
+  box-shadow: none;
+  pointer-events: none;
+  z-index: 12;
+  white-space: nowrap;
+}
+
+.hud-rival-projected-tag.is-hidden {
+  display: none !important;
+}
+
+.rival-tag-slash {
+  color: #FFA59E;
+  font-weight: 700;
+}
+
 /* Dynamic Drift Single Slash Line (No boxed card, pure Initial D arcade typography) */
 .hud-drift-callout {
   position: absolute;
-  top: 24%;
+  top: 23%;
   left: 50%;
   transform: translateX(-50%) skewX(-8deg);
   background: transparent;
@@ -1148,8 +1167,10 @@ button {
   text-align: center;
   white-space: nowrap;
   display: flex;
-  align-items: baseline;
-  gap: 8px;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
   text-shadow: 0 0 12px rgba(242, 180, 81, 0.7);
   transition: opacity 0.15s ease, transform 0.15s ease;
 }
@@ -1162,16 +1183,16 @@ button {
 
 .drift-slash-title {
   font-family: var(--font-race-num);
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 900;
   font-style: italic;
-  letter-spacing: 2px;
+  letter-spacing: 1.5px;
   color: var(--color-sodium-amber);
 }
 
 .drift-combo {
   font-family: var(--font-race-num);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 900;
   font-style: italic;
   color: var(--color-cyan-cold);
@@ -1179,13 +1200,13 @@ button {
 
 .drift-slash-sep {
   color: rgba(242, 180, 81, 0.6);
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 900;
 }
 
 .drift-angle {
   font-family: var(--font-race-num);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 900;
   font-style: italic;
   color: #FFF;
@@ -1193,7 +1214,7 @@ button {
 
 .drift-points {
   font-family: var(--font-race-num);
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 900;
   font-style: italic;
   letter-spacing: 1px;
@@ -1220,19 +1241,20 @@ button {
   to { box-shadow: 0 0 14px var(--color-gutter-blue); }
 }
 
-/* Speedometer & Tachometer Cluster */
+/* Speedometer & Tachometer Cluster — parked below progress bar to clear top telemetry & car bumper */
 .hud-telemetry-cluster {
   position: absolute;
-  bottom: calc(var(--sab) + 175px);
+  top: calc(var(--sat) + 78px);
   right: 14px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
+  z-index: 15;
 }
 
 .hud-tachometer-arc-wrap {
-  width: 90px;
-  height: 90px;
+  width: 64px;
+  height: 64px;
   position: relative;
   display: flex;
   align-items: center;
@@ -1448,10 +1470,11 @@ button {
 .touch-btn {
   width: 76px;
   height: 72px;
-  border-radius: 0;
+  border-radius: 8px;
   transform: skewX(-8deg);
-  background: rgba(12, 22, 28, 0.35);
-  border: none;
+  background: transparent;
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 2.5px solid rgba(242, 180, 81, 0.55);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1459,13 +1482,14 @@ button {
   touch-action: none;
   cursor: pointer;
   box-shadow: none;
-  transition: transform 0.06s ease, background 0.06s ease;
+  transition: transform 0.06s ease, border-color 0.06s ease, background 0.06s ease;
 }
 
 .touch-btn:active {
   transform: skewX(-8deg) scale(0.94);
-  background: rgba(242, 180, 81, 0.40);
-  box-shadow: none;
+  background: rgba(242, 180, 81, 0.15);
+  border-bottom-color: var(--color-sodium-amber);
+  box-shadow: 0 0 16px rgba(242, 180, 81, 0.4);
 }
 
 .pad-svg-icon {
@@ -1490,12 +1514,15 @@ button {
 }
 
 .btn-brake-pedal {
-  background: rgba(38, 14, 16, 0.45);
-  border: none;
+  background: transparent;
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 2.5px solid rgba(224, 40, 32, 0.65);
 }
 
 .btn-brake-pedal:active {
-  background: rgba(224, 40, 32, 0.4);
+  background: rgba(224, 40, 32, 0.18);
+  border-bottom-color: var(--color-tail-red);
+  box-shadow: 0 0 16px rgba(224, 40, 32, 0.45);
 }
 
 .brake-icon-text {
@@ -1512,13 +1539,15 @@ button {
 }
 
 .btn-drift-trigger {
-  background: rgba(36, 28, 16, 0.55);
-  border: none;
+  background: transparent;
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 2.5px solid rgba(242, 180, 81, 0.65);
 }
 
 .btn-drift-trigger:active {
-  background: rgba(242, 180, 81, 0.45);
-  box-shadow: 0 0 18px var(--color-sodium-glow);
+  background: rgba(242, 180, 81, 0.18);
+  border-bottom-color: var(--color-sodium-amber);
+  box-shadow: 0 0 16px rgba(242, 180, 81, 0.5);
 }
 
 .drift-icon-text {
@@ -1535,14 +1564,15 @@ button {
 }
 
 .btn-throttle-pedal {
-  background: rgba(18, 38, 22, 0.45);
-  border: none;
+  background: transparent;
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 2.5px solid rgba(74, 222, 128, 0.65);
 }
 
 .btn-throttle-pedal:active {
-  background: rgba(74, 222, 128, 0.35);
-  box-shadow: none;
-  border: none;
+  background: rgba(74, 222, 128, 0.18);
+  border-bottom-color: #4ADE80;
+  box-shadow: 0 0 16px rgba(74, 222, 128, 0.4);
 }
 
 .throttle-icon-text {
@@ -1969,8 +1999,7 @@ button {
   gap: 16px;
   width: 100%;
   padding: 4px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border: none;
 }
 
 .metric-pill {
@@ -2006,10 +2035,12 @@ button {
 
 .results-arcade-actions {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 16px;
   width: 100%;
-  margin-top: 4px;
+  margin-top: 6px;
   align-items: center;
 }
 
@@ -2018,12 +2049,13 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  max-width: 290px;
-  padding: 6px 12px;
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+  width: auto;
+  min-width: 95px;
+  padding: 4px 8px;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  white-space: nowrap;
   cursor: pointer;
   transform: skewX(-8deg);
   transition: all 0.15s ease;
@@ -2033,17 +2065,18 @@ button {
   font-family: var(--font-chinese);
   font-size: 13px;
   font-weight: 900;
-  letter-spacing: 2px;
-  color: #FFF;
-  text-shadow: 0 0 10px rgba(0, 0, 0, 0.9);
+  letter-spacing: 1.5px;
+  white-space: nowrap;
+  color: var(--color-sodium-amber);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95), 0 0 12px rgba(242, 180, 81, 0.55);
   transform: skewX(8deg);
 }
 
 .btn-arcade-slash.btn-next-stage {
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid var(--color-tail-red);
-  box-shadow: none;
+  flex: 0 0 100%;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .btn-arcade-slash.btn-next-stage .btn-label {

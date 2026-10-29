@@ -1,96 +1,68 @@
 # 夜峠 — orchestrator report
 
-- Generated: 2026-10-29 03:59 (Macau, UTC+8)
+- Generated: 2026-10-29 17:14 (Macau, UTC+8)
 - Live: https://penny323mo.github.io/grokbot/projects/midnight-touge/ (HTTP 200)
-- Rounds: 5  ·  Started: 2026-10-29T01:14:05+08:00
+- Rounds: 3  ·  Started: 2026-10-29T12:10:18+08:00
 
 ## Phases
-- build finished 2026-10-29T02:10:53+08:00
-- review-1 finished 2026-10-29T02:18:14+08:00
-- fix-1 finished 2026-10-29T02:33:30+08:00
-- review-2 finished 2026-10-29T02:37:41+08:00
-- fix-2 finished 2026-10-29T02:51:07+08:00
-- review-3 finished 2026-10-29T02:55:28+08:00
-- fix-3 finished 2026-10-29T03:07:30+08:00
-- review-4 finished 2026-10-29T03:09:52+08:00
-- fix-4 finished 2026-10-29T03:18:18+08:00
-- review-5 finished 2026-10-29T03:26:32+08:00
-- fix-5 finished 2026-10-29T03:58:16+08:00
-- publish finished 2026-10-29T03:59:53+08:00
+- build finished 2026-10-29T13:17:17+08:00
+- review-1 finished 2026-10-29T13:36:31+08:00
+- fix-1 finished 2026-10-29T15:04:52+08:00
+- review-2 finished 2026-10-29T15:19:44+08:00
+- fix-2 finished 2026-10-29T15:45:21+08:00
+- review-3 finished 2026-10-29T15:54:08+08:00
+- fix-3 finished 2026-10-29T17:14:03+08:00
+- publish finished 2026-10-29T17:14:25+08:00
 
 ## Reviews
 - orch-r1-grok.md: VERDICT: NOT READY
 - orch-r2-grok.md: VERDICT: NOT READY
 - orch-r3-grok.md: VERDICT: NOT READY
-- orch-r4-grok.md: VERDICT: NOT READY
-- orch-r5-grok.md: VERDICT: NOT READY
 
 ## Tests
 ### tests-build
 ```
-# tests 15
-# suites 3
-# pass 15
+# tests 35
+# suites 7
+# pass 35
 # fail 0
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 128.291628
+# duration_ms 20284.520617
 ```
 ### tests-fix-1
 ```
-# tests 27
-# suites 5
-# pass 27
+# tests 35
+# suites 7
+# pass 35
 # fail 0
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 167.491401
+# duration_ms 21591.214378
 ```
 ### tests-fix-2
 ```
-# tests 28
-# suites 5
-# pass 28
+# tests 35
+# suites 7
+# pass 35
 # fail 0
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 301.830569
+# duration_ms 22071.679236
 ```
 ### tests-fix-3
 ```
-# tests 30
-# suites 5
-# pass 30
+# tests 35
+# suites 7
+# pass 35
 # fail 0
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 155.244772
-```
-### tests-fix-4
-```
-# tests 30
-# suites 5
-# pass 30
-# fail 0
-# cancelled 0
-# skipped 0
-# todo 0
-# duration_ms 160.242241
-```
-### tests-fix-5
-```
-# tests 31
-# suites 5
-# pass 31
-# fail 0
-# cancelled 0
-# skipped 0
-# todo 0
-# duration_ms 146.420332
+# duration_ms 14876.974576
 ```
 
 ## Screenshots
@@ -98,28 +70,28 @@
 - screenshots/orch/live-390.png
 
 ## Changelog (tail)
-  - Executed the racing update on the zero frame of `updateCountdown(dt)` so the rival does not gain any unfair lead or delay during the GO frame.
-- **Manual Throttle Pedal Support for Mobile (`src/render/hud-renderer.js`, `css/style.css`, `src/render/ui-screens.js`)**:
-  - Added `#btn-throttle` (`GAS / 油門`) inside `.touch-pedals-zone` when `settings.autoThrottle === false`.
-  - Configured adaptive ergonomic layout (`.has-manual-throttle`) adjusting button widths and touch spacing for three pedals on mobile portrait viewports (390×844).
-  - Bound `#btn-throttle` touch events to `touchThrottle` in `InputController`.
-  - Attached `onSettingsChanged` listener from `UIScreens` to dynamically toggle throttle pedal visibility upon settings update.
-- **Countdown Pause & Resume State Preservation (`src/core/engine.js`)**:
-  - Saved `this.pausedFromState = this.state` upon invoking `pauseGame()`.
-  - Restored `this.state = this.pausedFromState || "RACING"` upon `resumeGame()`, preserving remaining `countdownTimer` across pause cycles without skipping starting lights.
-- **Elevation Route Line Stage Selector & Full-Bleed Ceremony (`src/render/ui-screens.js`, `css/style.css`)**:
-  - Replaced the 12-card scrolling list (`.events-scroll-grid`) with an interactive Kirine Pass Mountain Route Elevation Map where each waypoint node along the spline directly launches the selected stage upon touch.
-  - Added an active Touge Stage Briefing bar showing stage conditions, target/best time, and direct launch action.
-  - Restyled the Results screen into a full-bleed finish ceremony on the 3D scene with transparent backdrop, radial vignette, glowing vector medal badges, and translucent glass metrics ribbons.
+  - Repositioned RE-7 wheels symmetrically inside suspension arches (`x = ±0.69m, y = 0.28m`), eliminating detached floating front wheels.
+  - Added authentic 3D alloy rim depth with polished chrome outer rim lip (`metalness: 0.98, roughness: 0.10`) and dark gunmetal titanium spokes (`metalness: 0.88, roughness: 0.24`).
+  - Prioritized rubber tire and trim material detection before rim checks, preventing RE-7 trims from turning chrome.
+- **Elimination of Boxed Controls & Skewed Rectangles (`css/style.css`)**:
+  - Deleted manual-throttle `border-radius: 20px` override and stripped red border and bottom edge from `.btn-brake-pedal`, turning GAS, BRAKE, DRIFT, and steer pads into clean unmarked arcade thumb zones.
+  - Stripped red box border and background from launch control, rendering `// 出擊 START //` as pure borderless slash typography.
+  - Removed stray CSS declarations after `.btn-brake-pedal:active`.
+- **Finish Ceremony Layout & Strict Completion Guarding (`src/core/engine.js`, `css/style.css`)**:
+  - Enforced strict dual-condition completion in `finishRace()` requiring both `trackCollision.completed` AND driven distance matching stage target (`reachedTarget`) with `raceTimer > 3.0s`, completely rejecting premature medals for incomplete runs.
+  - Parked NEXT, RETRY, and GARAGE slash action buttons strictly within the upper 40% dark band (`justify-content: flex-start`, compact padding), leaving the 3D car body in the lower third 100% visible and uncrossed.
+- **Event Select Route Briefing & Slash Medal Tally (`src/render/ui-screens.js`, `css/style.css`)**:
+  - Converted small bordered medal tally discs into borderless slash typography (`金 0 // 銀 0 // 銅 0`).
+  - Removed gold bar and dark card background from `.stage-intel-briefing`.
+  - Added tactical course telemetry grid (`.intel-metrics-grid`: Length 1250m, Surface, Tactic) to utilize the lower half of the 844px screen cleanly without web cards.
 
 ### Minor Polish
-- **Engine Sound Termination & HUD Concealment on Finish (`src/core/engine.js`)**:
-  - Added `audio.stopEngineSound()` and `#hud-container` concealment directly inside `finishRace()`, shutting down synth oscillators under the results screen.
-- **Preserved Livery Selection on Garage Car Flipping (`src/render/garage-view.js`)**:
-  - Preserved `storage.data.selectedColorIdx` when cycling through cars in the garage if the car is already selected, and skipped invoking `selectCar` when previewing locked vehicles.
-- **Vector Glyphs & Clean Shader Aberration (`src/render/hud-renderer.js`, `src/core/engine.js`)**:
-  - Replaced Unicode text glyphs (`⏸`, `🏁`, `◀`, `▶`) with inline crisp SVG icons.
-  - Removed obsolete `fxChromatic.style.textShadow` string write on `#fx-chromatic`.
-- **Test Suite & Headless Playthrough Verification**:
-  - Expanded test suite to 31/31 unit tests passing under `node --test tests/*.test.mjs` (`npm test`).
-  - Executed headless Playwright playthrough at 390×844 with 0 console errors, refreshing all review screenshots in `screenshots/review-1/`.
+- **Telemetry Cluster Vertical Clearance (`css/style.css`)**:
+  - Lifted telemetry cluster (`.hud-telemetry-cluster`) to `bottom: calc(var(--sab) + 175px)`, keeping `GEAR 1` and speed readouts completely clear of the car rear bumper at rest and under acceleration.
+- **Title Screen Chip Typography (`css/style.css`)**:
+  - Converted `KIRINE PASS · 1996` and `grokbot` into borderless slash typography on the title screen, preserving full-bleed cover immersion.
+
+### Verification
+- **Test Suite**: 35/35 tests passing across 7 suites in `npm test` (`elementFromPoint`, `events_battle`, `headless_load`, `physics`, `render_luminance`, `storage`, `track`).
+- **Playthrough Verification**: Complete Playwright playthrough generating 24 high-resolution review screenshots in `screenshots/fix-r6-3/` with 0 console errors.
+- **Visual Inspection**: Verified every screenshot confirming overhead gantry and street lamps in opening 80m, continuous mountain shoulders, voluminous white tyre smoke, enclosed vehicle cabins with clearcoat and 3D alloy rims, unmarked thumb pads, borderless slash typography, and unobstructed 3D finish ceremony.

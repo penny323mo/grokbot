@@ -61,7 +61,8 @@ export class CameraController {
   }
 
   update(dt, carPos, carHeading, speedKmh, slipAngleRad, rollRad = 0, pitchRad = 0) {
-    dt = Math.min(dt, 0.05);
+    const rawDt = Math.max(0.001, Math.min(dt, 1.0));
+    const stepDt = Math.min(dt, 0.05);
 
     // Forward and Right vectors
     const fwX = Math.sin(carHeading);
@@ -72,7 +73,8 @@ export class CameraController {
     // 1. Dynamic FOV based on speed (Tuned for mobile portrait 390×844)
     const speedRatio = Math.min(1.0, speedKmh / 170.0);
     const targetFov = this.baseFov + (this.maxFov - this.baseFov) * speedRatio;
-    this.camera.fov += (targetFov - this.camera.fov) * 5.0 * dt;
+    const fovAlpha = 1.0 - Math.exp(-6.0 * rawDt);
+    this.camera.fov += (targetFov - this.camera.fov) * fovAlpha;
     this.camera.updateProjectionMatrix();
 
     // 2. Camera View Calculations
@@ -122,28 +124,40 @@ export class CameraController {
       const targetCamY = carPos.y - fwY * distBehind + rtY * driftOffset;
       const targetCamZ = carPos.z + heightAbove;
 
-      // Smooth lag / damping (simulates camera mount inertia)
-      const posDamp = 10.0;
-      this.smoothPos.x += (targetCamX - this.smoothPos.x) * posDamp * dt;
-      this.smoothPos.y += (targetCamY - this.smoothPos.y) * posDamp * dt;
-      this.smoothPos.z += (targetCamZ - this.smoothPos.z) * posDamp * dt;
+      // Frame-rate-independent exponential smoothing so chase camera never lags behind on slow frames
+      const posAlpha = 1.0 - Math.exp(-16.0 * rawDt);
+      this.smoothPos.x += (targetCamX - this.smoothPos.x) * posAlpha;
+      this.smoothPos.y += (targetCamY - this.smoothPos.y) * posAlpha;
+      this.smoothPos.z += (targetCamZ - this.smoothPos.z) * posAlpha;
+
+      // Hard leash: never allow smoothPos to drift more than 1.2m from targetCam
+      const dx = this.smoothPos.x - targetCamX;
+      const dy = this.smoothPos.y - targetCamY;
+      const dz = this.smoothPos.z - targetCamZ;
+      const lagDist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (lagDist > 1.2) {
+        const scale = 1.2 / lagDist;
+        this.smoothPos.x = targetCamX + dx * scale;
+        this.smoothPos.y = targetCamY + dy * scale;
+        this.smoothPos.z = targetCamZ + dz * scale;
+      }
 
       // Camera Look-At target (points 16m ahead down mountain road)
       const targetLookX = carPos.x + fwX * 16.0 - rtX * (driftOffset * 0.5);
       const targetLookY = carPos.y + fwY * 16.0 - rtY * (driftOffset * 0.5);
       const targetLookZ = carPos.z + 0.95;
 
-      const lookDamp = 14.0;
-      this.smoothLook.x += (targetLookX - this.smoothLook.x) * lookDamp * dt;
-      this.smoothLook.y += (targetLookY - this.smoothLook.y) * lookDamp * dt;
-      this.smoothLook.z += (targetLookZ - this.smoothLook.z) * lookDamp * dt;
+      const lookAlpha = 1.0 - Math.exp(-20.0 * rawDt);
+      this.smoothLook.x += (targetLookX - this.smoothLook.x) * lookAlpha;
+      this.smoothLook.y += (targetLookY - this.smoothLook.y) * lookAlpha;
+      this.smoothLook.z += (targetLookZ - this.smoothLook.z) * lookAlpha;
 
       // Apply subtle camera shake at high speeds or wall taps
       let shakeX = 0, shakeY = 0;
       if (this.shakeAmount > 0.01) {
         shakeX = (Math.random() - 0.5) * this.shakeAmount * 0.35;
         shakeY = (Math.random() - 0.5) * this.shakeAmount * 0.35;
-        this.shakeAmount *= Math.pow(0.1, dt);
+        this.shakeAmount *= Math.pow(0.1, stepDt);
       }
 
       this.camera.position.set(

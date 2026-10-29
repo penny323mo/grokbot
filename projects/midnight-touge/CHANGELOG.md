@@ -409,3 +409,83 @@ All notable changes and milestones for the development of **《夜峠》Midnight
 - **Test Suite**: 35/35 tests passing across 7 suites in `npm test` (`elementFromPoint`, `events_battle`, `headless_load`, `physics`, `render_luminance`, `storage`, `track`).
 - **Playthrough Verification**: Complete Playwright playthrough generating 24 high-resolution review screenshots in `screenshots/fix-r6-3/` with 0 console errors.
 - **Visual Inspection**: Verified every screenshot confirming overhead gantry and street lamps in opening 80m, continuous mountain shoulders, voluminous white tyre smoke, enclosed vehicle cabins with clearcoat and 3D alloy rims, unmarked thumb pads, borderless slash typography, and unobstructed 3D finish ceremony.
+
+
+## Round 8.1 fixes
+
+### Critical Fixes & Visual Realism Overhaul
+- **Night Touge Mountain Environment & Road Atmosphere (`tools/blender/build_pbr_track.py`, `src/world/lighting-weather.js`, `src/world/scenery-placer.js`, `src/core/engine.js`)**:
+  - Replaced flat blockout with continuous cedar pine walls along both inside and outside shoulders every 32m, using deep mountain evergreen material (`0x1B2C1A`) and matte timber trunks (`0x2A1C16`).
+  - Placed warm sodium light pools every 36m grounded directly on road asphalt (`z + 0.035`).
+  - Rebuilt `track_kirine.glb` with joined streetlight poles and lamps into 2 unified draw-call meshes (`Streetlight_Poles`, `Streetlight_Lamps`), reducing draw calls by >90% and eliminating SwiftShader CPU bottleneck.
+  - Added luminous high-mountain moon sprite with atmospheric halo over the ridge and night fog gradient.
+  - Removed 85m culling, keeping distant mountain geometry, cedar trees, and streetlights visible.
+- **Drift Physics Counter-Steer Assist & Exit Speed (`src/physics/vehicle-physics.js`)**:
+  - Fixed counter-steer assist sign bug where `counterCorrection` steered deeper into the turn instead of counter-steering. Corrected to `Math.sign(this.slipAngle)`.
+  - Inverted `oversteerTorque` sign to properly assist slide initiation and capped yaw rate to `3.2 rad/s`.
+  - Added Initial D power-out boost (`driveForce *= 1.45`) and reduced drag in drift, ensuring drift exit speed (26.76 m/s) easily exceeds braking speed (17.07 m/s), passing `tests/physics.test.mjs:237`.
+  - Clamped body roll to `[-0.078, 0.078]` rad (< 4.5°), keeping car planted on road with wheels attached.
+  - Added 4s held drift unit test asserting `roll < 6°`, wheels attached, elevation within 0.2m of road.
+- **Rendering Resolution & Pixel Ratio Guarantee (`src/core/engine.js`, `tests/render_luminance.test.mjs`)**:
+  - Guaranteed `renderer.getPixelRatio() >= 1.0` (aiming 1.5–2.0, clamped `[1.0, 2.0]`), eliminating 8-bit downsampled pixelation.
+  - Relaxed `dt` clamp from 0.25s to 1.0s and substep physics up to 16 iterations, ensuring race clock advances at 1.0x wall time under SwiftShader.
+  - Added automated tests in `tests/render_luminance.test.mjs` verifying DPR >= 1.0 and held-throttle race clock advance >= 0.75x wall time.
+
+### Major Enhancements
+- **Garage Overhaul Matching Reference (`src/core/engine.js`, `assets/target/garage_target.png`)**:
+  - Mounted short fluorescent strip tubes on ceiling at `z = 5.2m` (length 3.6m), completely clear of vehicle cabin.
+  - Pushed roller door back to `y = 6.8m`.
+  - Locked garage camera to hero 3/4 front view at `(4.2, -6.6, 2.1)` looking at `(0, 0, 0.42)`, framing car cleanly on reflective concrete floor with ample margins.
+- **Results Flow & Clean Lower-Half Framing (`src/core/engine.js`, `css/style.css`, `scripts/loop_live_play_r8.mjs`)**:
+  - Updated playthrough script to drive Stage 1 to genuine completion (1250m) before opening results.
+  - Removed horizontal separator lines across car.
+  - Parked action buttons (`NEXT · RETRY · GARAGE`) as a compact horizontal slash row in the upper 34% dark band.
+  - Results camera framed at distance 7.6m, elevation `p.z + 1.85`, looking at `p.z + 0.45` to frame car cleanly in lower half under dark sky.
+- **HUD Repositioning & Arc Controls (`css/style.css`, `src/core/engine.js`)**:
+  - Lifted speed and gear cluster to upper band (`top: calc(var(--sat) + 52px); right: 14px;`), clear of the rear bumper.
+  - Parked rival battle tag in upper band (`top: calc(var(--sat) + 52px); left: 14px;`) as `// RIVAL · 峰 //`.
+  - Converted dark thumb pads into transparent thumb zones with thin glowing neon/amber bottom arcs.
+  - Start gantry hidden immediately on GO.
+
+### Verification & Artifacts
+- **Test Suite**: 36/36 tests passing across 7 test suites in `npm test` (`elementFromPoint`, `events_battle`, `headless_load`, `physics`, `render_luminance`, `storage`, `track`).
+- **Live Playthrough**: Playwright automated playthrough captured 10 screenshots (780×1688 @ 2x DPR) in `screenshots/loop-r8/` with 0 console errors.
+- **Target Comparisons**: Side-by-side comparison images generated in `screenshots/r8-compare/`: `garage_compare.png` and `race_compare.png`.
+
+
+## Round 8.2 fixes
+
+### Critical Fixes & Visual Realism Overhaul
+- **Night Touge Atmosphere, Asphalt Scaling & Road-Aligned Sodium Pools (`src/core/engine.js`, `src/world/scenery-placer.js`)**:
+  - Fixed asphalt texture scale in `src/core/engine.js`: adjusted `aspDiff.repeat.set(1.5, 1.0)` and `aspRough.repeat.set(1.5, 1.0)` (was `repeat.set(2, 90)`, which over-tiled 45,000 times into flat featureless grey). The road now displays authentic asphalt aggregate, tar seams, and wet sheen matching `assets/target/race_target.png`.
+  - Increased streetlight density in filler scenery to every 40m (`every: 40, prop: 'street_light'`) per review feedback.
+  - Replaced flat unaligned `PlaneGeometry` sodium light pools with road-aligned 4-point quad buffers spanning `wpPrev` to `wpNext` at road surface height (`z + 0.025m`). Follows exact road gradient, pitch, and banking with zero clipping or floating.
+  - Sodium light pool texture updated to rich warm amber sodium radial glow (`rgba(255, 185, 45, 0.85)`).
+  - Dropped 85m software scenery culling so distant cedar walls, guardrails, and lamps remain visible down the pass.
+- **Drift Dynamics, Handbrake Latch & Hard Slip Angle Clamping (`src/physics/vehicle-physics.js`)**:
+  - Implemented handbrake drift latch above 30 km/h: initial `rearGripLoss = 0.28` kicks the rear loose only while `driftAngleDeg < 28°`, transitioning to `this.driftFriction` (0.88) once in drift to maintain forward speed.
+  - Oversteer torque smoothly assists initiation up to 25°, then restoring torque applies if > 25° to cap drift angle at ~28° and prevent 180° spinouts.
+  - Clamped maximum slip angle downhill to `<= 32°` (0.56 rad), keeping the nose pointed down the pass.
+  - A 4s held steer+gas+drift maintains 76–86 km/h speed with 15°–21° stable drift angle and reliable rear-tyre smoke clouds without swapping ends.
+- **Frame Rate, Timing & Real-Time Wall Clock Sync (`src/core/engine.js`, `tests/render_luminance.test.mjs`)**:
+  - Synchronized `raceTimer` with `performance.now() - raceStartTime - totalPauseDuration`, guaranteeing exact 1.0x wall-time progression regardless of frame rate under SwiftShader.
+  - Maintained `getPixelRatio() >= 1.0` on 390×844 canvas.
+
+### Major Enhancements
+- **Garage Set & Camera Turntable Overhaul (`src/core/engine.js`, `src/world/car-builder.js`)**:
+  - Removed `garageShowroomLight` (the overhead spotlight cone that burned out panels and created a round white disc on the floor).
+  - Polished studio concrete floor (`0x545D67`, roughness 0.16, metalness 0.32) matching `assets/target/garage_target.png`.
+  - Garage turntable holds hero 3/4 front pose with subtle breathing oscillation (±0.08 rad) instead of continuous 360° spin into side view.
+  - Updated `applyPaintColor` in `src/world/car-builder.js` ensuring all body panels (`paint`, `body`, `bonnet`, `boot`, `door`) receive `MeshPhysicalMaterial` with clearcoat 1.0.
+- **Results Flow & Finish Gate Guarding (`src/core/engine.js`, `css/style.css`)**:
+  - Enforced `reachedTarget` in `finishRace(force)` before writing medals or coins. DNF/uncompleted runs receive null medal, 0 coins.
+  - Results camera framed on asphalt road behind/beside car looking along lane (`p.z + 1.45`, lookAt `p.z + 0.40`). Roadside lamp poles outside line of sight, preventing poles from cutting through cabin.
+  - Results action buttons `.btn-arcade-slash` styled with borderless slash typography (`background: transparent`).
+- **HUD Battle Row & 3D Projected Rival Tag (`css/style.css`, `src/render/hud-renderer.js`, `src/core/engine.js`)**:
+  - Converted `#hud-battle-gap-box` to a compact centered badge directly under timer digits (`top: calc(var(--sat) + 44px); left: 50%; transform: translateX(-50%)`). Eliminates collision with progress bar and tachometer.
+  - Added `#hud-rival-tag`: 3D screen-projected slash badge `// RIVAL · 峰 //` pinned directly above rival car in world space.
+
+### Verification & Artifacts
+- **Test Suite**: 36/36 tests passing across 7 test suites in `npm test` (`elementFromPoint`, `events_battle`, `headless_load`, `physics`, `render_luminance`, `storage`, `track`).
+- **Live Playthrough**: Playwright automated playthrough executed (`scripts/loop_live_play_r8.mjs`), capturing all 10 high-resolution screenshots (780×1688 @ 2x DPR) in `screenshots/loop-r8/` with 0 console errors.
+- **Target Comparisons**: Side-by-side comparison images refreshed in `screenshots/r8-compare/`: `garage_compare.png` and `race_compare.png`.

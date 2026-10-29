@@ -7,22 +7,19 @@ const PROP_ROOT = 'assets/models/props/';
 
 /** Landmark placements keyed by approx distance along centreline (metres). */
 const LANDMARKS = [
-  // Start line dense staging area (0 - 80m) with overhead gantry framed 18m ahead
-  { dist: 4,    prop: 'street_light',     side: 1,   scale: 8.5, yaw: 0,    yOff: 0 },
-  { dist: 8,    prop: 'tree_pine',        side: -1,  scale: 7.5, yaw: 0.4,   yOff: 0 },
-  { dist: 12,   prop: 'cliff_rock',       side: -1,  scale: 2.5, yaw: 0.1,   yOff: 0 },
-  { dist: 16,   prop: 'street_light',     side: 1,   scale: 8.5, yaw: 0,    yOff: 0 },
-  { dist: 18,   prop: 'overhead_gantry',  side: 0,   scale: 7.8, yaw: 0,    yOff: 0 },
-  { dist: 22,   prop: 'tree_large',       side: 1,   scale: 7.5, yaw: -0.3,  yOff: 0 },
-  { dist: 26,   prop: 'tree_pine',        side: -1,  scale: 7.8, yaw: 0.2,   yOff: 0 },
-  { dist: 32,   prop: 'street_light',     side: 1,   scale: 8.5, yaw: 0,    yOff: 0 },
-  { dist: 40,   prop: 'fence_low',        side: 1,   scale: 1.5, yaw: 0,    yOff: 0 },
-  { dist: 48,   prop: 'street_light',     side: 1,   scale: 8.5, yaw: 0,    yOff: 0 },
-  { dist: 54,   prop: 'tree_pine',        side: -1,  scale: 8.0, yaw: 0.3,   yOff: 0 },
-  { dist: 64,   prop: 'street_light',     side: 1,   scale: 8.5, yaw: 0,    yOff: 0 },
-  { dist: 74,   prop: 'tree_pine',        side: -1,  scale: 7.5, yaw: 0.2,   yOff: 0 },
-  { dist: 80,   prop: 'street_light',     side: 1,   scale: 8.5, yaw: 0,    yOff: 0 },
-  { dist: 82,   prop: 'overhead_lights',  side: 0,   scale: 7.5, yaw: 0,    yOff: 0 },
+  // Start line staging area (0 - 85m) with overhead gantry framed 18m ahead & gooseneck sodium lamps
+  { dist: 6,    prop: 'street_light',     side: 1,   scale: 7.2, yaw: 0,    yOff: 0 },
+  { dist: 12,   prop: 'cliff_rock',       side: -1,  scale: 2.2, yaw: 0.1,   yOff: 0 },
+  { dist: 18,   prop: 'overhead_gantry',  side: 0,   scale: 7.5, yaw: 0,    yOff: 0 },
+  { dist: 20,   prop: 'street_light',     side: 1,   scale: 7.2, yaw: 0,    yOff: 0 },
+  { dist: 34,   prop: 'street_light',     side: 1,   scale: 7.2, yaw: 0,    yOff: 0 },
+  { dist: 42,   prop: 'tree_pine',        side: -1,  scale: 3.2, yaw: 0.3,   yOff: 0 },
+  { dist: 48,   prop: 'street_light',     side: 1,   scale: 7.2, yaw: 0,    yOff: 0 },
+  { dist: 56,   prop: 'tree_pine',        side: -1,  scale: 3.4, yaw: 0.2,   yOff: 0 },
+  { dist: 64,   prop: 'street_light',     side: 1,   scale: 7.2, yaw: 0,    yOff: 0 },
+  { dist: 74,   prop: 'tree_pine',        side: -1,  scale: 3.2, yaw: 0.2,   yOff: 0 },
+  { dist: 80,   prop: 'street_light',     side: 1,   scale: 7.2, yaw: 0,    yOff: 0 },
+  { dist: 82,   prop: 'overhead_lights',  side: 0,   scale: 7.2, yaw: 0,    yOff: 0 },
   { dist: 120,  prop: 'sign_street',      side: -1,  scale: 1.4, yaw: 0,    yOff: 0 },
   { dist: 160,  prop: 'sign_highway',     side: 1,   scale: 1.3, yaw: 0,    yOff: 0 },
   { dist: 180,  prop: 'power_pole',       side: 1,   scale: 1.6, yaw: 0,    yOff: 0 },
@@ -56,7 +53,7 @@ const LANDMARKS = [
   { dist: 2100, prop: 'barrier_wall',     side: 0,   scale: 1.4, yaw: 0,    yOff: 0 },
   { dist: 2150, prop: 'barrier_red',      side: -1,  scale: 1.2, yaw: 0,    yOff: 0 },
   { dist: 2200, prop: 'barrier_red',      side: 1,   scale: 1.2, yaw: 0,    yOff: 0 },
-  { dist: 2250, prop: 'overhead_gantry',  side: 0,   scale: 7.8, yaw: 0,    yOff: 0 },
+  { dist: 2250, prop: 'overhead_gantry',  side: 0,   scale: 7.5, yaw: 0,    yOff: 0 },
   { dist: 2300, prop: 'light_red_double', side: 0,   scale: 1.3, yaw: 0,    yOff: 0 },
   { dist: 2400, prop: 'flag_checkers',    side: 1,   scale: 1.5, yaw: 0,    yOff: 0 },
   { dist: 2500, prop: 'house_c',          side: -1,  scale: 0.9, yaw: 0.4,  yOff: 0 },
@@ -65,27 +62,19 @@ const LANDMARKS = [
   { dist: 2750, prop: 'shop_b',           side: -1,  scale: 0.7, yaw: 0.5,  yOff: 0 },
   { dist: 2850, prop: 'sign_highway_wide',side: -1,  scale: 1.2, yaw: 0,    yOff: 0 },
   { dist: 2900, prop: 'sign_street',      side: 1,   scale: 1.3, yaw: 0,    yOff: 0 },
-  { dist: 2950, prop: 'overhead_lights',  side: 0,   scale: 7.5, yaw: 0,    yOff: 0 },
+  { dist: 2950, prop: 'overhead_lights',  side: 0,   scale: 7.2, yaw: 0,    yOff: 0 },
 ];
 
 /** Repeating filler props every N metres. */
 const FILLERS = [
-  { every: 55,  prop: 'tree_large',      side: 1,  scale: [6.5, 9.0], lat: [9, 16] },
-  { every: 60,  prop: 'tree_small',      side: -1, scale: [4.5, 7.0], lat: [8, 14] },
-  { every: 65,  prop: 'tree_pine',       side: 1,  scale: [6.5, 9.5], lat: [11, 18] },
-  { every: 70,  prop: 'tree_large',      side: -1, scale: [6.5, 9.0], lat: [12, 20] },
-  { every: 85,  prop: 'tree_pine',       side: -1, scale: [6.0, 9.0], lat: [10, 17] },
-  { every: 90,  prop: 'rock_large_a',    side: 1,  scale: [1.5, 2.5], lat: [10, 18] },
-  { every: 95,  prop: 'rock_tall_a',     side: -1, scale: [1.5, 2.5], lat: [11, 19] },
-  { every: 110, prop: 'cliff_rock',      side: 1,  scale: [2.0, 3.0], lat: [14, 22] },
-  { every: 125, prop: 'cliff_block',     side: -1, scale: [1.8, 2.8], lat: [15, 24] },
-  { every: 120, prop: 'power_pole',      side: -1, scale: [1.5, 2.0], lat: [6, 8] },
-  { every: 140, prop: 'street_light',    side: 1,  scale: [7.5, 9.5], lat: [5.5, 7] },
-  { every: 160, prop: 'plant_bush_large',side: -1, scale: [1.5, 2.2], lat: [7, 11] },
-  { every: 180, prop: 'rock_large_b',    side: 1,  scale: [1.5, 2.5], lat: [9, 15] },
-  { every: 200, prop: 'sign_warning',    side: -1, scale: [1.2, 1.5], lat: [5, 6.5] },
-  { every: 240, prop: 'fence_low',       side: 1,  scale: [1.2, 1.6], lat: [6, 8] },
-  { every: 320, prop: 'stone_large',     side: -1, scale: [1.5, 2.2], lat: [12, 18] },
+  { every: 65,  prop: 'tree_pine',       side: 1,  scale: [2.8, 3.6], lat: [8.5, 13.0] },
+  { every: 70,  prop: 'tree_pine',       side: -1, scale: [2.8, 3.6], lat: [8.0, 12.5] },
+  { every: 110, prop: 'rock_large_a',    side: 1,  scale: [1.4, 2.2], lat: [10, 16] },
+  { every: 120, prop: 'rock_tall_a',     side: -1, scale: [1.4, 2.2], lat: [10, 16] },
+  { every: 140, prop: 'cliff_rock',      side: 1,  scale: [1.8, 2.6], lat: [13, 20] },
+  { every: 150, prop: 'power_pole',      side: -1, scale: [1.5, 1.9], lat: [6.2, 7.5] },
+  { every: 48,  prop: 'street_light',    side: 1,  scale: [6.8, 7.4], lat: [5.4, 5.8] },
+  { every: 220, prop: 'sign_warning',    side: -1, scale: [1.2, 1.5], lat: [5.5, 6.5] },
 ];
 
 function lerpWaypoint(dist) {
@@ -134,6 +123,37 @@ export class SceneryPlacer {
       const gltf = await new Promise((resolve, reject) => {
         this.loader.load(path, resolve, undefined, reject);
       });
+      // Convert template materials to fast shared Lambert materials once before caching
+      gltf.scene.traverse(c => {
+        if (c.isMesh) {
+          c.castShadow = false;
+          c.receiveShadow = false;
+          if (c.material) {
+            const mats = Array.isArray(c.material) ? c.material : [c.material];
+            const converted = mats.map(m => {
+              if (!m) return m;
+              if (m.map) m.map.colorSpace = THREE.SRGBColorSpace;
+              const col = m.color ? m.color.clone() : new THREE.Color(0x888888);
+              const mn = (m.name || '').toLowerCase();
+              if (name.includes('tree') || name.includes('pine')) {
+                if (mn.includes('bark') || mn.includes('wood') || mn.includes('trunk')) {
+                  col.setHex(0x362419);
+                } else {
+                  col.setHex(0x1E3822); // Deep mountain cedar evergreen
+                }
+              } else if (name.includes('light') && (mn.includes('light') || mn.includes('lamp') || mn.includes('bulb') || mn.includes('yellow') || mn.includes('white'))) {
+                return new THREE.MeshBasicMaterial({ color: 0xFFB840 });
+              }
+              return new THREE.MeshLambertMaterial({
+                color: col,
+                map: m.map || null,
+                side: THREE.FrontSide
+              });
+            });
+            c.material = Array.isArray(c.material) ? converted : converted[0];
+          }
+        }
+      });
       this.cache[name] = gltf.scene;
       return gltf.scene.clone(true);
     } catch (e) {
@@ -145,11 +165,13 @@ export class SceneryPlacer {
   placeAt(wp, side, lat, scale, yawExtra, yOff) {
     // Game is Z-up; track waypoints use x/y horizontal, z elevation
     const rx = wp.rx || 1, ry = wp.ry || 0;
-    const fx = wp.fx || 0, fy = wp.fy || 1;
     const ox = wp.x + rx * side * lat;
     const oy = wp.y + ry * side * lat;
     const oz = wp.z + (yOff || 0);
-    return { ox, oy, oz, heading: wp.heading || 0, yawExtra: yawExtra || 0, scale };
+    // Project pool position right onto the asphalt road lane (1.5m offset from centerline)
+    const roadX = wp.x + rx * side * 1.5;
+    const roadY = wp.y + ry * side * 1.5;
+    return { ox, oy, oz, roadX, roadY, heading: wp.heading || 0, yawExtra: yawExtra || 0, scale };
   }
 
   async _addInstance(name, pose) {
@@ -161,48 +183,10 @@ export class SceneryPlacer {
     obj.position.set(pose.ox, pose.oy, pose.oz);
     const s = pose.scale || 1;
     obj.scale.setScalar(s);
-    obj.traverse(c => {
-      if (c.isMesh) {
-        c.castShadow = true;
-        c.receiveShadow = true;
-        if (c.material) {
-          const mats = Array.isArray(c.material) ? c.material : [c.material];
-          mats.forEach(m => {
-            if (m && m.map) m.map.colorSpace = THREE.SRGBColorSpace;
-          });
-        }
-      }
-    });
     this.group.add(obj);
-
-    // Add glowing amber sodium ground light pool under street lamps & gantries
-    if (name.includes('light') || name.includes('gantry')) {
-      if (!this.poolMat) {
-        const c = document.createElement('canvas');
-        c.width = 64; c.height = 64;
-        const ctx = c.getContext('2d');
-        const g = ctx.createRadialGradient(32, 32, 4, 32, 32, 32);
-        g.addColorStop(0, 'rgba(242, 175, 65, 0.45)');
-        g.addColorStop(0.5, 'rgba(242, 175, 65, 0.16)');
-        g.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, 64, 64);
-        const tex = new THREE.CanvasTexture(c);
-        this.poolMat = new THREE.MeshBasicMaterial({
-          map: tex,
-          transparent: true,
-          depthWrite: false,
-          blending: THREE.AdditiveBlending
-        });
-      }
-      const pool = new THREE.Mesh(new THREE.PlaneGeometry(8.5, 8.5), this.poolMat);
-      pool.position.set(pose.ox, pose.oy, pose.oz + 0.04);
-      pool.rotation.z = pose.yawExtra || 0;
-      this.group.add(pool);
-    }
   }
 
-  updateCulling(playerPos, maxDist = 85) {
+  updateCulling(playerPos, maxDist = 140) {
     if (!playerPos || !this.group.visible) return;
     const maxSq = maxDist * maxDist;
     const px = playerPos.x;
@@ -210,6 +194,9 @@ export class SceneryPlacer {
     const children = this.group.children;
     for (let i = 0; i < children.length; i++) {
       const child = children[i];
+      if (child.name === 'MergedSodiumPools') {
+        continue;
+      }
       const dx = child.position.x - px;
       const dy = child.position.y - py;
       child.visible = (dx * dx + dy * dy) < maxSq;
@@ -222,10 +209,9 @@ export class SceneryPlacer {
     for (const lm of LANDMARKS) {
       const wp = lerpWaypoint(lm.dist);
       if (!wp) continue;
-      const lat = lm.side === 0 ? 0 : 7.5;
+      const lat = lm.side === 0 ? 0 : (lm.prop === 'street_light' ? 5.4 : 7.5);
       const pose = this.placeAt(wp, lm.side === 0 ? 1 : lm.side, lat, lm.scale, lm.yaw, lm.yOff);
       if (lm.side === 0) {
-        // centreline — sit slightly off road edge if scale large
         pose.ox = wp.x;
         pose.oy = wp.y;
       }
@@ -233,6 +219,77 @@ export class SceneryPlacer {
     }
 
     const total = KIRINE_PASS_TRACK.totalLength;
+
+    // Ground mountain cedar pine walls along both shoulders starting at d=44m (clear of start camera)
+    for (let d = 44; d < total; d += 48) {
+      const wp = lerpWaypoint(d);
+      if (!wp) continue;
+      const poseL = this.placeAt(wp, -1, 7.6, 3.2, 0.2, -0.15);
+      jobs.push(this._addInstance('tree_pine', poseL));
+      const poseR = this.placeAt(wp, 1, 7.8, 3.1, -0.2, -0.25);
+      jobs.push(this._addInstance('tree_pine', poseR));
+    }
+
+    // Single merged BufferGeometry for all road-aligned warm amber sodium light pools (1 draw call!)
+    if (!this.poolMat) {
+      const c = document.createElement('canvas');
+      c.width = 128; c.height = 128;
+      const ctx = c.getContext('2d');
+      const g = ctx.createRadialGradient(64, 64, 4, 64, 64, 62);
+      g.addColorStop(0, 'rgba(255, 162, 24, 0.96)');
+      g.addColorStop(0.38, 'rgba(245, 130, 14, 0.68)');
+      g.addColorStop(0.72, 'rgba(210, 92, 8, 0.26)');
+      g.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 128, 128);
+      const tex = new THREE.CanvasTexture(c);
+      this.poolMat = new THREE.MeshBasicMaterial({
+        map: tex,
+        transparent: true,
+        depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -2,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending
+      });
+    }
+
+    const poolPositions = [];
+    const poolUvs = [];
+    for (let d = 12; d < total; d += 28) {
+      const wpPrev = lerpWaypoint(Math.max(0, d - 5.0));
+      const wpNext = lerpWaypoint(Math.min(total, d + 5.0));
+      if (!wpPrev || !wpNext) continue;
+
+      const halfW = 4.1;
+      const rxP = wpPrev.rx || 1, ryP = wpPrev.ry || 0;
+      const rxN = wpNext.rx || 1, ryN = wpNext.ry || 0;
+
+      const p1x = wpPrev.x - rxP * halfW, p1y = wpPrev.y - ryP * halfW, p1z = wpPrev.z + 0.04;
+      const p2x = wpPrev.x + rxP * halfW, p2y = wpPrev.y + ryP * halfW, p2z = wpPrev.z + 0.04;
+      const p3x = wpNext.x + rxN * halfW, p3y = wpNext.y + ryN * halfW, p3z = wpNext.z + 0.04;
+      const p4x = wpNext.x - rxN * halfW, p4y = wpNext.y - ryN * halfW, p4z = wpNext.z + 0.04;
+
+      poolPositions.push(
+        p1x, p1y, p1z,  p2x, p2y, p2z,  p3x, p3y, p3z,
+        p1x, p1y, p1z,  p3x, p3y, p3z,  p4x, p4y, p4z
+      );
+      poolUvs.push(
+        0, 0,  1, 0,  1, 1,
+        0, 0,  1, 1,  0, 1
+      );
+    }
+
+    if (poolPositions.length > 0) {
+      const mergedPoolGeo = new THREE.BufferGeometry();
+      mergedPoolGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(poolPositions), 3));
+      mergedPoolGeo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(poolUvs), 2));
+      const mergedPoolMesh = new THREE.Mesh(mergedPoolGeo, this.poolMat);
+      mergedPoolMesh.name = 'MergedSodiumPools';
+      mergedPoolMesh.frustumCulled = false;
+      this.group.add(mergedPoolMesh);
+    }
+
     for (const filler of FILLERS) {
       for (let d = filler.every * 0.5; d < total; d += filler.every) {
         // Skip near dense landmarks (±25m)

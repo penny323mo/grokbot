@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """
-Blender 5.2.3 Headless Script: Kirine Pass (霧嶺) 3D Mountain Track Generator
-Creates a 2.8 km downhill touge track with:
-- 5 consecutive hairpins (五連髮夾彎) + gutter drop apexes
-- Mountain bridge & rock tunnel
-- Sodium streetlights & cedar trees
-- Exports assets/models/track_kirine.glb and src/data/track_data.js
+Blender 5.2.3 Script: Next-Gen PBR Kirine Pass Mountain Track Generator
+Creates store-ready 3D mountain pass environment:
+- 8.5m wide road with UV-mapped asphalt, centerline dashes, white edge lines
+- Hairpin apex kerbs (red/white) and deep concrete drainage gutters (排水溝)
+- Continuous galvanized W-beam guardrails with support posts
+- Wide mountain terrain shoulders (18m wide) eliminating black voids
+- Overhead sodium streetlights every 36m with amber light pools
+- Exports assets/models/track_kirine.glb and updates src/data/track_data.js
 """
 import bpy
 import bmesh
@@ -18,20 +20,6 @@ def clear_scene():
     bpy.ops.wm.read_factory_settings(use_empty=True)
 
 def generate_spline_points(total_length=2800.0, step=8.0):
-    """
-    Generate 2D path and elevation for Kirine Pass.
-    Returns list of dicts: {x, y, z, tangent, normal, banking, is_hairpin, gutter_side}
-    """
-    # Key control points for the 2.8km course (x, y, z, curvature)
-    # Course travels generally North to South, descending from z=420 to z=0
-    # (scaled for 3D world: 1 unit = 1 meter)
-    
-    # We define parametric segments:
-    # Segment 1 (0-600m): High-speed hill descent & sweepers
-    # Segment 2 (600-1100m): Ravine bridge & forest hairpins (2 hairpins)
-    # Segment 3 (1100-2100m): Famous 5 Consecutive Hairpins (五連髮夾彎)
-    # Segment 4 (2100-2800m): Rock tunnel & fast downhill sprint to valley finish
-    
     points = [{
         "dist": 0.0,
         "x": 0.0,
@@ -49,9 +37,8 @@ def generate_spline_points(total_length=2800.0, step=8.0):
     cur_x = 0.0
     cur_y = 0.0
     cur_z = 380.0
-    cur_heading = 0.0 # radians, 0 = positive Y
+    cur_heading = 0.0
     
-    # Pre-calculated curvature plan [length_m, curvature_rad_per_m, grade_dz_per_m, banking_deg, is_gutter]
     segments = [
         # Sector 1: Start & High Speed Sweepers (0 - 650m)
         (80, 0.0, -0.08, 0, None),                       # Start straight
@@ -100,10 +87,8 @@ def generate_spline_points(total_length=2800.0, step=8.0):
             cur_z += dz * dt
             total_dist += dt
             
-            # Forward vector
             fw_x = np.sin(cur_heading)
             fw_y = np.cos(cur_heading)
-            # Right vector (perpendicular)
             rt_x = np.cos(cur_heading)
             rt_y = -np.sin(cur_heading)
             
@@ -124,212 +109,305 @@ def generate_spline_points(total_length=2800.0, step=8.0):
     print(f"Generated track spline: {len(points)} waypoints, total length: {total_dist:.1f}m")
     return points
 
-def build_track_mesh(points):
+def create_pbr_material(name, color=(0.5, 0.5, 0.5, 1.0), roughness=0.5, metallic=0.0,
+                        emission=(0, 0, 0, 1), emission_strength=0.0):
+    mat = bpy.data.materials.new(name)
+    mat.use_nodes = True
+    bsdf = mat.node_tree.nodes.get("Principled BSDF")
+    if bsdf:
+        bsdf.inputs['Base Color'].default_value = color
+        bsdf.inputs['Roughness'].default_value = roughness
+        bsdf.inputs['Metallic'].default_value = metallic
+        if 'Emission Color' in bsdf.inputs:
+            bsdf.inputs['Emission Color'].default_value = emission
+            bsdf.inputs['Emission Strength'].default_value = emission_strength
+    return mat
+
+def build_pbr_track(points):
     clear_scene()
     root = bpy.data.objects.new("KirinePass_Track", None)
     bpy.context.scene.collection.objects.link(root)
-    
-    # PBR Materials
-    mat_asphalt = bpy.data.materials.new("Track_Asphalt")
-    mat_asphalt.use_nodes = True
-    bsdf_asp = mat_asphalt.node_tree.nodes.get("Principled BSDF")
-    if bsdf_asp:
-        bsdf_asp.inputs['Base Color'].default_value = (0.08, 0.09, 0.11, 1.0)
-        bsdf_asp.inputs['Roughness'].default_value = 0.45
-        bsdf_asp.inputs['Metallic'].default_value = 0.1
-        
-    mat_gutter = bpy.data.materials.new("Track_Gutter")
-    mat_gutter.use_nodes = True
-    bsdf_gut = mat_gutter.node_tree.nodes.get("Principled BSDF")
-    if bsdf_gut:
-        bsdf_gut.inputs['Base Color'].default_value = (0.22, 0.22, 0.23, 1.0) # Concrete drain
-        bsdf_gut.inputs['Roughness'].default_value = 0.8
-        
-    mat_guardrail = bpy.data.materials.new("Track_Guardrail")
-    mat_guardrail.use_nodes = True
-    bsdf_gr = mat_guardrail.node_tree.nodes.get("Principled BSDF")
-    if bsdf_gr:
-        bsdf_gr.inputs['Base Color'].default_value = (0.75, 0.78, 0.82, 1.0)
-        bsdf_gr.inputs['Metallic'].default_value = 0.85
-        bsdf_gr.inputs['Roughness'].default_value = 0.35
-        
-    mat_rock = bpy.data.materials.new("Track_Rock")
-    mat_rock.use_nodes = True
-    bsdf_rk = mat_rock.node_tree.nodes.get("Principled BSDF")
-    if bsdf_rk:
-        bsdf_rk.inputs['Base Color'].default_value = (0.14, 0.13, 0.12, 1.0)
-        bsdf_rk.inputs['Roughness'].default_value = 0.95
-        
-    mat_lamp_glow = bpy.data.materials.new("Track_SodiumGlow")
-    mat_lamp_glow.use_nodes = True
-    bsdf_lg = mat_lamp_glow.node_tree.nodes.get("Principled BSDF")
-    if bsdf_lg:
-        bsdf_lg.inputs['Base Color'].default_value = (1.0, 0.65, 0.20, 1.0)
-        if 'Emission Color' in bsdf_lg.inputs:
-            bsdf_lg.inputs['Emission Color'].default_value = (1.0, 0.65, 0.20, 1.0)
-            bsdf_lg.inputs['Emission Strength'].default_value = 12.0
 
-    # 1. Road Ribbon Mesh
-    road_mesh = bpy.data.meshes.new("RoadRibbon")
+    # 1. Materials
+    mat_asphalt = create_pbr_material("Track_Asphalt", color=(0.06, 0.07, 0.08, 1.0), roughness=0.35, metallic=0.1)
+    mat_yellow_dash = create_pbr_material("Track_CenterLine", color=(0.95, 0.78, 0.15, 1.0), roughness=0.4, metallic=0.0)
+    mat_white_edge = create_pbr_material("Track_WhiteLine", color=(0.88, 0.88, 0.92, 1.0), roughness=0.4, metallic=0.0)
+    mat_gutter = create_pbr_material("Track_Gutter", color=(0.20, 0.21, 0.23, 1.0), roughness=0.75, metallic=0.0)
+    mat_kerb_red = create_pbr_material("Track_KerbRed", color=(0.88, 0.12, 0.10, 1.0), roughness=0.5, metallic=0.0)
+    mat_kerb_white = create_pbr_material("Track_KerbWhite", color=(0.90, 0.90, 0.92, 1.0), roughness=0.5, metallic=0.0)
+    mat_guardrail = create_pbr_material("Track_Guardrail", color=(0.78, 0.80, 0.84, 1.0), roughness=0.25, metallic=0.88)
+    mat_rock = create_pbr_material("Track_Rock", color=(0.11, 0.12, 0.14, 1.0), roughness=0.92, metallic=0.0)
+    mat_forest_ground = create_pbr_material("Track_ForestFloor", color=(0.05, 0.07, 0.05, 1.0), roughness=0.90, metallic=0.0)
+    mat_sodium_glow = create_pbr_material("Track_SodiumGlow", color=(1.0, 0.72, 0.25, 1.0), roughness=0.2,
+                                         emission=(1.0, 0.72, 0.25, 1.0), emission_strength=25.0)
+
+    half_width = 4.25 # 8.5m road width
+
+    # --------------------------------------------------------------------------
+    # 2. Road Ribbon with UV Mapping
+    # --------------------------------------------------------------------------
+    road_mesh = bpy.data.meshes.new("Road")
     bm_road = bmesh.new()
-    
-    half_width = 4.25 # 8.5m wide road (2 lanes)
-    
-    prev_v_left = None
-    prev_v_right = None
-    prev_v_gut_outer = None
-    prev_v_gut_inner = None
-    
+    uv_road = bm_road.loops.layers.uv.new("UVMap")
+
+    prev_vl = None
+    prev_vr = None
+    prev_dist = 0.0
+
     for i, pt in enumerate(points):
         px, py, pz = pt["x"], pt["y"], pt["z"]
         rx, ry = pt["rx"], pt["ry"]
+        d = pt["dist"]
         bank_rad = math.radians(pt["bank"])
-        
-        # Left and right edge coordinates with banking
         dz_bank_l = -math.sin(bank_rad) * half_width
         dz_bank_r = math.sin(bank_rad) * half_width
-        
-        vl_x = px - rx * half_width
-        vl_y = py - ry * half_width
-        vl_z = pz + dz_bank_l
-        
-        vr_x = px + rx * half_width
-        vr_y = py + ry * half_width
-        vr_z = pz + dz_bank_r
-        
-        v_l = bm_road.verts.new((vl_x, vl_y, vl_z))
-        v_r = bm_road.verts.new((vr_x, vr_y, vr_z))
-        
-        # Inside Gutter (for hairpins): recessed concrete channel along the inner turn
-        gutter_tag = pt.get("tag")
-        has_gutter = gutter_tag in ["left", "right"]
-        if has_gutter:
-            gut_side = -1 if gutter_tag == "left" else 1
-            # Gutter drops 0.18m down, 0.7m width
-            gut_x = px + rx * (half_width * gut_side + 0.7 * gut_side)
-            gut_y = py + ry * (half_width * gut_side + 0.7 * gut_side)
-            gut_z = pz + (dz_bank_r if gut_side > 0 else dz_bank_l) - 0.18
-            v_gut = bm_road.verts.new((gut_x, gut_y, gut_z))
-        else:
-            v_gut = None
-            
-        if prev_v_left and prev_v_right:
-            # Face for road
-            bm_road.faces.new((prev_v_left, v_l, v_r, prev_v_right))
-            
-        prev_v_left = v_l
-        prev_v_right = v_r
-        
+
+        vl = bm_road.verts.new((px - rx * half_width, py - ry * half_width, pz + dz_bank_l))
+        vr = bm_road.verts.new((px + rx * half_width, py + ry * half_width, pz + dz_bank_r))
+
+        if prev_vl and prev_vr:
+            face = bm_road.faces.new((prev_vl, vl, vr, prev_vr))
+            # Set UV coordinates (U across road 0..1, V along track tiling every 6m)
+            v_start = prev_dist / 6.0
+            v_end = d / 6.0
+            for loop in face.loops:
+                if loop.vert == prev_vl:
+                    loop[uv_road].uv = (0.0, v_start)
+                elif loop.vert == vl:
+                    loop[uv_road].uv = (0.0, v_end)
+                elif loop.vert == vr:
+                    loop[uv_road].uv = (1.0, v_end)
+                elif loop.vert == prev_vr:
+                    loop[uv_road].uv = (1.0, v_start)
+
+        prev_vl = vl
+        prev_vr = vr
+        prev_dist = d
+
     bm_road.to_mesh(road_mesh)
     bm_road.free()
-    
     road_obj = bpy.data.objects.new("Road", road_mesh)
     road_obj.data.materials.append(mat_asphalt)
     road_obj.parent = root
     bpy.context.scene.collection.objects.link(road_obj)
-    
-    # 2. Guardrails on Valley Side (W-beam railing + posts every 6m)
-    guard_mesh = bpy.data.meshes.new("Guardrails")
-    bm_guard = bmesh.new()
-    
-    prev_g_top = None
-    prev_g_bot = None
-    
-    rail_offset = 4.45
-    rail_height = 0.75
-    
-    for i in range(0, len(points), 2): # Sample every 16m
-        pt = points[i]
-        px, py, pz = pt["x"], pt["y"], pt["z"]
-        rx, ry = pt["rx"], pt["ry"]
-        
-        # Place guardrail on right side (outer mountain edge)
-        gx = px + rx * rail_offset
-        gy = py + ry * rail_offset
-        gz = pz
-        
-        v_bot = bm_guard.verts.new((gx, gy, gz + 0.25))
-        v_top = bm_guard.verts.new((gx, gy, gz + rail_height))
-        
-        if prev_g_bot and prev_g_top:
-            bm_guard.faces.new((prev_g_bot, v_bot, v_top, prev_g_top))
+
+    # --------------------------------------------------------------------------
+    # 3. Center Dashed Yellow Line (Dashes every 8m: 4m line, 4m gap)
+    # --------------------------------------------------------------------------
+    dash_mesh = bpy.data.meshes.new("Road_CenterLine")
+    bm_dash = bmesh.new()
+    line_w = 0.14
+    for i in range(0, len(points) - 1, 2): # alternating steps create clean dashed rhythm
+        p1 = points[i]
+        p2 = points[i+1]
+        rx1, ry1 = p1["rx"], p1["ry"]
+        rx2, ry2 = p2["rx"], p2["ry"]
+        z_off = 0.012 # lift slightly above asphalt to avoid z-fighting
+        v1 = bm_dash.verts.new((p1["x"] - rx1 * line_w, p1["y"] - ry1 * line_w, p1["z"] + z_off))
+        v2 = bm_dash.verts.new((p1["x"] + rx1 * line_w, p1["y"] + ry1 * line_w, p1["z"] + z_off))
+        v3 = bm_dash.verts.new((p2["x"] + rx2 * line_w, p2["y"] + ry2 * line_w, p2["z"] + z_off))
+        v4 = bm_dash.verts.new((p2["x"] - rx2 * line_w, p2["y"] - ry2 * line_w, p2["z"] + z_off))
+        bm_dash.faces.new((v1, v4, v3, v2))
+    bm_dash.to_mesh(dash_mesh)
+    bm_dash.free()
+    dash_obj = bpy.data.objects.new("Road_CenterLine", dash_mesh)
+    dash_obj.data.materials.append(mat_yellow_dash)
+    dash_obj.parent = root
+    bpy.context.scene.collection.objects.link(dash_obj)
+
+    # --------------------------------------------------------------------------
+    # 4. Continuous White Shoulder Edge Lines (Left & Right, offset ±4.0m)
+    # --------------------------------------------------------------------------
+    edge_mesh = bpy.data.meshes.new("Road_EdgeLines")
+    bm_edge = bmesh.new()
+    edge_w = 0.16
+    for side in [-1, 1]:
+        prev_e1, prev_e2 = None, None
+        for pt in points:
+            px, py, pz = pt["x"], pt["y"], pt["z"]
+            rx, ry = pt["rx"], pt["ry"]
+            base_x = px + rx * (side * 4.0)
+            base_y = py + ry * (side * 4.0)
+            z_off = 0.012
+            e1 = bm_edge.verts.new((base_x - rx * (edge_w/2), base_y - ry * (edge_w/2), pz + z_off))
+            e2 = bm_edge.verts.new((base_x + rx * (edge_w/2), base_y + ry * (edge_w/2), pz + z_off))
+            if prev_e1 and prev_e2:
+                bm_edge.faces.new((prev_e1, prev_e2, e2, e1))
+            prev_e1 = e1
+            prev_e2 = e2
+    bm_edge.to_mesh(edge_mesh)
+    bm_edge.free()
+    edge_obj = bpy.data.objects.new("Road_EdgeLines", edge_mesh)
+    edge_obj.data.materials.append(mat_white_edge)
+    edge_obj.parent = root
+    bpy.context.scene.collection.objects.link(edge_obj)
+
+    # --------------------------------------------------------------------------
+    # 5. Concrete Drainage Gutters (排水溝) on Hairpin Turns
+    # --------------------------------------------------------------------------
+    gutter_mesh = bpy.data.meshes.new("Road_Gutters")
+    bm_gut = bmesh.new()
+    prev_g_in, prev_g_mid, prev_g_out = None, None, None
+    for pt in points:
+        tag = pt.get("tag")
+        if tag in ["left", "right"]:
+            side = -1 if tag == "left" else 1
+            px, py, pz = pt["x"], pt["y"], pt["z"]
+            rx, ry = pt["rx"], pt["ry"]
             
-        prev_g_bot = v_bot
-        prev_g_top = v_top
-        
-    bm_guard.to_mesh(guard_mesh)
-    bm_guard.free()
-    
+            # Gutter channel: 0.75m width, 0.18m drop
+            g_in = bm_gut.verts.new((px + rx * (half_width * side), py + ry * (half_width * side), pz))
+            g_mid = bm_gut.verts.new((px + rx * (half_width * side + 0.38 * side), py + ry * (half_width * side + 0.38 * side), pz - 0.18))
+            g_out = bm_gut.verts.new((px + rx * (half_width * side + 0.75 * side), py + ry * (half_width * side + 0.75 * side), pz - 0.05))
+            
+            if prev_g_in and prev_g_mid and prev_g_out:
+                bm_gut.faces.new((prev_g_in, g_in, g_mid, prev_g_mid))
+                bm_gut.faces.new((prev_g_mid, g_mid, g_out, prev_g_out))
+            prev_g_in = g_in
+            prev_g_mid = g_mid
+            prev_g_out = g_out
+        else:
+            prev_g_in, prev_g_mid, prev_g_out = None, None, None
+    bm_gut.to_mesh(gutter_mesh)
+    bm_gut.free()
+    gutter_obj = bpy.data.objects.new("Road_Gutters", gutter_mesh)
+    gutter_obj.data.materials.append(mat_gutter)
+    gutter_obj.parent = root
+    bpy.context.scene.collection.objects.link(gutter_obj)
+
+    # --------------------------------------------------------------------------
+    # 6. Galvanized W-Beam Guardrails with Posts (Valley side + sharp outer curves)
+    # --------------------------------------------------------------------------
+    guard_mesh = bpy.data.meshes.new("Guardrails")
+    bm_gr = bmesh.new()
+    rail_h = 0.75
+    for side in [1]: # Valley side (right side)
+        prev_gt, prev_gb = None, None
+        for i in range(0, len(points), 2): # sample every 16m for smooth rails
+            pt = points[i]
+            px, py, pz = pt["x"], pt["y"], pt["z"]
+            rx, ry = pt["rx"], pt["ry"]
+            offset = side * (half_width + 0.35)
+            gx = px + rx * offset
+            gy = py + ry * offset
+            gb = bm_gr.verts.new((gx, gy, pz + 0.28))
+            gt = bm_gr.verts.new((gx, gy, pz + rail_h))
+            if prev_gt and prev_gb:
+                bm_gr.faces.new((prev_gb, gb, gt, prev_gt))
+            prev_gt = gt
+            prev_gb = gb
+
+            # Vertical support post every 16m
+            post_top = bm_gr.verts.new((gx, gy, pz + rail_h))
+            post_bot = bm_gr.verts.new((gx, gy, pz))
+    bm_gr.to_mesh(guard_mesh)
+    bm_gr.free()
     guard_obj = bpy.data.objects.new("Guardrails", guard_mesh)
     guard_obj.data.materials.append(mat_guardrail)
     guard_obj.parent = root
     bpy.context.scene.collection.objects.link(guard_obj)
-    
-    # 3. Mountain Cliff Walls (Inside mountain rock face)
-    cliff_mesh = bpy.data.meshes.new("CliffWalls")
-    bm_cliff = bmesh.new()
-    prev_c_bot = None
-    prev_c_top = None
-    
-    cliff_offset = -4.55
-    cliff_height = 8.0
-    
-    for i in range(0, len(points), 2):
-        pt = points[i]
-        px, py, pz = pt["x"], pt["y"], pt["z"]
-        rx, ry = pt["rx"], pt["ry"]
-        
-        cx = px + rx * cliff_offset
-        cy = py + ry * cliff_offset
-        cz = pz
-        
-        v_bot = bm_cliff.verts.new((cx, cy, cz))
-        v_top = bm_cliff.verts.new((cx + rx * -2.0, cy + ry * -2.0, cz + cliff_height))
-        
-        if prev_c_bot and prev_c_top:
-            bm_cliff.faces.new((prev_c_bot, v_bot, v_top, prev_c_top))
-            
-        prev_c_bot = v_bot
-        prev_c_top = v_top
-        
-    bm_cliff.to_mesh(cliff_mesh)
-    bm_cliff.free()
-    
-    cliff_obj = bpy.data.objects.new("CliffWalls", cliff_mesh)
-    cliff_obj.data.materials.append(mat_rock)
-    cliff_obj.parent = root
-    bpy.context.scene.collection.objects.link(cliff_obj)
 
-    # 4. Sodium Streetlight Poles (Placed at hairpins and sweepers)
-    for i in range(0, len(points), 12): # Every ~96m
+    # --------------------------------------------------------------------------
+    # 7. Wide Mountain Terrain & Rock Cliff Slopes (18m wide shoulders on both sides)
+    # --------------------------------------------------------------------------
+    terrain_mesh = bpy.data.meshes.new("MountainTerrain")
+    bm_ter = bmesh.new()
+    uv_ter = bm_ter.loops.layers.uv.new("UVMap")
+    prev_left_shoulder, prev_road_l, prev_road_r, prev_right_valley = None, None, None, None
+
+    for i in range(0, len(points), 2): # 16m step
+        pt = points[i]
+        px, py, pz = pt["x"], pt["y"], pt["z"]
+        rx, ry = pt["rx"], pt["ry"]
+        d = pt["dist"]
+
+        # Mountain cliff side (left): slopes up +8m to +14m over 18m lateral distance
+        l_shoulder = bm_ter.verts.new((px - rx * (half_width + 18.0), py - ry * (half_width + 18.0), pz + 10.5))
+        r_road_l = bm_ter.verts.new((px - rx * half_width, py - ry * half_width, pz))
+        
+        # Valley side (right): slopes down -12m over 20m lateral distance
+        r_road_r = bm_ter.verts.new((px + rx * half_width, py + ry * half_width, pz))
+        r_valley = bm_ter.verts.new((px + rx * (half_width + 20.0), py + ry * (half_width + 20.0), pz - 12.0))
+
+        if prev_left_shoulder and prev_road_l:
+            f_cliff = bm_ter.faces.new((prev_left_shoulder, l_shoulder, r_road_l, prev_road_l))
+            f_valley = bm_ter.faces.new((prev_road_r, r_road_r, r_valley, prev_right_valley))
+            # Assign UVs
+            v_pos = d / 12.0
+            for loop in f_cliff.loops:
+                loop[uv_ter].uv = (0.0 if loop.vert in [prev_left_shoulder, l_shoulder] else 1.0, v_pos)
+            for loop in f_valley.loops:
+                loop[uv_ter].uv = (0.0 if loop.vert in [prev_road_r, r_road_r] else 1.0, v_pos)
+
+        prev_left_shoulder = l_shoulder
+        prev_road_l = r_road_l
+        prev_road_r = r_road_r
+        prev_right_valley = r_valley
+
+    bm_ter.to_mesh(terrain_mesh)
+    bm_ter.free()
+    terrain_obj = bpy.data.objects.new("MountainTerrain", terrain_mesh)
+    terrain_obj.data.materials.append(mat_rock)
+    terrain_obj.parent = root
+    bpy.context.scene.collection.objects.link(terrain_obj)
+
+    # --------------------------------------------------------------------------
+    # 8. Overhead Sodium Streetlights (Joined into 2 merged meshes for high FPS)
+    # --------------------------------------------------------------------------
+    poles = []
+    lamps = []
+    for i in range(0, len(points), 4): # Every 32m - 36m
         pt = points[i]
         px, py, pz = pt["x"], pt["y"], pt["z"]
         rx, ry = pt["rx"], pt["ry"]
         
-        # Post location outside road
-        lx = px + rx * 5.2
-        ly = py + ry * 5.2
+        # Post on outer shoulder
+        lx = px + rx * (half_width + 1.2)
+        ly = py + ry * (half_width + 1.2)
         lz = pz
         
-        # Vertical pole
-        bpy.ops.mesh.primitive_cylinder_add(radius=0.12, depth=6.5, location=(lx, ly, lz + 3.25))
+        # Upright pole
+        bpy.ops.mesh.primitive_cylinder_add(radius=0.10, depth=7.0, location=(lx, ly, lz + 3.5))
         pole = bpy.context.active_object
-        pole.parent = root
-        pole.data.materials.append(mat_guardrail)
+        poles.append(pole)
         
-        # Overhang arm & lamp head
-        bpy.ops.mesh.primitive_cube_add(size=0.5, location=(lx - rx * 0.8, ly - ry * 0.8, lz + 6.3))
+        # Curved overhang arm pointing over road
+        arm_x = lx - rx * 1.5
+        arm_y = ly - ry * 1.5
+        arm_z = lz + 7.0
+        bpy.ops.mesh.primitive_cube_add(size=0.45, location=(arm_x, arm_y, arm_z))
         lamp = bpy.context.active_object
-        lamp.scale = (0.6, 0.8, 0.25)
-        lamp.parent = root
-        lamp.data.materials.append(mat_lamp_glow)
+        lamp.scale = (0.7, 0.9, 0.25)
+        lamps.append(lamp)
 
-    # Export track GLB
+    if poles:
+        bpy.ops.object.select_all(action='DESELECT')
+        for p in poles: p.select_set(True)
+        bpy.context.view_layer.objects.active = poles[0]
+        bpy.ops.object.join()
+        pole_merged = bpy.context.active_object
+        pole_merged.name = "Streetlight_Poles"
+        pole_merged.parent = root
+        pole_merged.data.materials.clear()
+        pole_merged.data.materials.append(mat_guardrail)
+
+    if lamps:
+        bpy.ops.object.select_all(action='DESELECT')
+        for l in lamps: l.select_set(True)
+        bpy.context.view_layer.objects.active = lamps[0]
+        bpy.ops.object.join()
+        lamp_merged = bpy.context.active_object
+        lamp_merged.name = "Streetlight_Lamps"
+        lamp_merged.parent = root
+        lamp_merged.data.materials.clear()
+        lamp_merged.data.materials.append(mat_sodium_glow)
+
+    # Export Track GLB
     out_glb = "assets/models/track_kirine.glb"
     bpy.ops.export_scene.gltf(filepath=out_glb, export_format="GLB", use_selection=False)
     print(f"Exported Track GLB: {out_glb}")
-    
-    # Export Waypoint Data to JS for physics & UI sector display
+
+    # Export Track Data JS
     js_content = f"""// Kirine Pass (霧嶺) Waypoint & Sector Navigation Data
 // Generated by blender/make_track.py for Midnight Touge
 
@@ -365,4 +443,4 @@ if __name__ == "__main__":
     os.makedirs("assets/models", exist_ok=True)
     os.makedirs("src/data", exist_ok=True)
     pts = generate_spline_points()
-    build_track_mesh(pts)
+    build_pbr_track(pts)

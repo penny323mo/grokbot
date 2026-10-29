@@ -69,6 +69,12 @@ export class CarBuilder {
 
       root.traverse(child => {
         if (!child.isMesh) return;
+        const cn = (child.name || '').toLowerCase();
+        const isWheelPart = /wheel/i.test(child.name || '') ||
+          /wheel/i.test((child.parent && child.parent.name) || '') ||
+          /wheel/i.test((child.parent && child.parent.parent && child.parent.parent.name) || '');
+        const isTireMesh = cn.includes('trim') || cn.includes('tire') || cn.includes('tyre');
+        const isAlloyMesh = cn.includes('alloy');
         const mats = Array.isArray(child.material) ? child.material : [child.material];
         mats.forEach((mat, idx) => {
           if (!mat) return;
@@ -101,22 +107,22 @@ export class CarBuilder {
                 if (this.envMap) { m.envMap = this.envMap; m.envMapIntensity = 1.5; }
               }
             }
-            if (n.includes('tire') || n.includes('tyre') || n.includes('rubber') || n.includes('trim')) {
-              m.color.setHex(0x141618);
+            if (isTireMesh || n.includes('tire') || n.includes('tyre') || n.includes('rubber') || n.includes('trim')) {
+              m.color.setHex(0x121417);
               m.metalness = 0.05;
               m.roughness = 0.88;
-            } else if (n.includes('rim') || n.includes('alloy') || n.includes('chrome')) {
-              // Contrasting 3D alloy wheel finish: mirror chrome lip with titanium alloy spokes
-              if (n.includes('alloy') || n.includes('chrome') || n.includes('008') || n.includes('009') || n.includes('010') || n.includes('011')) {
-                m.color.setHex(0xDEE2EA);
-                m.metalness = 0.98;
-                m.roughness = 0.10;
+            } else if (isAlloyMesh || n.includes('rim') || n.includes('alloy') || n.includes('chrome')) {
+              if (isWheelPart || isAlloyMesh) {
+                m.color.setHex(0xCED6E2);
+                m.metalness = 0.90;
+                m.roughness = 0.16;
+                if (this.envMap) { m.envMap = this.envMap; m.envMapIntensity = 1.85; }
               } else {
-                m.color.setHex(0x282C34);
-                m.metalness = 0.88;
-                m.roughness = 0.24;
+                // Non-wheel body submeshes with rim/chrome material names (e.g. RE-7 trim/vents)
+                m.color.setHex(0x181C22);
+                m.metalness = 0.35;
+                m.roughness = 0.45;
               }
-              if (this.envMap) { m.envMap = this.envMap; m.envMapIntensity = 2.2; }
             }
             if (n.includes('glass') || n.includes('window')) {
               m.color.setHex(0x081016);
@@ -137,31 +143,34 @@ export class CarBuilder {
           if (Array.isArray(child.material)) child.material[idx] = m;
           else child.material = m;
         });
-        child.castShadow = true;
-        child.receiveShadow = true;
+        child.castShadow = false;
+        child.receiveShadow = false;
       });
 
-      // Ensure wheels are seated cleanly inside arches without clipping through fenders
+      // Ensure wheels and glass are seated cleanly inside arches without clipping through fenders
       root.traverse(child => {
         if (child.name && WHEEL_EMPTY_RE.test(child.name)) {
           if (carId === 'h86') {
             child.position.y = 0.245; // Seated cleanly with authentic touge stance
+          } else if (carId === 're7') {
+            // Match root Wheel_* empties to the 0.9087-scaled sports-car body so wheels sit flush inside arches
+            child.position.x *= 0.86;
+            child.position.y *= 0.9087;
+            child.position.z *= 0.9087;
           }
         }
+        if (carId === 're7' && child.name === 'sports-car_2') {
+          // Nudge RE-7 cabin glass slightly proud of the outer Paint shell so windshield & side windows render dark tinted glass
+          child.position.y += 0.025;
+          child.position.z += 0.025;
+          child.scale.multiplyScalar(1.035);
+        }
+        if (carId === 're7' && (child.name === 'sports-car_1' || child.name === 'sports-car_6')) {
+          // Seat RE-7 lower wheel-arch trim rings flush inside the front fenders
+          child.scale.y *= 0.68;
+          child.position.y -= 0.08;
+        }
       });
-
-      if (carId === 're7') {
-        // Correct RE-7 asymmetric / detached wheels: tuck all 4 wheels inside arches symmetrically
-        root.traverse(child => {
-          if (child.name === 'wheel-front-right' || child.name === 'Wheel_RR') {
-            child.position.x = 0.69;
-            child.position.y = 0.28;
-          } else if (child.name === 'Wheel_FR' || child.name === 'wheel-front-left' || child.name === 'Wheel_RL' || child.name === 'Wheel_FL') {
-            child.position.x = -0.69;
-            child.position.y = 0.28;
-          }
-        });
-      }
 
       // Grounding contact shadow tucked strictly underneath chassis wheelbase
       const shadowCanvas = document.createElement('canvas');
@@ -187,6 +196,35 @@ export class CarBuilder {
       shadowMesh.name = 'CarContactShadow';
       shadowMesh.position.set(0, -0.05, 0.015);
       modelGroup.add(shadowMesh);
+
+      // Wet asphalt crimson taillight reflection pools behind rear bumper (matching race_target.png)
+      const tlPoolGroup = new THREE.Group();
+      tlPoolGroup.name = 'CarTaillightPools';
+      try {
+        const tlCanvas = document.createElement('canvas');
+        tlCanvas.width = 64; tlCanvas.height = 64;
+        const tlCtx = tlCanvas.getContext('2d');
+        const tlGrad = tlCtx.createRadialGradient(32, 32, 3, 32, 32, 32);
+        tlGrad.addColorStop(0, 'rgba(245, 42, 30, 0.78)');
+        tlGrad.addColorStop(0.42, 'rgba(215, 25, 18, 0.38)');
+        tlGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        tlCtx.fillStyle = tlGrad;
+        tlCtx.fillRect(0, 0, 64, 64);
+        const tlTex = new THREE.CanvasTexture(tlCanvas);
+        const tlPoolMat = new THREE.MeshBasicMaterial({
+          map: tlTex,
+          transparent: true,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending
+        });
+        const tlPoolGeo = new THREE.PlaneGeometry(1.15, 1.65);
+        for (const sideX of [-0.52, 0.52]) {
+          const pMesh = new THREE.Mesh(tlPoolGeo, tlPoolMat);
+          pMesh.position.set(sideX, -2.35, 0.022);
+          tlPoolGroup.add(pMesh);
+        }
+      } catch (_) {}
+      modelGroup.add(tlPoolGroup);
 
       // Chrome dual exhaust tips mounted directly onto the rear valance
       const exhaustGroup = new THREE.Group();
@@ -275,10 +313,18 @@ export class CarBuilder {
       if (!child.isMesh || !child.material) return;
       const mats = Array.isArray(child.material) ? child.material : [child.material];
       mats.forEach((mat, idx) => {
-        const matName = mat.name || '';
-        if (/^(Paint|WhitePaint|TealPaint|RedPaint)$/i.test(matName) || /^Paint\./i.test(matName)) {
-          let m = mat.clone();
+        const matName = (mat.name || '').toLowerCase();
+        if (matName.includes('paint') || matName.includes('body') || matName.includes('bonnet') || matName.includes('boot') || matName.includes('door')) {
+          let m = mat.isMeshPhysicalMaterial ? mat.clone() : new THREE.MeshPhysicalMaterial();
           m.color.copy(col);
+          m.roughness = 0.22;
+          m.metalness = 0.35;
+          m.clearcoat = 1.0;
+          m.clearcoatRoughness = 0.08;
+          if (this.envMap) {
+            m.envMap = this.envMap;
+            m.envMapIntensity = 1.5;
+          }
           m.needsUpdate = true;
           if (Array.isArray(child.material)) child.material[idx] = m;
           else child.material = m;

@@ -31,80 +31,94 @@ export class LightingWeather {
   }
 
   setupSky() {
-    // Night sky gradient dome (Deep midnight blue-black to horizon teal)
-    const skyGeo = new THREE.SphereGeometry(1800, 16, 16);
+    // Night sky gradient dome (Deep midnight blue-black to horizon teal, radius 800m inside far plane)
+    const skyGeo = new THREE.SphereGeometry(800, 16, 16);
     const skyMat = new THREE.ShaderMaterial({
       side: THREE.BackSide,
       depthWrite: false,
       uniforms: {
-        topColor: { value: new THREE.Color(0x060C12) },
-        bottomColor: { value: new THREE.Color(0x162A3C) },
+        topColor: { value: new THREE.Color(0x050A10) },
+        bottomColor: { value: new THREE.Color(0x162C40) },
       },
       vertexShader: `
-        varying vec3 vWorldPosition;
+        varying vec3 vLocalPosition;
         void main() {
-          vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-          vWorldPosition = worldPosition.xyz;
+          vLocalPosition = position;
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
       `,
       fragmentShader: `
         uniform vec3 topColor;
         uniform vec3 bottomColor;
-        varying vec3 vWorldPosition;
+        varying vec3 vLocalPosition;
         void main() {
-          float h = normalize(vWorldPosition).z;
-          gl_FragColor = vec4(mix(bottomColor, topColor, max(h, 0.0)), 1.0);
+          float h = normalize(vLocalPosition).z;
+          gl_FragColor = vec4(mix(bottomColor, topColor, clamp(h * 1.6, 0.0, 1.0)), 1.0);
         }
       `
     });
     this.skyMesh = new THREE.Mesh(skyGeo, skyMat);
     this.scene.add(this.skyMesh);
+
+    // High mountain moon billboard in night sky (visible over mountain ridge)
+    const moonCanvas = document.createElement('canvas');
+    moonCanvas.width = 128;
+    moonCanvas.height = 128;
+    const mCtx = moonCanvas.getContext('2d');
+    const mGrad = mCtx.createRadialGradient(64, 64, 14, 64, 64, 62);
+    mGrad.addColorStop(0, 'rgba(255, 252, 238, 1.0)');
+    mGrad.addColorStop(0.26, 'rgba(248, 244, 225, 0.95)');
+    mGrad.addColorStop(0.32, 'rgba(195, 225, 248, 0.48)');
+    mGrad.addColorStop(0.65, 'rgba(120, 175, 215, 0.18)');
+    mGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    mCtx.fillStyle = mGrad;
+    mCtx.fillRect(0, 0, 128, 128);
+    const moonTex = new THREE.CanvasTexture(moonCanvas);
+    const moonMat = new THREE.SpriteMaterial({
+      map: moonTex,
+      transparent: true,
+      fog: false,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    this.moonSprite = new THREE.Sprite(moonMat);
+    this.moonSprite.scale.set(28, 28, 1);
+    this.moonSprite.position.set(-22, 160, 412);
+    this.scene.add(this.moonSprite);
   }
 
   setupLighting() {
     // 1. Ambient & Hemispherical Night Light (Deep night teal / cool blue-black)
-    this.hemiLight = new THREE.HemisphereLight(0x608AA0, 0x20303C, 2.0);
+    this.hemiLight = new THREE.HemisphereLight(0x4E738A, 0x1A2630, 1.65);
     this.scene.add(this.hemiLight);
 
     // 2. Moonlight directional (High mountain moonlight shining down across the touge)
-    this.moonLight = new THREE.DirectionalLight(0xB8E0F8, 2.4);
+    this.moonLight = new THREE.DirectionalLight(0xA8D4F0, 1.85);
     this.moonLight.position.set(-300, 200, 850);
     this.scene.add(this.moonLight);
 
     // 3. Fog (Deep night mist)
-    this.scene.fog = new THREE.FogExp2(0x0C1822, 0.0035);
+    this.scene.fog = new THREE.FogExp2(0x0B1620, 0.0038);
 
-    // 4. Player Car Dual Headlights & Taillights (Bypassed on software renderer to keep CPU rasterizer at high FPS)
-    if (!this.isSoftware) {
-      this.headlightL = new THREE.SpotLight(0xFFF6E0, 18.0, 85.0, Math.PI / 5.5, 0.45, 1.1);
-      this.headlightR = new THREE.SpotLight(0xFFF6E0, 18.0, 85.0, Math.PI / 5.5, 0.45, 1.1);
-      this.headlightTargetL = new THREE.Object3D();
-      this.headlightTargetR = new THREE.Object3D();
+    // 4. Player Car Dual Headlights (Soft warm beams — calibrated so road never bleaches white)
+    this.headlightL = new THREE.SpotLight(0xFFF2D6, 1.8, 65.0, Math.PI / 5.5, 0.78, 1.2);
+    this.headlightR = new THREE.SpotLight(0xFFF2D6, 1.8, 65.0, Math.PI / 5.5, 0.78, 1.2);
+    this.headlightTargetL = new THREE.Object3D();
+    this.headlightTargetR = new THREE.Object3D();
 
-      this.scene.add(this.headlightL);
-      this.scene.add(this.headlightR);
-      this.scene.add(this.headlightTargetL);
-      this.scene.add(this.headlightTargetR);
+    this.scene.add(this.headlightL);
+    this.scene.add(this.headlightR);
+    this.scene.add(this.headlightTargetL);
+    this.scene.add(this.headlightTargetR);
 
-      this.headlightL.target = this.headlightTargetL;
-      this.headlightR.target = this.headlightTargetR;
+    this.headlightL.target = this.headlightTargetL;
+    this.headlightR.target = this.headlightTargetR;
 
-      // 5. Dual Taillight Points (Red glow behind car)
-      this.taillightL = new THREE.PointLight(0xE02820, 3.5, 12.0);
-      this.taillightR = new THREE.PointLight(0xE02820, 3.5, 12.0);
-      this.scene.add(this.taillightL);
-      this.scene.add(this.taillightR);
-    } else {
-      this.headlightL = new THREE.Object3D();
-      this.headlightR = new THREE.Object3D();
-      this.headlightTargetL = new THREE.Object3D();
-      this.headlightTargetR = new THREE.Object3D();
-      this.headlightL.target = this.headlightTargetL;
-      this.headlightR.target = this.headlightTargetR;
-      this.taillightL = new THREE.Object3D();
-      this.taillightR = new THREE.Object3D();
-    }
+    // 5. Dual Taillight Points (Red glow behind car casting red reflections on road)
+    this.taillightL = new THREE.PointLight(0xE02820, 3.2, 12.0);
+    this.taillightR = new THREE.PointLight(0xE02820, 3.2, 12.0);
+    this.scene.add(this.taillightL);
+    this.scene.add(this.taillightR);
   }
 
   setupValleyCity() {
@@ -169,14 +183,14 @@ export class LightingWeather {
       this.renderer.toneMappingExposure = 1.20;
     } else {
       // Midnight (Default)
-      this.hemiLight.color.setHex(0x608AA0);
-      this.hemiLight.groundColor.setHex(0x20303C);
-      this.hemiLight.intensity = 2.0;
-      this.moonLight.color.setHex(0xB8E0F8);
-      this.moonLight.intensity = 2.4;
-      this.scene.fog.color.setHex(0x0C1822);
-      this.scene.fog.density = 0.0035;
-      this.renderer.toneMappingExposure = 1.35;
+      this.hemiLight.color.setHex(0x4E738A);
+      this.hemiLight.groundColor.setHex(0x1A2630);
+      this.hemiLight.intensity = 1.65;
+      this.moonLight.color.setHex(0xA8D4F0);
+      this.moonLight.intensity = 1.85;
+      this.scene.fog.color.setHex(0x0B1620);
+      this.scene.fog.density = 0.0038;
+      this.renderer.toneMappingExposure = 1.15;
     }
   }
 
@@ -186,6 +200,18 @@ export class LightingWeather {
     const fwY = Math.cos(carHeading);
     const rtX = Math.cos(carHeading);
     const rtY = -Math.sin(carHeading);
+
+    // Keep sky dome and moon anchored to the pass horizon relative to the player
+    if (this.skyMesh) {
+      this.skyMesh.position.set(carPos.x, carPos.y, carPos.z);
+    }
+    if (this.moonSprite) {
+      this.moonSprite.position.set(
+        carPos.x + fwX * 165.0 - rtX * 26.0,
+        carPos.y + fwY * 165.0 - rtY * 26.0,
+        carPos.z + 34.0
+      );
+    }
 
     // Headlights mount position (at front bumper)
     const hlDist = 1.95;
@@ -246,6 +272,9 @@ export class LightingWeather {
     }
     if (this.skyMesh) {
       this.skyMesh.visible = !isGarage;
+    }
+    if (this.moonSprite) {
+      this.moonSprite.visible = !isGarage;
     }
     if (this.headlightL) this.headlightL.visible = !isGarage;
     if (this.headlightR) this.headlightR.visible = !isGarage;

@@ -140,13 +140,11 @@ export class InputController {
 
     // 4. Process Throttle
     if (this.autoThrottle) {
-      // Auto-throttle: accelerates automatically unless braking or holding handbrake
+      // Auto-throttle: accelerates automatically unless braking
       if (isBraking) {
         this.throttle = 0.0;
-      } else if (this.handbrake) {
-        this.throttle = 0.45; // Keep turbo spooled during drift
       } else {
-        this.throttle = 1.0;
+        this.throttle = 1.0; // Keep full power during drift initiation & sustain
       }
     } else {
       // Manual throttle

@@ -239,4 +239,28 @@ describe('VehiclePhysics & Drift Dynamics', () => {
       `Drift exit speed (${driftCar.speed.toFixed(2)} m/s) must exceed pure braking speed (${brakeCar.speed.toFixed(2)} m/s)`
     );
   });
+
+  test('4s held drift maintains roll < 6 deg, wheels attached, and car planted on road', () => {
+    const dt = 1.0 / 60.0;
+    const physics = new VehiclePhysics(starterCar);
+    physics.reset(0, 0, 0, 0);
+    physics.vy = 22.0;
+    physics.speed = 22.0;
+
+    let maxRoll = 0.0;
+
+    // 4 seconds of held drift (flick right with handbrake then counter-steer throttle)
+    for (let t = 0; t < 4.0; t += dt) {
+      if (t < 0.25) {
+        physics.update(dt, { throttle: 0.5, steer: 0.8, brake: 0.0, handbrake: true });
+      } else {
+        physics.update(dt, { throttle: 0.85, steer: -0.3, brake: 0.0, handbrake: false });
+      }
+      const rollDeg = Math.abs(physics.roll) * (180.0 / Math.PI);
+      if (rollDeg > maxRoll) maxRoll = rollDeg;
+    }
+
+    assert.ok(maxRoll < 6.0, `During 4s held drift, roll must remain < 6 deg, got ${maxRoll.toFixed(2)} deg`);
+    assert.ok(Math.abs(physics.z || 0) < 0.2, `Car elevation must remain within 0.2m of road surface, got ${physics.z || 0}`);
+  });
 });

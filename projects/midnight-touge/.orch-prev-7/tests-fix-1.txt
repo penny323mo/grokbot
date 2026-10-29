@@ -1,0 +1,238 @@
+
+> midnight-touge@1.0.0 test
+> node --test tests/*.test.mjs
+
+TAP version 13
+# Subtest: elementFromPoint & Touch Target Accessibility Verification
+    # Subtest: HUD touch pads and pause button receive pointer events during RACING (not intercepted by ui-container)
+    ok 1 - HUD touch pads and pause button receive pointer events during RACING (not intercepted by ui-container)
+      ---
+      duration_ms: 12844.101562
+      ...
+    1..1
+ok 1 - elementFromPoint & Touch Target Accessibility Verification
+  ---
+  duration_ms: 13347.932446
+  type: 'suite'
+  ...
+# Subtest: Events Contract, Battle Mode & Invented Names
+    # Subtest: All 12 events have valid structure and invented names without copyright infringement
+    ok 1 - All 12 events have valid structure and invented names without copyright infringement
+      ---
+      duration_ms: 1.028164
+      ...
+    # Subtest: Battle events (Stage 4, 7, 9, 11, 12) have valid targetGap and rivalCar
+    ok 2 - Battle events (Stage 4, 7, 9, 11, 12) have valid targetGap and rivalCar
+      ---
+      duration_ms: 0.23205
+      ...
+    # Subtest: Battle mode evaluates victory and medal by gap seconds via resolveMedal
+    ok 3 - Battle mode evaluates victory and medal by gap seconds via resolveMedal
+      ---
+      duration_ms: 0.235404
+      ...
+    # Subtest: Free run practice mode exists with valid defaults
+    ok 4 - Free run practice mode exists with valid defaults
+      ---
+      duration_ms: 0.111448
+      ...
+    # Subtest: Cars data contains 3 original vehicles with invented names and valid models
+    ok 5 - Cars data contains 3 original vehicles with invented names and valid models
+      ---
+      duration_ms: 0.133756
+      ...
+    1..5
+ok 2 - Events Contract, Battle Mode & Invented Names
+  ---
+  duration_ms: 2.953573
+  type: 'suite'
+  ...
+# Subtest: Headless Load & Static Asset Verification
+    # Subtest: index.html exists and references offline relative resources without CDN
+    ok 1 - index.html exists and references offline relative resources without CDN
+      ---
+      duration_ms: 1.372987
+      ...
+    # Subtest: All required 3D models and textures exist on disk
+    ok 2 - All required 3D models and textures exist on disk
+      ---
+      duration_ms: 0.976692
+      ...
+    # Subtest: Source modules import correctly without syntax errors
+    ok 3 - Source modules import correctly without syntax errors
+      ---
+      duration_ms: 16.145512
+      ...
+    1..3
+ok 3 - Headless Load & Static Asset Verification
+  ---
+  duration_ms: 20.370019
+  type: 'suite'
+  ...
+# Subtest: VehiclePhysics & Drift Dynamics
+    # Subtest: Chassis initializes with sane defaults
+    ok 1 - Chassis initializes with sane defaults
+      ---
+      duration_ms: 1.187674
+      ...
+    # Subtest: tuning.powerMultiplier scales horsepower correctly
+    ok 2 - tuning.powerMultiplier scales horsepower correctly
+      ---
+      duration_ms: 0.263739
+      ...
+    # Subtest: Throttle accelerates car forward
+    ok 3 - Throttle accelerates car forward
+      ---
+      duration_ms: 1.051868
+      ...
+    # Subtest: Handbrake and lateral steering initiate drift slide and multiplier combo
+    ok 4 - Handbrake and lateral steering initiate drift slide and multiplier combo
+      ---
+      duration_ms: 0.905057
+      ...
+    # Subtest: Counter-steer assist stabilizes yaw during drift
+    ok 5 - Counter-steer assist stabilizes yaw during drift
+      ---
+      duration_ms: 2.078107
+      ...
+    # Subtest: Gutter drop mechanic provides increased grip
+    ok 6 - Gutter drop mechanic provides increased grip
+      ---
+      duration_ms: 0.231941
+      ...
+    # Subtest: Wall collision scrubs forward speed and applies restitution
+    ok 7 - Wall collision scrubs forward speed and applies restitution
+      ---
+      duration_ms: 0.184851
+      ...
+    # Subtest: Holding car against guardrail for 0.5s preserves forward speed above half
+    ok 8 - Holding car against guardrail for 0.5s preserves forward speed above half
+      ---
+      duration_ms: 0.225845
+      ...
+    # Subtest: Car at 20 m/s braked for 5s ends with forward speed at 0 and does not travel backward
+    ok 9 - Car at 20 m/s braked for 5s ends with forward speed at 0 and does not travel backward
+      ---
+      duration_ms: 1.069988
+      ...
+    # Subtest: Hairpin drift maintains non-zero slip angle and exits faster than pure braking
+    ok 10 - Hairpin drift maintains non-zero slip angle and exits faster than pure braking
+      ---
+      duration_ms: 1.263669
+      ...
+    1..10
+ok 4 - VehiclePhysics & Drift Dynamics
+  ---
+  duration_ms: 10.176172
+  type: 'suite'
+  ...
+# Subtest: Headless WebGL 3D World Render & Luminance Verification
+    # Subtest: Garage 3D car turntable renders non-black pixels under SwiftShader
+    ok 1 - Garage 3D car turntable renders non-black pixels under SwiftShader
+      ---
+      duration_ms: 12771.988533
+      ...
+    # Subtest: Race 3D mountain track and car render non-black pixels under SwiftShader
+    ok 2 - Race 3D mountain track and car render non-black pixels under SwiftShader
+      ---
+      duration_ms: 7843.161714
+      ...
+    1..2
+ok 5 - Headless WebGL 3D World Render & Luminance Verification
+  ---
+  duration_ms: 21053.205759
+  type: 'suite'
+  ...
+# Subtest: Storage Engine & Garage Unlocks
+    # Subtest: Initializes with default coins and unlocked starter car
+    ok 1 - Initializes with default coins and unlocked starter car
+      ---
+      duration_ms: 0.891947
+      ...
+    # Subtest: Unlocking car deducts coins and marks unlocked
+    ok 2 - Unlocking car deducts coins and marks unlocked
+      ---
+      duration_ms: 0.277248
+      ...
+    # Subtest: Unlocking car grants unlock via gold medal achievement without coin cost
+    ok 3 - Unlocking car grants unlock via gold medal achievement without coin cost
+      ---
+      duration_ms: 0.224285
+      ...
+    # Subtest: Selecting unlocked car updates selectedCarId and color
+    ok 4 - Selecting unlocked car updates selectedCarId and color
+      ---
+      duration_ms: 0.232441
+      ...
+    # Subtest: Resolves medal correctly from real EVENTS_DATA[0].timeTargets and unlocks Stage 2
+    ok 5 - Resolves medal correctly from real EVENTS_DATA[0].timeTargets and unlocks Stage 2
+      ---
+      duration_ms: 0.228582
+      ...
+    # Subtest: Persists settings updates for controls and audio
+    ok 6 - Persists settings updates for controls and audio
+      ---
+      duration_ms: 0.145977
+      ...
+    # Subtest: Saves and retrieves ghost replay frames on new best time
+    ok 7 - Saves and retrieves ghost replay frames on new best time
+      ---
+      duration_ms: 0.138431
+      ...
+    1..7
+ok 6 - Storage Engine & Garage Unlocks
+  ---
+  duration_ms: 3.517827
+  type: 'suite'
+  ...
+# Subtest: Track Data & Collision Progression
+    # Subtest: Kirine Pass track data meets commercial spec requirements
+    ok 1 - Kirine Pass track data meets commercial spec requirements
+      ---
+      duration_ms: 1.250402
+      ...
+    # Subtest: TrackCollision tracks waypoint progression along track
+    ok 2 - TrackCollision tracks waypoint progression along track
+      ---
+      duration_ms: 1.090605
+      ...
+    # Subtest: Sector event finishes when reaching targetDist (Stage 1 ends at 1250m)
+    ok 3 - Sector event finishes when reaching targetDist (Stage 1 ends at 1250m)
+      ---
+      duration_ms: 0.744482
+      ...
+    # Subtest: Uphill spawn leaves completed === false and finishes only upon reaching summit
+    ok 4 - Uphill spawn leaves completed === false and finishes only upon reaching summit
+      ---
+      duration_ms: 0.407617
+      ...
+    # Subtest: Gutter drop detection activates inside hairpin gutters
+    ok 5 - Gutter drop detection activates inside hairpin gutters
+      ---
+      duration_ms: 0.310753
+      ...
+    # Subtest: Guardrail boundary collision triggers when leaving road width
+    ok 6 - Guardrail boundary collision triggers when leaving road width
+      ---
+      duration_ms: 0.276644
+      ...
+    # Subtest: Centerline walk at 8m steps maintains strictly monotonic distanceAlongTrack across hairpins
+    ok 7 - Centerline walk at 8m steps maintains strictly monotonic distanceAlongTrack across hairpins
+      ---
+      duration_ms: 3.428161
+      ...
+    1..7
+ok 7 - Track Data & Collision Progression
+  ---
+  duration_ms: 9.572832
+  type: 'suite'
+  ...
+1..7
+# tests 35
+# suites 7
+# pass 35
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 21591.214378

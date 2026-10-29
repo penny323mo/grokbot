@@ -51,6 +51,7 @@ export class ParticleSystem {
       blending: THREE.AdditiveBlending
     });
     this.rainMesh = new THREE.Points(this.rainGeo, mat);
+    this.rainMesh.frustumCulled = false;
     this.rainMesh.visible = false;
     this.scene.add(this.rainMesh);
   }
@@ -62,9 +63,10 @@ export class ParticleSystem {
     const sizes = new Float32Array(this.maxSmoke);
 
     for (let i = 0; i < this.maxSmoke; i++) {
+      pos[i * 3 + 2] = -10000;
       this.smokePool.push({
         active: false,
-        x: 0, y: 0, z: -100,
+        x: 0, y: 0, z: -10000,
         vx: 0, vy: 0, vz: 0,
         life: 0, maxLife: 0.8,
         size: 1.0, opacity: 0.0
@@ -93,16 +95,17 @@ export class ParticleSystem {
 
     const mat = new THREE.PointsMaterial({
       map: smokeTex,
-      color: 0xEEF2F6,
-      size: 1.35,
+      color: 0xDCE6F0,
+      size: 0.72,
       sizeAttenuation: true,
       transparent: true,
-      opacity: 0.75,
+      opacity: 0.42,
       blending: THREE.NormalBlending,
       depthWrite: false
     });
 
     this.smokeMesh = new THREE.Points(geo, mat);
+    this.smokeMesh.frustumCulled = false;
     this.scene.add(this.smokeMesh);
   }
 
@@ -111,9 +114,10 @@ export class ParticleSystem {
     const pos = new Float32Array(this.maxSparks * 3);
 
     for (let i = 0; i < this.maxSparks; i++) {
+      pos[i * 3 + 2] = -10000;
       this.sparksPool.push({
         active: false,
-        x: 0, y: 0, z: -100,
+        x: 0, y: 0, z: -10000,
         vx: 0, vy: 0, vz: 0,
         life: 0, maxLife: 0.35
       });
@@ -130,6 +134,7 @@ export class ParticleSystem {
     });
 
     this.sparksMesh = new THREE.Points(geo, mat);
+    this.sparksMesh.frustumCulled = false;
     this.scene.add(this.sparksMesh);
   }
 
@@ -146,11 +151,12 @@ export class ParticleSystem {
     });
 
     this.skidMesh = new THREE.LineSegments(this.skidGeometry, mat);
+    this.skidMesh.frustumCulled = false;
     this.scene.add(this.skidMesh);
   }
 
   spawnSmoke(carPos, carHeading, slipAngleDeg, speedKmh) {
-    if (slipAngleDeg < 7.0 || speedKmh < 15.0) return;
+    if (slipAngleDeg < 3.5 || speedKmh < 8.0) return;
 
     // Spawn 2 smoke puffs at rear contact patches just behind rear bumper
     const rtX = Math.cos(carHeading);
@@ -166,16 +172,16 @@ export class ParticleSystem {
       if (!p) break;
 
       p.active = true;
-      p.x = carPos.x + fwX * rearDist + rtX * (wheelOffset * side) + (Math.random() - 0.5) * 0.25;
-      p.y = carPos.y + fwY * rearDist + rtY * (wheelOffset * side) + (Math.random() - 0.5) * 0.25;
-      p.z = carPos.z + 0.35;
-      p.vx = -fwX * 2.2 + (Math.random() - 0.5) * 1.5;
-      p.vy = -fwY * 2.2 + (Math.random() - 0.5) * 1.5;
-      p.vz = 0.8 + Math.random() * 0.9;
+      p.x = carPos.x + fwX * rearDist + rtX * (wheelOffset * side) + (Math.random() - 0.5) * 0.18;
+      p.y = carPos.y + fwY * rearDist + rtY * (wheelOffset * side) + (Math.random() - 0.5) * 0.18;
+      p.z = carPos.z + 0.16;
+      p.vx = -fwX * 1.8 + (Math.random() - 0.5) * 0.9;
+      p.vy = -fwY * 1.8 + (Math.random() - 0.5) * 0.9;
+      p.vz = 0.22 + Math.random() * 0.25;
       p.life = 0.0;
-      p.maxLife = 0.85 + Math.random() * 0.45;
-      p.size = 2.4 + (speedKmh / 80.0);
-      p.opacity = Math.min(0.90, 0.45 + (slipAngleDeg / 40.0) * 0.5);
+      p.maxLife = 0.55 + Math.random() * 0.25;
+      p.size = 0.65 + (speedKmh / 160.0);
+      p.opacity = Math.min(0.55, 0.25 + (slipAngleDeg / 40.0) * 0.3);
     }
   }
 
@@ -317,5 +323,11 @@ export class ParticleSystem {
       }
     }
     this.rainGeo.attributes.position.needsUpdate = true;
+  }
+
+  setVisible(v) {
+    if (this.smokeMesh) this.smokeMesh.visible = v;
+    if (this.sparksMesh) this.sparksMesh.visible = v;
+    if (this.skidMesh) this.skidMesh.visible = v;
   }
 }

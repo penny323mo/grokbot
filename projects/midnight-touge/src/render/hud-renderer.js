@@ -69,16 +69,19 @@ export class HudRenderer {
 
         <!-- 2. Center Alert: Rival Battle Gap Bar (Active in Battle Mode) -->
         <div class="hud-battle-gap-container is-hidden" id="hud-battle-gap-box">
-          <div class="battle-rival-info">
-            <span class="rival-tag">RIVAL BATTLE</span>
-            <span class="rival-name" id="hud-rival-name">黑曜 S-T20 · 峰</span>
-          </div>
+          <div class="battle-gap-text" id="hud-gap-text">+0.00s</div>
           <div class="battle-gap-bar-wrap">
             <div class="gap-marker-center"></div>
             <div class="gap-bar-lead" id="hud-gap-lead"></div>
             <div class="gap-bar-chase" id="hud-gap-chase"></div>
           </div>
-          <div class="battle-gap-text" id="hud-gap-text">+0.00s</div>
+        </div>
+
+        <!-- 2b. Floating Projected 3D Rival Slash Tag above rival car -->
+        <div class="hud-rival-projected-tag is-hidden" id="hud-rival-tag">
+          <span class="rival-tag-slash">//</span>
+          <span class="rival-tag-name" id="hud-rival-name">RIVAL · 峰</span>
+          <span class="rival-tag-slash">//</span>
         </div>
 
         <!-- 3. Dynamic Drift Score Callout (Initial D Arcade Single Slash Line) -->
@@ -271,13 +274,17 @@ export class HudRenderer {
     const distRemaining = Math.max(0, Math.abs(targetDist - curDist));
     this.elSplit.textContent = `SEC ${curSec} · 剩 ${distRemaining.toFixed(0)}m`;
 
-    // 5. Drift Score Banner
-    const isGutter = collision.isInGutter || collision.inGutter || physics.inGutter || false;
-    if (physics.isDrifting) {
+    // 5. Drift Score Banner & Gutter Hook Callout
+    const nowMs = performance.now();
+    const calloutHold = this.driftCalloutHoldUntil && nowMs < this.driftCalloutHoldUntil;
+    const isGutter = collision.isInGutter || collision.inGutter || physics.inGutter || (this.gutterCalloutHoldUntil && nowMs < this.gutterCalloutHoldUntil) || false;
+    if (physics.isDrifting || calloutHold || isGutter) {
       this.elDriftBanner.classList.remove("is-hidden");
-      this.elDriftPts.textContent = `${Math.floor(physics.driftScore).toLocaleString()} PTS //`;
-      this.elDriftCombo.textContent = `x${(physics.driftMultiplier || 1.0).toFixed(1)}`;
-      this.elDriftAngle.textContent = `${Math.floor(physics.driftAngleDeg || 0)}°`;
+      if (physics.isDrifting) {
+        this.elDriftPts.textContent = `${Math.floor(physics.driftScore).toLocaleString()} PTS //`;
+        this.elDriftCombo.textContent = `x${(physics.driftMultiplier || 1.0).toFixed(1)}`;
+        this.elDriftAngle.textContent = `${Math.floor(physics.driftAngleDeg || 0)}°`;
+      }
       if (isGutter) {
         this.elGutterTag.classList.remove("is-hidden");
       } else {
@@ -374,20 +381,27 @@ export class HudRenderer {
   }
 
   showGutterDropEffect() {
+    this.gutterCalloutHoldUntil = performance.now() + 4000;
+    if (this.elDriftBanner) {
+      this.elDriftBanner.classList.remove("is-hidden");
+    }
     if (this.elGutterTag) {
       this.elGutterTag.classList.remove("is-hidden");
       this.elGutterTag.style.animation = "pulse-gutter 0.4s ease-in-out 3";
       setTimeout(() => {
-        if (this.elGutterTag) this.elGutterTag.classList.add("is-hidden");
-      }, 1500);
+        if (this.elGutterTag && (!this.gutterCalloutHoldUntil || performance.now() >= this.gutterCalloutHoldUntil)) {
+          this.elGutterTag.classList.add("is-hidden");
+        }
+      }, 4000);
     }
   }
 
   showDriftCallout(angleDeg, points, combo = 1.0) {
+    this.driftCalloutHoldUntil = performance.now() + 3500;
     if (this.elDriftBanner) {
       this.elDriftBanner.classList.remove("is-hidden");
-      if (this.elDriftAngle) this.elDriftAngle.textContent = `ANGLE ${Math.floor(angleDeg)}°`;
-      if (this.elDriftPts) this.elDriftPts.textContent = Math.floor(points).toLocaleString();
+      if (this.elDriftAngle) this.elDriftAngle.textContent = `${Math.floor(angleDeg)}°`;
+      if (this.elDriftPts) this.elDriftPts.textContent = `${Math.floor(points).toLocaleString()} PTS //`;
       if (this.elDriftCombo) this.elDriftCombo.textContent = `x${combo.toFixed(1)}`;
     }
   }

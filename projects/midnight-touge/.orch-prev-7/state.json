@@ -1,0 +1,57 @@
+{
+  "phase": "done",
+  "round": 3,
+  "rounds": 3,
+  "started": "2026-10-29T12:10:18+08:00",
+  "attempts": {
+    "build": 1,
+    "review-1": 1,
+    "fix-1": 2,
+    "review-2": 1,
+    "fix-2": 1,
+    "review-3": 1,
+    "fix-3": 2
+  },
+  "history": [
+    {
+      "phase": "build",
+      "at": "2026-10-29T13:17:17+08:00"
+    },
+    {
+      "phase": "review-1",
+      "at": "2026-10-29T13:36:31+08:00"
+    },
+    {
+      "phase": "fix-1",
+      "at": "2026-10-29T15:04:52+08:00"
+    },
+    {
+      "phase": "review-2",
+      "at": "2026-10-29T15:19:44+08:00"
+    },
+    {
+      "phase": "fix-2",
+      "at": "2026-10-29T15:45:21+08:00"
+    },
+    {
+      "phase": "review-3",
+      "at": "2026-10-29T15:54:08+08:00"
+    },
+    {
+      "phase": "fix-3",
+      "at": "2026-10-29T17:14:03+08:00"
+    },
+    {
+      "phase": "publish",
+      "at": "2026-10-29T17:14:25+08:00"
+    },
+    {
+      "phase": "report",
+      "at": "2026-10-29T17:14:25+08:00"
+    }
+  ],
+  "updated": "2026-10-29T17:14:26+08:00",
+  "sent_phase": "fix-3#2",
+  "sent_epoch": 1793263150,
+  "note": "resumed by loop 13:10 to collect agy improve-r7 build (on top of CC0 rebuild c7ce735)"
+}
