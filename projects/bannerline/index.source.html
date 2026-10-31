@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#7FA8C4" />
+  <title>據點號令 · Bannerline</title>
+  <link rel="icon" href="./favicon.svg" />
+</head>
+<body>
+  <div id="app">
+    <canvas id="view"></canvas>
+    <div id="badges"></div>
+    <header id="hud">
+      <div class="hud-row">
+        <div class="brand">據點號令</div>
+        <div class="scores" hidden>
+          <span class="pill mine">我軍 <b id="score-mine">0</b></span>
+          <span class="pill foe">敵軍 <b id="score-foe">0</b></span>
+        </div>
+        <div class="hud-actions">
+          <button id="home-btn" type="button">揀地圖</button>
+          <button id="mute" type="button" aria-pressed="false" aria-label="靜音">🔊</button>
+        </div>
+      </div>
+    </header>
+    <div id="upgrades" hidden>
+      <button id="up-haste" type="button">加速 · 8</button>
+      <button id="up-bulwark" type="button">加固 · 8</button>
+    </div>
+    <button id="coach" type="button" hidden>撳自己建築可以升級</button>
+    <div id="toast" hidden role="status">敵軍打緊司令部</div>
+    <p id="hint" hidden></p>
+    <div id="home">
+      <div class="home-card">
+        <p class="kicker">揀地圖 · 揀難度</p>
+        <h1>據點號令</h1>
+        <p class="subname">Bannerline</p>
+        <p class="lede">兩邊陣營出兵，拖一拖就攻過去</p>
+        <div id="maps"></div>
+        <div id="diffs"></div>
+        <button id="start" type="button">出戰</button>
+      </div>
+    </div>
+    <div id="sheet" hidden>
+      <div class="card">
+        <p class="kicker" id="sheet-kicker">對戰結束</p>
+        <h2 id="sheet-title">勝利</h2>
+        <p id="sheet-body">攻陷敵方司令部</p>
+        <p id="sheet-time">用咗 0 秒</p>
+        <div class="sheet-actions">
+          <button id="retry" type="button">再戰</button>
+          <button id="sheet-map" type="button">地圖</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

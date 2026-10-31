@@ -1,0 +1,43 @@
+{
+  "id": "long-road",
+  "name": "長路",
+  "blurb": "前後哨站，路更長",
+  "personality": "cautious",
+  "nodes": {
+    "player-hq": { "x": 0, "z": 7.2 },
+    "player-road": { "x": 0, "z": 5.0 },
+    "player-bar": { "x": 1.75, "z": 5.0 },
+    "player-post": { "x": 0, "z": 1.35 },
+    "enemy-post": { "x": 0, "z": -1.35 },
+    "enemy-road": { "x": 0, "z": -5.0 },
+    "enemy-bar": { "x": -1.75, "z": -5.0 },
+    "enemy-hq": { "x": 0, "z": -7.2 }
+  },
+  "graph": {
+    "player-hq": ["player-road"],
+    "player-road": ["player-hq", "player-bar", "player-post"],
+    "player-bar": ["player-road"],
+    "player-post": ["player-road", "enemy-post"],
+    "enemy-post": ["player-post", "enemy-road"],
+    "enemy-road": ["enemy-post", "enemy-bar", "enemy-hq"],
+    "enemy-bar": ["enemy-road"],
+    "enemy-hq": ["enemy-road"]
+  },
+  "zones": [
+    { "buildingId": "player-hq", "x": 0, "z": 6.55, "rx": 3.15, "rz": 1.15 },
+    { "buildingId": "player-bar", "x": 0.3, "z": 4.75, "rx": 3.2, "rz": 0.95 },
+    { "buildingId": "player-post", "x": 0, "z": 1.45, "rx": 3.15, "rz": 1.2 },
+    { "buildingId": "enemy-post", "x": 0, "z": -1.45, "rx": 3.15, "rz": 1.2 },
+    { "buildingId": "enemy-bar", "x": -0.3, "z": -4.75, "rx": 3.2, "rz": 0.95 },
+    { "buildingId": "enemy-hq", "x": 0, "z": -6.55, "rx": 3.15, "rz": 1.15 }
+  ],
+  "road": ["player-hq", "player-road", "player-post", "enemy-post", "enemy-road", "enemy-hq"],
+  "buildings": [
+    { "id": "player-hq", "kind": "hq", "owner": "player", "node": "player-hq", "count": 14, "cap": 30, "regen": 0.3 },
+    { "id": "player-bar", "kind": "barracks", "owner": "player", "node": "player-bar", "count": 22, "cap": 48, "regen": 2 },
+    { "id": "player-post", "kind": "barracks", "owner": "player", "node": "player-post", "count": 12, "cap": 36, "regen": 1.4 },
+    { "id": "enemy-post", "kind": "barracks", "owner": "enemy", "node": "enemy-post", "count": 12, "cap": 36, "regen": 1.15 },
+    { "id": "enemy-bar", "kind": "barracks", "owner": "enemy", "node": "enemy-bar", "count": 16, "cap": 44, "regen": 1.45 },
+    { "id": "enemy-hq", "kind": "hq", "owner": "enemy", "node": "enemy-hq", "count": 36, "cap": 48, "regen": 0 }
+  ]
+}

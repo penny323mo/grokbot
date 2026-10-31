@@ -1,0 +1,10 @@
+{
+  "name": "signal-ten-1962",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "十號風球 · Signal Ten — 1962 Royal Observatory Hong Kong typhoon forecasting narrative decision game",
+  "scripts": {
+    "test": "node --test tests/integrity.test.js"
+  }
+}

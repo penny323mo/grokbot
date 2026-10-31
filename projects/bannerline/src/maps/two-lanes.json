@@ -1,0 +1,43 @@
+{
+  "id": "two-lanes",
+  "name": "雙橋",
+  "blurb": "左右兩條路，可以分兵",
+  "personality": "aggressive",
+  "nodes": {
+    "player-hq": { "x": 0, "z": 6.6 },
+    "hub-p": { "x": 0, "z": 4.3 },
+    "player-west": { "x": -1.85, "z": 1.25 },
+    "player-east": { "x": 1.85, "z": 1.25 },
+    "enemy-west": { "x": -1.85, "z": -1.25 },
+    "enemy-east": { "x": 1.85, "z": -1.25 },
+    "hub-e": { "x": 0, "z": -4.3 },
+    "enemy-hq": { "x": 0, "z": -6.6 }
+  },
+  "graph": {
+    "player-hq": ["hub-p"],
+    "hub-p": ["player-hq", "player-west", "player-east"],
+    "player-west": ["hub-p", "enemy-west"],
+    "player-east": ["hub-p", "enemy-east"],
+    "enemy-west": ["player-west", "hub-e"],
+    "enemy-east": ["player-east", "hub-e"],
+    "hub-e": ["enemy-west", "enemy-east", "enemy-hq"],
+    "enemy-hq": ["hub-e"]
+  },
+  "zones": [
+    { "buildingId": "player-hq", "x": 0, "z": 6.15, "rx": 3.2, "rz": 1.15 },
+    { "buildingId": "player-west", "x": -1.9, "z": 1.35, "rx": 1.5, "rz": 1.1 },
+    { "buildingId": "player-east", "x": 1.9, "z": 1.35, "rx": 1.5, "rz": 1.1 },
+    { "buildingId": "enemy-west", "x": -1.9, "z": -1.35, "rx": 1.5, "rz": 1.1 },
+    { "buildingId": "enemy-east", "x": 1.9, "z": -1.35, "rx": 1.5, "rz": 1.1 },
+    { "buildingId": "enemy-hq", "x": 0, "z": -6.15, "rx": 3.2, "rz": 1.15 }
+  ],
+  "road": ["player-hq", "hub-p", "player-west", "enemy-west", "hub-e", "enemy-hq"],
+  "buildings": [
+    { "id": "player-hq", "kind": "hq", "owner": "player", "node": "player-hq", "count": 12, "cap": 28, "regen": 0.28 },
+    { "id": "player-west", "kind": "barracks", "owner": "player", "node": "player-west", "count": 18, "cap": 42, "regen": 1.8 },
+    { "id": "player-east", "kind": "barracks", "owner": "player", "node": "player-east", "count": 18, "cap": 42, "regen": 1.8 },
+    { "id": "enemy-west", "kind": "barracks", "owner": "enemy", "node": "enemy-west", "count": 14, "cap": 40, "regen": 1.45 },
+    { "id": "enemy-east", "kind": "barracks", "owner": "enemy", "node": "enemy-east", "count": 14, "cap": 40, "regen": 1.45 },
+    { "id": "enemy-hq", "kind": "hq", "owner": "enemy", "node": "enemy-hq", "count": 40, "cap": 50, "regen": 0 }
+  ]
+}

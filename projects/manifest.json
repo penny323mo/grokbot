@@ -1,6 +1,17 @@
 {
   "projects": [
     {
+      "id": "signal-ten",
+      "title": "十號風球",
+      "subtitle": "Signal Ten",
+      "category": "決策模擬",
+      "description": "1962 年香港皇家天文台：你係值夜班嘅預報員，讀電報、畫天氣圖、判斷颱風路徑，決定幾時掛風球——每個決定都牽動成個維港。",
+      "accent": "#B5452B",
+      "path": "projects/signal-ten/",
+      "added": "2026-11-01",
+      "cover": "projects/signal-ten/cover/cover.webp"
+    },
+    {
       "id": "monsoon-carrack",
       "title": "季風帆影",
       "subtitle": "Monsoon Carrack",

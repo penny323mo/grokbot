@@ -1,0 +1,37 @@
+{
+  "id": "crossing",
+  "name": "對岸",
+  "blurb": "一條大路，兩邊兵營",
+  "personality": "balanced",
+  "nodes": {
+    "player-hq": { "x": 0, "z": 6.55 },
+    "player-bar": { "x": 1.72, "z": 3.05 },
+    "player-road": { "x": 0, "z": 3.05 },
+    "mid": { "x": 0, "z": 0 },
+    "enemy-road": { "x": 0, "z": -3.05 },
+    "enemy-bar": { "x": -1.72, "z": -3.05 },
+    "enemy-hq": { "x": 0, "z": -6.55 }
+  },
+  "graph": {
+    "player-hq": ["player-road"],
+    "player-bar": ["player-road"],
+    "player-road": ["player-hq", "player-bar", "mid"],
+    "mid": ["player-road", "enemy-road"],
+    "enemy-road": ["mid", "enemy-bar", "enemy-hq"],
+    "enemy-bar": ["enemy-road"],
+    "enemy-hq": ["enemy-road"]
+  },
+  "zones": [
+    { "buildingId": "player-hq", "x": 0, "z": 5.75, "rx": 3.15, "rz": 1.95 },
+    { "buildingId": "player-bar", "x": 0.12, "z": 2.25, "rx": 3.25, "rz": 1.6 },
+    { "buildingId": "enemy-bar", "x": -0.12, "z": -2.25, "rx": 3.25, "rz": 1.6 },
+    { "buildingId": "enemy-hq", "x": 0, "z": -5.75, "rx": 3.15, "rz": 1.95 }
+  ],
+  "road": ["player-hq", "player-road", "mid", "enemy-road", "enemy-hq"],
+  "buildings": [
+    { "id": "player-hq", "kind": "hq", "owner": "player", "node": "player-hq", "count": 12, "cap": 28, "regen": 0.1 },
+    { "id": "player-bar", "kind": "barracks", "owner": "player", "node": "player-bar", "count": 30, "cap": 54, "regen": 2.25 },
+    { "id": "enemy-bar", "kind": "barracks", "owner": "enemy", "node": "enemy-bar", "count": 18, "cap": 48, "regen": 1.7 },
+    { "id": "enemy-hq", "kind": "hq", "owner": "enemy", "node": "enemy-hq", "count": 44, "cap": 52, "regen": 0 }
+  ]
+}
