@@ -1,6 +1,17 @@
 {
   "projects": [
     {
+      "id": "monsoon-carrack",
+      "title": "季風帆影",
+      "subtitle": "Monsoon Carrack",
+      "category": "航海貿易",
+      "description": "1600 年澳門：你係一艘黑船嘅船主，趁季風往返長崎、馬尼拉、麻六甲，以絲易銀、權衡風險，喺南蠻屏風畫入面寫低一個家族嘅興衰。",
+      "accent": "#B0812F",
+      "path": "projects/monsoon-carrack/",
+      "added": "2026-10-31",
+      "cover": "projects/monsoon-carrack/cover/cover.webp"
+    },
+    {
       "id": "herbalist-ledger",
       "title": "百草堂",
       "subtitle": "The Herbalist's Ledger",

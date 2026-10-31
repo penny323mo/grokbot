@@ -1,0 +1,1770 @@
+/* ==========================================================================
+   季風帆影 · Monsoon Carrack — Diegetic Nanban Byōbu & Portolan Manuscript UI
+   Palette: Gold Leaf #C9A24A, Deep Gold #8A6A2A, Malachite #3F7D5C,
+            Azurite #2E4F86, Vermilion #B6402C, Ochre #C08A3E,
+            Parchment #EADCB8, Warm Ink #1F1A14, Lacquer Black #241C17
+   ========================================================================== */
+
+@font-face {
+  font-family: "Ma Shan Zheng";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../assets/fonts/MaShanZheng-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Cormorant Garamond";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../assets/fonts/Cormorant-Medium.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Cormorant Garamond";
+  font-style: italic;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../assets/fonts/Cormorant-MediumItalic.ttf") format("truetype");
+}
+
+:root {
+  --gold-leaf: #C9A24A;
+  --deep-gold: #8A6A2A;
+  --malachite: #3F7D5C;
+  --azurite: #2E4F86;
+  --vermilion: #B6402C;
+  --ochre: #C08A3E;
+  --parchment: #EADCB8;
+  --parchment-light: #F3E9CE;
+  --parchment-dark: #D7C395;
+  --ink: #1F1A14;
+  --ink-muted: #4A3E31;
+  --lacquer: #241C17;
+  --lacquer-warm: #33261E;
+
+  --font-serif: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+  --font-brush: "Ma Shan Zheng", "Noto Serif TC", serif;
+  --font-latin: "Cormorant Garamond", Georgia, serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--lacquer);
+  color: var(--ink);
+  font-family: var(--font-serif);
+  font-size: 15px;
+  line-height: 1.5;
+  overflow: hidden;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  width: 100%;
+  height: 100dvh;
+  max-width: 440px;
+  margin: 0 auto;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--lacquer);
+  border-left: 2px solid var(--deep-gold);
+  border-right: 2px solid var(--deep-gold);
+}
+
+button {
+  font-family: var(--font-serif);
+  color: var(--ink);
+  cursor: pointer;
+  touch-action: manipulation;
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+/* ==========================================================================
+   Shared Surfaces & Typography
+   ========================================================================== */
+
+.screen {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--lacquer);
+}
+
+.paper-surface {
+  background-color: var(--parchment);
+  background-image:
+    radial-gradient(circle at 15% 20%, rgba(255, 248, 228, 0.45), transparent 60%),
+    linear-gradient(180deg, var(--parchment-light) 0%, var(--parchment) 65%, var(--parchment-dark) 100%);
+  color: var(--ink);
+  border: 2px solid var(--deep-gold);
+  box-shadow: inset 0 0 0 1px rgba(138, 106, 42, 0.35), 0 3px 10px rgba(18, 12, 8, 0.45);
+  border-radius: 4px;
+}
+
+.paper-strip {
+  background: linear-gradient(90deg, var(--parchment-dark) 0%, var(--parchment-light) 50%, var(--parchment-dark) 100%);
+  border: 1.5px solid var(--deep-gold);
+  color: var(--ink);
+  border-radius: 3px;
+}
+
+.gold-text {
+  color: #FFE08C;
+}
+
+.vermilion-text {
+  color: #F2725C;
+}
+
+.paper-surface .vermilion-text {
+  color: var(--vermilion);
+}
+
+/* ==========================================================================
+   Top Ribbon (Season, Ming Year, Silver, Debt, Hold, Hull)
+   ========================================================================== */
+
+.top-ribbon {
+  flex-shrink: 0;
+  background: linear-gradient(180deg, #2D221B 0%, var(--lacquer) 100%);
+  border-bottom: 2px solid var(--gold-leaf);
+  padding: calc(5px + env(safe-area-inset-top, 0px)) 8px 5px;
+  color: var(--parchment-light);
+  z-index: 10;
+}
+
+.ribbon-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.ribbon-top {
+  margin-bottom: 4px;
+}
+
+.ribbon-date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.ming-year {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--gold-leaf);
+  letter-spacing: 0.03em;
+}
+
+.season-pill {
+  font-size: 0.78rem;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-weight: 700;
+  border: 1px solid var(--gold-leaf);
+}
+
+.season-sw {
+  background-color: var(--malachite);
+  color: #FFF9EA;
+}
+
+.season-ne {
+  background-color: var(--azurite);
+  color: #FFF9EA;
+}
+
+.ribbon-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.stamp-mini {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 4px 8px;
+  background-color: var(--vermilion);
+  color: #FFF7E8;
+  border: 1.5px solid var(--gold-leaf);
+  border-radius: 3px;
+  font-weight: 700;
+  font-size: 0.84rem;
+  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 0 1px rgba(255, 240, 210, 0.25);
+}
+
+.stamp-mini:active {
+  transform: translateY(1px);
+}
+
+.ribbon-stats {
+  display: grid;
+  grid-template-columns: 1fr 1.35fr 0.9fr 1fr;
+  gap: 4px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(201, 162, 74, 0.32);
+}
+
+.stat-cell {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 0.68rem;
+  color: var(--parchment-dark);
+}
+
+.stat-val {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--parchment-light);
+  white-space: nowrap;
+}
+
+.stat-val small {
+  font-size: 0.66rem;
+  font-weight: 500;
+  opacity: 0.92;
+}
+
+/* ==========================================================================
+   Title Screen (Nanban Folding Screen Key Art)
+   ========================================================================== */
+
+.title-screen {
+  justify-content: space-between;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 14px calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
+.title-screen .bg-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+.title-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(36, 28, 23, 0.72) 0%,
+    rgba(36, 28, 23, 0.28) 42%,
+    rgba(36, 28, 23, 0.86) 100%
+  );
+  z-index: 1;
+}
+
+.title-cloud-plaques {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding-top: 4px;
+}
+
+.title-era-tag {
+  display: inline-block;
+  background-color: rgba(36, 28, 23, 0.88);
+  color: var(--gold-leaf);
+  border: 1px solid var(--gold-leaf);
+  padding: 3px 12px;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  border-radius: 3px;
+}
+
+.brush-title {
+  font-family: var(--font-brush);
+  font-size: 3.1rem;
+  font-weight: 400;
+  margin: 6px 0 2px;
+  color: var(--parchment-light);
+  text-shadow: 0 2px 0 var(--lacquer), 0 4px 12px rgba(0, 0, 0, 0.85);
+  letter-spacing: 0.12em;
+}
+
+.latin-sub {
+  font-family: var(--font-latin);
+  font-size: 0.88rem;
+  letter-spacing: 0.16em;
+  color: var(--gold-leaf);
+  margin: 0 0 10px;
+  font-weight: 500;
+}
+
+.title-premise-scroll {
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  line-height: 1.48;
+}
+
+.title-premise-scroll p {
+  margin: 0;
+}
+
+.title-signboards {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.signboard-btn {
+  min-height: 50px;
+  width: 100%;
+  padding: 8px 14px;
+  background: linear-gradient(180deg, var(--parchment-light) 0%, var(--parchment-dark) 100%);
+  border: 2px solid var(--deep-gold);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45);
+}
+
+.signboard-btn.primary-sign {
+  background: linear-gradient(180deg, #C94933 0%, var(--vermilion) 100%);
+  border-color: var(--gold-leaf);
+  color: #FFF8EB;
+}
+
+.signboard-btn.secondary-sign {
+  background: linear-gradient(180deg, #382B22 0%, var(--lacquer) 100%);
+  border-color: var(--gold-leaf);
+  color: var(--parchment-light);
+}
+
+.sign-main {
+  font-weight: 700;
+  font-size: 0.96rem;
+  letter-spacing: 0.05em;
+}
+
+.sign-sub {
+  font-size: 0.75rem;
+  opacity: 0.88;
+  margin-top: 1px;
+}
+
+/* Modal */
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(24, 18, 14, 0.82);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.manuscript-modal {
+  width: 100%;
+  max-height: 86%;
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+}
+
+.modal-brush-heading {
+  font-family: var(--font-brush);
+  font-size: 1.65rem;
+  font-weight: 400;
+  margin: 0 0 8px;
+  color: var(--vermilion);
+  text-align: center;
+  border-bottom: 1.5px solid var(--deep-gold);
+  padding-bottom: 6px;
+}
+
+.modal-body-scroll {
+  overflow-y: auto;
+  font-size: 0.86rem;
+  line-height: 1.55;
+  margin-bottom: 12px;
+  padding-right: 4px;
+}
+
+.modal-body-scroll p {
+  margin: 0 0 8px;
+}
+
+.seal-btn {
+  min-height: 44px;
+  min-width: 88px;
+  padding: 6px 14px;
+  background-color: var(--vermilion);
+  color: #FFF8EB;
+  border: 1.5px solid var(--gold-leaf);
+  border-radius: 3px;
+  font-weight: 700;
+  font-size: 0.86rem;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   Port Screen
+   ========================================================================== */
+
+.port-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 6px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+  gap: 6px;
+}
+
+.port-vignette-frame {
+  position: relative;
+  height: 112px;
+  flex-shrink: 0;
+  border: 2px solid var(--gold-leaf);
+  border-radius: 4px;
+  overflow: hidden;
+  background-color: var(--lacquer);
+}
+
+.port-vignette-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.port-vignette-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(31, 26, 20, 0.82) 0%, rgba(31, 26, 20, 0.25) 60%, rgba(31, 26, 20, 0.72) 100%);
+}
+
+.port-plaque {
+  position: absolute;
+  inset: 0;
+  padding: 8px 10px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.port-plaque-titles {
+  display: flex;
+  flex-direction: column;
+}
+
+.port-title-cn {
+  font-family: var(--font-brush);
+  font-size: 1.85rem;
+  font-weight: 400;
+  margin: 0;
+  line-height: 1.05;
+  color: var(--parchment-light);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+}
+
+.port-title-sub {
+  font-size: 0.78rem;
+  color: var(--gold-leaf);
+  font-weight: 700;
+}
+
+.port-title-latin {
+  font-family: var(--font-latin);
+  font-style: italic;
+  font-size: 0.76rem;
+  color: var(--parchment);
+}
+
+.port-rep-stamp {
+  background-color: rgba(182, 64, 44, 0.92);
+  border: 1.5px solid var(--gold-leaf);
+  color: #FFF8EB;
+  padding: 4px 8px;
+  border-radius: 3px;
+  text-align: center;
+  line-height: 1.15;
+}
+
+.port-rep-stamp span {
+  display: block;
+  font-size: 0.66rem;
+}
+
+.port-rep-stamp strong {
+  font-size: 0.95rem;
+}
+
+/* Signboard Tabs */
+.port-signboard-tabs {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.port-tab {
+  min-height: 46px;
+  padding: 4px 2px;
+  background: linear-gradient(180deg, #3A2C22 0%, var(--lacquer) 100%);
+  border: 1.5px solid var(--deep-gold);
+  border-radius: 3px;
+  color: var(--parchment);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.15;
+}
+
+.port-tab.is-active {
+  background: linear-gradient(180deg, var(--parchment-light) 0%, var(--parchment-dark) 100%);
+  border-color: var(--gold-leaf);
+  color: var(--ink);
+}
+
+.port-tab.sail-tab {
+  background: linear-gradient(180deg, var(--azurite) 0%, #1F375E 100%);
+  border-color: var(--gold-leaf);
+  color: #FFF9EB;
+}
+
+.tab-cn {
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tab-en {
+  font-family: var(--font-latin);
+  font-size: 0.68rem;
+  opacity: 0.85;
+}
+
+/* Note Toast */
+.note-toast {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  font-size: 0.78rem;
+  flex-shrink: 0;
+}
+
+.seal-dot {
+  background-color: var(--vermilion);
+  color: #FFF8EB;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.toast-text {
+  line-height: 1.3;
+}
+
+/* Scrollable Port Content Area */
+.port-content-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.overview-card,
+.market-panel,
+.dock-panel {
+  padding: 10px;
+}
+
+.port-desc-text {
+  margin: 0 0 8px;
+  font-size: 0.84rem;
+  color: var(--ink);
+}
+
+.monsoon-banner-box {
+  background-color: rgba(46, 79, 134, 0.12);
+  border-left: 3px solid var(--azurite);
+  padding: 6px 8px;
+  margin-bottom: 8px;
+  border-radius: 2px;
+}
+
+.monsoon-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.82rem;
+  color: var(--azurite);
+}
+
+.latin-inline {
+  font-family: var(--font-latin);
+  font-style: italic;
+  font-size: 0.76rem;
+}
+
+.monsoon-sub {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+}
+
+.market-digest-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.digest-box {
+  padding: 6px 8px;
+  border-radius: 3px;
+  border: 1px solid var(--deep-gold);
+  background-color: rgba(255, 250, 238, 0.55);
+}
+
+.digest-box.cheap-box {
+  border-left: 3px solid var(--malachite);
+}
+
+.digest-box.dear-box {
+  border-left: 3px solid var(--vermilion);
+}
+
+.digest-label {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--ink-muted);
+}
+
+.digest-val {
+  font-size: 0.8rem;
+  color: var(--ink);
+}
+
+.rumour-slip {
+  background-color: rgba(182, 64, 44, 0.12);
+  border: 1px solid var(--vermilion);
+  padding: 5px 8px;
+  border-radius: 3px;
+  font-size: 0.78rem;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rumour-badge {
+  background-color: var(--vermilion);
+  color: #FFF8EB;
+  padding: 1px 5px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.overview-action-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scroll-action-btn {
+  min-height: 48px;
+  width: 100%;
+  padding: 7px 10px;
+  background-color: rgba(255, 250, 238, 0.75);
+  border: 1.5px solid var(--deep-gold);
+  border-radius: 4px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.scroll-action-btn.primary-scroll-btn {
+  background: linear-gradient(90deg, var(--azurite) 0%, #233E6B 100%);
+  border-color: var(--gold-leaf);
+  color: #FFF8EB;
+}
+
+.scroll-action-btn.highlight-btn {
+  background: linear-gradient(90deg, var(--vermilion) 0%, #923120 100%);
+  border-color: var(--gold-leaf);
+  color: #FFF8EB;
+}
+
+.action-title {
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+
+.action-sub {
+  font-size: 0.74rem;
+  opacity: 0.88;
+}
+
+/* ==========================================================================
+   Market Subview (7 Goods & Stepper Desk)
+   ========================================================================== */
+
+.market-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.panel-heading {
+  font-size: 1rem;
+  margin: 0;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.panel-sub {
+  font-size: 0.75rem;
+  margin: 2px 0 0;
+  color: var(--ink-muted);
+}
+
+.stamp-action-btn {
+  min-height: 44px;
+  padding: 6px 10px;
+  background-color: var(--ochre);
+  color: var(--ink);
+  border: 1.5px solid var(--deep-gold);
+  border-radius: 3px;
+  font-weight: 700;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.stamp-action-btn.vermilion-stamp {
+  background-color: var(--vermilion);
+  color: #FFF8EB;
+  border-color: var(--gold-leaf);
+}
+
+.goods-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.good-row {
+  min-height: 50px;
+  width: 100%;
+  padding: 5px 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(255, 251, 240, 0.72);
+  border: 1.5px solid rgba(138, 106, 42, 0.55);
+  border-radius: 4px;
+  text-align: left;
+}
+
+.good-row.is-selected {
+  background-color: #FFF6DC;
+  border: 2px solid var(--vermilion);
+  box-shadow: inset 0 0 0 1px var(--gold-leaf);
+}
+
+.good-thumb {
+  width: 38px;
+  height: 38px;
+  border-radius: 3px;
+  object-fit: cover;
+  border: 1px solid var(--deep-gold);
+  flex-shrink: 0;
+}
+
+.good-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.good-title-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.good-name {
+  font-size: 0.86rem;
+  color: var(--ink);
+}
+
+.price-tag {
+  font-size: 0.68rem;
+  padding: 1px 6px;
+  border-radius: 2px;
+  font-weight: 700;
+}
+
+.tag-cheap {
+  background-color: var(--malachite);
+  color: #FFF9EB;
+}
+
+.tag-dear {
+  background-color: var(--vermilion);
+  color: #FFF9EB;
+}
+
+.tag-normal {
+  background-color: rgba(138, 106, 42, 0.22);
+  color: var(--ink-muted);
+}
+
+.good-meta-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  margin-top: 2px;
+}
+
+.held-badge.has-stock {
+  color: var(--azurite);
+  font-weight: 700;
+}
+
+/* Trade Desk */
+.trade-desk {
+  background-color: rgba(36, 28, 23, 0.07);
+  border: 1.5px solid var(--deep-gold);
+  border-radius: 4px;
+  padding: 8px;
+}
+
+.trade-desk-top {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.trade-desk-art {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  border: 1.5px solid var(--deep-gold);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.trade-desk-summary h3 {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.trade-desk-summary h3 small {
+  font-family: var(--font-latin);
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
+.desk-desc {
+  margin: 2px 0 4px;
+  font-size: 0.74rem;
+  color: var(--ink-muted);
+  line-height: 1.3;
+}
+
+.desk-price-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.75rem;
+}
+
+.stepper-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.stepper-btn,
+.stamp-preset {
+  min-width: 44px;
+  min-height: 44px;
+  background-color: var(--parchment-light);
+  border: 1.5px solid var(--deep-gold);
+  border-radius: 3px;
+  font-weight: 700;
+  font-size: 0.84rem;
+  color: var(--ink);
+}
+
+.stepper-readout {
+  flex: 1;
+  min-height: 44px;
+  background-color: #FFFDF7;
+  border: 1.5px solid var(--deep-gold);
+  border-radius: 3px;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 3px;
+  padding: 4px;
+}
+
+.qty-num {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--vermilion);
+}
+
+.qty-unit {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.trade-commit-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.trade-commit-btn {
+  min-height: 46px;
+  border-radius: 4px;
+  padding: 5px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  border: 1.5px solid var(--gold-leaf);
+}
+
+.trade-commit-btn.buy-btn {
+  background-color: var(--malachite);
+  color: #FFF9EB;
+}
+
+.trade-commit-btn.sell-btn {
+  background-color: var(--vermilion);
+  color: #FFF9EB;
+}
+
+.trade-commit-btn small {
+  font-size: 0.72rem;
+  font-weight: 500;
+  opacity: 0.92;
+}
+
+/* ==========================================================================
+   Dock Subview
+   ========================================================================== */
+
+.dock-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.dock-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px;
+  background-color: rgba(255, 250, 238, 0.72);
+  border: 1.5px solid var(--deep-gold);
+  border-radius: 4px;
+}
+
+.dock-item-info strong {
+  display: block;
+  font-size: 0.85rem;
+}
+
+.dock-item-info p {
+  margin: 2px 0 0;
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+/* ==========================================================================
+   Letters & Brother Investigation Subview
+   ========================================================================== */
+
+.letters-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.letter-sheet {
+  background-color: var(--parchment);
+  background-size: cover;
+  background-position: center;
+  border: 2px solid var(--deep-gold);
+  border-radius: 4px;
+  padding: 12px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+}
+
+.empty-letter-box,
+.clue-tracker-box {
+  padding: 10px;
+}
+
+.letter-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.sender-portrait {
+  width: 54px;
+  height: 54px;
+  border-radius: 4px;
+  border: 2px solid var(--deep-gold);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.letter-stamp-tag {
+  display: inline-block;
+  background-color: var(--vermilion);
+  color: #FFF8EB;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 2px;
+}
+
+.letter-title {
+  margin: 2px 0;
+  font-size: 0.98rem;
+  color: var(--ink);
+}
+
+.sender-name {
+  font-size: 0.76rem;
+  color: var(--ink-muted);
+}
+
+.letter-body-text {
+  font-size: 0.85rem;
+  line-height: 1.55;
+  margin: 0 0 10px;
+  background-color: rgba(243, 233, 206, 0.86);
+  padding: 8px 10px;
+  border-left: 3px solid var(--vermilion);
+  border-radius: 2px;
+}
+
+.letter-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.letter-choice-btn {
+  min-height: 46px;
+  width: 100%;
+  padding: 8px 10px;
+  background: linear-gradient(90deg, var(--vermilion) 0%, #963220 100%);
+  color: #FFF8EB;
+  border: 1.5px solid var(--gold-leaf);
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.84rem;
+  text-align: left;
+}
+
+.clue-list {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 0.8rem;
+}
+
+.clue-found {
+  color: var(--malachite);
+  font-weight: 700;
+}
+
+.clue-missing {
+  color: var(--ink-muted);
+}
+
+/* ==========================================================================
+   Chart Table Screen (Portolan Map & Route Slip)
+   ========================================================================== */
+
+.chart-stage {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 6px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+  gap: 6px;
+}
+
+.portolan-map-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 9 / 7;
+  flex: 0 0 auto;
+  border: 2px solid var(--gold-leaf);
+  border-radius: 4px;
+  overflow: hidden;
+  background-color: #1B2838;
+}
+
+.portolan-bg {
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+
+.map-port-pin {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  min-width: 54px;
+  min-height: 46px;
+  padding: 3px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+}
+
+.pin-wax-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: var(--parchment-light);
+  border: 2.5px solid var(--lacquer);
+  box-shadow: 0 0 0 2px var(--gold-leaf);
+}
+
+.map-port-pin.is-selected-port .pin-wax-dot {
+  background-color: var(--vermilion);
+  transform: scale(1.25);
+}
+
+.ship-token-pin {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--gold-leaf);
+  background-color: var(--parchment);
+  object-fit: cover;
+}
+
+.pin-label {
+  margin-top: 2px;
+  background-color: rgba(36, 28, 23, 0.92);
+  color: var(--parchment-light);
+  border: 1px solid var(--gold-leaf);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.map-port-pin.is-selected-port .pin-label {
+  background-color: var(--vermilion);
+  color: #FFF8EB;
+}
+
+.map-port-pin.is-current-port .pin-label {
+  background-color: var(--malachite);
+  color: #FFF8EB;
+}
+
+.chart-note-slip {
+  padding: 9px 10px;
+  flex-shrink: 0;
+}
+
+.slip-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.slip-route-tag {
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+  font-weight: 700;
+}
+
+.slip-title {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.slip-title small {
+  font-family: var(--font-latin);
+  font-style: italic;
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+}
+
+.wind-fit-badge {
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.wind-good {
+  background-color: var(--malachite);
+  color: #FFF9EB;
+}
+
+.wind-bad {
+  background-color: var(--vermilion);
+  color: #FFF9EB;
+}
+
+.wind-neutral {
+  background-color: var(--ochre);
+  color: var(--ink);
+}
+
+.slip-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  background-color: rgba(36, 28, 23, 0.07);
+  padding: 5px 8px;
+  border-radius: 3px;
+  margin-bottom: 6px;
+}
+
+.slip-metrics div {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.76rem;
+}
+
+.slip-metrics span {
+  font-size: 0.68rem;
+  color: var(--ink-muted);
+}
+
+.slip-note {
+  margin: 0 0 4px;
+  font-size: 0.78rem;
+  color: var(--ink);
+}
+
+.slip-trade-hint {
+  margin: 0 0 8px;
+  font-size: 0.76rem;
+  color: var(--azurite);
+}
+
+.slip-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.35fr;
+  gap: 6px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ==========================================================================
+   Voyage & Year-End Screens
+   ========================================================================== */
+
+.voyage-stage {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px 8px calc(10px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.voyage-progress-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  flex-shrink: 0;
+}
+
+.mini-ship-token {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid var(--deep-gold);
+}
+
+.voyage-route-info {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.78rem;
+  line-height: 1.25;
+}
+
+.voyage-route-info span {
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+}
+
+.event-vignette-frame {
+  position: relative;
+  height: 150px;
+  flex-shrink: 0;
+  border: 2px solid var(--gold-leaf);
+  border-radius: 4px;
+  overflow: hidden;
+  background-color: var(--lacquer);
+}
+
+.event-vignette-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.event-vignette-caption {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 6px 10px;
+  background: linear-gradient(180deg, transparent 0%, rgba(24, 18, 14, 0.9) 100%);
+}
+
+.event-title-cn {
+  font-family: var(--font-brush);
+  font-size: 1.55rem;
+  font-weight: 400;
+  margin: 0;
+  color: var(--parchment-light);
+}
+
+.voyage-card {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.speaker-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.speaker-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 4px;
+  border: 2px solid var(--deep-gold);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.speaker-name-tag {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--vermilion);
+  margin-bottom: 2px;
+}
+
+.event-narrative-text {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.voyage-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.voyage-choice-btn {
+  min-height: 50px;
+  width: 100%;
+  padding: 7px 10px;
+  background-color: rgba(255, 251, 240, 0.88);
+  border: 1.5px solid var(--deep-gold);
+  border-left: 4px solid var(--vermilion);
+  border-radius: 4px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.choice-main {
+  font-weight: 700;
+  font-size: 0.86rem;
+  color: var(--ink);
+}
+
+.choice-sub {
+  font-size: 0.74rem;
+  color: var(--ink-muted);
+}
+
+.outcome-scroll {
+  background-color: rgba(255, 249, 235, 0.85);
+  border: 1.5px solid var(--deep-gold);
+  padding: 8px 10px;
+  border-radius: 4px;
+}
+
+.outcome-choice-echo {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--azurite);
+  margin-bottom: 4px;
+}
+
+.outcome-result-text {
+  margin: 0 0 8px;
+  font-size: 0.84rem;
+  line-height: 1.48;
+}
+
+.full-width-btn {
+  width: 100%;
+}
+
+/* ==========================================================================
+   Ledger Screen (Double-Page Manuscript Book)
+   ========================================================================== */
+
+.ledger-stage {
+  flex: 1;
+  min-height: 0;
+  background-size: cover;
+  background-position: center;
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+}
+
+.ledger-scroll-container {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background-color: rgba(234, 220, 184, 0.94);
+  border: 2px solid var(--deep-gold);
+  border-radius: 4px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ledger-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid var(--deep-gold);
+  padding-bottom: 6px;
+}
+
+.ledger-sub-label {
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+}
+
+.ledger-title {
+  font-family: var(--font-brush);
+  font-size: 1.55rem;
+  font-weight: 400;
+  margin: 0;
+}
+
+.ledger-page {
+  background-color: rgba(255, 250, 238, 0.72);
+  border: 1px solid var(--deep-gold);
+  border-radius: 3px;
+  padding: 8px;
+}
+
+.ledger-section-title {
+  font-size: 0.88rem;
+  margin: 0 0 6px;
+  color: var(--vermilion);
+  border-bottom: 1px solid rgba(138, 106, 42, 0.35);
+  padding-bottom: 3px;
+}
+
+.ledger-kv-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.kv-box {
+  background-color: rgba(255, 255, 255, 0.55);
+  padding: 5px 6px;
+  border-radius: 3px;
+  border: 1px solid rgba(138, 106, 42, 0.3);
+  display: flex;
+  flex-direction: column;
+}
+
+.kv-box span {
+  font-size: 0.68rem;
+  color: var(--ink-muted);
+}
+
+.kv-box strong {
+  font-size: 0.84rem;
+}
+
+.debt-pay-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.ledger-cargo-table {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.ledger-cargo-cell {
+  padding: 5px 7px;
+  border: 1px solid rgba(138, 106, 42, 0.35);
+  border-radius: 3px;
+  font-size: 0.76rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.ledger-cargo-cell.has-qty {
+  background-color: #FFF7E0;
+  border-color: var(--malachite);
+}
+
+.rep-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+
+.rep-badge {
+  text-align: center;
+  background-color: rgba(46, 79, 134, 0.1);
+  border: 1px solid var(--azurite);
+  border-radius: 3px;
+  padding: 3px;
+  font-size: 0.72rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.chronicle-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.78rem;
+}
+
+.chronicle-list li {
+  border-left: 2.5px solid var(--deep-gold);
+  padding-left: 7px;
+}
+
+.chron-tag {
+  font-weight: 700;
+  color: var(--azurite);
+  font-size: 0.72rem;
+}
+
+.chronicle-list p {
+  margin: 1px 0 0;
+}
+
+/* ==========================================================================
+   Ending Screen
+   ========================================================================== */
+
+.ending-stage {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px 10px calc(10px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ending-art-frame {
+  position: relative;
+  height: 210px;
+  flex-shrink: 0;
+  border: 2px solid var(--gold-leaf);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.ending-art-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ending-badge-overlay {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 10px;
+  background: linear-gradient(180deg, transparent 0%, rgba(24, 18, 14, 0.92) 100%);
+  color: var(--parchment-light);
+}
+
+.ending-seal-badge {
+  display: inline-block;
+  background-color: var(--vermilion);
+  color: #FFF8EB;
+  border: 1px solid var(--gold-leaf);
+  padding: 2px 8px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  border-radius: 2px;
+}
+
+.ending-brush-title {
+  font-family: var(--font-brush);
+  font-size: 2rem;
+  font-weight: 400;
+  margin: 4px 0 0;
+}
+
+.ending-latin {
+  font-family: var(--font-latin);
+  font-style: italic;
+  font-size: 0.82rem;
+  color: var(--gold-leaf);
+}
+
+.ending-scroll {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ending-summary,
+.ending-epilogue {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.ending-stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  background-color: rgba(36, 28, 23, 0.08);
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.ending-stats-row div {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.8rem;
+}
+
+.ending-stats-row span {
+  font-size: 0.7rem;
+  color: var(--ink-muted);
+}
+
+.ending-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Compact adjustments for 375x667 iPhone SE viewport */
+@media (max-height: 700px) {
+  .port-vignette-frame {
+    height: 92px;
+  }
+  .event-vignette-frame {
+    height: 120px;
+  }
+  .brush-title {
+    font-size: 2.6rem;
+  }
+}
