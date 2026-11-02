@@ -1,23 +1,23 @@
 {
   "status": "warning",
-  "checked_at": "2026-11-01T21:41:22Z",
+  "checked_at": "2026-11-02T04:22:56Z",
   "issues": [
     "Missing Cantonese team names (2): Deportivo A Coruna, LASK Linz"
   ],
   "sources": {
     "macau_slot": {
       "status": "healthy",
-      "last_fetch": "2026-11-01T21:41:22Z",
+      "last_fetch": "2026-11-02T04:22:56Z",
       "events_count": 24,
       "message": "Fetched 24 events"
     },
     "the_odds_api": {
       "status": "healthy",
-      "last_fetch": "2026-11-01T04:21:27Z",
-      "requests_remaining": 484,
-      "requests_used": 16,
-      "events_count": 114,
-      "message": "Successfully fetched 114 matches across 8 leagues"
+      "last_fetch": "2026-11-02T04:23:08Z",
+      "requests_remaining": 452,
+      "requests_used": 48,
+      "events_count": 108,
+      "message": "Successfully fetched 108 matches across 8 leagues"
     },
     "football_data": {
       "status": "healthy",
