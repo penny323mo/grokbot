@@ -1,6 +1,17 @@
 {
   "projects": [
     {
+      "id": "porcelain-mender",
+      "title": "鋦瓷記",
+      "subtitle": "The Porcelain Mender",
+      "category": "手作解謎",
+      "description": "1957 年油麻地街邊：你係一個鋦碗佬，拼碎片、落鋦釘，修好街坊帶嚟嘅瓷器，亦慢慢補返每件瓷器背後嘅故事。",
+      "accent": "#2F4F7F",
+      "path": "projects/porcelain-mender/",
+      "added": "2026-11-03",
+      "cover": "projects/porcelain-mender/cover/cover.webp"
+    },
+    {
       "id": "signal-ten",
       "title": "十號風球",
       "subtitle": "Signal Ten",

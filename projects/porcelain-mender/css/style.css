@@ -1,0 +1,910 @@
+/* css/style.css - Diegetic 1957 Hong Kong styling for 鋦瓷記 */
+
+:root {
+  --color-cobalt: #2F4F7F;
+  --color-amber: #E2A04A;
+  --color-brass: #B08A3E;
+  --color-felt: #CFC3A8;
+  --color-teak: #5A3B26;
+  --color-dusk: #46505E;
+  --color-paper: #EFE4CC;
+  --color-paper-shadow: #D8CCA8;
+  --color-ink: #1C1A17;
+  --color-cinnabar: #A8382C;
+  --color-lead: #36322C;
+
+  --font-serif: "Noto Serif TC", "Source Han Serif TC", "Songti TC", "STSong", "PMingLiU", "LiSong Pro", serif;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #1a1714;
+  color: var(--color-ink);
+  font-family: var(--font-serif);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+#app-container {
+  position: relative;
+  width: 100%;
+  max-width: 430px;
+  height: 100%;
+  max-height: 920px;
+  margin: 0 auto;
+  overflow: hidden;
+  background-color: var(--color-teak);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.85);
+}
+
+/* Common Screen Layout */
+.game-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+  z-index: 10;
+}
+
+.game-screen.active {
+  opacity: 1;
+  pointer-events: auto;
+  z-index: 20;
+}
+
+/* ========================================================
+   1. TITLE SCREEN
+   ======================================================== */
+#screen-title {
+  background: url('../assets/art/title_key.webp') center center / cover no-repeat;
+  justify-content: space-between;
+  padding: calc(var(--safe-top) + 24px) 24px calc(var(--safe-bottom) + 32px) 24px;
+}
+
+.title-header {
+  text-align: center;
+  padding-top: 16px;
+}
+
+.title-badge {
+  display: inline-block;
+  background: #3A2A1E;
+  color: var(--color-amber);
+  border: 1px solid var(--color-brass);
+  font-size: 15px;
+  letter-spacing: 3px;
+  padding: 5px 14px;
+  margin-bottom: 12px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+
+.title-main-cn {
+  font-size: 44px;
+  font-weight: 700;
+  color: #F8F3E6;
+  letter-spacing: 6px;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.9), 0 0 20px rgba(226, 160, 74, 0.4);
+  line-height: 1.15;
+}
+
+.title-sub-en {
+  font-size: 15px;
+  color: var(--color-paper);
+  letter-spacing: 2px;
+  margin-top: 6px;
+  text-transform: uppercase;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.9);
+}
+
+.title-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 280px;
+  margin: 0 auto;
+}
+
+.title-actions .wood-btn,
+.title-actions .wood-btn.secondary {
+  background: linear-gradient(180deg, #3A2416 0%, #22130A 100%) !important;
+  border: 2px solid #6E492B !important;
+  border-top-color: #8C5E38 !important;
+  border-bottom-color: #140A05 !important;
+  color: #D8B06B !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+  font-size: 17px !important;
+  letter-spacing: 4px !important;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.95), 0 0 2px rgba(0,0,0,0.8) !important;
+  border-radius: 2px !important;
+}
+
+.title-actions .wood-btn.primary {
+  background: linear-gradient(180deg, #6B1E13 0%, #3D0D07 100%) !important;
+  border: 2px solid #9C3825 !important;
+  border-top-color: #BD4B33 !important;
+  border-bottom-color: #200804 !important;
+  color: #F8E6C8 !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  letter-spacing: 6px !important;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255, 180, 140, 0.25) !important;
+  text-shadow: 0 2px 5px rgba(0,0,0,0.95) !important;
+}
+
+/* Diegetic Wooden / Paper Buttons */
+.wood-btn {
+  min-height: 48px;
+  padding: 12px 20px;
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  color: var(--color-ink);
+  background: var(--color-paper);
+  border: 2px solid var(--color-brass);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.4);
+  border-radius: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s ease, filter 0.1s ease;
+  position: relative;
+}
+
+.wood-btn:active {
+  transform: translateY(2px);
+  filter: brightness(0.92);
+}
+
+.wood-btn.primary {
+  background: #E5D5B5;
+  border-color: #8C6228;
+  color: #171410;
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.wood-btn.secondary {
+  background: rgba(239, 228, 204, 0.92);
+  font-size: 16px;
+}
+
+.wood-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(0.8);
+}
+
+/* ========================================================
+   2. MAIN WORKBENCH SCREEN
+   ======================================================== */
+#screen-game {
+  background: url('../assets/art/bench.webp') center center / cover no-repeat;
+  justify-content: space-between;
+}
+
+/* Top Diegetic Bar: Calendar, Ledger, Staples, Mute */
+.diegetic-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: calc(var(--safe-top) + 8px) 14px 8px 14px;
+  background: #3A2A1E;
+  border-bottom: 2px solid var(--color-brass);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  z-index: 50;
+}
+
+.calendar-widget {
+  background: var(--color-paper);
+  border: 1px solid #BFA980;
+  box-shadow: 1px 2px 6px rgba(0,0,0,0.4);
+  padding: 4px 10px;
+  border-radius: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 68px;
+  cursor: pointer;
+}
+
+.calendar-year {
+  font-size: 15px;
+  color: var(--color-cinnabar);
+  letter-spacing: 1px;
+  line-height: 1.1;
+  font-weight: 600;
+}
+
+.calendar-day-num {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-ink);
+  line-height: 1.1;
+}
+
+.calendar-label {
+  font-size: 15px;
+  color: #555;
+  line-height: 1.1;
+}
+
+.topbar-right-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.staple-tin-widget {
+  background: #4A3525;
+  border: 1px solid var(--color-brass);
+  color: #EFE4CC;
+  padding: 6px 10px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+}
+
+.staple-icon-mini {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.ledger-btn-widget {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 6px 12px;
+  font-size: 15px;
+  background: var(--color-paper);
+  border: 1px solid var(--color-brass);
+  color: var(--color-ink);
+  font-weight: 600;
+  border-radius: 2px;
+  cursor: pointer;
+  box-shadow: 1px 2px 5px rgba(0,0,0,0.4);
+}
+
+.mute-btn-widget {
+  min-width: 44px;
+  min-height: 44px;
+  background: var(--color-paper);
+  border: 1px solid var(--color-brass);
+  color: var(--color-ink);
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ========================================================
+   3. STAGE CONTAINERS ON WORKBENCH
+   ======================================================== */
+.stage-panel {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 10px 16px;
+}
+
+#stage-customer {
+  justify-content: flex-start;
+  padding: 8px 14px calc(var(--safe-bottom) + 8px) 14px;
+  overflow: hidden;
+}
+
+/* Stage 1: Customer Arrival & Negotiation */
+.day-vignette-banner {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  height: 96px;
+  max-height: 96px;
+  margin-bottom: 8px;
+  border-radius: 3px;
+  overflow: hidden;
+  border: 2px solid var(--color-teak);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  flex-shrink: 0;
+}
+
+.day-vignette-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.85);
+  display: block;
+}
+
+.day-vignette-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(28, 26, 23, 0.95) 0%, rgba(28, 26, 23, 0.6) 70%, rgba(28, 26, 23, 0) 100%);
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.day-vignette-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-amber);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+  line-height: 1.25;
+}
+
+.day-vignette-desc {
+  font-size: 15px;
+  color: var(--color-paper);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+  line-height: 1.2;
+}
+
+.customer-card {
+  width: 100%;
+  max-width: 360px;
+  background: rgba(239, 228, 204, 0.96);
+  border: 2px solid var(--color-teak);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  border-radius: 3px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.customer-card-header {
+  display: flex;
+  gap: 14px;
+  padding: 10px 12px;
+  background: #E5D5B5;
+  border-bottom: 1px solid #C4B08A;
+}
+
+.customer-portrait-frame {
+  width: 68px;
+  height: 90px;
+  border: 2px solid var(--color-teak);
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  background: #222;
+}
+
+.customer-portrait-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.customer-info-meta {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.customer-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-ink);
+  letter-spacing: 1px;
+}
+
+.customer-role {
+  font-size: 15px;
+  color: #63503D;
+  margin-top: 2px;
+}
+
+.customer-piece-badge {
+  display: inline-block;
+  background: var(--color-cobalt);
+  color: #EFE4CC;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 2px;
+  margin-top: 4px;
+  align-self: flex-start;
+}
+
+.dialogue-scroll-box {
+  padding: 8px 12px;
+  flex: 1 1 auto;
+  min-height: 50px;
+  overflow-y: auto;
+  font-size: 15px;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--color-paper);
+}
+
+.dialogue-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.dialogue-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 3px;
+  border: 1px solid var(--color-brass);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.dialogue-speaker {
+  font-weight: 700;
+  color: var(--color-cinnabar);
+  flex-shrink: 0;
+}
+
+.dialogue-text {
+  color: var(--color-ink);
+}
+
+.negotiation-action-box {
+  padding: 8px 12px;
+  background: #EFE4CC;
+  border-top: 1px solid #D5C7A5;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.inquiry-btn {
+  min-height: 44px;
+  padding: 8px 12px;
+  background: #E3D3B1;
+  border: 1px dashed var(--color-teak);
+  color: var(--color-ink);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.pricing-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.price-option-btn {
+  min-height: 44px;
+  padding: 10px 14px;
+  background: var(--color-paper);
+  border: 1px solid var(--color-brass);
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-ink);
+  cursor: pointer;
+  text-align: left;
+  border-radius: 2px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.price-option-btn:active {
+  background: #DFD0AF;
+}
+
+/* ========================================================
+   4. TACTILE CRAFT STAGES (Stages 2-6)
+   ======================================================== */
+.workbench-canvas-wrapper {
+  position: relative;
+  width: 360px;
+  height: 360px;
+  max-width: 90vw;
+  max-height: 90vw;
+  margin: 0 auto;
+}
+
+#craft-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+.craft-hud-banner {
+  width: 100%;
+  max-width: 360px;
+  background: #3A2A1E;
+  color: #EFE4CC;
+  border: 2px solid var(--color-brass);
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 2px;
+  margin-bottom: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+}
+
+.craft-controls-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  max-width: 360px;
+  margin-top: 12px;
+}
+
+/* Bow Drill Rhythm Widget */
+.bow-drill-container {
+  width: 100%;
+  max-width: 340px;
+  background: #3A2A1E;
+  border: 2px solid var(--color-brass);
+  padding: 14px;
+  border-radius: 4px;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.bow-stroke-track {
+  position: relative;
+  width: 100%;
+  height: 28px;
+  background: #25211B;
+  border: 1px solid #5A4E3D;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.bow-stroke-target {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 100%;
+  background: rgba(226, 160, 74, 0.35);
+  border-left: 2px solid var(--color-amber);
+  border-right: 2px solid var(--color-amber);
+}
+
+.bow-stroke-cursor {
+  position: absolute;
+  top: 2px;
+  left: 10%;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #F4E8D0;
+  border: 2px solid var(--color-brass);
+  box-shadow: 0 0 8px #E2A04A;
+  transform: translateX(-50%);
+}
+
+.drill-tap-btn {
+  width: 100%;
+  min-height: 52px;
+  background: #966C31;
+  border: 2px solid #E2A04A;
+  color: #EFE4CC;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  border-radius: 4px;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+}
+
+.drill-tap-btn:active {
+  transform: translateY(2px);
+  filter: brightness(1.2);
+}
+
+/* Water Test Animation */
+.water-test-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ========================================================
+   5. SETTLEMENT / HAND BACK SCREEN
+   ======================================================== */
+.settlement-card {
+  width: 100%;
+  max-width: 360px;
+  background: var(--color-paper);
+  border: 2px solid var(--color-teak);
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settlement-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-ink);
+  text-align: center;
+  border-bottom: 2px solid var(--color-brass);
+  padding-bottom: 8px;
+}
+
+.settlement-quote {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--color-lead);
+  font-style: italic;
+  background: rgba(226, 160, 74, 0.15);
+  padding: 10px 12px;
+  border-left: 3px solid var(--color-brass);
+}
+
+.settlement-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 15px;
+  background: #E5D5B5;
+  padding: 10px 12px;
+  border-radius: 2px;
+}
+
+.settlement-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.settlement-row.highlight {
+  font-weight: 700;
+  color: var(--color-cinnabar);
+  border-top: 1px dashed var(--color-teak);
+  padding-top: 4px;
+}
+
+#btn-secondary-job {
+  word-break: keep-all;
+  white-space: normal;
+  line-height: 1.35;
+  font-size: 15px;
+  padding: 10px 14px;
+}
+
+/* ========================================================
+   6. MODAL SCREENS (Ledger, Chapter, Credits, Endings)
+   ======================================================== */
+.modal-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(18, 14, 11, 0.88);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: calc(var(--safe-top) + 20px) 16px calc(var(--safe-bottom) + 20px) 16px;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.modal-layer.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-content-paper {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  max-height: 90%;
+  background: var(--color-paper);
+  border: 3px solid var(--color-teak);
+  box-shadow: 0 12px 36px rgba(0,0,0,0.9);
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 2px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid var(--color-brass);
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+.modal-title {
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--color-ink);
+  letter-spacing: 2px;
+}
+
+.modal-close-btn {
+  min-width: 60px;
+  min-height: 44px;
+  background: var(--color-cinnabar);
+  border: 1px solid #781812;
+  color: #FFF2D6;
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+  transition: transform 0.1s ease, filter 0.1s ease;
+}
+
+.modal-close-btn:active {
+  transform: translateY(2px);
+  filter: brightness(0.9);
+}
+
+.modal-body-scroll {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* Ledger Table */
+.ledger-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.ledger-table th, .ledger-table td {
+  padding: 8px 6px;
+  border-bottom: 1px solid #D5C7A5;
+  text-align: left;
+}
+
+.ledger-table th {
+  background: #E5D5B5;
+  color: var(--color-ink);
+  font-weight: 700;
+}
+
+.amount-income {
+  color: #2F6B38;
+  font-weight: 600;
+}
+
+.amount-expense {
+  color: var(--color-cinnabar);
+  font-weight: 600;
+}
+
+/* Craftsman Profile in Credits */
+.craftsman-profile-card {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  background: #E5D5B5;
+  border: 2px solid var(--color-brass);
+  padding: 10px 12px;
+  border-radius: 3px;
+  margin-bottom: 12px;
+}
+
+.craftsman-avatar {
+  width: 60px;
+  height: 75px;
+  border: 1px solid var(--color-teak);
+  object-fit: cover;
+  flex-shrink: 0;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.craftsman-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.craftsman-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.craftsman-desc {
+  font-size: 15px;
+  color: var(--color-lead);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+/* Letter Paper View */
+.letter-sheet-view {
+  background: url('../assets/art/letter_paper.webp') center center / cover no-repeat;
+  padding: 24px 18px;
+  border: 1px solid #C4B08A;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  color: var(--color-ink);
+  font-size: 15px;
+  line-height: 1.8;
+  white-space: pre-line;
+}
+
+/* Vignette Box for Endings */
+.vignette-image-box {
+  width: 100%;
+  height: 200px;
+  border: 2px solid var(--color-teak);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.vignette-image-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

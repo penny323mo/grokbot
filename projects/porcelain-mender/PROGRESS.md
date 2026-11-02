@@ -1,0 +1,22 @@
+# PROGRESS — 鋦瓷記 The Porcelain Mender
+- 2026-11-03 01:25 (Macau): supervisor wrote SPEC, orch.json and starter art (title_key, bench, plate_01 cutout, 劉婆 portrait, cover/thumb with lettering via Pillow; ImageMagick is not installed on the box). Orchestrator launched (--rounds 3): agy codes in agy-pane, grok reviews in nightly-grok-pane.
+- 2026-11-03 01:21 (Macau): first launch inherited the Bannerline tf-* AGY_LAUNCH/DRY_PUBLISH=1 from tmux's global environment (agy-pane started grok -c, which failed in a new dir). Killed it, reset state and relaunched with explicit AGY_LAUNCH/GROK_LAUNCH (no -c) and DRY_PUBLISH=0 in .orch/config.env. agy's first prompt didn't land while the CLI booted, so it was resent by hand at 01:20; agy (Gemini 3.8 Flash) is now building.
+- 2026-11-03 02:40 (Agy): Round 1 review findings addressed and verified.
+  - Corrected centroid Shoelace formula factor in shard-generator.js and clamped scatter with >= 24px margins; all shards fit within bounds [24, 696].
+  - Replaced duplicate vignettes with unique 1957 oil paintings (ending_peaceful, ending_reunion, ending_community, jordan_pier); corrected calendar year to 1957 on landlord and cleaned Latin sign on apprentice.
+  - Implemented recordDailySettlement in economy.js; settlement income, expenses, and rent now strictly sum to the final balance.
+  - Implemented 90° rotation in rotateSelectedShard() with canonical snapping auto-alignment.
+  - Slowed bow drill oscillation to 1.6 (dwell time >= 220ms, ~350ms sweet spot); early/late strokes incur physical chipping penalties (dull clink, -10 score, canvas mini-cracks, HUD warning).
+  - Stage 6 starts with empty holes; tapping hole pairs hammers brass staple sprites one-by-one with realistic resonant noise ping; water test animated clipped to dish with leaky droplet beading.
+  - Enforced >= 15px font floor across all body elements; replaced dark glass HUD bars with teak/paper cream banners with brass trim; removed pure #FFF; made dialogue box flexible (min-height 140px).
+  - Rewrote Uncle Yip's lines in Day 1, 2, 12 to natural spoken Cantonese; corrected typo 完璧, changed 大洋 to 蚊港紙, changed 御用 to 私家大飯碗; added diverse choice shapes on pawnshop, landlord, and courier days.
+  - Enhanced procedural WebAudio: triangle friction whirr in playBowStroke, dual-resonant bandpass noise hammer in playHammerTap, valve hum and awning rain in startAmbience.
+  - Added day scene vignette headers in customer arrival panel; added secondary quick jobs on market days (Day 1 spoon, Day 7 gaiwan stand); added dynamic 3-phase letter unlocks; integrated Uncle Yip's portrait (yip_self.webp) in dialogue lines and credits craftsman card.
+  - Full test suite passing (19/19 tests); headless Chrome review screenshots captured with 0 errors across 390x844 and 375x667.
+- 2026-11-03 01:40 (Agy): Completed full implementation of 鋦瓷記 · The Porcelain Mender.
+  - Implemented 12 progressive narrative campaign days with distinct Cantonese customer dialogues, moral choices, and 4 story arcs (the pawnshop fake Ming dragon bowl, the Chaozhou refugee gongfu teapot, the teahouse enamel transition, and letters from Uncle Yip's daughter in Shantou).
+  - Built tactile 7-stage craft flow: customer negotiation, shard cleaning with cloth wipe, geometric reassembly with 28px auto-snap and rotation, staple positioning with spacing evaluation, diamond-tipped bow-drill rhythm timing, brass staple hammering, and physical water testing.
+  - Created diegetic UI with felt pad workbench, paper ledger (流水賬), torn calendar (老黃曆), brass staple tin, and warm oil-lamp atmospheric aesthetic (no emoji, no neon, no dark glass).
+  - Synthesized physical WebAudio sound system for resonant ceramic clinking, bow-drill whirr, metallic hammer pings, liquid pouring, and rain/city ambience.
+  - Generated and processed authentic museum catalogue porcelain photography, period oil-painting character portraits, and scene vignettes with Pillow under 250KB each; documented all prompts and filenames in assets/ART_REQUESTS.md.
+  - Added comprehensive test suite under tests/ (17 passing node tests) validating job integrity, asset presence, shard geometry coverage, staple spacing rules, and economy solvability.

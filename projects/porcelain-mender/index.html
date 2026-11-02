@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>鋦瓷記 · The Porcelain Mender (1957)</title>
+  <meta name="description" content="1957年油麻地街邊：你係一個鋦碗佬，拼碎片、落鋦釘，修好街坊帶嚟嘅瓷器，亦慢慢補返每件瓷器背後嘅故事。">
+  <link rel="icon" type="image/x-icon" href="./favicon.ico">
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+  <div id="app-container">
+
+    <!-- ========================================== -->
+    <!-- 1. TITLE SCREEN                            -->
+    <!-- ========================================== -->
+    <div id="screen-title" class="game-screen active">
+      <div class="title-header">
+        <div class="title-badge">一九五七 · 油麻地廟街</div>
+        <h1 class="title-main-cn">鋦瓷記</h1>
+        <div class="title-sub-en">The Porcelain Mender</div>
+      </div>
+
+      <div class="title-actions">
+        <button id="btn-start-game" class="wood-btn primary">開檔營生</button>
+        <button id="btn-continue-game" class="wood-btn secondary" style="display: none;">續做舊器</button>
+        <button id="btn-open-chapters" class="wood-btn secondary">舊事與信札</button>
+        <button id="btn-open-credits" class="wood-btn secondary">工匠誌與源流</button>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 2. GAMEPLAY SCREEN                         -->
+    <!-- ========================================== -->
+    <div id="screen-game" class="game-screen">
+      <!-- Top Diegetic Navigation Bar -->
+      <header class="diegetic-topbar">
+        <div id="widget-calendar" class="calendar-widget" title="撕曆">
+          <span class="calendar-year">一九五七</span>
+          <span id="calendar-day-text" class="calendar-day-num">初一</span>
+          <span id="calendar-lunar-text" class="calendar-label">開檔</span>
+        </div>
+
+        <div class="topbar-right-group">
+          <div class="staple-tin-widget" title="黃銅鋦釘罐">
+            <img src="./assets/art/staple_brass.webp" alt="鋦釘" class="staple-icon-mini">
+            <span id="stat-staples-count">30</span>
+          </div>
+
+          <button id="widget-ledger-btn" class="ledger-btn-widget" title="記賬簿">
+            賬簿 <span id="stat-cash-amount">$6.0</span>
+          </button>
+
+          <button id="widget-mute-btn" class="mute-btn-widget" aria-label="切換靜音">
+            <span id="mute-icon">聲</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Stage 1: Customer Dialogue Panel -->
+      <div id="stage-customer" class="stage-panel">
+        <div id="day-vignette-banner" class="day-vignette-banner">
+          <img id="day-vignette-img" src="./assets/scenes/temple_street.webp" alt="街景" class="day-vignette-img">
+          <div class="day-vignette-overlay">
+            <span id="day-vignette-title" class="day-vignette-title">第一日 · 碎玉初逢</span>
+            <span id="day-vignette-desc" class="day-vignette-desc">一九五七年暮秋 · 油麻地廟街榕樹頭</span>
+          </div>
+        </div>
+
+        <div class="customer-card">
+          <div class="customer-card-header">
+            <div class="customer-portrait-frame">
+              <img id="cust-portrait" src="./assets/people/lau.webp" alt="街坊" class="customer-portrait-img">
+            </div>
+            <div class="customer-info-meta">
+              <h2 id="cust-name" class="customer-name">劉婆</h2>
+              <div id="cust-role" class="customer-role">油麻地街坊 · 獨居老婦</div>
+              <div id="cust-piece-name" class="customer-piece-badge">青花山水紋圓盤</div>
+            </div>
+          </div>
+
+          <div id="dialogue-box" class="dialogue-scroll-box">
+            <!-- Populated dynamically -->
+          </div>
+
+          <div class="negotiation-action-box">
+            <button id="btn-inquire-story" class="inquiry-btn">話說當年：探聽器物來歷</button>
+            <div id="pricing-options" class="pricing-options-list">
+              <!-- Pricing buttons -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stage 2 to 6: Tactile Workbench Panel -->
+      <div id="stage-workbench" class="stage-panel" style="display: none;">
+        <div id="workbench-hud" class="craft-hud-banner">
+          選片拭灰：輕按散落瓷片，拂去塵污
+        </div>
+
+        <div class="workbench-canvas-wrapper">
+          <canvas id="craft-canvas" width="720" height="720"></canvas>
+          <div id="water-anim-layer" class="water-test-overlay"></div>
+        </div>
+
+        <!-- Dynamic Craft Controls Bar -->
+        <div id="craft-controls" class="craft-controls-bar">
+          <button id="btn-rotate-shard" class="wood-btn secondary" style="display: none; min-width: 44px; min-height: 44px;">
+            ⟲ 轉向
+          </button>
+          <button id="btn-proceed-stage" class="wood-btn primary" style="display: none;">
+            下一步
+          </button>
+          <button id="btn-wipe-paste" class="wood-btn secondary" style="display: none;">
+            抹糯米灰封口
+          </button>
+          <button id="btn-water-test" class="wood-btn primary" style="display: none;">
+            注入清水試漏
+          </button>
+        </div>
+
+        <!-- Bow Drill Rhythm Sub-panel (Stage 5) -->
+        <div id="bow-drill-panel" class="bow-drill-container" style="display: none;">
+          <div style="font-size: 15px; color: var(--color-paper); font-weight: 600;">拉動皮弓 · 當準星居中時點擊打眼</div>
+          <div class="bow-stroke-track">
+            <div class="bow-stroke-target"></div>
+            <div id="bow-cursor" class="bow-stroke-cursor"></div>
+          </div>
+          <button id="btn-drill-stroke" class="drill-tap-btn">拉弓鑽眼</button>
+        </div>
+      </div>
+
+      <!-- Stage 7: Settlement & Hand-Back Panel -->
+      <div id="stage-settlement" class="stage-panel" style="display: none;">
+        <div class="settlement-card">
+          <div class="settlement-title">交件結算 · 街坊迴響</div>
+          <div id="settlement-quote" class="settlement-quote">
+            「真係滴水不漏！連裂縫都摸唔出棱角，葉伯你呢手金剛鑽真係神乎其技！」
+          </div>
+          <div class="settlement-breakdown">
+            <div class="settlement-row">
+              <span>修瓷工資收入：</span>
+              <span id="settle-income" class="amount-income">+$2.0</span>
+            </div>
+            <div class="settlement-row">
+              <span>黃銅鋦釘耗材：</span>
+              <span id="settle-staples-used">-4 枚</span>
+            </div>
+            <div class="settlement-row">
+              <span>每日米糧藥茶開銷：</span>
+              <span class="amount-expense">-$1.5</span>
+            </div>
+            <div id="settle-rent-row" class="settlement-row" style="display: none;">
+              <span>本週地租繳交：</span>
+              <span id="settle-rent-amount" class="amount-expense">-$12.0</span>
+            </div>
+            <div id="settle-sidejob-row" class="settlement-row" style="display: none;">
+              <span id="settle-sidejob-label">街坊急修粗瓷匙羹：</span>
+              <span id="settle-sidejob-amount" class="amount-income">+$1.0</span>
+            </div>
+            <div class="settlement-row highlight">
+              <span>檔口現銀結餘：</span>
+              <span id="settle-balance">$6.5</span>
+            </div>
+          </div>
+
+          <button id="btn-secondary-job" class="wood-btn secondary" style="display: none; width: 100%; margin-top: 4px;">
+            街坊急件：順手修補瓷羹
+          </button>
+          <button id="btn-next-day" class="wood-btn primary">收檔歸家 · 翻過撕曆</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 3. MODALS (Ledger, Chapters, Credits, End) -->
+    <!-- ========================================== -->
+    <!-- Modal: Ledger (賬簿) -->
+    <div id="modal-ledger" class="modal-layer">
+      <div class="modal-content-paper">
+        <div class="modal-header">
+          <div class="modal-title">油麻地攤檔流水賬（時序記賬）</div>
+          <button id="btn-close-ledger" class="modal-close-btn" aria-label="關閉">關閉</button>
+        </div>
+        <div class="modal-body-scroll">
+          <table class="ledger-table">
+            <thead>
+              <tr>
+                <th>日子</th>
+                <th>事由摘要</th>
+                <th>收支</th>
+                <th>銀底</th>
+              </tr>
+            </thead>
+            <tbody id="ledger-records-body">
+              <!-- Dynamically populated rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Chapters & Letters (舊事與信札) -->
+    <div id="modal-chapters" class="modal-layer">
+      <div class="modal-content-paper">
+        <div class="modal-header">
+          <div class="modal-title">歲月信札與往事</div>
+          <button id="btn-close-chapters" class="modal-close-btn" aria-label="關閉">關閉</button>
+        </div>
+        <div class="modal-body-scroll">
+          <div class="letter-sheet-view" id="letter-content-display">
+            父親大人膝下：
+            兒在汕頭安好，見字如面。
+            聞得父親在香江油麻地設檔鋦瓷，萬望保重腰眼目力。
+            香江潮濕多雨，老寒腿切莫受涼。
+            家中一切粗安，妹已在小學入讀二年級。
+            隨信奉上昔年家中所用瓷匙，願雙親安泰，骨肉有期。
+
+            女 阿娟 拜上
+          </div>
+          <div style="font-size: 15px; color: var(--color-lead); margin-top: 10px; font-weight: 600;">
+            【章節跳轉】已解鎖天數點擊可重遊：
+          </div>
+          <div id="chapters-nav-list" style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <!-- Day buttons -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Credits (工匠誌與源流) -->
+    <div id="modal-credits" class="modal-layer">
+      <div class="modal-content-paper">
+        <div class="modal-header">
+          <div class="modal-title">工匠誌 · 鋦瓷技藝源流</div>
+          <button id="btn-close-credits" class="modal-close-btn" aria-label="關閉">關閉</button>
+        </div>
+        <div class="modal-body-scroll" style="font-size: 15px; line-height: 1.65;">
+          <div class="craftsman-profile-card">
+            <img src="./assets/people/yip_self.webp" alt="葉秉衡 葉伯" class="craftsman-avatar">
+            <div class="craftsman-meta">
+              <div class="craftsman-name">葉秉衡（葉伯 · 1898–）</div>
+              <div class="craftsman-desc">潮州庵埠鋦瓷名匠 · 一九五〇年避難南來香港 · 油麻地廟街立檔修瓷</div>
+            </div>
+          </div>
+
+          <p><strong>【何謂鋦瓷】</strong><br>
+          「沒有金剛鑽，別攬瓷器活」。鋦瓷乃華夏古老修復技藝，源遠流長。匠人以金剛鑽拉弓在碎瓷兩側鑽出毫釐淺孔（深不及半，不可鑽透），嵌扣黃銅或熟鐵螞蝗釘，抹以糯米灰封口，使得殘瓷滴水不漏，化殘缺為大美。</p>
+          
+          <p><strong>【一九五七年之香江】</strong><br>
+          一九五〇年代的香港油麻地廟街，聚集了大量南來難民。在廉價塑膠與沖壓搪瓷普及之前，百姓珍惜物力，破盆碎碗皆倚重街頭鋦碗佬。本故事獻給那些在離亂時代以雙手縫補歲月微光的平凡匠人。</p>
+
+          <p><strong>【製作與致謝】</strong><br>
+          設計與劇本：Antigravity Agentic Team<br>
+          字體：Noto Serif TC / 思源宋體<br>
+          音效：WebAudio API 物理程序合成（高Q值陶瓷諧振、摩擦阻尼與金屬敲擊模擬）<br>
+          圖像：AI輔助油畫風格歷史重構及博物館典藏瓷器攝影</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Narrative Ending Screen -->
+    <div id="modal-ending" class="modal-layer">
+      <div class="modal-content-paper">
+        <div class="modal-header">
+          <div id="ending-modal-title" class="modal-title">終章 · 薪火相傳</div>
+        </div>
+        <div class="modal-body-scroll">
+          <div class="vignette-image-box">
+            <img id="ending-vignette-img" src="./assets/scenes/ending_reunion.webp" alt="結局插畫">
+          </div>
+          <div id="ending-modal-text" style="line-height: 1.8; font-size: 15px;">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+        <div style="margin-top: 14px;">
+          <button id="btn-restart-game" class="wood-btn primary" style="width: 100%;">重開檔口 · 再續前緣</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
