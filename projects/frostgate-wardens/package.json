@@ -1,0 +1,9 @@
+{
+  "name": "frostgate-wardens",
+  "version": "1.0.0",
+  "description": "霜門守望 · Frostgate Wardens - Portrait iPhone TD",
+  "scripts": {
+    "test": "node tests/index.js"
+  },
+  "type": "module"
+}

@@ -1,6 +1,17 @@
 {
   "projects": [
     {
+      "id": "frostgate-wardens",
+      "title": "霜門守望",
+      "subtitle": "Frostgate Wardens",
+      "category": "塔防遊戲",
+      "description": "冰川山道上嘅奇幻塔防：五種可升級嘅箭塔，英雄技能同每波預覽，五張戰役地圖加無盡模式，手指一撳就守住霜門。",
+      "accent": "#2F8F9D",
+      "path": "projects/frostgate-wardens/",
+      "added": "2026-11-04",
+      "cover": "projects/frostgate-wardens/cover/cover.webp"
+    },
+    {
       "id": "porcelain-mender",
       "title": "鋦瓷記",
       "subtitle": "The Porcelain Mender",

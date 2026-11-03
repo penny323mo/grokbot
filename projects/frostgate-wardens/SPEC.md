@@ -1,0 +1,59 @@
+# 霜門守望 · Frostgate Wardens — SPEC
+
+Nightly 2026-11-04 (Macau). A portrait-iPhone fantasy tower-defence game, static web (HTML/CSS/JS + canvas, no build step required; relative paths), deploys under grokbot `projects/frostgate-wardens/`. All user-facing text in Traditional Chinese, natural spoken Cantonese for tips, tutorial and hero lines (short, varied; no templates that only swap names/numbers). Written for 390×844 portrait first (also 375×667 and 430×932), iPhone Safari first.
+
+## Reference (Penny's request, 2026-11-03 12:07)
+Modelled on the gameplay of **Crown & Breach: Tower Defense** (https://www.crazygames.com/game/crown-breach-ksv): fantasy TD, roads leading to a castle, 5 tower types with gold upgrades and sell, hero abilities that cost gold (tap a target, then tap Summon), a Start button for each wave with a next-wave preview, pause and speed controls, drag to pan and pinch to zoom, a 2-wave tutorial, a 5-map campaign plus Endless mode, progress saved locally, touch flow "tap the ground to preview, then Build/Cancel". We take only these mechanics and flow. **Everything else is original: world, names, units, art, UI, sound, text.** Never copy its art, names or assets, never hot-link it.
+
+## Variety proof (vs last 5 nightlies)
+| | Tonight: 霜門守望 | 鋦瓷記 (11-03) | 十號風球 (11-01) | 季風帆影 (10-31) | 百草堂 (10-30) | 夜峠 (10-29) |
+|---|---|---|---|---|---|---|
+| Type | real-time tower defence | craft puzzle + story | forecasting sim | trade sim | shop puzzle/management | 3D racing |
+| Setting | invented fantasy glacier kingdom | 1957 Yau Ma Tei | 1962 HK Observatory | 1600 Macau | 1931 Guangzhou | night mountain road |
+| Style | matte low-poly 3D clay diorama, pre-rendered isometric | oil painting | period charts/paper | painted screen | ink/period | night 3D neon-lit |
+| Interaction | build/upgrade/aim, pan+pinch, fast real-time | slow staged craft taps | read + decide | choose routes | read + choose | steer/drift |
+| Palette | glacier teal, ice, indigo, saffron, ember coral | cobalt, amber, teak | slate, red | ochre, indigo | brown | black/orange |
+No Hong Kong/Macau nostalgia, no painterly look, no slow craft-story.
+
+## Fiction (original, short)
+The mountain pass of **霜門 Frostgate** is the only road into the Glacier Realm. The 焰裔 (Emberkin: goblin-like raiders, rock giants, wyverns, shamans) march up from the thawing south. You command the Wardens: build towers on the plots beside the road and call the hero 霜衛長 (Frost Warden, a stern woman with a banner-lance; invent a name) to hold the gate through 5 regions. Tone: bright, adventurous, a little wry. No gore.
+Regions (each a distinct biome in the same low-poly look, same palette family): 1 霜門山道 (snow pass, tutorial 2 waves then a full 10-wave level); 2 凍湖 (frozen lake, ice-bridge crossings, 2 roads merging); 3 杉林 (fir forest, long switchback); 4 焰口邊境 (volcanic border, coral rock, fire geysers); 5 王冠要塞 → name it 北辰堡 (final citadel, two routes, boss waves). 10–15 waves each, 3 stars by castle HP kept.
+Endless mode: pick any unlocked map; waves escalate forever with seeded variation; best wave stored locally.
+
+## Core mechanics
+- Castle HP (lives ~20), gold, wave counter. **Start wave** button for every wave (player decides when); optional "call next wave early" bonus gold. **Next-wave preview**: row of enemy icons with counts and type tags (flying / armoured / healer) before pressing Start.
+- Speed 1×/2×/3× toggle, pause (also pauses audio), restart, quit to map select; pause menu simple.
+- **Pan and zoom**: the battlefield is larger than the viewport (about 1.4–1.8× portrait height); one-finger drag pans (with inertia and bounds), two-finger pinch zooms (clamped), double-tap resets. Taps vs drags must be distinguished (movement threshold ≥ 8px); never build on a pan release.
+- **Five towers** (all original, each with 3 upgrade levels via gold; level 3 offers a choice of two branches; sell for 70%):
+  1. 弩塔 Crossbow: fast single target, hits air and ground; branch: 穿甲 piercing / 連弩 volley.
+  2. 石炮 Stone Mortar: slow splash vs ground only; branch: 巨石 bigger blast / 碎裂 cluster.
+  3. 霜晶塔 Frost Spire: slows and chills (chain), hits air + ground; branch: 凍結 freeze chance / 寒潮 wider aura.
+  4. 守衛營 Guard Post: spawns 1–3 guards who block and fight on the road (respawn); branch: 盾衛 tanky / 長槍 damage.
+  5. 戰鐘塔 Bell Tower: no damage; buffs nearby towers (damage/range/rate) and periodically stuns; branch: 號令 stronger buff / 震鐘 bigger stun.
+  Show range ring, DPS, cost, upgrade cost on a **bottom dock** (flat enamel panel, big buttons, not a stack of cards).
+- **Touch build flow**: tap a build plot or free ground cell → ghost preview + range ring + a dock with five tower buttons (≥ 48px) and Build / Cancel; selecting a tower previews it, tapping Build places it; tapping a built tower opens Upgrade / Sell / branch choice. Plots must be forgiving (snap to nearest plot within ~40px of screen space, at all zoom levels).
+- **Hero** 霜衛長: placed by tap on the road (move command via tap), 2–3 abilities costing gold: 暴雪 Blizzard (area slow + damage over time), 援軍 Reinforcements (summon 3 guards at a tapped point), 烽火 Beacon (burst damage line or heal castle). Flow identical to the reference: choose ability, tap the target on the map (preview circle), then tap the 施放 / Summon confirm button; cooldown ring + gold cost; unlock by campaign progress.
+- **Enemies** (≥ 8 original, readable silhouettes, health bars thin): 焰兵 runner, 盾兵 armoured, 岩巨人 slow tank, 烈焰飛龍 flyer, 薩滿 healer, 爆燃蟲 swarm, 隱匿者 fast, region bosses (one per region, with a named intro).
+- **Tutorial** (2 waves): dim-free highlight pointer (a soft saffron ring + one short Cantonese line at a time), teaches: pan/zoom, tap ground → build crossbow → Start wave, upgrade, hero ability, speed. Skippable; auto-marks complete.
+- Progress and settings saved in localStorage (unlocked regions, stars, best endless wave, mute, speed); "continue" works after reload.
+- Balance must be tested: a headless simulation (node) must prove each campaign level is winnable with a sensible build and not trivially winnable with nothing; Endless gets harder every wave; economy never NaN.
+
+## Art Direction (VISUAL QUALITY IS #1)
+Look: **matte low-poly 3D clay diorama, pre-rendered isometric (3/4 view)**, soft ambient occlusion, gentle depth, crisp faceted shapes, a calm tilt-shift feel, clean readable silhouettes. References (study, don't copy): **Bad North** (low-poly isometric landscapes), **Monument Valley / Townscaper** (colour discipline), **Kingdom Rush** (HUD clarity and unit readability). Not painterly, not oil, not neon, not dark glass.
+Palette: ice #DDEBF2, glacier teal #2F8F9D, deep indigo #1B2447, slate blue #46608A, fir green #2D5A4A, stone #B9AE9C, road gold #D9B87A, saffron #E8B04A (banners, highlights, buttons), ember coral #E2563A (enemies only + warnings), ivory #F4EFE2 (UI paper), ink #14183A. No pure black/white.
+Type: system CJK stack `"PingFang TC","Noto Sans TC","Noto Sans CJK TC",system-ui,sans-serif`, weights 500/700, bold numerals for gold/HP; self-host nothing heavy. Optional title lettering pre-rendered as art (starter cover has it).
+UI: flat enamel panels in ivory and indigo with a thin saffron rule, large rounded-corner tap targets, icons drawn/rendered in the same clay style (tower icons = rendered sprites, never emoji), no card stacks, no glass, no gradients-for-the-sake-of-it. Safe-area aware (notch/home bar). HUD top: castle shield + HP, gold coin + amount, wave n/N, pause; bottom dock contextual.
+**Art production (real tools only)** — pipeline that already works on this box: **Blender 5.2.3 headless** (`blender -b -P script.py`, EEVEE, verified here) to render low-poly models to PNG. Use it for tower sprites (5 towers × 3 levels, plus build plots and ghost), enemy sprite sheets (8 directions or 4 + mirror, 4–6 walk frames; resolution ~128px per frame, trimmed, packed into webp atlases), hero, projectiles, and the **region battle maps**: model the terrain with the road in Blender, render the full map from the fixed isometric camera (e.g. 1536×2304 or similar, webp ≤ 450 KB each), and export waypoints, plot positions and buildable areas from the same scene through `world_to_camera_view` into JSON, so the road in the picture and the path data can never disagree. A node test must check every waypoint and plot lies inside the map image and (by sampling the road colour) on the road/near the road. Also available: the shell's image generator is NOT available to agy; if you need AI art (title key art, hero portrait, region splash) it is on disk already: `assets/art/title_key.{jpg,webp}` (9:16 key art, STYLE REFERENCE) and `assets/art/style_board.{jpg,webp}` (towers + enemies + road, style reference), plus `cover.webp` 780×1040 and `thumb.webp` (with lettering, done). Pillow is installed (ImageMagick is not). Keep total assets reasonable (< 12 MB), lazy-load per region.
+If Blender rendering of a given asset fails after ~15 minutes, fall back for that asset only to high-craft layered canvas drawing in the same palette and faceted style (flat-shaded polygons with consistent top-left light), never placeholder circles/rectangles or emoji, and note it in PROGRESS.md.
+Sound: WebAudio synthesised, designed not beeps (bow-twang, thud, frost chime, bell, coin, hero stinger), an unobtrusive looping ambient (wind) and mute toggle; start audio only after the first tap (iOS). Optionally CC0 samples (credit them).
+
+## Quality gates
+- 390×844, 375×667 and 430×932: no overflow, no clipped text, tap targets ≥ 44px (ideally 48), body text ≥ 14px, contrast ≥ 4.5:1, safe-area padding, no pull-to-refresh/overscroll bounce, no text selection or long-press callout, `touch-action: none` on the canvas, prevent double-tap zoom page.
+- Performance: canvas at devicePixelRatio ≤ 2, ≥ 55 fps on desktop Chrome with 40 enemies, ≥ 30 fps with 4× CPU throttle; no per-frame allocation storms; preload with a polished loading screen.
+- Content: ≥ 5 maps playable start to finish, 10+ waves each, varied wave compositions (not just scaled numbers), tower and enemy names/descriptions natural in Cantonese.
+- tests/ (node): path/plot data integrity and asset existence, economy never NaN, tower DPS/upgrade tables monotonic, wave definitions valid, a headless sim proving winnability and difficulty ordering, save/load round trip.
+
+## Review gate (every grok review)
+- Serve locally and drive it in headless Chrome via puppeteer-core in /workspace/nightly/shotkit (chrome /usr/bin/google-chrome, --no-sandbox) at 390×844 (DPR 2, isMobile, hasTouch) AND 375×667; use real touch events (touchscreen tap, drag, and a two-finger pinch via CDP Input.dispatchTouchEvent). Play the tutorial, build every tower type, upgrade, sell, use a hero ability, change speed, pause, pan, zoom, finish map 1 (use 3× speed), and open endless. Screenshot every distinct screen to screenshots/review-<r>/ and LOOK at them.
+- Strict visual and layout pass: block SHIP on amateur art, placeholder circles/rectangles/emoji, inconsistent style between towers/enemies/maps, unreadable enemies, overflowing/clipped text, tiny tap targets, janky pan/zoom, taps that build by accident, 404s, console errors, sprites not on the road, towers not matching the palette, UI that looks generic, dark glass/neon.
+- Score Art, UI/Layout, Playfeel (touch), Balance/Depth, Content/Writing, Audio, Flow, Perf each /100. SHIP only if all ≥ 90.

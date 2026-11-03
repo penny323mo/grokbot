@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>霜門守望 · Frostgate Wardens</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%232F8F9D'/><polygon points='16,4 20,16 16,28 12,16' fill='%23DDEBF2'/></svg>">
+    <style>
+        :root {
+            --ice: #DDEBF2;
+            --glacier-teal: #2F8F9D;
+            --deep-indigo: #1B2447;
+            --slate-blue: #46608A;
+            --fir-green: #2D5A4A;
+            --stone: #B9AE9C;
+            --road-gold: #D9B87A;
+            --saffron: #E8B04A;
+            --ember-coral: #E2563A;
+            --ivory: #F4EFE2;
+            --ink: #14183A;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--deep-indigo);
+            color: var(--ivory);
+            font-family: "PingFang TC", "Noto Sans TC", "Noto Sans CJK TC", system-ui, sans-serif;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        #app-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 480px;
+            margin: 0 auto;
+            overflow: hidden;
+            background-color: var(--ink);
+            display: flex;
+            flex-direction: column;
+        }
+
+        canvas#game-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+
+        /* Top HUD */
+        #hud-top {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: max(10px, env(safe-area-inset-top)) 12px 8px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(180deg, rgba(20, 24, 58, 0.92) 0%, rgba(20, 24, 58, 0.6) 80%, rgba(20, 24, 58, 0) 100%);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .hud-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            pointer-events: auto;
+        }
+
+        .hud-pill {
+            background-color: rgba(27, 36, 71, 0.88);
+            border: 1.5px solid var(--saffron);
+            border-radius: 16px;
+            padding: 4px 10px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 700;
+            font-size: 15px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            white-space: nowrap;
+        }
+
+        @keyframes tutorialPulse {
+            0% { box-shadow: 0 0 0 0 rgba(232, 176, 74, 0.7); transform: scale(1); }
+            50% { box-shadow: 0 0 16px 8px rgba(232, 176, 74, 0.9); transform: scale(1.05); }
+            100% { box-shadow: 0 0 0 0 rgba(232, 176, 74, 0.7); transform: scale(1); }
+        }
+
+        .tutorial-target-glow {
+            animation: tutorialPulse 1.2s infinite ease-in-out !important;
+            border-color: var(--saffron) !important;
+            position: relative;
+            z-index: 45 !important;
+        }
+
+        .hud-pill.hp {
+            border-color: var(--ember-coral);
+            color: var(--ice);
+        }
+
+        .hud-pill.gold {
+            border-color: var(--saffron);
+            color: var(--saffron);
+        }
+
+        .hud-pill.wave {
+            border-color: var(--glacier-teal);
+            color: var(--ivory);
+            font-size: 14px;
+        }
+
+        .btn-hud {
+            background-color: rgba(27, 36, 71, 0.9);
+            border: 1.5px solid var(--saffron);
+            border-radius: 16px;
+            color: var(--ivory);
+            padding: 6px 12px;
+            font-weight: 700;
+            font-size: 14px;
+            min-height: 44px;
+            min-width: 44px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-hud:active {
+            transform: scale(0.95);
+            background-color: var(--slate-blue);
+        }
+
+        /* Bottom Contextual Dock */
+        #bottom-dock {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 10px 12px max(14px, env(safe-area-inset-bottom)) 12px;
+            background-color: var(--ivory);
+            color: var(--ink);
+            border-top: 3px solid var(--saffron);
+            border-radius: 18px 18px 0 0;
+            box-shadow: 0 -4px 18px rgba(0,0,0,0.4);
+            z-index: 10;
+        }
+
+        /* Default Dock */
+        .dock-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .hero-bar-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: var(--ice);
+            border-radius: 12px;
+            padding: 6px 10px;
+            border: 1px solid var(--glacier-teal);
+        }
+
+        .hero-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .hero-name {
+            font-weight: 700;
+            color: var(--deep-indigo);
+            font-size: 14px;
+        }
+
+        .hero-hp-track {
+            width: 72px;
+            height: 5px;
+            background-color: var(--slate-blue);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        #hero-hp-bar {
+            height: 100%;
+            background-color: var(--glacier-teal);
+            width: 100%;
+        }
+
+        .hero-abilities {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-ability {
+            position: relative;
+            background-color: var(--deep-indigo);
+            border: 2px solid var(--saffron);
+            border-radius: 12px;
+            color: var(--ivory);
+            padding: 4px 8px;
+            min-height: 48px;
+            min-width: 48px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .btn-ability:active {
+            transform: scale(0.95);
+        }
+
+        .btn-ability .ability-title {
+            font-weight: 700;
+            font-size: 14px;
+            z-index: 2;
+        }
+
+        .btn-ability .ability-cost {
+            font-size: 14px;
+            color: var(--saffron);
+            font-weight: 700;
+            z-index: 2;
+        }
+
+        .cd-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 0%;
+            background-color: rgba(0, 0, 0, 0.65);
+            z-index: 1;
+            transition: height 0.1s linear;
+        }
+
+        /* Wave action row */
+        .wave-action-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .preview-list {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            flex: 1;
+        }
+
+        .preview-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background-color: rgba(27, 36, 71, 0.08);
+            border-radius: 8px;
+            padding: 2px 6px;
+            font-size: 12px;
+        }
+
+        .preview-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .preview-badge {
+            font-weight: 700;
+            color: var(--deep-indigo);
+        }
+
+        .preview-tag {
+            font-size: 14px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background-color: var(--ember-coral);
+            color: var(--ivory);
+        }
+
+        .btn-start-wave {
+            background-color: var(--saffron);
+            color: var(--ink);
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 15px;
+            padding: 10px 16px;
+            min-height: 48px;
+            cursor: pointer;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+            white-space: nowrap;
+        }
+
+        .btn-start-wave:active {
+            transform: scale(0.96);
+            background-color: #d69f3d;
+        }
+
+        .btn-start-wave:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Build Dock */
+        .tower-select-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+
+        .btn-tower-pick {
+            background-color: var(--ice);
+            border: 2px solid var(--slate-blue);
+            border-radius: 12px;
+            padding: 6px 4px;
+            min-width: 62px;
+            min-height: 64px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .btn-tower-pick.active {
+            border-color: var(--saffron);
+            background-color: #fff9ea;
+            box-shadow: 0 0 0 2px var(--saffron);
+        }
+
+        .tower-pick-icon {
+            width: 32px;
+            height: 32px;
+        }
+
+        .tower-pick-name {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--deep-indigo);
+        }
+
+        .tower-pick-cost {
+            font-size: 11px;
+            font-weight: 700;
+            color: #9b6c16;
+        }
+
+        .build-details {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            font-size: 12px;
+            color: var(--ink);
+        }
+
+        .action-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .btn-action {
+            flex: 1;
+            padding: 10px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 14px;
+            min-height: 48px;
+            cursor: pointer;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-saffron {
+            background-color: var(--saffron);
+            color: var(--ink);
+        }
+
+        .btn-indigo {
+            background-color: var(--deep-indigo);
+            color: var(--ivory);
+        }
+
+        .btn-coral {
+            background-color: var(--ember-coral);
+            color: var(--ivory);
+        }
+
+        .btn-cancel {
+            background-color: #e4ded0;
+            color: var(--ink);
+        }
+
+        /* Branch choice row */
+        .branch-choice-row {
+            display: flex;
+            gap: 6px;
+            width: 100%;
+        }
+
+        .btn-branch {
+            flex: 1;
+            background-color: #fff8e8;
+            border: 2px solid var(--saffron);
+            border-radius: 10px;
+            padding: 6px 8px;
+            text-align: left;
+            font-size: 14px;
+            min-height: 52px;
+            cursor: pointer;
+        }
+
+        .btn-branch:active {
+            background-color: var(--saffron);
+            color: var(--ink);
+        }
+
+        .max-level-badge {
+            font-weight: 700;
+            color: var(--glacier-teal);
+            padding: 6px 0;
+            font-size: 13px;
+        }
+
+        /* Tutorial Banner */
+        #tutorial-overlay {
+            position: absolute;
+            top: 60px;
+            left: 12px;
+            right: 12px;
+            background-color: var(--ivory);
+            color: var(--ink);
+            border: 2px solid var(--saffron);
+            border-radius: 14px;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 20;
+        }
+
+        .tutorial-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .tutorial-title {
+            font-weight: 700;
+            color: #9b6c16;
+            font-size: 14px;
+        }
+
+        #tutorial-text {
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+
+        .btn-skip {
+            background: none;
+            border: 1.5px solid var(--stone);
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #555;
+            cursor: pointer;
+            white-space: nowrap;
+            min-height: 44px;
+            min-width: 84px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Modals */
+        .modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(20, 24, 58, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 100;
+        }
+
+        .modal-card {
+            background-color: var(--ivory);
+            color: var(--ink);
+            border: 3px solid var(--saffron);
+            border-radius: 20px;
+            padding: 20px;
+            max-width: 360px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--deep-indigo);
+        }
+
+        .modal-quote {
+            font-style: italic;
+            background-color: #ede7d8;
+            padding: 10px 12px;
+            border-radius: 10px;
+            color: #444;
+            font-size: 13px;
+        }
+
+        .star-row {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            font-size: 32px;
+            color: #ccc;
+        }
+
+        .star-icon.active {
+            color: var(--saffron);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Title / Region select overlay */
+        #title-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--deep-indigo);
+            z-index: 50;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .title-hero {
+            position: relative;
+            width: 100%;
+            height: 220px;
+            overflow: hidden;
+        }
+
+        .title-hero img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .title-content {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .region-card {
+            background-color: rgba(255, 255, 255, 0.08);
+            border: 1.5px solid var(--slate-blue);
+            border-radius: 14px;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            min-height: 54px;
+        }
+
+        .region-card:active {
+            background-color: rgba(232, 176, 74, 0.2);
+            border-color: var(--saffron);
+        }
+
+        .region-card.locked {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .region-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            text-align: left;
+        }
+
+        .region-name {
+            font-weight: 700;
+            font-size: 15px;
+            color: var(--ice);
+        }
+
+        .region-stars {
+            color: var(--saffron);
+            font-size: 14px;
+        }
+
+        .locked-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--ice);
+            font-size: 14px;
+        }
+
+        .btn-primary-large {
+            background-color: var(--saffron);
+            color: var(--ink);
+            font-size: 17px;
+            font-weight: 700;
+            border: none;
+            border-radius: 14px;
+            padding: 14px;
+            min-height: 52px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .btn-primary-large:active {
+            transform: scale(0.97);
+        }
+
+        /* Loading Screen */
+        #loading-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--deep-indigo);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            z-index: 200;
+            color: var(--ice);
+        }
+
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 4px solid var(--slate-blue);
+            border-top-color: var(--saffron);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <!-- Canvas -->
+        <canvas id="game-canvas"></canvas>
+
+        <!-- Top HUD -->
+        <div id="hud-top">
+            <div class="hud-group">
+                <div class="hud-pill hp">
+                    <img src="assets/ui/icon_shield.png" width="18" height="18" alt="生命" style="vertical-align:middle; display:inline-block;">
+                    <span id="hud-hp">20</span>
+                </div>
+                <div class="hud-pill gold">
+                    <img src="assets/ui/icon_coin.png" width="18" height="18" alt="金幣" style="vertical-align:middle; display:inline-block;">
+                    <span id="hud-gold">350</span>
+                </div>
+                <div class="hud-pill wave">
+                    <span>波次</span>
+                    <span id="hud-wave">1/10</span>
+                </div>
+            </div>
+            <div class="hud-group">
+                <button id="btn-speed" class="btn-hud" aria-label="切換速度">1×</button>
+                <button id="btn-pause" class="btn-hud" aria-label="暫停"><img src="assets/ui/icon_pause.png" width="16" height="16" alt="暫停" style="vertical-align:middle; display:inline-block;"></button>
+            </div>
+        </div>
+
+        <!-- Tutorial Overlay -->
+        <div id="tutorial-overlay" class="hidden">
+            <div class="tutorial-content">
+                <div class="tutorial-title">✦ 霜衛長指引</div>
+                <div id="tutorial-text">喂，新嚟㗎？手指撳住地下可以拖動視角，雙指可以放大縮小睇清楚。</div>
+            </div>
+            <button id="btn-skip-tutorial" class="btn-skip">跳過教學</button>
+        </div>
+
+        <!-- Bottom Contextual Dock -->
+        <div id="bottom-dock">
+            <!-- Default Context (Hero abilities & Start Wave) -->
+            <div id="dock-default" class="dock-panel">
+                <div class="hero-bar-row">
+                    <div class="hero-info">
+                        <div class="hero-name">艾瑞卡 · 霜衛長</div>
+                        <div class="hero-hp-track">
+                            <div id="hero-hp-bar"></div>
+                        </div>
+                    </div>
+                    <div class="hero-abilities">
+                        <button id="btn-ab-blizzard" class="btn-ability" aria-label="暴雪技能">
+                            <div class="ability-title">暴雪</div>
+                            <div class="ability-cost">45G</div>
+                            <div class="cd-overlay"></div>
+                        </button>
+                        <button id="btn-ab-reinf" class="btn-ability" aria-label="援軍技能">
+                            <div class="ability-title">援軍</div>
+                            <div class="ability-cost">30G</div>
+                            <div class="cd-overlay"></div>
+                        </button>
+                        <button id="btn-ab-beacon" class="btn-ability" aria-label="烽火技能">
+                            <div class="ability-title">烽火</div>
+                            <div class="ability-cost">60G</div>
+                            <div class="cd-overlay"></div>
+                        </button>
+                    </div>
+                </div>
+                <div class="wave-action-row">
+                    <div id="wave-preview-list" class="preview-list"></div>
+                    <button id="btn-start-wave" class="btn-start-wave">開始波次</button>
+                </div>
+                <div id="early-call-hint" style="display:none; font-size:11px; color:#9b6c16; text-align:right;">
+                    ⚡ 提前開波可獲額外金幣獎勵
+                </div>
+            </div>
+
+            <!-- Build Dock -->
+            <div id="dock-build" class="dock-panel hidden">
+                <div id="tower-select-row" class="tower-select-row"></div>
+                <div class="build-details">
+                    <strong id="build-tower-name">弩塔</strong>
+                    <span id="build-tower-desc">射速快，對空對地皆可</span>
+                </div>
+                <div class="action-row">
+                    <button id="btn-confirm-build" class="btn-action btn-saffron">建造 (100G)</button>
+                    <button id="btn-cancel-build" class="btn-action btn-cancel">取消</button>
+                </div>
+            </div>
+
+            <!-- Built Tower Inspect Dock -->
+            <div id="dock-tower" class="dock-panel hidden">
+                <div class="build-details">
+                    <strong id="inspect-tower-name">輕型弩塔 (等級 1)</strong>
+                    <span id="inspect-tower-stats">傷害 18 | 射程 190 | 攻速 0.8s</span>
+                </div>
+                <div id="upgrade-container"></div>
+                <div class="action-row">
+                    <button id="btn-sell-tower" class="btn-action btn-coral">變賣 (+70G)</button>
+                    <button id="btn-close-tower" class="btn-action btn-cancel">關閉</button>
+                </div>
+            </div>
+
+            <!-- Ability Targeting Dock -->
+            <div id="dock-ability" class="dock-panel hidden">
+                <div class="build-details">
+                    <strong id="ability-name">點選路面施放目標</strong>
+                    <span id="ability-desc">在大範圍造成冰暴減速與傷害</span>
+                </div>
+                <div class="action-row">
+                    <button id="btn-confirm-ability" class="btn-action btn-saffron">施放</button>
+                    <button id="btn-cancel-ability" class="btn-action btn-cancel">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pause Modal -->
+        <div id="modal-pause" class="modal hidden">
+            <div class="modal-card">
+                <div class="modal-title">戰役暫停</div>
+                <button id="btn-resume" class="btn-action btn-saffron">繼續戰鬥</button>
+                <button id="btn-modal-mute" class="btn-action btn-indigo">音效：開啟</button>
+                <button id="btn-restart" class="btn-action btn-indigo">重新開始此關</button>
+                <button id="btn-quit-map" class="btn-action btn-cancel">返回地圖選擇</button>
+            </div>
+        </div>
+
+        <!-- Victory Modal -->
+        <div id="modal-victory" class="modal hidden">
+            <div class="modal-card">
+                <div class="modal-title">守衛成功！</div>
+                <div id="victory-stars" class="star-row">
+                    <span class="star-icon active">★</span>
+                    <span class="star-icon active">★</span>
+                    <span class="star-icon active">★</span>
+                </div>
+                <div id="victory-quote" class="modal-quote">贏得好乾脆！霜門山道固若金湯！</div>
+                <button id="btn-next-level" class="btn-action btn-saffron">下一區域</button>
+                <button id="btn-victory-replay" class="btn-action btn-cancel">重玩本關</button>
+            </div>
+        </div>
+
+        <!-- Defeat Modal -->
+        <div id="modal-defeat" class="modal hidden">
+            <div class="modal-card">
+                <div class="modal-title" style="color:var(--ember-coral);">霜門失守！</div>
+                <div id="defeat-quote" class="modal-quote">頂唔住呀！防線火力唔夠均勻，重整旗鼓再來！</div>
+                <button id="btn-defeat-retry" class="btn-action btn-coral">重新挑戰</button>
+                <button id="btn-defeat-quit" class="btn-action btn-cancel">返回地圖選擇</button>
+            </div>
+        </div>
+
+        <!-- Endless Map Picker Modal -->
+        <div id="modal-endless-picker" class="modal hidden">
+            <div class="modal-card">
+                <div class="modal-title">選擇無盡防守戰場</div>
+                <div id="endless-map-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+                <button id="btn-close-endless-picker" class="btn-action btn-cancel">返回主頁</button>
+            </div>
+        </div>
+
+        <!-- Title & Region Select Screen -->
+        <div id="title-screen">
+            <div class="title-hero">
+                <img src="assets/art/cover.webp" alt="霜門守望封面">
+            </div>
+            <div class="title-content">
+                <h1 style="font-size:22px; color:var(--ivory); text-align:center;">霜門守望 · Frostgate Wardens</h1>
+                <p style="text-align:center; color:var(--ice); font-size:14px; line-height:1.5; padding:0 8px; word-break:keep-all;">
+                    冰川山道奇幻塔防：建防禦塔、施展霜衛長技能，阻截焰裔南侵！
+                </p>
+
+                <!-- Regions -->
+                <div id="region-list" style="display:flex; flex-direction:column; gap:8px;">
+                    <div class="region-card" data-region="1">
+                        <div class="region-info">
+                            <div class="region-name">第 1 區域：霜門山道</div>
+                            <div class="region-stars" id="region-1-stars">★★★</div>
+                        </div>
+                        <button class="btn-hud">出征</button>
+                    </div>
+
+                    <div class="region-card locked" data-region="2">
+                        <div class="region-info">
+                            <div class="region-name">第 2 區域：凍湖冰橋</div>
+                            <div class="region-stars"><span class="locked-badge"><img src="assets/ui/icon_lock.png" width="14" height="14" alt="未解鎖" style="vertical-align:middle; display:inline-block; margin-right:3px;">未解鎖</span></div>
+                        </div>
+                    </div>
+
+                    <div class="region-card locked" data-region="3">
+                        <div class="region-info">
+                            <div class="region-name">第 3 區域：冷杉林道</div>
+                            <div class="region-stars"><span class="locked-badge"><img src="assets/ui/icon_lock.png" width="14" height="14" alt="未解鎖" style="vertical-align:middle; display:inline-block; margin-right:3px;">未解鎖</span></div>
+                        </div>
+                    </div>
+
+                    <div class="region-card locked" data-region="4">
+                        <div class="region-info">
+                            <div class="region-name">第 4 區域：焰口邊境</div>
+                            <div class="region-stars"><span class="locked-badge"><img src="assets/ui/icon_lock.png" width="14" height="14" alt="未解鎖" style="vertical-align:middle; display:inline-block; margin-right:3px;">未解鎖</span></div>
+                        </div>
+                    </div>
+
+                    <div class="region-card locked" data-region="5">
+                        <div class="region-info">
+                            <div class="region-name">第 5 區域：北辰堡</div>
+                            <div class="region-stars"><span class="locked-badge"><img src="assets/ui/icon_lock.png" width="14" height="14" alt="未解鎖" style="vertical-align:middle; display:inline-block; margin-right:3px;">未解鎖</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="btn-endless-mode" class="btn-primary-large" style="margin-top:6px;">
+                    無盡防守
+                </button>
+
+                <div style="display:flex; justify-content:center; gap:12px; margin-top:8px;">
+                    <button id="btn-open-credits" class="btn-hud" style="font-size:14px;">製作名單</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Credits Modal -->
+        <div id="modal-credits" class="modal hidden">
+            <div class="modal-card">
+                <div class="modal-title">製作名單</div>
+                <div style="text-align:left; font-size:14px; line-height:1.8; color:var(--ink);">
+                    <p>《霜門守望》為微縮低多邊形黏土風格直屏塔防作品。本作所有戰場場景、防禦塔工事、各類焰裔兵種與英雄單位均以黏土微縮沙盤建模精心雕琢，配合原創程序音效與道地粵語指引，致力呈現純粹而具深度之冰川要塞守望之戰。</p>
+                </div>
+                <button id="btn-close-credits" class="btn-action btn-saffron">關閉</button>
+            </div>
+        </div>
+
+        <!-- Loading Screen -->
+        <div id="loading-screen">
+            <div class="spinner"></div>
+            <div style="font-weight:700; font-size:16px;">正在佈置霜門防線...</div>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>
