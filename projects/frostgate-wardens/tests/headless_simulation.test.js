@@ -60,11 +60,11 @@ export function runHeadlessSimulationTests() {
                     }
                 }
                 for (const tw of game.towers) {
-                    const tDef = TOWERS[tw.type];
-                    if (tw.level === '1' && tDef.levels['2'] && game.gold >= tDef.levels['2'].cost) {
+                    const curLvlDef = TOWERS[tw.type].levels[tw.level];
+                    if (tw.level === '1' && curLvlDef && game.gold >= curLvlDef.upgradeCost) {
                         game.upgradeTower(tw.plotId);
                         break;
-                    } else if (tw.level === '2' && tDef.levels['3a'] && game.gold >= tDef.levels['3a'].cost) {
+                    } else if (tw.level === '2' && curLvlDef && game.gold >= curLvlDef.upgradeCost) {
                         game.upgradeTower(tw.plotId, '3a');
                         break;
                     }
@@ -178,8 +178,8 @@ export function runHeadlessSimulationTests() {
             // Position hero at strategic choke point
             if (reg.id === 5) {
                 // Near Citadel confluence
-                winGame.hero.x = 764;
-                winGame.hero.y = 518;
+                winGame.hero.x = 512;
+                winGame.hero.y = 581;
             } else {
                 const midIdx = Math.floor(mapData.waypoints.length / 2);
                 winGame.hero.x = mapData.waypoints[midIdx].x;
@@ -189,8 +189,8 @@ export function runHeadlessSimulationTests() {
             // Fixed initial build with starting 350 gold
             if (reg.id === 5) {
                 winGame.buildTower(8, 'crossbow'); // 100
-                winGame.buildTower(9, 'frost');    // 110
-                winGame.buildTower(6, 'mortar');   // 125 -> total 335
+                winGame.buildTower(6, 'crossbow'); // 100
+                winGame.buildTower(7, 'mortar');   // 125 -> total 325
             } else if (reg.id === 2) {
                 winGame.buildTower(mapData.plots[0].id, 'crossbow'); // 100
                 winGame.buildTower(mapData.plots[2].id, 'crossbow'); // 100
@@ -220,7 +220,7 @@ export function runHeadlessSimulationTests() {
                         if (changed) continue;
 
                         // Build expansion towers on empty plots
-                        const plotOrder = reg.id === 5 ? [7, 4, 5, 2, 3, 0, 1] : mapData.plots.map(p => p.id);
+                        const plotOrder = reg.id === 5 ? [10, 11, 4, 5, 2, 3, 0, 1] : mapData.plots.map(p => p.id);
                         for (const pid of plotOrder) {
                             if (!winGame.towers.some(tw => tw.plotId === pid)) {
                                 const nextType = pid % 2 === 0 ? 'crossbow' : 'mortar';

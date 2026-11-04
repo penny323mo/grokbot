@@ -54,6 +54,7 @@ async function bootstrap() {
 
         const rect = canvas.getBoundingClientRect();
         camera = new Camera(rect.width, rect.height, mapData.width, mapData.height);
+        camera.frameBounds(mapData, 16, false);
         window.camera = camera;
 
         let waves = isEndless ? generateEndlessWaves() : getRegionWaves(regionId);
@@ -190,10 +191,14 @@ async function bootstrap() {
             activeUI.destroy();
             activeUI = null;
         }
+        sounds.resume();
         document.getElementById('modal-pause').classList.add('hidden');
         document.getElementById('modal-victory').classList.add('hidden');
         document.getElementById('modal-defeat').classList.add('hidden');
         titleScreen.classList.remove('hidden');
+        const app = document.getElementById('app-container');
+        if (app) app.scrollLeft = 0;
+        window.scrollTo(0, 0);
         updateRegionCardsUI();
         activeGame = null;
     }
@@ -248,7 +253,7 @@ function updateRegionCardsUI() {
                 for (let s = 1; s <= 3; s++) starStr += (s <= stars ? '★' : '☆');
                 starEl.textContent = starStr;
             } else {
-                starEl.innerHTML = '<span class="locked-badge"><img src="assets/ui/icon_lock.png" width="14" height="14" alt="未解鎖" style="vertical-align:middle; display:inline-block; margin-right:3px;">未解鎖</span>';
+                starEl.innerHTML = '<span class="locked-badge"><img src="assets/ui/icon_lock.png" width="22" height="22" alt="未解鎖" style="vertical-align:middle; display:inline-block; margin-right:3px;">未解鎖</span>';
             }
         }
     }

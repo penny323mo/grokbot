@@ -159,6 +159,7 @@ export class UIController {
             sounds.unlock();
             this.game.startWave();
             this.updateNextWavePreview();
+            if (this.camera) this.camera.autoFrame(400);
 
             if (this.tutorialActive && CANTONESE_TUTORIAL[this.tutorialStep]?.id === 'start_wave') {
                 this.advanceTutorial();

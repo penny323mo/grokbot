@@ -37,9 +37,10 @@ class SoundManager {
     }
 
     unlock() {
+        this.isPaused = false;
         if (!this.initialized) {
             this.init();
-        } else if (this.ctx && this.ctx.state === 'suspended' && !this.isPaused) {
+        } else if (this.ctx && this.ctx.state === 'suspended') {
             this.ctx.resume();
         }
     }

@@ -96,3 +96,96 @@
   - Published final Castle HP across all 5 regions: Region 1 (20/20 HP), Region 2 (4/20 HP), Region 3 (10/20 HP), Region 4 (13/20 HP), and Region 5 (5/20 HP). All 5 cleared with Castle HP > 0.
 - **Pure Traditional Chinese Credits Card (MINOR #7)**:
   - Replaced mixed English tool names in the credits modal (`#modal-credits`) with a single, elegant Traditional Chinese paragraph describing the low-poly matte clay art style, procedural audio synthesis, and authentic Cantonese voice guidance.
+
+## Round 4 fixes - 2026-11-05 02:15 (Macau)
+### Fixed & Improved
+- **Camera Universal Framing & Auto-Framing (CRITICAL #1)**:
+  - Completely re-architected `Camera.frameBounds(boundsOrMap, padding, animate)` to automatically compute the usable screen rectangle (`viewport - HUD 56px - dock 136px`) and fit the full route (all spawns, roads, keep, and plots) within the player's opening view on 390×844, 375×667, and 430×932 viewports without initial panning.
+  - Implemented `autoFrame(duration = 400)` with smooth cubic ease-in-out at the start of each wave and on double-tap reset.
+  - Upgraded pinch-zoom to pivot around finger midpoint (`pinchMidX`, `pinchMidY`) with seamless touch-count transitions, inertia dragging, and clean tap detection (`dragDist < 8px && !wasPinching`).
+  - Added new master test suite `tests/camera_framing.test.js` validating numerical route containment across all 5 maps on 390×844, 375×667, and 430×932 (passing 6/6 test suites).
+- **Blender 5-Map Re-render Matching Title Key Art (CRITICAL #2)**:
+  - Aligned isometric camera along the canyon axis (`rotation_z_deg = 0.0°`, `elevation_deg = 40.0°`, `ortho_scale = 22.0`), expanding vertical road span from 298px to ~905px (spanning ~60% of vertical viewport, eliminating all empty grey slabs).
+  - Modeled deep indigo/teal sky backdrops (`#1B2447` to `#2F8F9D`) with jagged alpine mountain peaks framing the horizon behind each castle keep.
+  - Distinct biomes modeled across all 5 maps:
+    - Region 1 (霜門山道): Glacial pass with 65+ fir trees, faceted ice crags in blue-white/glacier teal/indigo, stone curbs, roadside braziers, and grand castle keep with teal conical spires and saffron banners.
+    - Region 2 (凍湖冰橋): Frozen lake with ice sheets, open water fissures, raised wooden pier bridges carrying two approach routes into a central causeway.
+    - Region 3 (冷杉林道): Dense alpine fir forest with 85+ trees, 3-tier winding switchbacks, timber curbs, and forest fortress keep.
+    - Region 4 (焰口邊境): Volcanic border with dark obsidian/basalt terrain, glowing molten magma fissures (`ember_coral` / `ember_glow` with emission), and dark fortress battlements.
+    - Region 5 (北辰堡): Grand Royal Citadel with dual approach routes ascending stone terraces, curb parapets, bastion towers, and central royal keep with triple soaring spires.
+  - Exported all waypoints and plot coordinates via `world_to_camera_view` into `assets/maps/map<1..5>.json`; converted all images to WebP (24–40 KB, well within 450 KB limit).
+  - Strictly verified with `scripts/verify_road_colors.py` (100% of waypoints on road gold band, all plots within <= 20px).
+- **Sprite Readability & Ground Contact Shadows (CRITICAL #3)**:
+  - Added soft ground contact shadows beneath all ground enemy units and bosses on the road surface, ensuring sharp contrast and separation from snow and road textures.
+  - Verified runner silhouettes at >30 css px and bosses at >60 css px at opening zoom with thin high-contrast red health bars and floating damage numbers.
+  - Hero Erika and guard units clearly distinguished with heraldic banner-lances and blue/saffron uniforms.
+- **High-Contrast Legible HUD Icons (CRITICAL #4)**:
+  - Generated high-resolution 64×64 clay diorama icons for `#btn-pause`, `#btn-speed`, HP shield, gold coin, and lock badges.
+  - Upgraded HUD `#btn-pause` with a bold, unmistakable 22px ivory pause bars icon with saffron bevel on indigo, accompanied by clear text label 「暫停」 inside a >=44px tap target.
+  - Cleaned `#btn-speed` text to bold `1×` / `2×` / `3×` without line breaks; upgraded HP shield and gold coin icons to 22px.
+- **Audio, Win/Lose Screens & Multi-Region Verification (CRITICAL #5 & #6)**:
+  - Validated WebAudio pipeline in headless Chrome: AudioContext reaches `running` on tap, all 10 sound functions (`playBow`, `playMortar`, `playFrost`, `playBell`, `playCoin`, `playBuild`, `playHero`, `playVictory`, `playLeak`, `playDefeat`) execute cleanly, mute toggles gain to 0, pause suspends, resume restarts.
+  - Verified Defeat modal (`#modal-defeat`) with authentic Cantonese defeat barks, retry and map select buttons.
+  - Verified Victory modal (`#modal-victory`) with 3 gold stars, victory barks, replay and next level buttons.
+  - Executed full headless browser test suite (`scripts/verify_round_4.cjs`) capturing 20+ DPR-2 screenshots at 390×844 and 375×667 with 0 console errors and 0 network failures.
+
+## Round 5 fixes - 2026-11-05 04:05 (Macau)
+### Fixed & Improved
+- **Camera Universal Opening Frame & Keep Spire Visibility (CRITICAL #1)**:
+  - Recomputed `Camera.extractBounds()` and `minZoom`: added explicit padding above the castle keep (`castle_pos.y - 250`) and below spawn mouths (`maxY + 55`), ensuring all spires, fluttering banners, defensive gates, full routes, and spawn points are 100% visible inside the usable screen area between HUD (80px) and bottom dock (170px) on 390×844, 375×667, and 430×932 viewports.
+  - Added animated spawn arrival portals (pulsing ember-coral rune + saffron ring) with directional marching chevrons pointing down the path, providing clear visual spawn cues.
+  - Updated `tests/camera_framing.test.js` to strictly assert that padded keep tops (`castle_pos.y - 140`) and spawn mouths (`spawn_pos.y + 48`) are contained within `usableRect` across all 5 maps on all mobile viewports (6/6 tests passing).
+- **High-Fidelity 1600×2400 Battle Maps Matching `title_key.webp` (CRITICAL #2)**:
+  - Re-rendered all 5 region maps at 1600×2400 (aspect 2:3) with zero black voids: expanded terrain base plates (`80×80`) and sky backdrops (`80×40`), framing the canyon between multi-tiered faceted mountain peaks with snowy caps.
+  - Scaled the central keep complex so the highest spire tip is at `Z = 5.8` (`screen Y = 54`), keeping all towers and banners safely below the top HUD on opening frame.
+  - Enriched each map with 50–75 snowy fir trees in natural groves, strictly filtered by `is_clear_of_road_and_plots` to ensure no tree obscures road waypoints or building plots.
+  - Enhanced distinct biome terrain: wooden bridge pilings on Map 2, dense switchback groves on Map 3, glowing molten magma fissures on Map 4, ramparts & citadel bastions on Map 5.
+  - Converted all maps to WebP (72–120 KB, well within 450 KB limit); `scripts/verify_road_colors.py` passes 100% across all 5 maps.
+- **Tower & Hero Readability at Mobile Scale (MAJOR #3)**:
+  - Redesigned crossbow tower model with stepped stone plinth, level medallion badge, flared teal pavilion canopy, and golden finial matching `style_board.webp`.
+  - Added tower ground contact shadows and high-contrast level crest badges on tower bases (bronze for ★1, silver for ★2, gold for ★3A/★3B with bold centered typography).
+  - Added glowing glacier-teal & saffron heroic aura ring under Erika's feet and enlarged hero lance silhouette.
+- **AudioContext Lifecycle on Return to Title (MAJOR #4)**:
+  - Updated `sounds.unlock()` in `src/audio.js` to ensure `isPaused = false`.
+  - Added `sounds.resume()` in `returnToTitleScreen()` (`src/main.js`), ensuring audio playback resumes seamlessly when quitting battle to title and re-entering regions.
+- **Pause Button & Top HUD Layout on 375px Screens (MINOR #5)**:
+  - Compacted `#hud-top` pill padding (`4px 6px`) and gaps (`4px/6px`), and set `#btn-pause` `min-width: 76px`, fitting the entire top HUD within 342px without wrapping on 375px iPhone SE.
+  - Added `overflow-x: hidden` to `#app-container` and reset `appContainer.scrollLeft = 0` on returning to title screen, eliminating horizontal scroll artifacts.
+  - Upgraded lock badge icon size to `22×22` across all locked region cards.
+- **Title Screen Cover Layout on iPhone SE (MINOR #6)**:
+  - Set `.title-hero` with `height: 240px; min-height: 220px; flex-shrink: 0`, preventing flex compression on 375×667 viewports.
+- **Region 5 Headless Clear HP Proof (MINOR #7)**:
+  - Optimized Region 5 simulation opener in `tests/headless_simulation.test.js` to clear cleanly with 15/20 HP and 1150 gold remaining.
+
+## Round 6 fixes - 2026-11-05 (Macau)
+### Fixed & Improved
+- **Battle Map Art Overhaul & Zero Black Voids (CRITICAL #1)**:
+  - Root cause diagnosed and eliminated: Blender's dark grey world background showed through empty space when rays missed geometry. Added Blender `SkyWorld` with luminous daylight alpine sky background `#A6CEF0` (strength 1.0) and daylight fill light so shadows are soft icy azure, never black voids.
+  - Built continuous faceted low-poly mountain ridges (`build_faceted_mountain_flank`) stretching along both flanks (`steps_y = 20, min_y = -14.0, max_y = 12.0, base_dist = 5.2, crest_dist = 14.0, max_z = 7.5`), framing all routes in alpine crags matching `title_key.webp` and `style_board.webp`.
+  - Distinct biome landmarks enriched across all 5 maps:
+    - Region 1 (霜門山道): Glacial pass with snow-dusted firs, braziers, watchtowers, stone curbs, and grand castle keep with teal spires and saffron finials.
+    - Region 2 (凍湖冰橋): Frozen turquoise lake with cracked ice plates, wooden trestle bridge railings and piers across two converging causeways.
+    - Region 3 (冷杉林道): Alpine fir switchback canyon with wooden timber retaining curbs along every bend.
+    - Region 4 (焰口邊境): Volcanic basalt canyon with glowing molten magma fissures (emission strength 6.0) and dark fortress keep.
+    - Region 5 (北辰堡): Royal citadel approach with dual grand avenues, defensive bastions with teal conical roofs, stone parapets, and triple fortress spires.
+  - All maps re-rendered at 1600×2400 and converted to WebP (48–70 KB, well under 450 KB limit).
+  - `scripts/verify_road_colors.py` 100% verified across all 5 maps.
+- **Hero Knight Commander Redesign & Legibility (MAJOR #2)**:
+  - Replaced the cyan silhouette with a handcrafted low-poly Knight Commander miniature matching `title_key.webp`:
+    - Gleaming silver plate armor with golden frost-star emblem and belt buckle.
+    - Tiered golden pauldrons on both shoulders.
+    - Knightly winged great helm with golden visor slit and saffron plume.
+    - Royal blue cape positioned strictly behind her shoulders (`+Y`), lined with saffron interior.
+    - Left flank holds a heater shield with gold rim and teal frost-cross.
+    - Right hand wields a towering runic frost halberd with golden axe blade, gleaming silver spear point, and glowing cyan crystal.
+  - Rendered 4 walk frames at 256×256 (`ortho_scale = 2.7`, centered at `(0, 0, 1.25)`), and set hero render size to 110×110 world px (~48 css px on phone) with saffron ground ring.
+- **375×667 Letterboxing Elimination & Runner Scale (MAJOR #3)**:
+  - Enforced `minZoom = Math.max(vw / mw, vh / mh)` and `coverZoom` in `src/camera.js` so that `map.width * zoom >= vw` and `map.height * zoom >= vh` on every mobile viewport (zero indigo side bars).
+  - Calibrated camera center and route bounding box so that the entire route, keep roof, and spawn mouths fit inside the usable screen area between HUD (64px) and dock (148px) on 375×667.
+  - Raised enemy draw scale in `src/renderer.js` to `size * 3.6`, giving runners a 41.3 css px height on 375×667 (well above the >= 28 css px requirement).
+  - Added automated tests in `tests/camera_framing.test.js` asserting `map.width * camera.zoom >= vp.width - 0.001` and `map.height * camera.zoom >= vp.height - 0.001` across 375×667, 390×844, and 430×932.
+- **Measured Camera Chrome Margins (MINOR #4)**:
+  - Updated `src/camera.js` defaults from 80 / 170 to live measured values: `hudHeight = 64` and `dockHeight = 148`.
+- **Region 5 Title Card Above the Fold on iPhone SE (MINOR #5)**:
+  - In `index.html`: tightened `.title-hero` (`height: 190px; min-height: 180px`), `.title-content` gap (`8px`), `.region-card` padding (`8px 12px; min-height: 46px`), and `#region-list` gap (`6px`).
+  - Verified via Puppeteer that all 5 region cards are 100% visible on 375×667 without scrolling (Region 5 bottom: 651px <= 667px).

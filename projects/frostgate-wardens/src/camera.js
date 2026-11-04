@@ -1,17 +1,20 @@
-// Camera: Pan, Pinch-Zoom, Inertia, Clamping, Screen-to-World transforms
+// Camera: Pan, Pinch-Zoom, Inertia, Clamping, Auto-Framing, Screen-to-World transforms
 
 export class Camera {
-    constructor(viewportWidth, viewportHeight, mapWidth, mapHeight) {
+    constructor(viewportWidth, viewportHeight, mapWidth, mapHeight, options = {}) {
         this.vw = viewportWidth;
         this.vh = viewportHeight;
         this.mw = mapWidth;
         this.mh = mapHeight;
 
+        this.hudHeight = options.hudHeight ?? 64;
+        this.dockHeight = options.dockHeight ?? 148;
+
         this.x = 0;
         this.y = 0;
         this.zoom = 1.0;
-        this.minZoom = 0.5;
-        this.maxZoom = 1.4;
+        this.minZoom = 0.35;
+        this.maxZoom = 1.8;
 
         this.vx = 0;
         this.vy = 0;
@@ -20,6 +23,9 @@ export class Camera {
         this.isPinching = false;
         this.pinchStartDist = 0;
         this.pinchStartZoom = 1.0;
+        this.pinchMidX = 0;
+        this.pinchMidY = 0;
+        this.wasPinching = false;
 
         this.lastTouchX = 0;
         this.lastTouchY = 0;
@@ -29,6 +35,9 @@ export class Camera {
         this.lastTapX = 0;
         this.lastTapY = 0;
 
+        this.mapBounds = null;
+        this.anim = null;
+
         this.recomputeBounds();
         this.resetView();
     }
@@ -37,7 +46,11 @@ export class Camera {
         this.vw = w;
         this.vh = h;
         this.recomputeBounds();
-        this.clamp();
+        if (this.mapBounds) {
+            this.frameBounds(this.mapBounds, 16, false);
+        } else {
+            this.clamp();
+        }
     }
 
     setMapSize(mw, mh) {
@@ -47,45 +60,181 @@ export class Camera {
         this.resetView();
     }
 
+    getUsableRect(customMargin = null) {
+        const top = customMargin?.top ?? this.hudHeight;
+        const bottom = customMargin?.bottom ?? this.dockHeight;
+        return {
+            x: 0,
+            y: top,
+            width: this.vw,
+            height: Math.max(80, this.vh - top - bottom)
+        };
+    }
+
     recomputeBounds() {
-        this.minZoom = Math.min(0.4, this.vw / this.mw);
-        this.maxZoom = 1.8;
+        this.minZoom = Math.max(this.vw / this.mw, this.vh / this.mh);
+        this.maxZoom = 2.2;
+    }
+
+    // Extract numerical bounding box { minX, maxX, minY, maxY } from map data or array of points
+    extractBounds(boundsOrMap) {
+        if (!boundsOrMap) return null;
+        if (typeof boundsOrMap.minX === 'number' && typeof boundsOrMap.maxX === 'number') {
+            return {
+                minX: boundsOrMap.minX,
+                maxX: boundsOrMap.maxX,
+                minY: boundsOrMap.minY,
+                maxY: boundsOrMap.maxY
+            };
+        }
+
+        const pts = [];
+        if (Array.isArray(boundsOrMap)) {
+            pts.push(...boundsOrMap);
+        } else {
+            if (boundsOrMap.paths) {
+                boundsOrMap.paths.forEach(p => pts.push(...p));
+            } else if (boundsOrMap.waypoints) {
+                pts.push(...boundsOrMap.waypoints);
+            }
+            if (boundsOrMap.plots) pts.push(...boundsOrMap.plots);
+            if (boundsOrMap.spawn_pos) pts.push(boundsOrMap.spawn_pos);
+            if (boundsOrMap.castle_pos) pts.push(boundsOrMap.castle_pos);
+        }
+
+        if (pts.length === 0) return null;
+
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        for (const p of pts) {
+            if (p.x < minX) minX = p.x;
+            if (p.x > maxX) maxX = p.x;
+            if (p.y < minY) minY = p.y;
+            if (p.y > maxY) maxY = p.y;
+        }
+
+        // Expand bounds for grand keep spires (above castle_pos) and enemy spawn mouths (below spawn_pos)
+        // so that castle turrets and spawn portals remain 100% visible inside the usable safe frame.
+        if (boundsOrMap.castle_pos) {
+            minY = Math.min(minY, boundsOrMap.castle_pos.y - 140);
+        }
+        if (boundsOrMap.spawn_pos) {
+            maxY = Math.max(maxY, boundsOrMap.spawn_pos.y + 24);
+        }
+        if (boundsOrMap.paths) {
+            for (const path of boundsOrMap.paths) {
+                if (path.length > 0) {
+                    maxY = Math.max(maxY, path[0].y + 24);
+                }
+            }
+        }
+
+        return { minX, maxX, minY, maxY, pts };
+    }
+
+    /**
+     * Fit camera zoom and position so that all points within bounds fit inside usableRect
+     * @param {Object|Array} boundsOrMap - Bounding box { minX, maxX, minY, maxY } or mapData
+     * @param {number|Object} padding - Padding in CSS px (default 16)
+     * @param {boolean} animate - Whether to animate smoothly (~400ms)
+     * @param {Object} usableRect - Optional override for usable screen rect
+     */
+    frameBounds(boundsOrMap, padding = 16, animate = false, usableRect = null) {
+        const bounds = this.extractBounds(boundsOrMap);
+        if (!bounds) return;
+        this.mapBounds = bounds;
+
+        const usable = usableRect || this.getUsableRect();
+        const padX = typeof padding === 'number' ? padding : (padding.left ?? 16);
+        const padY = typeof padding === 'number' ? padding : (padding.top ?? 16);
+
+        const availW = Math.max(10, usable.width - padX * 2);
+        const availH = Math.max(10, usable.height - padY * 2);
+
+        const bw = Math.max(1, bounds.maxX - bounds.minX);
+        const bh = Math.max(1, bounds.maxY - bounds.minY);
+
+        const fitZoom = Math.min(availW / bw, availH / bh);
+        const coverZoom = Math.max(this.vw / this.mw, this.vh / this.mh);
+        this.minZoom = coverZoom;
+        this.maxZoom = Math.max(coverZoom * 2.5, 2.2);
+        const targetZoom = Math.max(this.minZoom, fitZoom);
+
+        const bcx = (bounds.minX + bounds.maxX) / 2;
+        const bcy = (bounds.minY + bounds.maxY) / 2;
+
+        const targetScreenX = usable.x + usable.width / 2;
+        const targetScreenY = usable.y + usable.height / 2;
+
+        const targetX = targetScreenX - bcx * targetZoom;
+        const targetY = targetScreenY - bcy * targetZoom;
+
+        if (animate) {
+            this.anim = {
+                startX: this.x,
+                startY: this.y,
+                startZoom: this.zoom,
+                targetX,
+                targetY,
+                targetZoom,
+                startTime: performance.now(),
+                duration: 400
+            };
+        } else {
+            this.anim = null;
+            this.zoom = targetZoom;
+            this.x = targetX;
+            this.y = targetY;
+            this.clamp();
+        }
+    }
+
+    autoFrame(duration = 400) {
+        if (this.isDragging || this.isPinching) return;
+        if (this.mapBounds) {
+            this.frameBounds(this.mapBounds, 16, true);
+        }
     }
 
     resetView() {
-        // Opening zoom makes the map ~1.45x the viewport height so pan has ample room
-        this.zoom = Math.max(this.minZoom, (this.vh * 1.45) / this.mh);
-        // Center around the map's active road and plots
-        const targetWorldX = this.mw * 0.48;
-        const targetWorldY = this.mh * 0.52;
-        this.x = (this.vw / 2) - targetWorldX * this.zoom;
-        this.y = (this.vh / 2) - targetWorldY * this.zoom;
-        this.clamp();
+        if (this.mapBounds) {
+            this.frameBounds(this.mapBounds, 16, false);
+        } else {
+            this.zoom = Math.max(this.minZoom, this.vw / this.mw);
+            this.x = (this.vw - this.mw * this.zoom) / 2;
+            this.y = (this.vh - this.mh * this.zoom) / 2;
+            this.clamp();
+        }
     }
 
     clamp() {
         const curW = this.mw * this.zoom;
         const curH = this.mh * this.zoom;
 
-        if (curW <= this.vw) {
-            this.x = (this.vw - curW) / 2;
-        } else {
-            const minX = this.vw - curW;
-            const maxX = 0;
-            this.x = Math.max(minX, Math.min(maxX, this.x));
-        }
+        const minX = Math.min(0, this.vw - curW);
+        const maxX = Math.max(0, this.vw - curW);
+        this.x = Math.max(minX, Math.min(maxX, this.x));
 
-        if (curH <= this.vh) {
-            this.y = (this.vh - curH) / 2;
-        } else {
-            const minY = this.vh - curH;
-            const maxY = 0;
-            this.y = Math.max(minY, Math.min(maxY, this.y));
-        }
+        const minY = Math.min(0, this.vh - curH);
+        const maxY = Math.max(0, this.vh - curH);
+        this.y = Math.max(minY, Math.min(maxY, this.y));
     }
 
     update(dt) {
-        if (!this.isDragging && (Math.abs(this.vx) > 0.5 || Math.abs(this.vy) > 0.5)) {
+        if (this.anim) {
+            const now = performance.now();
+            const p = Math.min(1.0, (now - this.anim.startTime) / this.anim.duration);
+            // Cubic ease in-out
+            const ease = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+
+            this.x = this.anim.startX + (this.anim.targetX - this.anim.startX) * ease;
+            this.y = this.anim.startY + (this.anim.targetY - this.anim.startY) * ease;
+            this.zoom = this.anim.startZoom + (this.anim.targetZoom - this.anim.startZoom) * ease;
+            this.clamp();
+
+            if (p >= 1.0) {
+                this.anim = null;
+            }
+        } else if (!this.isDragging && (Math.abs(this.vx) > 0.5 || Math.abs(this.vy) > 0.5)) {
             this.x += this.vx * dt;
             this.y += this.vy * dt;
             this.vx *= Math.pow(0.88, dt * 60);
@@ -111,6 +260,7 @@ export class Camera {
     // --- Touch / Mouse event handlers ---
 
     onTouchStart(e) {
+        this.anim = null; // Cancel any active auto-frame animation on touch
         const touches = e.touches;
         if (touches.length === 1) {
             this.isDragging = true;
@@ -124,11 +274,14 @@ export class Camera {
         } else if (touches.length === 2) {
             this.isDragging = false;
             this.isPinching = true;
+            this.wasPinching = true;
             this.pinchStartDist = Math.hypot(
                 touches[0].clientX - touches[1].clientX,
                 touches[0].clientY - touches[1].clientY
             );
             this.pinchStartZoom = this.zoom;
+            this.pinchMidX = (touches[0].clientX + touches[1].clientX) / 2;
+            this.pinchMidY = (touches[0].clientY + touches[1].clientY) / 2;
         }
     }
 
@@ -164,18 +317,21 @@ export class Camera {
                 touches[0].clientX - touches[1].clientX,
                 touches[0].clientY - touches[1].clientY
             );
-            const factor = dist / Math.max(10, this.pinchStartDist);
-            const targetZoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.pinchStartZoom * factor));
-
-            // Zoom centered on midpoint of touches
             const midX = (touches[0].clientX + touches[1].clientX) / 2;
             const midY = (touches[0].clientY + touches[1].clientY) / 2;
-            const worldMid = this.screenToWorld(midX, midY);
+
+            // Zoom around midpoint of fingers
+            const worldMid = this.screenToWorld(this.pinchMidX, this.pinchMidY);
+            const factor = dist / Math.max(10, this.pinchStartDist);
+            const targetZoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.pinchStartZoom * factor));
 
             this.zoom = targetZoom;
             this.x = midX - worldMid.x * this.zoom;
             this.y = midY - worldMid.y * this.zoom;
             this.clamp();
+
+            this.pinchMidX = midX;
+            this.pinchMidY = midY;
 
             if (Math.abs(targetZoom - this.pinchStartZoom) >= 0.04 && this.onMove) {
                 this.onMove();
@@ -185,16 +341,19 @@ export class Camera {
 
     onTouchEnd(e) {
         if (e.touches.length === 0) {
-            const wasDrag = this.dragDist >= 8;
+            const wasGesture = this.dragDist >= 8 || this.wasPinching;
             this.isDragging = false;
             this.isPinching = false;
-            return !wasDrag; // true if it was a clean tap (< 8px movement)
+            this.wasPinching = false;
+            return !wasGesture; // Clean tap only
         } else if (e.touches.length === 1) {
             this.isPinching = false;
             this.isDragging = true;
             this.lastTouchX = e.touches[0].clientX;
             this.lastTouchY = e.touches[0].clientY;
             this.lastTouchTime = performance.now();
+            this.vx = 0;
+            this.vy = 0;
         }
         return false;
     }
@@ -208,7 +367,11 @@ export class Camera {
         this.lastTapY = sy;
 
         if (dt < 320 && dist < 24) {
-            this.resetView();
+            if (this.mapBounds) {
+                this.frameBounds(this.mapBounds, 16, true);
+            } else {
+                this.resetView();
+            }
             return true;
         }
         return false;

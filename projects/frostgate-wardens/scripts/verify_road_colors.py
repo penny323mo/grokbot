@@ -6,8 +6,8 @@ from PIL import Image
 
 def is_valid_road_or_path_pixel(r, g, b):
     # Strict road gold band: warm tan/gold (#D9B87A / #C4A362 / #E8B04A)
-    # Distinct from grey rocks/cliffs and teal ice
-    return (115 <= r <= 220) and (90 <= g <= 180) and (b <= 145) and (r - b >= 18)
+    # Distinct from grey rocks/cliffs and teal ice (accounting for daylight alpine sky fill)
+    return (115 <= r <= 225) and (90 <= g <= 185) and (b <= 155) and (r - b >= 18)
 
 def verify_all():
     all_ok = True
@@ -24,6 +24,9 @@ def verify_all():
         with open(json_path) as f:
             data = json.load(f)
 
+        scale_x = w / float(data.get('width', 1024))
+        scale_y = h / float(data.get('height', 1536))
+
         # Collect all waypoints across all routes
         all_routes = data.get('paths') or [data['waypoints']]
         all_wps = []
@@ -31,11 +34,13 @@ def verify_all():
             all_wps.extend(r)
 
         # 1. Check waypoints: must lie directly on the road gold band
+        wp_radius = int(round(25 * scale_x))
         for idx, wp in enumerate(all_wps):
-            x, y = wp['x'], wp['y']
+            x, y = int(round(wp['x'] * scale_x)), int(round(wp['y'] * scale_y))
             found_road = False
-            for dy in range(-25, 26, 5):
-                for dx in range(-25, 26, 5):
+            step = max(1, int(round(5 * scale_x)))
+            for dy in range(-wp_radius, wp_radius + 1, step):
+                for dx in range(-wp_radius, wp_radius + 1, step):
                     px = min(w - 1, max(0, x + dx))
                     py = min(h - 1, max(0, y + dy))
                     r, g, b = im.getpixel((px, py))
@@ -50,12 +55,14 @@ def verify_all():
                 all_ok = False
 
         # 2. Check plots: plot center must be within about 28px of the road gold band
+        plot_radius = int(round(28 * scale_x))
         for idx, pl in enumerate(data['plots']):
-            x, y = pl['x'], pl['y']
+            x, y = int(round(pl['x'] * scale_x)), int(round(pl['y'] * scale_y))
             found_road = False
-            for dy in range(-28, 29, 2):
-                for dx in range(-28, 29, 2):
-                    if dx * dx + dy * dy > 28 * 28:
+            step = max(1, int(round(2 * scale_x)))
+            for dy in range(-plot_radius, plot_radius + 1, step):
+                for dx in range(-plot_radius, plot_radius + 1, step):
+                    if dx * dx + dy * dy > plot_radius * plot_radius:
                         continue
                     px = min(w - 1, max(0, x + dx))
                     py = min(h - 1, max(0, y + dy))

@@ -86,6 +86,74 @@ export class CanvasRenderer {
             ctx.drawImage(mapImg, 0, 0, game.map.width, game.map.height);
         }
 
+        // 1.5 Draw Spawn Portals & Animated Entry Chevrons
+        const spawnPoints = [];
+        if (game.map.paths && game.map.paths.length > 0) {
+            for (const path of game.map.paths) {
+                if (path.length >= 2) {
+                    spawnPoints.push({
+                        x: path[0].x,
+                        y: path[0].y,
+                        nextX: path[1].x,
+                        nextY: path[1].y
+                    });
+                }
+            }
+        } else if (game.map.waypoints && game.map.waypoints.length >= 2) {
+            spawnPoints.push({
+                x: game.map.waypoints[0].x,
+                y: game.map.waypoints[0].y,
+                nextX: game.map.waypoints[1].x,
+                nextY: game.map.waypoints[1].y
+            });
+        }
+
+        const now = performance.now();
+        const pulse = 0.88 + 0.12 * Math.sin(now * 0.005);
+        const chevronOffset = (now * 0.025) % 22;
+
+        for (const sp of spawnPoints) {
+            ctx.save();
+            ctx.translate(sp.x, sp.y);
+            // Outer glowing runic portal
+            ctx.fillStyle = 'rgba(226, 86, 58, 0.22)';
+            ctx.strokeStyle = PALETTE.emberCoral;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 34 * pulse, 20 * pulse, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Inner dashed saffron circle
+            ctx.strokeStyle = PALETTE.saffron;
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 22 * pulse, 13 * pulse, 0, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Directional marching chevron
+            const dx = sp.nextX - sp.x;
+            const dy = sp.nextY - sp.y;
+            const angle = Math.atan2(dy, dx);
+            ctx.rotate(angle);
+
+            const cDist = 10 + chevronOffset;
+            ctx.fillStyle = PALETTE.saffron;
+            ctx.strokeStyle = PALETTE.deepIndigo;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(cDist + 9, 0);
+            ctx.lineTo(cDist - 3, -8);
+            ctx.lineTo(cDist, 0);
+            ctx.lineTo(cDist - 3, 8);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
         // 2. Draw Plot Bases
         const plotImg = this.images['assets/towers/plot.png'];
         for (const plot of game.map.plots) {
@@ -276,17 +344,43 @@ export class CanvasRenderer {
         const lvlDef = tDef.levels[t.level];
         const img = this.images[lvlDef.sprite];
 
+        // Soft ground contact shadow for the tower base
+        ctx.save();
+        ctx.fillStyle = 'rgba(20, 24, 58, 0.45)';
+        ctx.beginPath();
+        ctx.ellipse(t.x, t.y + 6, 38, 22, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
         if (img) {
             // Sprites are 160x160, anchored near base center
             ctx.drawImage(img, t.x - 52, t.y - 78, 104, 104);
         }
 
-        // Level indicator stars/pips
+        // High-contrast, beautifully legible level crest badge on the base
         ctx.save();
-        ctx.fillStyle = PALETTE.saffron;
-        ctx.font = '10px sans-serif';
+        const isMax = t.level === '3a' || t.level === '3b';
+        const isLvl2 = t.level === '2';
         const lvlStr = t.level === '3a' ? '★3A' : t.level === '3b' ? '★3B' : `★${t.level}`;
-        ctx.fillText(lvlStr, t.x - 12, t.y + 12);
+
+        const bw = isMax ? 36 : 28;
+        const bh = 17;
+        const bx = t.x - bw / 2;
+        const by = t.y + 4;
+
+        ctx.fillStyle = isMax ? PALETTE.saffron : (isLvl2 ? '#8E9AAF' : '#5C4033');
+        ctx.strokeStyle = isMax ? PALETTE.deepIndigo : '#2B2D42';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(bx, by, bw, bh, 6);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = isMax ? PALETTE.deepIndigo : PALETTE.ivory;
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(lvlStr, t.x, by + bh / 2 + 1);
         ctx.restore();
     }
 
@@ -298,17 +392,18 @@ export class CanvasRenderer {
 
         const isBoss = e.type.startsWith('boss_');
 
-        // Draw shadow on ground if flyer
-        if (e.isAir) {
-            ctx.save();
-            ctx.fillStyle = 'rgba(20, 24, 58, 0.35)';
-            ctx.beginPath();
-            ctx.ellipse(e.x, e.y + 4, e.size * 1.0, e.size * 0.5, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-        }
+        // Draw contact shadow on ground for all enemies
+        ctx.save();
+        ctx.fillStyle = e.isAir ? 'rgba(20, 24, 58, 0.35)' : 'rgba(20, 24, 58, 0.5)';
+        ctx.beginPath();
+        const shadowRx = e.size * (e.isAir ? 1.0 : 0.85);
+        const shadowRy = e.size * (e.isAir ? 0.45 : 0.4);
+        const shadowY = e.isAir ? e.y + 6 : e.y + 2;
+        ctx.ellipse(e.x, shadowY, shadowRx, shadowRy, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
 
-        const sz = e.size * 3.2;
+        const sz = e.size * 3.6;
         const drawY = e.isAir ? e.y - sz - 15 : e.y - sz + 12;
 
         if (img) {
@@ -396,23 +491,35 @@ export class CanvasRenderer {
         const spriteSrc = `assets/hero/hero_${frame}.png`;
         const img = this.images[spriteSrc] || this.images['assets/hero/hero_0.png'];
 
+        // Glowing heroic aura ring under hero feet
+        ctx.save();
+        ctx.fillStyle = 'rgba(47, 143, 157, 0.28)';
+        ctx.strokeStyle = PALETTE.saffron;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(h.x, h.y + 2, 28, 16, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+
         if (img) {
             ctx.save();
+            const hsz = 110;
             if (h.facingLeft) {
                 ctx.translate(h.x, 0);
                 ctx.scale(-1, 1);
-                ctx.drawImage(img, -45, h.y - 80, 90, 90);
+                ctx.drawImage(img, -hsz / 2, h.y - hsz + 15, hsz, hsz);
             } else {
-                ctx.drawImage(img, h.x - 45, h.y - 80, 90, 90);
+                ctx.drawImage(img, h.x - hsz / 2, h.y - hsz + 15, hsz, hsz);
             }
             ctx.restore();
         }
 
         // Health bar + Erika label
-        const barW = 34;
+        const barW = 38;
         const barH = 5;
         const barX = h.x - barW / 2;
-        const barY = h.y - 88;
+        const barY = h.y - 100;
         const hpRatio = Math.max(0, h.hp / h.maxHp);
 
         ctx.save();

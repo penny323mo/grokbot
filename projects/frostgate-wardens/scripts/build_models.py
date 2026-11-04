@@ -13,8 +13,8 @@ def make_faceted(obj):
     if hasattr(obj.data, "use_auto_smooth"):
         obj.data.use_auto_smooth = False
 
-def create_hex_prism(name, radius=1.0, depth=0.4, location=(0,0,0), material=None):
-    bpy.ops.mesh.primitive_cylinder_add(vertices=6, radius=radius, depth=depth, location=location)
+def create_hex_prism(name, radius=1.0, depth=0.4, location=(0,0,0), rotation=(0,0,0), material=None):
+    bpy.ops.mesh.primitive_cylinder_add(vertices=6, radius=radius, depth=depth, location=location, rotation=rotation)
     obj = bpy.context.active_object
     obj.name = name
     make_faceted(obj)
@@ -22,8 +22,8 @@ def create_hex_prism(name, radius=1.0, depth=0.4, location=(0,0,0), material=Non
         obj.data.materials.append(material)
     return obj
 
-def create_oct_prism(name, radius=1.0, depth=0.4, location=(0,0,0), material=None):
-    bpy.ops.mesh.primitive_cylinder_add(vertices=8, radius=radius, depth=depth, location=location)
+def create_oct_prism(name, radius=1.0, depth=0.4, location=(0,0,0), rotation=(0,0,0), material=None):
+    bpy.ops.mesh.primitive_cylinder_add(vertices=8, radius=radius, depth=depth, location=location, rotation=rotation)
     obj = bpy.context.active_object
     obj.name = name
     make_faceted(obj)
@@ -106,28 +106,42 @@ def build_crossbow(level='1'):
     bpy.context.scene.collection.objects.link(root)
 
     mat_stone = blender_utils.get_material('stone')
+    mat_stone_dark = blender_utils.get_material('stone_dark')
     mat_wood = blender_utils.get_material('wood')
-    mat_iron = blender_utils.get_material('iron', metallic=0.6, roughness=0.5)
-    mat_gold = blender_utils.get_material('gold', metallic=0.7, roughness=0.3)
+    mat_iron = blender_utils.get_material('iron', metallic=0.7, roughness=0.4)
+    mat_gold = blender_utils.get_material('gold', metallic=0.8, roughness=0.25)
     mat_saffron = blender_utils.get_material('saffron')
-    mat_teal = blender_utils.get_material('glacier_teal')
+    mat_teal = blender_utils.get_material('glacier_teal', roughness=0.4)
+    mat_bronze = blender_utils.get_material('bronze', metallic=0.6, roughness=0.3)
 
-    # Plinth
-    b1 = create_oct_prism("Base", radius=1.1, depth=0.35, location=(0,0,0.175), material=mat_stone)
+    # Stepped circular stone plinth matching style_board.webp
+    b1 = create_oct_prism("Base1", radius=1.2, depth=0.25, location=(0,0,0.125), material=mat_stone_dark)
     b1.parent = root
-    timber = create_box("Deck", size=(1.4, 1.4, 0.2), location=(0,0,0.45), material=mat_wood)
+    b2 = create_oct_prism("Base2", radius=1.0, depth=0.25, location=(0,0,0.35), material=mat_stone)
+    b2.parent = root
+
+    # Level medallion badge on base
+    med_mat = mat_bronze if level == '1' else (mat_iron if level == '2' else mat_gold)
+    med = create_cylinder("LvlMedallion", radius=0.22, depth=0.1, vertices=8, location=(0, -0.95, 0.35), rotation=(math.radians(90), 0, 0), material=med_mat)
+    med.parent = root
+
+    timber = create_box("Deck", size=(1.3, 1.3, 0.15), location=(0,0,0.55), material=mat_wood)
     timber.parent = root
 
     if level == '1':
-        # Single light ballista
-        post = create_cylinder("Post", radius=0.18, depth=0.7, vertices=6, location=(0,0,0.9), material=mat_wood)
-        post.parent = root
-        body = create_box("Stock", size=(0.25, 1.2, 0.25), location=(0,0,1.25), rotation=(0.1, 0, 0.785), material=mat_wood)
-        body.parent = root
-        bow = create_box("BowArms", size=(1.3, 0.12, 0.18), location=(0.35, 0.35, 1.3), rotation=(0, 0, -0.785), material=mat_iron)
+        # Pavilion canopy matching style_board.webp
+        for px, py in [(-0.45, -0.45), (-0.45, 0.45), (0.45, -0.45), (0.45, 0.45)]:
+            pil = create_cylinder("Pil", radius=0.08, depth=0.9, vertices=6, location=(px, py, 1.05), material=mat_stone)
+            pil.parent = root
+        roof = create_cone("PavilionRoof", radius=0.95, depth=0.6, vertices=6, location=(0, 0, 1.7), material=mat_teal)
+        roof.parent = root
+        fin = create_cone("Finial", radius=0.15, depth=0.35, vertices=5, location=(0, 0, 2.1), material=mat_gold)
+        fin.parent = root
+        # Bold Ballista stock & extended iron arms
+        stock = create_box("Stock", size=(0.25, 1.2, 0.22), location=(0, 0, 0.9), rotation=(0.1, 0, 0.785), material=mat_wood)
+        stock.parent = root
+        bow = create_box("BowArms", size=(1.8, 0.14, 0.22), location=(0.35, 0.35, 0.95), rotation=(0, 0, -0.785), material=mat_iron)
         bow.parent = root
-        pennant = create_cone("Pennant", radius=0.15, depth=0.6, vertices=4, location=(-0.35, -0.35, 1.6), rotation=(3.14, 0, 0), material=mat_saffron)
-        pennant.parent = root
     elif level == '2':
         # Parapet + twin ballistas
         wall1 = create_box("Wall1", size=(1.5, 0.15, 0.5), location=(0, 0.7, 0.7), material=mat_stone)
@@ -136,36 +150,36 @@ def build_crossbow(level='1'):
         wall2.parent = root
         post = create_cylinder("Post", radius=0.25, depth=0.8, vertices=8, location=(0,0,0.95), material=mat_stone)
         post.parent = root
+        roof = create_cone("Roof", radius=0.85, depth=0.55, vertices=6, location=(-0.3, -0.3, 1.8), material=mat_teal)
+        roof.parent = root
         # Dual crossbows
         for offset in [-0.25, 0.25]:
-            stock = create_box("Stock", size=(0.2, 1.3, 0.2), location=(offset*0.7, -offset*0.7, 1.35), rotation=(0.1, 0, 0.785), material=mat_wood)
+            stock = create_box("Stock", size=(0.2, 1.3, 0.2), location=(offset*0.7, -offset*0.7, 1.25), rotation=(0.1, 0, 0.785), material=mat_wood)
             stock.parent = root
-            bow = create_box("Bow", size=(1.2, 0.12, 0.18), location=(offset*0.7+0.35, -offset*0.7+0.35, 1.4), rotation=(0, 0, -0.785), material=mat_gold)
+            bow = create_box("Bow", size=(1.4, 0.12, 0.18), location=(offset*0.7+0.35, -offset*0.7+0.35, 1.3), rotation=(0, 0, -0.785), material=mat_iron)
             bow.parent = root
     elif level == '3a': # Piercing (Heavy Arbalest)
         keep = create_oct_prism("Keep", radius=1.0, depth=0.8, location=(0,0,0.7), material=mat_stone)
         keep.parent = root
         turret = create_cylinder("Turret", radius=0.6, depth=0.4, vertices=8, location=(0,0,1.25), material=mat_iron)
         turret.parent = root
-        # Heavy steel arbalest with permafrost crystal tip
-        stock = create_box("Stock", size=(0.35, 1.7, 0.35), location=(0.1, 0.1, 1.6), rotation=(0.12, 0, 0.785), material=mat_iron)
+        stock = create_box("Stock", size=(0.35, 1.7, 0.35), location=(0.1, 0.1, 1.5), rotation=(0.12, 0, 0.785), material=mat_iron)
         stock.parent = root
-        bow = create_box("HeavyBow", size=(2.0, 0.2, 0.25), location=(0.6, 0.6, 1.65), rotation=(0, 0, -0.785), material=mat_iron)
+        bow = create_box("HeavyBow", size=(2.2, 0.2, 0.25), location=(0.6, 0.6, 1.55), rotation=(0, 0, -0.785), material=mat_iron)
         bow.parent = root
-        crystal = create_cone("PermafrostTip", radius=0.2, depth=0.8, vertices=6, location=(0.85, 0.85, 1.75), rotation=(0, 1.57, 0.785), material=mat_teal)
+        crystal = create_cone("PermafrostTip", radius=0.22, depth=0.85, vertices=6, location=(0.9, 0.9, 1.65), rotation=(0, 1.57, 0.785), material=mat_teal)
         crystal.parent = root
-        banner = create_box("Banner", size=(0.1, 0.5, 0.9), location=(-0.5, -0.5, 1.7), rotation=(0, 0, 0.785), material=mat_saffron)
+        banner = create_box("Banner", size=(0.08, 0.5, 0.9), location=(-0.5, -0.5, 1.7), rotation=(0, 0, 0.785), material=mat_saffron)
         banner.parent = root
     elif level == '3b': # Volley (Repeating Ballista)
         keep = create_oct_prism("Keep", radius=1.0, depth=0.8, location=(0,0,0.7), material=mat_stone)
         keep.parent = root
         turret = create_box("Magazine", size=(0.7, 0.7, 0.5), location=(0,0,1.3), rotation=(0, 0, 0.785), material=mat_wood)
         turret.parent = root
-        # Triple barrel array
         for dy, dz in [(-0.25, 0.15), (0.0, 0.3), (0.25, 0.15)]:
-            barrel = create_box("Stock", size=(0.18, 1.4, 0.18), location=(-dy*0.7, dy*0.7, 1.4 + dz), rotation=(0.1, 0, 0.785), material=mat_iron)
+            barrel = create_box("Stock", size=(0.18, 1.4, 0.18), location=(-dy*0.7, dy*0.7, 1.35 + dz), rotation=(0.1, 0, 0.785), material=mat_iron)
             barrel.parent = root
-            bow = create_box("Bow", size=(1.1, 0.1, 0.12), location=(-dy*0.7+0.35, dy*0.7+0.35, 1.45 + dz), rotation=(0, 0, -0.785), material=mat_gold)
+            bow = create_box("Bow", size=(1.2, 0.1, 0.14), location=(-dy*0.7+0.35, dy*0.7+0.35, 1.4 + dz), rotation=(0, 0, -0.785), material=mat_gold)
             bow.parent = root
         gear = create_cylinder("Gear", radius=0.4, depth=0.15, vertices=12, location=(-0.3, -0.3, 1.5), rotation=(1.57, 0, 0.785), material=mat_gold)
         gear.parent = root
@@ -532,50 +546,95 @@ def build_hero(pose=0):
     root = bpy.data.objects.new("Hero_Root", None)
     bpy.context.scene.collection.objects.link(root)
 
-    mat_armor = blender_utils.get_material('slate_blue')
-    mat_trim = blender_utils.get_material('ivory')
-    mat_cape = blender_utils.get_material('glacier_teal')
-    mat_sash = blender_utils.get_material('saffron')
-    mat_spear = blender_utils.get_material('gold', metallic=0.7, roughness=0.3)
-    mat_iron = blender_utils.get_material('iron')
-    mat_wood = blender_utils.get_material('wood')
+    mat_plate = blender_utils.get_material('iron', roughness=0.25, metallic=0.85)
+    mat_gold = blender_utils.get_material('gold', roughness=0.3, metallic=0.7)
+    mat_saffron = blender_utils.get_material('saffron')
+    mat_cape_out = blender_utils.get_material('deep_indigo', roughness=0.6)
+    mat_cape_in = blender_utils.get_material('saffron', roughness=0.7)
+    mat_teal = blender_utils.get_material('glacier_teal', roughness=0.3)
+    mat_skin = blender_utils.get_material('ivory', roughness=0.8)
+    mat_wood = blender_utils.get_material('wood_dark')
 
-    leg_l_angle = math.sin(pose * math.pi / 2.0) * 0.3
-    leg_r_angle = -math.sin(pose * math.pi / 2.0) * 0.3
+    leg_l_angle = math.sin(pose * math.pi / 2.0) * 0.35
+    leg_r_angle = -math.sin(pose * math.pi / 2.0) * 0.35
 
-    # Armored torso
-    torso = create_box("Torso", size=(0.48, 0.4, 0.65), location=(0, 0, 0.7), material=mat_armor)
+    # 1. Legs & Greaves (Armored sabatons)
+    leg_l = create_box("LegL", size=(0.20, 0.22, 0.52), location=(-0.16, leg_l_angle*0.25, 0.26), rotation=(leg_l_angle, 0, 0), material=mat_plate)
+    leg_l.parent = root
+    knee_l = create_cone("KneeL", radius=0.12, depth=0.18, vertices=4, location=(-0.16, -0.12 + leg_l_angle*0.25, 0.35), rotation=(math.radians(90), 0, 0), material=mat_gold)
+    knee_l.parent = leg_l
+
+    leg_r = create_box("LegR", size=(0.20, 0.22, 0.52), location=(0.16, leg_r_angle*0.25, 0.26), rotation=(leg_r_angle, 0, 0), material=mat_plate)
+    leg_r.parent = root
+    knee_r = create_cone("KneeR", radius=0.12, depth=0.18, vertices=4, location=(0.16, -0.12 + leg_r_angle*0.25, 0.35), rotation=(math.radians(90), 0, 0), material=mat_gold)
+    knee_r.parent = leg_r
+
+    # 2. Torso (Silver Breastplate with Golden Frost Star & Sash)
+    waist = create_box("Waist", size=(0.48, 0.36, 0.16), location=(0, 0, 0.54), material=mat_saffron)
+    waist.parent = root
+    buckle = create_box("Buckle", size=(0.14, 0.10, 0.14), location=(0, -0.19, 0.54), material=mat_gold)
+    buckle.parent = root
+
+    torso = create_box("Torso", size=(0.52, 0.40, 0.55), location=(0, -0.02, 0.82), material=mat_plate)
     torso.parent = root
-    sash = create_box("Sash", size=(0.52, 0.42, 0.15), location=(0, 0, 0.55), material=mat_sash)
-    sash.parent = root
+    emblem = create_cone("ChestEmblem", radius=0.16, depth=0.08, vertices=4, location=(0, -0.23, 0.88), rotation=(math.radians(90), 0, 0), material=mat_gold)
+    emblem.parent = root
 
-    # Helmet with visor & plume
-    head = create_box("Head", size=(0.35, 0.35, 0.35), location=(0, 0, 1.15), material=mat_trim)
-    head.parent = root
-    plume = create_cone("Plume", radius=0.1, depth=0.45, vertices=4, location=(0, -0.1, 1.45), rotation=(-0.4, 0, 0), material=mat_sash)
+    # 3. Pauldrons (Flared Knight Shoulder Guards)
+    pauldron_l = create_oct_prism("PauldronL", radius=0.18, depth=0.25, location=(-0.34, -0.02, 1.02), rotation=(0, math.radians(25), 0), material=mat_gold)
+    pauldron_l.parent = root
+    pauldron_r = create_oct_prism("PauldronR", radius=0.18, depth=0.25, location=(0.34, -0.02, 1.02), rotation=(0, math.radians(-25), 0), material=mat_gold)
+    pauldron_r.parent = root
+
+    # 4. Noble Knight Helm & Face
+    face = create_box("Face", size=(0.28, 0.24, 0.24), location=(0, -0.08, 1.20), material=mat_skin)
+    face.parent = root
+
+    helm = create_box("Helm", size=(0.36, 0.36, 0.40), location=(0, 0, 1.25), material=mat_plate)
+    helm.parent = root
+    visor = create_box("Visor", size=(0.38, 0.10, 0.08), location=(0, -0.17, 1.22), material=mat_gold)
+    visor.parent = root
+
+    horn_l = create_cone("WingL", radius=0.08, depth=0.45, vertices=4, location=(-0.24, 0.02, 1.45), rotation=(math.radians(-20), math.radians(-35), 0), material=mat_gold)
+    horn_l.parent = root
+    horn_r = create_cone("WingR", radius=0.08, depth=0.45, vertices=4, location=(0.24, 0.02, 1.45), rotation=(math.radians(-20), math.radians(35), 0), material=mat_gold)
+    horn_r.parent = root
+    plume = create_cone("Plume", radius=0.12, depth=0.55, vertices=5, location=(0, 0.08, 1.58), rotation=(math.radians(-30), 0, 0), material=mat_saffron)
     plume.parent = root
 
-    # Flowing teal cape
-    cape = create_box("Cape", size=(0.55, 0.15, 0.8), location=(0, -0.22, 0.7), rotation=(-0.25, 0, 0), material=mat_cape)
-    cape.parent = root
+    # 5. Flowing Cape (Strictly BEHIND shoulders in +Y direction)
+    cape_back = create_box("CapeOuter", size=(0.68, 0.08, 0.95), location=(0, 0.24, 0.72), rotation=(math.radians(18), 0, 0), material=mat_cape_out)
+    cape_back.parent = root
+    cape_inner = create_box("CapeLining", size=(0.64, 0.04, 0.90), location=(0, 0.20, 0.72), rotation=(math.radians(18), 0, 0), material=mat_cape_in)
+    cape_inner.parent = root
 
-    # Legs
-    leg_l = create_box("LegL", size=(0.18, 0.2, 0.5), location=(-0.16, leg_l_angle*0.25, 0.25), rotation=(leg_l_angle, 0, 0), material=mat_armor)
-    leg_l.parent = root
-    leg_r = create_box("LegR", size=(0.18, 0.2, 0.5), location=(0.16, leg_r_angle*0.25, 0.25), rotation=(leg_r_angle, 0, 0), material=mat_armor)
-    leg_r.parent = root
+    # 6. Left Arm & Kite Heraldic Shield
+    arm_l = create_box("ArmL", size=(0.14, 0.16, 0.45), location=(-0.32, -0.02, 0.76), material=mat_plate)
+    arm_l.parent = root
+    shield_body = create_box("ShieldBody", size=(0.08, 0.38, 0.65), location=(-0.44, -0.06, 0.75), rotation=(0, math.radians(-12), math.radians(15)), material=mat_cape_out)
+    shield_body.parent = root
+    shield_rim = create_box("ShieldRim", size=(0.09, 0.40, 0.08), location=(-0.44, -0.06, 1.02), rotation=(0, math.radians(-12), math.radians(15)), material=mat_gold)
+    shield_rim.parent = root
+    shield_cross = create_cone("ShieldCross", radius=0.12, depth=0.08, vertices=4, location=(-0.47, -0.07, 0.76), rotation=(math.radians(90), 0, 0), material=mat_teal)
+    shield_cross.parent = root
 
-    # Towering Banner-Lance
-    lance_shaft = create_cylinder("LanceShaft", radius=0.04, depth=2.4, vertices=6, location=(0.35, 0.15, 1.2), rotation=(0.1, -0.05, 0), material=mat_wood)
-    lance_shaft.parent = root
-    spear_tip = create_cone("SpearTip", radius=0.12, depth=0.55, vertices=4, location=(0.37, 0.27, 2.45), rotation=(0.1, -0.05, 0), material=mat_iron)
-    spear_tip.parent = root
-    banner = create_box("WarBanner", size=(0.04, 0.65, 0.8), location=(0.37, 0.55, 1.95), rotation=(0.1, -0.05, 0), material=mat_cape)
-    banner.parent = root
-    banner_gold = create_box("BannerGold", size=(0.05, 0.67, 0.1), location=(0.37, 0.55, 1.95), rotation=(0.1, -0.05, 0), material=mat_sash)
-    banner_gold.parent = root
+    # 7. Right Arm & Frost-Glaive / Halberd
+    arm_r = create_box("ArmR", size=(0.14, 0.16, 0.45), location=(0.32, -0.02, 0.76), material=mat_plate)
+    arm_r.parent = root
 
-    # Left shield
-    shield = create_box("KiteShield", size=(0.08, 0.25, 0.55), location=(-0.3, 0.08, 0.7), material=mat_trim)
-    shield.parent = root
+    spear_x, spear_y = 0.42, -0.08
+    shaft = create_cylinder("SpearShaft", radius=0.035, depth=2.5, vertices=6, location=(spear_x, spear_y, 1.15), rotation=(math.radians(5), math.radians(-5), 0), material=mat_wood)
+    shaft.parent = root
+
+    axe_blade = create_box("AxeBlade", size=(0.05, 0.32, 0.30), location=(spear_x - 0.08, spear_y - 0.08, 2.15), rotation=(math.radians(5), math.radians(-5), math.radians(-15)), material=mat_gold)
+    axe_blade.parent = root
+
+    spear_head = create_cone("SpearPoint", radius=0.12, depth=0.65, vertices=4, location=(spear_x, spear_y, 2.50), rotation=(math.radians(5), math.radians(-5), 0), material=mat_plate)
+    spear_head.parent = root
+    crystal = create_cone("FrostCrystal", radius=0.07, depth=0.35, vertices=6, location=(spear_x, spear_y, 2.25), rotation=(math.radians(5), math.radians(-5), 0), material=mat_teal)
+    crystal.parent = root
+
+    pennant = create_box("Pennant", size=(0.03, 0.45, 0.25), location=(spear_x + 0.16, spear_y + 0.05, 2.02), rotation=(math.radians(5), math.radians(-5), math.radians(20)), material=mat_saffron)
+    pennant.parent = root
+
     return root

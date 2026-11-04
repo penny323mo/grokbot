@@ -11,9 +11,9 @@ def delete_hierarchy(obj):
         delete_hierarchy(child)
     bpy.data.objects.remove(obj, do_unlink=True)
 
-def render_sprite(builder_fn, args, out_path, ortho_scale=3.5, res=160):
+def render_sprite(builder_fn, args, out_path, ortho_scale=3.5, res=160, center=(0, 0, 0.8)):
     root = builder_fn(*args)
-    bpy.context.scene.camera.data.ortho_scale = ortho_scale
+    cam = blender_utils.setup_isometric_camera(ortho_scale=ortho_scale, center=center)
     bpy.context.scene.render.resolution_x = res
     bpy.context.scene.render.resolution_y = res
     bpy.context.scene.render.filepath = out_path
@@ -63,10 +63,10 @@ def main():
             out = f"assets/enemies/{name}_{frame}.png"
             render_sprite(fn, (frame,), out, ortho_scale=scale, res=128)
 
-    # 4. Hero: 2 walk/idle frames
-    for frame in [0, 1]:
+    # 4. Hero: 4 walk/idle frames (256x256 high-resolution Warden Commander)
+    for frame in [0, 1, 2, 3]:
         out = f"assets/hero/hero_{frame}.png"
-        render_sprite(build_models.build_hero, (frame,), out, ortho_scale=3.8, res=160)
+        render_sprite(build_models.build_hero, (frame,), out, ortho_scale=2.7, res=256, center=(0, 0, 1.25))
 
     print("ALL SPRITES RENDERED SUCCESSFULLY!")
 
