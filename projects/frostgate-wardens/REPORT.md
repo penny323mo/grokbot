@@ -1,8 +1,8 @@
 # 霜門守望 — orchestrator report
 
-- Generated: 2026-11-04 07:06 (Macau, UTC+8)
+- Generated: 2026-11-05 05:35 (Macau, UTC+8)
 - Live: https://penny323mo.github.io/grokbot/projects/frostgate-wardens/ (HTTP 200)
-- Rounds: 3  ·  Started: 2026-11-04T01:17:03+08:00
+- Rounds: 6  ·  Started: 2026-11-04T01:17:03+08:00
 
 ## Phases
 - build finished 2026-11-04T02:03:19+08:00
@@ -13,11 +13,21 @@
 - review-3 finished 2026-11-04T05:41:17+08:00
 - fix-3 finished 2026-11-04T07:05:29+08:00
 - publish finished 2026-11-04T07:06:43+08:00
+- report finished 2026-11-04T07:06:43+08:00
+- continuation-reset finished 2026-11-05T01:15:43+08:00
+- fix-4 finished 2026-11-05T02:14:07+08:00
+- review-5 finished 2026-11-05T02:29:09+08:00
+- fix-5 finished 2026-11-05T04:05:11+08:00
+- review-6 finished 2026-11-05T04:18:43+08:00
+- fix-6 finished 2026-11-05T05:35:14+08:00
+- publish finished 2026-11-05T05:35:27+08:00
 
 ## Reviews
 - orch-r1-grok.md: VERDICT: NOT READY
 - orch-r2-grok.md: VERDICT: NOT READY
 - orch-r3-grok.md: VERDICT: NOT READY
+- orch-r5-grok.md: VERDICT: NOT READY
+- orch-r6-grok.md: VERDICT: NOT READY
 
 ## Tests
 ### tests-build
@@ -64,34 +74,78 @@
     at async node:internal/modules/esm/loader:647:26
     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
 ```
+### tests-fix-4
+```
+
+--- Running Camera Framing Tests ---
+✓ All 5 region maps frame perfectly inside usableRect on 390×844, 375×667, and 430×932
+[PASS 6/6] Camera Universal Framing & UsableRect Verification
+
+====================================================
+✅ ALL TESTS PASSED: 6/6 SUITES SUCCESSFUL
+====================================================
+```
+### tests-fix-5
+```
+
+--- Running Camera Framing Tests ---
+✓ All 5 region maps frame perfectly inside usableRect on 390×844, 375×667, and 430×932
+[PASS 6/6] Camera Universal Framing & UsableRect Verification
+
+====================================================
+✅ ALL TESTS PASSED: 6/6 SUITES SUCCESSFUL
+====================================================
+```
+### tests-fix-6
+```
+
+--- Running Camera Framing Tests ---
+✓ All 5 region maps frame perfectly inside usableRect on 390×844, 375×667, and 430×932
+[PASS 6/6] Camera Universal Framing & UsableRect Verification
+
+====================================================
+✅ ALL TESTS PASSED: 6/6 SUITES SUCCESSFUL
+====================================================
+```
+### tests-publish
+```
+
+--- Running Camera Framing Tests ---
+✓ All 5 region maps frame perfectly inside usableRect on 390×844, 375×667, and 430×932
+[PASS 6/6] Camera Universal Framing & UsableRect Verification
+
+====================================================
+✅ ALL TESTS PASSED: 6/6 SUITES SUCCESSFUL
+====================================================
+```
 
 ## Screenshots
 - screenshots/orch/live-390-full.png
 - screenshots/orch/live-390.png
 
 ## Changelog (tail)
-  - Re-rendered hero walk cycles at 256×256 px with faceted armor, shield, and clan banner.
-  - When rendered in `src/renderer.js` at `size * 3.2`, units are downsampled cleanly, delivering razor-sharp, antialiased matte clay figurines.
-- **Mute Button Lifecycle & Orphan Event Listener Fix (MAJOR #2)**:
-  - In `src/main.js`: `returnToTitleScreen()` now explicitly calls `activeUI.destroy()` before nulling `activeUI`.
-  - Aborts the active `AbortController`, preventing orphan DOM listeners on `#btn-modal-mute` and `#btn-modal-speed` from stacking when returning to the map and re-entering regions.
-  - Verified on 390×844 and 375×667 viewports: mute toggles cleanly between 「音效：開啟」 and 「音效：靜音」 on every re-entry.
-- **Typography >= 14px Across All Body Labels (MINOR #3)**:
-  - Raised `.btn-ability .ability-title` to `14px` (was `13px`).
-  - Raised `.btn-ability .ability-cost` to `14px` (was `11px`).
-  - Raised `.btn-branch` choices to `14px` (was `12px`).
-  - Standardized `.preview-tag` in `index.html` and runtime chip in `src/ui.js` to `14px` (was `10px` / `13px`).
-- **Rendered Clay HUD & Lock Badges (MINOR #4)**:
-  - Modeled and rendered 4 genuine 3D matte clay icons in Blender: `assets/ui/icon_shield.png` (faceted clay shield), `assets/ui/icon_coin.png` (faceted gold coin), `assets/ui/icon_pause.png` (faceted clay stone bars), and `assets/ui/icon_lock.png` (faceted stone padlock).
-  - Replaced all generic stroke SVGs in `index.html` (HUD HP, Gold, Pause, region cards) and `src/main.js` with `<img>` tags pointing to the rendered clay assets.
-- **Strict Plot Road Gold Proximity (<=28px) (MINOR #5)**:
-  - Updated `scripts/verify_road_colors.py` to require that every plot center is within ~28px of the road gold band (`115 <= r <= 220, 90 <= g <= 180, b <= 145, r - b >= 18`), tightening the check from the previous 55px disc radius.
-  - Repositioned Map 3 Plot 1 to `(0.4, -4.2, 0.25)` and Plot 3 to `(1.3, -1.6, 0.25)`.
-  - Opened overhead gate arch lintel on Map 5 so the golden road ribbon remains unobstructed into the citadel keep.
-  - All 5 maps pass with 100% compliance under the strict <= 28px criterion.
-- **Full 350-Gold Starting Balance Campaign Headless Proof (MINOR #6)**:
-  - Updated Simulation 5 in `tests/headless_simulation.test.js` so every region starts with exactly 350 gold (eliminating gifted starting gold).
-  - Enforced fixed initial builds with strictly zero mid-wave purchases (purchases and upgrades only occur between waves when `waveState === 'waiting'`).
-  - Published final Castle HP across all 5 regions: Region 1 (20/20 HP), Region 2 (4/20 HP), Region 3 (10/20 HP), Region 4 (13/20 HP), and Region 5 (5/20 HP). All 5 cleared with Castle HP > 0.
-- **Pure Traditional Chinese Credits Card (MINOR #7)**:
-  - Replaced mixed English tool names in the credits modal (`#modal-credits`) with a single, elegant Traditional Chinese paragraph describing the low-poly matte clay art style, procedural audio synthesis, and authentic Cantonese voice guidance.
+    - Region 2 (凍湖冰橋): Frozen turquoise lake with cracked ice plates, wooden trestle bridge railings and piers across two converging causeways.
+    - Region 3 (冷杉林道): Alpine fir switchback canyon with wooden timber retaining curbs along every bend.
+    - Region 4 (焰口邊境): Volcanic basalt canyon with glowing molten magma fissures (emission strength 6.0) and dark fortress keep.
+    - Region 5 (北辰堡): Royal citadel approach with dual grand avenues, defensive bastions with teal conical roofs, stone parapets, and triple fortress spires.
+  - All maps re-rendered at 1600×2400 and converted to WebP (48–70 KB, well under 450 KB limit).
+  - `scripts/verify_road_colors.py` 100% verified across all 5 maps.
+- **Hero Knight Commander Redesign & Legibility (MAJOR #2)**:
+  - Replaced the cyan silhouette with a handcrafted low-poly Knight Commander miniature matching `title_key.webp`:
+    - Gleaming silver plate armor with golden frost-star emblem and belt buckle.
+    - Tiered golden pauldrons on both shoulders.
+    - Knightly winged great helm with golden visor slit and saffron plume.
+    - Royal blue cape positioned strictly behind her shoulders (`+Y`), lined with saffron interior.
+    - Left flank holds a heater shield with gold rim and teal frost-cross.
+    - Right hand wields a towering runic frost halberd with golden axe blade, gleaming silver spear point, and glowing cyan crystal.
+  - Rendered 4 walk frames at 256×256 (`ortho_scale = 2.7`, centered at `(0, 0, 1.25)`), and set hero render size to 110×110 world px (~48 css px on phone) with saffron ground ring.
+- **375×667 Letterboxing Elimination & Runner Scale (MAJOR #3)**:
+  - Enforced `minZoom = Math.max(vw / mw, vh / mh)` and `coverZoom` in `src/camera.js` so that `map.width * zoom >= vw` and `map.height * zoom >= vh` on every mobile viewport (zero indigo side bars).
+  - Calibrated camera center and route bounding box so that the entire route, keep roof, and spawn mouths fit inside the usable screen area between HUD (64px) and dock (148px) on 375×667.
+  - Raised enemy draw scale in `src/renderer.js` to `size * 3.6`, giving runners a 41.3 css px height on 375×667 (well above the >= 28 css px requirement).
+  - Added automated tests in `tests/camera_framing.test.js` asserting `map.width * camera.zoom >= vp.width - 0.001` and `map.height * camera.zoom >= vp.height - 0.001` across 375×667, 390×844, and 430×932.
+- **Measured Camera Chrome Margins (MINOR #4)**:
+  - Updated `src/camera.js` defaults from 80 / 170 to live measured values: `hudHeight = 64` and `dockHeight = 148`.
+- **Region 5 Title Card Above the Fold on iPhone SE (MINOR #5)**:
+  - In `index.html`: tightened `.title-hero` (`height: 190px; min-height: 180px`), `.title-content` gap (`8px`), `.region-card` padding (`8px 12px; min-height: 46px`), and `#region-list` gap (`6px`).
+  - Verified via Puppeteer that all 5 region cards are 100% visible on 375×667 without scrolling (Region 5 bottom: 651px <= 667px).

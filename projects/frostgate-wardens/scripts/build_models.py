@@ -546,12 +546,12 @@ def build_hero(pose=0):
     root = bpy.data.objects.new("Hero_Root", None)
     bpy.context.scene.collection.objects.link(root)
 
-    mat_plate = blender_utils.get_material('iron', roughness=0.25, metallic=0.85)
-    mat_gold = blender_utils.get_material('gold', roughness=0.3, metallic=0.7)
-    mat_saffron = blender_utils.get_material('saffron')
-    mat_cape_out = blender_utils.get_material('deep_indigo', roughness=0.6)
-    mat_cape_in = blender_utils.get_material('saffron', roughness=0.7)
-    mat_teal = blender_utils.get_material('glacier_teal', roughness=0.3)
+    mat_plate = blender_utils.get_material('silver', hex_color='#F1F5F9', roughness=0.18, metallic=0.35)
+    mat_gold = blender_utils.get_material('gold', hex_color='#FBBF24', roughness=0.25, metallic=0.65)
+    mat_saffron = blender_utils.get_material('saffron', hex_color='#F59E0B')
+    mat_cape_out = blender_utils.get_material('royal_blue', hex_color='#2563EB', roughness=0.55)
+    mat_cape_in = blender_utils.get_material('saffron_cape', hex_color='#FBBF24', roughness=0.65)
+    mat_teal = blender_utils.get_material('glacier_teal', hex_color='#38BDF8', roughness=0.2, emission='#38BDF8')
     mat_skin = blender_utils.get_material('ivory', roughness=0.8)
     mat_wood = blender_utils.get_material('wood_dark')
 

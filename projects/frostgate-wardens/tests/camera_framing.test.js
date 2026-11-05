@@ -47,13 +47,16 @@ export function runCameraFramingTests() {
                 );
             }
 
-            // Assert padded keep top (castle_pos.y - 140) and padded spawn mouths (sp.y + 24)
+            // Assert keep spire tip and padded spawn mouths (sp.y + 24 * scale)
             // are strictly inside the usable rect (clearing top HUD ~64px and bottom dock ~148px)
+            const scale = (mapData.width || 1024) / 1024.0;
             if (mapData.castle_pos) {
-                const keepTop = camera.worldToScreen(mapData.castle_pos.x, mapData.castle_pos.y - 140);
+                const spireX = mapData.keep_tip ? mapData.keep_tip.x : mapData.castle_pos.x;
+                const spireY = mapData.keep_tip ? mapData.keep_tip.y : mapData.castle_pos.y - 250 * scale;
+                const keepTop = camera.worldToScreen(spireX, spireY);
                 assert(
                     keepTop.y >= usable.y,
-                    `Region ${r} Keep top projected to screen Y=${keepTop.y.toFixed(1)} is cropped above usable rect top ${usable.y} on ${vp.name}`
+                    `Region ${r} Keep spire tip projected to screen Y=${keepTop.y.toFixed(1)} is cropped above usable rect top ${usable.y} on ${vp.name}`
                 );
             }
 
@@ -61,7 +64,7 @@ export function runCameraFramingTests() {
             if (mapData.spawn_pos) spawns.push(mapData.spawn_pos);
             if (mapData.paths) mapData.paths.forEach(p => { if (p.length > 0) spawns.push(p[0]); });
             for (const sp of spawns) {
-                const spawnMouth = camera.worldToScreen(sp.x, sp.y + 24);
+                const spawnMouth = camera.worldToScreen(sp.x, sp.y + 24 * scale);
                 assert(
                     spawnMouth.y <= usable.y + usable.height,
                     `Region ${r} Spawn mouth projected to screen Y=${spawnMouth.y.toFixed(1)} is hidden below usable rect bottom ${usable.y + usable.height} on ${vp.name}`

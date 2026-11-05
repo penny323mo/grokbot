@@ -154,6 +154,9 @@ export class CanvasRenderer {
             ctx.restore();
         }
 
+        const scale = game.scale || (game.map.width / 1024.0) || 1.0;
+        this.currentScale = scale;
+
         // 2. Draw Plot Bases
         const plotImg = this.images['assets/towers/plot.png'];
         for (const plot of game.map.plots) {
@@ -162,17 +165,17 @@ export class CanvasRenderer {
 
             if (!hasTower && plotImg) {
                 // Plot base 128x128
-                ctx.drawImage(plotImg, plot.x - 48, plot.y - 48, 96, 96);
+                ctx.drawImage(plotImg, plot.x - 48 * scale, plot.y - 48 * scale, 96 * scale, 96 * scale);
             }
 
             // Highlight ring around selected plot
             if (isSelected) {
                 ctx.save();
                 ctx.strokeStyle = PALETTE.saffron;
-                ctx.lineWidth = 3;
-                ctx.setLineDash([6, 4]);
+                ctx.lineWidth = 3 * scale;
+                ctx.setLineDash([6 * scale, 4 * scale]);
                 ctx.beginPath();
-                ctx.ellipse(plot.x, plot.y, 44, 28, 0, 0, Math.PI * 2);
+                ctx.ellipse(plot.x, plot.y, 44 * scale, 28 * scale, 0, 0, Math.PI * 2);
                 ctx.stroke();
                 ctx.restore();
             }
@@ -186,17 +189,17 @@ export class CanvasRenderer {
             let range = 0;
             if (tower) {
                 const tDef = TOWERS[tower.type];
-                range = tDef.levels[tower.level].range * tower.buffRange;
+                range = tDef.levels[tower.level].range * scale * tower.buffRange;
             } else if (uiState.previewTowerType) {
                 const tDef = TOWERS[uiState.previewTowerType];
-                range = tDef.levels['1'].range;
+                range = tDef.levels['1'].range * scale;
             }
 
             if (plot && range > 0) {
                 ctx.save();
                 ctx.fillStyle = 'rgba(232, 176, 74, 0.12)';
                 ctx.strokeStyle = PALETTE.saffron;
-                ctx.lineWidth = 2;
+                ctx.lineWidth = 2 * scale;
                 ctx.beginPath();
                 // Range circle drawn as isometric ellipse (compressed vertically by ~0.7)
                 ctx.ellipse(plot.x, plot.y, range, range * 0.72, 0, 0, Math.PI * 2);
@@ -212,7 +215,7 @@ export class CanvasRenderer {
                 if (ghostImg) {
                     ctx.save();
                     ctx.globalAlpha = 0.65;
-                    ctx.drawImage(ghostImg, plot.x - 52, plot.y - 78, 104, 104);
+                    ctx.drawImage(ghostImg, plot.x - 52 * scale, plot.y - 78 * scale, 104 * scale, 104 * scale);
                     ctx.restore();
                 }
             }
@@ -225,9 +228,10 @@ export class CanvasRenderer {
                 ctx.save();
                 ctx.fillStyle = 'rgba(47, 143, 157, 0.22)';
                 ctx.strokeStyle = PALETTE.glacierTeal;
-                ctx.lineWidth = 2.5;
+                ctx.lineWidth = 2.5 * scale;
                 ctx.beginPath();
-                ctx.ellipse(uiState.abilityTargetPos.x, uiState.abilityTargetPos.y, abDef.radius, abDef.radius * 0.72, 0, 0, Math.PI * 2);
+                const abRad = abDef.radius * scale;
+                ctx.ellipse(uiState.abilityTargetPos.x, uiState.abilityTargetPos.y, abRad, abRad * 0.72, 0, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.stroke();
                 ctx.restore();
@@ -340,6 +344,7 @@ export class CanvasRenderer {
     }
 
     drawTower(ctx, t) {
+        const scale = this.currentScale || 1.0;
         const tDef = TOWERS[t.type];
         const lvlDef = tDef.levels[t.level];
         const img = this.images[lvlDef.sprite];
@@ -348,13 +353,13 @@ export class CanvasRenderer {
         ctx.save();
         ctx.fillStyle = 'rgba(20, 24, 58, 0.45)';
         ctx.beginPath();
-        ctx.ellipse(t.x, t.y + 6, 38, 22, 0, 0, Math.PI * 2);
+        ctx.ellipse(t.x, t.y + 6 * scale, 38 * scale, 22 * scale, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
 
         if (img) {
             // Sprites are 160x160, anchored near base center
-            ctx.drawImage(img, t.x - 52, t.y - 78, 104, 104);
+            ctx.drawImage(img, t.x - 52 * scale, t.y - 78 * scale, 104 * scale, 104 * scale);
         }
 
         // High-contrast, beautifully legible level crest badge on the base
@@ -363,21 +368,21 @@ export class CanvasRenderer {
         const isLvl2 = t.level === '2';
         const lvlStr = t.level === '3a' ? '★3A' : t.level === '3b' ? '★3B' : `★${t.level}`;
 
-        const bw = isMax ? 36 : 28;
-        const bh = 17;
+        const bw = (isMax ? 36 : 28) * scale;
+        const bh = 17 * scale;
         const bx = t.x - bw / 2;
-        const by = t.y + 4;
+        const by = t.y + 4 * scale;
 
         ctx.fillStyle = isMax ? PALETTE.saffron : (isLvl2 ? '#8E9AAF' : '#5C4033');
         ctx.strokeStyle = isMax ? PALETTE.deepIndigo : '#2B2D42';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2 * scale;
         ctx.beginPath();
-        ctx.roundRect(bx, by, bw, bh, 6);
+        ctx.roundRect(bx, by, bw, bh, 6 * scale);
         ctx.fill();
         ctx.stroke();
 
         ctx.fillStyle = isMax ? PALETTE.deepIndigo : PALETTE.ivory;
-        ctx.font = 'bold 11px sans-serif';
+        ctx.font = `bold ${Math.round(11 * scale)}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(lvlStr, t.x, by + bh / 2 + 1);
@@ -403,7 +408,8 @@ export class CanvasRenderer {
         ctx.fill();
         ctx.restore();
 
-        const sz = e.size * 3.6;
+        const multiplier = (e.type === 'runner' || e.tpl?.name === 'runner') ? 4.4 : 3.8;
+        const sz = e.size * multiplier;
         const drawY = e.isAir ? e.y - sz - 15 : e.y - sz + 12;
 
         if (img) {
@@ -463,30 +469,32 @@ export class CanvasRenderer {
     }
 
     drawGuard(ctx, g) {
+        const scale = this.currentScale || 1.0;
         // Guard miniature
         ctx.save();
         // Shadow
         ctx.fillStyle = 'rgba(20, 24, 58, 0.4)';
         ctx.beginPath();
-        ctx.ellipse(g.x, g.y + 2, 8, 4, 0, 0, Math.PI * 2);
+        ctx.ellipse(g.x, g.y + 2 * scale, 8 * scale, 4 * scale, 0, 0, Math.PI * 2);
         ctx.fill();
 
         // Mini armored warden guard body
         ctx.fillStyle = g.isHeroSummon ? PALETTE.saffron : PALETTE.slateBlue;
-        ctx.fillRect(g.x - 5, g.y - 16, 10, 14);
+        ctx.fillRect(g.x - 5 * scale, g.y - 16 * scale, 10 * scale, 14 * scale);
         ctx.fillStyle = PALETTE.stone;
-        ctx.fillRect(g.x - 4, g.y - 21, 8, 6); // helmet
+        ctx.fillRect(g.x - 4 * scale, g.y - 21 * scale, 8 * scale, 6 * scale); // helmet
 
         // Health bar
         const hpRatio = Math.max(0, g.hp / g.maxHp);
         ctx.fillStyle = PALETTE.deepIndigo;
-        ctx.fillRect(g.x - 10, g.y - 26, 20, 3);
+        ctx.fillRect(g.x - 10 * scale, g.y - 26 * scale, 20 * scale, 3 * scale);
         ctx.fillStyle = PALETTE.glacierTeal;
-        ctx.fillRect(g.x - 9, g.y - 25, 18 * hpRatio, 1.8);
+        ctx.fillRect(g.x - 9 * scale, g.y - 25 * scale, 18 * scale * hpRatio, 1.8 * scale);
         ctx.restore();
     }
 
     drawHero(ctx, h) {
+        const scale = this.currentScale || 1.0;
         const frame = Math.floor(performance.now() * 0.005) % 4;
         const spriteSrc = `assets/hero/hero_${frame}.png`;
         const img = this.images[spriteSrc] || this.images['assets/hero/hero_0.png'];
@@ -495,31 +503,31 @@ export class CanvasRenderer {
         ctx.save();
         ctx.fillStyle = 'rgba(47, 143, 157, 0.28)';
         ctx.strokeStyle = PALETTE.saffron;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2 * scale;
         ctx.beginPath();
-        ctx.ellipse(h.x, h.y + 2, 28, 16, 0, 0, Math.PI * 2);
+        ctx.ellipse(h.x, h.y + 2 * scale, 28 * scale, 16 * scale, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
         ctx.restore();
 
         if (img) {
             ctx.save();
-            const hsz = 110;
+            const hsz = 120 * scale;
             if (h.facingLeft) {
                 ctx.translate(h.x, 0);
                 ctx.scale(-1, 1);
-                ctx.drawImage(img, -hsz / 2, h.y - hsz + 15, hsz, hsz);
+                ctx.drawImage(img, -hsz / 2, h.y - hsz + 15 * scale, hsz, hsz);
             } else {
-                ctx.drawImage(img, h.x - hsz / 2, h.y - hsz + 15, hsz, hsz);
+                ctx.drawImage(img, h.x - hsz / 2, h.y - hsz + 15 * scale, hsz, hsz);
             }
             ctx.restore();
         }
 
         // Health bar + Erika label
-        const barW = 38;
-        const barH = 5;
+        const barW = 38 * scale;
+        const barH = 5 * scale;
         const barX = h.x - barW / 2;
-        const barY = h.y - 100;
+        const barY = h.y - 108 * scale;
         const hpRatio = Math.max(0, h.hp / h.maxHp);
 
         ctx.save();
@@ -529,10 +537,10 @@ export class CanvasRenderer {
         ctx.fillRect(barX, barY, barW * hpRatio, barH);
 
         // Hero name tag
-        ctx.font = 'bold 11px "PingFang TC", sans-serif';
+        ctx.font = `bold ${Math.round(11 * scale)}px "PingFang TC", sans-serif`;
         ctx.fillStyle = PALETTE.saffron;
         ctx.textAlign = 'center';
-        ctx.fillText(HERO.name, h.x, barY - 4);
+        ctx.fillText(HERO.name, h.x, barY - 4 * scale);
         ctx.restore();
     }
 

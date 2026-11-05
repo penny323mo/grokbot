@@ -74,3 +74,16 @@ Non-negotiables: no emoji, no placeholder shapes, Cantonese text unchanged in to
 
 ## Review bar for rounds 5 and 6 (grok)
 Take real-tap 390x844 (DPR 2) screenshots for EVERY region: (a) the opening camera exactly as a player sees it at level open (no panning first), (b) mid-wave, (c) late-wave, plus crops of towers/enemies/HUD icons at real size. Compare each map side by side with `assets/art/title_key.webp`. VERDICT: SHIP only if the opening camera shows the whole route, spawn(s), gate and keep on every region, and map art, tower/enemy/hero art and HUD icons all reach a strict commercial mobile-game bar (Kingdom Rush / Bad North level), and `npm test` is green. Any greybox map, any region where the full route does not fit the opening frame, any illegible icon, or any red test = NOT READY. Never return an empty review.
+
+# CONTINUATION DAY 2026-11-05 — FEATURE FREEZE, LOOP ART + PLOT OVERLAP
+Penny (2026-11-05 ~10:32–10:34 Macau): 「繼續修，放塔地方有重疊？」「美術風格唔合格too」「繼續looping修」.
+No new features. Orchestrator rounds fix-7 → review-8 → fix-8 → review-9 → fix-9 → review-10 → fix-10 (≥4 quality rounds). Variety rule N/A.
+
+## Priority (do in order; do not stop after #1)
+1. **ART STYLE FAIL (Penny P0).** Battlefield / towers / enemies / hero / pads / HUD icons fail commercial bar vs `assets/art/title_key.webp` and `assets/art/style_board.webp`. Full Blender re-render pass for all 5 maps, all towers, enemies, bosses, hero, plot pads, clay HUD icons. Dense finished matte low-poly clay (Bad North / Kingdom Rush readability). No greybox, sparse slabs, dark unreadable hero, or tiny early enemies. Side-by-side compare every asset to title_key before finishing. Regions 4 and 5 especially.
+2. **TOWER PLOT OVERLAP (Penny P0).** Pads drawn 96×96, ghosts ~104; map JSON has plots as close as 30px (map2 4↔5), 56–66px (map1, map4). Relayout every region's plots so nearest neighbours ≥ 110 world px (prefer ≥ 120). Beside the road, not on it; never under the open build dock or top HUD at the opening camera. Rebuild plot JSON from the same Blender scene. Add a unit test that fails if any two plots on a map are closer than 110 px. After placing two towers on previously-close plots, 390px screenshots must show two cleanly separate towers with no pad stacking.
+3. Spawn must not sit under the dock; keep roof not clipped by HUD; hero readable ~48 css px; early enemies readable in the first 10s of a wave.
+4. `npm test` GREEN including the new plot-spacing test before publish; never publish while red. Final fix MUST be followed by a grok review (no orphan last fix without review — if needed, leave room for review after last fix by ending on a review phase, or run an extra review before publish).
+5. Spot-check audio, win screen, Endless if time.
+
+Evidence: `review/coder-review.md`, `review/coder2/*.png`, `reviews/orch-r6-grok.md`, live https://penny323mo.github.io/grokbot/projects/frostgate-wardens/

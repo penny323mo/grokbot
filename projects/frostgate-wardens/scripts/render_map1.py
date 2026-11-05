@@ -259,16 +259,14 @@ def build_map1_scene(render_w=1600, render_h=2400):
 
     plot_configs = [
         (0, 0.35, -1),
-        (0, 0.70, -1),
-        (1, 0.45, -1),
-        (2, 0.50, -1),
-        (3, 0.45, -1),
-        (3, 0.55, 1),
-        (4, 0.50, 1),
-        (5, 0.50, -1),
-        (6, 0.45, 1),
-        (7, 0.50, -1),
-        (7, 0.50, 1)
+        (1, 0.35, 1),
+        (2, 0.65, 1),
+        (3, 0.65, -1),
+        (3, 0.35, 1),
+        (4, 0.65, -1),
+        (5, 0.50, 1),
+        (6, 0.65, -1),
+        (7, 0.65, 1)
     ]
     plot_coords_3d = [calc_plot(cfg[0], cfg[1], cfg[2], 1.25) for cfg in plot_configs]
 
@@ -297,21 +295,21 @@ def build_map1_scene(render_w=1600, render_h=2400):
     # 7. Grand Castle Keep at Mountain Apex
     gate_x, gate_y, gate_z = path_3d[-1]
     for tx in [gate_x - 1.8, gate_x + 1.8]:
-        build_models.create_oct_prism("GateTower", radius=1.0, depth=2.4, location=(tx, gate_y + 0.4, gate_z + 1.2), material=mat_stone)
-        build_models.create_oct_prism("TowerCrenel", radius=1.12, depth=0.35, location=(tx, gate_y + 0.4, gate_z + 2.5), material=mat_stone_dark)
-        build_models.create_cone("TowerRoof", radius=1.18, depth=1.2, vertices=6, location=(tx, gate_y + 0.4, gate_z + 3.2), material=mat_teal)
-        build_models.create_cylinder("FlagPole", radius=0.04, depth=1.4, vertices=4, location=(tx, gate_y + 0.4, gate_z + 4.1), material=mat_wood)
-        build_models.create_box("Flag", size=(0.04, 0.6, 0.38), location=(tx, gate_y + 0.7, gate_z + 4.4), material=mat_saffron)
+        build_models.create_oct_prism("GateTower", radius=0.9, depth=2.0, location=(tx, gate_y + 0.4, gate_z + 1.0), material=mat_stone)
+        build_models.create_oct_prism("TowerCrenel", radius=1.05, depth=0.3, location=(tx, gate_y + 0.4, gate_z + 2.1), material=mat_stone_dark)
+        build_models.create_cone("TowerRoof", radius=1.1, depth=1.0, vertices=6, location=(tx, gate_y + 0.4, gate_z + 2.7), material=mat_teal)
+        build_models.create_cylinder("FlagPole", radius=0.04, depth=1.0, vertices=4, location=(tx, gate_y + 0.4, gate_z + 3.4), material=mat_wood)
+        build_models.create_box("Flag", size=(0.04, 0.5, 0.3), location=(tx, gate_y + 0.6, gate_z + 3.6), material=mat_saffron)
 
-    build_models.create_box("GateArch", size=(2.6, 1.0, 0.9), location=(gate_x, gate_y + 0.4, gate_z + 2.1), material=mat_stone)
-    build_models.create_box("Portcullis", size=(1.6, 0.2, 1.8), location=(gate_x, gate_y + 0.4, gate_z + 0.9), material=mat_wood)
-    build_models.create_cone("GateCrest", radius=0.45, depth=0.75, vertices=6, location=(gate_x, gate_y + 0.2, gate_z + 2.7), material=mat_saffron)
+    build_models.create_box("GateArch", size=(2.4, 0.9, 0.8), location=(gate_x, gate_y + 0.4, gate_z + 1.8), material=mat_stone)
+    build_models.create_box("Portcullis", size=(1.5, 0.2, 1.5), location=(gate_x, gate_y + 0.4, gate_z + 0.8), material=mat_wood)
+    build_models.create_cone("GateCrest", radius=0.4, depth=0.6, vertices=6, location=(gate_x, gate_y + 0.2, gate_z + 2.3), material=mat_saffron)
 
-    build_models.create_oct_prism("CentralKeep", radius=2.3, depth=3.4, location=(gate_x, gate_y + 1.5, gate_z + 1.7), material=mat_stone_dark)
-    build_models.create_cone("CentralKeepSpire", radius=1.7, depth=2.0, vertices=8, location=(gate_x, gate_y + 1.5, gate_z + 4.2), material=mat_teal)
-    build_models.create_cone("SpireFinial", radius=0.25, depth=0.5, vertices=6, location=(gate_x, gate_y + 1.5, gate_z + 5.3), material=mat_gold)
-    build_models.create_cylinder("RoyalBannerPole", radius=0.05, depth=1.6, vertices=4, location=(gate_x, gate_y + 1.5, gate_z + 5.6), material=mat_wood)
-    build_models.create_box("RoyalFlag", size=(0.04, 0.85, 0.5), location=(gate_x, gate_y + 1.9, gate_z + 6.0), material=mat_saffron)
+    build_models.create_oct_prism("CentralKeep", radius=2.2, depth=2.4, location=(gate_x, gate_y + 1.4, gate_z + 1.2), material=mat_stone_dark)
+    build_models.create_cone("CentralKeepSpire", radius=1.6, depth=1.5, vertices=8, location=(gate_x, gate_y + 1.4, gate_z + 2.8), material=mat_teal)
+    build_models.create_cone("SpireFinial", radius=0.22, depth=0.4, vertices=6, location=(gate_x, gate_y + 1.4, gate_z + 3.7), material=mat_gold)
+    build_models.create_cylinder("RoyalBannerPole", radius=0.04, depth=1.0, vertices=4, location=(gate_x, gate_y + 1.4, gate_z + 4.0), material=mat_wood)
+    build_models.create_box("RoyalFlag", size=(0.04, 0.65, 0.4), location=(gate_x, gate_y + 1.7, gate_z + 4.2), material=mat_saffron)
 
     build_models.create_box("WallL", size=(4.5, 1.2, 2.4), location=(gate_x - 4.6, gate_y + 0.8, gate_z + 1.2), material=mat_stone)
     build_models.create_box("WallR", size=(4.5, 1.2, 2.4), location=(gate_x + 4.6, gate_y + 0.8, gate_z + 1.2), material=mat_stone)

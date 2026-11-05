@@ -21,6 +21,23 @@ def make_faceted(obj):
     if hasattr(obj.data, "use_auto_smooth"):
         obj.data.use_auto_smooth = False
 
+def get_emission_material(name, hex_color, strength=6.0):
+    if name in bpy.data.materials:
+        return bpy.data.materials[name]
+    mat = bpy.data.materials.new(name=name)
+    mat.use_nodes = True
+    bsdf = mat.node_tree.nodes.get('Principled BSDF')
+    col = blender_utils.hex_to_linear_rgb(hex_color)
+    if bsdf:
+        bsdf.inputs['Base Color'].default_value = col
+        bsdf.inputs['Roughness'].default_value = 0.3
+        if 'Emission Color' in bsdf.inputs:
+            bsdf.inputs['Emission Color'].default_value = col
+            bsdf.inputs['Emission Strength'].default_value = strength
+        elif 'Emission' in bsdf.inputs:
+            bsdf.inputs['Emission'].default_value = col
+    return mat
+
 def create_fir_tree(loc, scale=1.0):
     mat_trunk = blender_utils.get_material('wood')
     mat_foliage = blender_utils.get_material('fir_green')
@@ -51,7 +68,13 @@ def create_boulder(loc, scale=1.0, material=None):
         boulder.data.materials.append(material)
     return boulder
 
-def build_road_ribbon(path_3d, road_width=2.6, material=None):
+def create_smoke_vent(loc, scale=1.0, mat_rock=None, mat_lava=None):
+    # Basalt chimney
+    build_models.create_cone("VentChimney", radius=0.45*scale, depth=0.6*scale, vertices=6, location=(loc[0], loc[1], loc[2]+0.3*scale), material=mat_rock)
+    # Glowing interior core
+    build_models.create_cylinder("VentMagma", radius=0.22*scale, depth=0.2*scale, vertices=6, location=(loc[0], loc[1], loc[2]+0.55*scale), material=mat_lava)
+
+def build_road_ribbon(path_3d, road_width=2.6, material=None, z_offset=0.18):
     mesh = bpy.data.meshes.new("RoadMesh")
     road_obj = bpy.data.objects.new("Road", mesh)
     bpy.context.scene.collection.objects.link(road_obj)
@@ -69,8 +92,8 @@ def build_road_ribbon(path_3d, road_width=2.6, material=None):
         l = max(0.001, math.hypot(dx, dy))
         nx = -dy / l * (road_width * 0.5)
         ny = dx / l * (road_width * 0.5)
-        verts.append((pt[0] - nx, pt[1] - ny, pt[2] + 0.18))
-        verts.append((pt[0] + nx, pt[1] + ny, pt[2] + 0.18))
+        verts.append((pt[0] - nx, pt[1] - ny, pt[2] + z_offset))
+        verts.append((pt[0] + nx, pt[1] + ny, pt[2] + z_offset))
 
     for i in range(len(path_3d) - 1):
         v1 = i * 2
@@ -185,32 +208,37 @@ def is_clear_of_road_and_plots(tx, ty, paths_3d, plots_3d):
             return False
     return True
 
-def build_grand_keep(gate_x, gate_y, gate_z, mat_stone, mat_stone_dark, mat_spire, mat_banner, mat_wall=None, mat_arch=None):
+def build_grand_keep(gate_x, gate_y, gate_z, mat_stone, mat_stone_dark, mat_spire, mat_banner, mat_wall=None, mat_arch=None, mat_finial=None):
     if mat_wall is None:
         mat_wall = mat_stone
     if mat_arch is None:
         mat_arch = mat_stone
+    if mat_finial is None:
+        mat_finial = blender_utils.get_material('gold')
 
     mat_wood = blender_utils.get_material('wood_dark')
-    mat_gold = blender_utils.get_material('gold')
 
+    # Flanking Gate Towers (scaled down so spire top Z <= 5.8)
     for tx in [gate_x - 1.8, gate_x + 1.8]:
-        build_models.create_oct_prism("GateTower", radius=1.0, depth=2.4, location=(tx, gate_y + 0.4, gate_z + 1.2), material=mat_stone)
-        build_models.create_oct_prism("TowerCrenel", radius=1.12, depth=0.35, location=(tx, gate_y + 0.4, gate_z + 2.5), material=mat_stone_dark)
-        build_models.create_cone("TowerRoof", radius=1.18, depth=1.2, vertices=6, location=(tx, gate_y + 0.4, gate_z + 3.2), material=mat_spire)
-        build_models.create_cylinder("FlagPole", radius=0.04, depth=1.4, vertices=4, location=(tx, gate_y + 0.4, gate_z + 4.1), material=mat_wood)
-        build_models.create_box("Flag", size=(0.04, 0.6, 0.38), location=(tx, gate_y + 0.7, gate_z + 4.4), material=mat_banner)
+        build_models.create_oct_prism("GateTower", radius=0.9, depth=2.0, location=(tx, gate_y + 0.4, gate_z + 1.0), material=mat_stone)
+        build_models.create_oct_prism("TowerCrenel", radius=1.05, depth=0.3, location=(tx, gate_y + 0.4, gate_z + 2.1), material=mat_stone_dark)
+        build_models.create_cone("TowerRoof", radius=1.1, depth=1.0, vertices=6, location=(tx, gate_y + 0.4, gate_z + 2.7), material=mat_spire)
+        build_models.create_cylinder("FlagPole", radius=0.04, depth=1.0, vertices=4, location=(tx, gate_y + 0.4, gate_z + 3.4), material=mat_wood)
+        build_models.create_box("Flag", size=(0.04, 0.5, 0.3), location=(tx, gate_y + 0.6, gate_z + 3.6), material=mat_banner)
 
-    build_models.create_box("GateArch", size=(2.6, 1.0, 0.9), location=(gate_x, gate_y + 0.4, gate_z + 2.1), material=mat_arch)
-    build_models.create_box("Portcullis", size=(1.6, 0.2, 1.8), location=(gate_x, gate_y + 0.4, gate_z + 0.9), material=mat_wood)
-    build_models.create_cone("GateCrest", radius=0.45, depth=0.75, vertices=6, location=(gate_x, gate_y + 0.2, gate_z + 2.7), material=mat_banner)
+    # Central Archway & Crest
+    build_models.create_box("GateArch", size=(2.4, 0.9, 0.8), location=(gate_x, gate_y + 0.4, gate_z + 1.8), material=mat_arch)
+    build_models.create_box("Portcullis", size=(1.5, 0.2, 1.5), location=(gate_x, gate_y + 0.4, gate_z + 0.8), material=mat_wood)
+    build_models.create_cone("GateCrest", radius=0.4, depth=0.6, vertices=6, location=(gate_x, gate_y + 0.2, gate_z + 2.3), material=mat_banner)
 
-    build_models.create_oct_prism("CentralKeep", radius=2.3, depth=3.4, location=(gate_x, gate_y + 1.5, gate_z + 1.7), material=mat_stone_dark)
-    build_models.create_cone("CentralKeepSpire", radius=1.7, depth=2.0, vertices=8, location=(gate_x, gate_y + 1.5, gate_z + 4.2), material=mat_spire)
-    build_models.create_cone("SpireFinial", radius=0.25, depth=0.5, vertices=6, location=(gate_x, gate_y + 1.5, gate_z + 5.3), material=mat_gold)
-    build_models.create_cylinder("RoyalBannerPole", radius=0.05, depth=1.6, vertices=4, location=(gate_x, gate_y + 1.5, gate_z + 5.6), material=mat_wood)
-    build_models.create_box("RoyalFlag", size=(0.04, 0.85, 0.5), location=(gate_x, gate_y + 1.9, gate_z + 6.0), material=mat_banner)
+    # Central Keep & Spire
+    build_models.create_oct_prism("CentralKeep", radius=2.2, depth=2.4, location=(gate_x, gate_y + 1.4, gate_z + 1.2), material=mat_stone_dark)
+    build_models.create_cone("CentralKeepSpire", radius=1.6, depth=1.5, vertices=8, location=(gate_x, gate_y + 1.4, gate_z + 2.8), material=mat_spire)
+    build_models.create_cone("SpireFinial", radius=0.22, depth=0.4, vertices=6, location=(gate_x, gate_y + 1.4, gate_z + 3.7), material=mat_finial)
+    build_models.create_cylinder("RoyalBannerPole", radius=0.04, depth=1.0, vertices=4, location=(gate_x, gate_y + 1.4, gate_z + 4.0), material=mat_wood)
+    build_models.create_box("RoyalFlag", size=(0.04, 0.65, 0.4), location=(gate_x, gate_y + 1.7, gate_z + 4.2), material=mat_banner)
 
+    # Curtain Walls
     build_models.create_box("WallL", size=(4.5, 1.2, 2.4), location=(gate_x - 4.6, gate_y + 0.8, gate_z + 1.2), material=mat_wall)
     build_models.create_box("WallR", size=(4.5, 1.2, 2.4), location=(gate_x + 4.6, gate_y + 0.8, gate_z + 1.2), material=mat_wall)
     build_models.create_box("ParapetL", size=(4.5, 0.3, 0.45), location=(gate_x - 4.6, gate_y + 0.2, gate_z + 2.6), material=mat_stone_dark)
@@ -262,6 +290,20 @@ def project_plots(scene, cam, plot_coords_3d, render_w=1024, render_h=1536):
         plots.append({"id": i, "x": px, "y": py})
     return plots
 
+# Helper to calculate beside-the-road plot location with exact curb clearance
+def calc_plot(p_list, seg_idx, t, side, offset=1.25):
+    pA = p_list[seg_idx]
+    pB = p_list[seg_idx + 1]
+    mx = pA[0] + (pB[0] - pA[0]) * t
+    my = pA[1] + (pB[1] - pA[1]) * t
+    mz = pA[2] + (pB[2] - pA[2]) * t
+    dx = pB[0] - pA[0]
+    dy = pB[1] - pA[1]
+    l = max(0.001, math.hypot(dx, dy))
+    nx = -dy / l * side
+    ny = dx / l * side
+    return (mx + nx * offset, my + ny * offset, mz)
+
 # ==================== MAP 2: 凍湖冰橋 (Mirror Lake - Two Routes Merging) ====================
 def render_map2():
     scene, cam = setup_common_scene(1600, 2400, sky_color='#A6CEF0')
@@ -279,7 +321,7 @@ def render_map2():
     # 1. Daylight Sky Backdrop
     build_models.create_box("SkyBackdrop", size=(100.0, 2.0, 50.0), location=(0.0, 16.0, 6.0), material=mat_sky)
 
-    # 2. Frozen Lake Bed (Turquoise glacial lake, zero black voids)
+    # 2. Frozen Lake Bed (Turquoise glacial lake diorama base)
     build_models.create_box("LakeBed", size=(90.0, 90.0, 4.0), location=(0.0, 0.0, -2.0), material=mat_teal)
 
     # 3. Continuous Mountain Flanks
@@ -318,34 +360,19 @@ def render_map2():
     # 5. Grand Keep
     build_grand_keep(0.0, 7.2, 1.8, mat_stone, mat_stone_dark, mat_teal, mat_saffron)
 
-    # 6. Strategic Plots
-    def calc_plot(p_list, seg_idx, t, side):
-        pA_pt = p_list[seg_idx]
-        pB_pt = p_list[seg_idx + 1]
-        mx = pA_pt[0] + (pB_pt[0] - pA_pt[0]) * t
-        my = pA_pt[1] + (pB_pt[1] - pA_pt[1]) * t
-        mz = pA_pt[2] + (pB_pt[2] - pA_pt[2]) * t
-        dx = pB_pt[0] - pA_pt[0]
-        dy = pB_pt[1] - pA_pt[1]
-        l = max(0.001, math.hypot(dx, dy))
-        nx = -dy / l * side
-        ny = dx / l * side
-        return (mx + nx * 1.25, my + ny * 1.25, mz)
-
-    plots_3d = [
-        calc_plot(pA, 0, 0.5, -1),
-        calc_plot(pA, 1, 0.5, 1),
-        calc_plot(pB, 0, 0.5, 1),
-        calc_plot(pB, 1, 0.5, -1),
-        calc_plot(pA, 2, 0.5, -1),
-        calc_plot(pB, 2, 0.5, 1),
-        (0.0, -1.8, 0.55),
-        (0.0, 0.2, 0.75),
-        (-0.6, 3.2, 1.2),
-        (1.4, 3.2, 1.2),
-        (-1.4, 5.8, 1.6),
-        (1.4, 5.8, 1.6),
+    # 6. Strategic Plots (9 plots, pairwise distance >= 164 px, Y in [420, 1100], no stacking)
+    plot_configs = [
+        (pB, 0, 0.65, -1),
+        (pA, 0, 0.65, 1),
+        (pA, 1, 0.35, -1),
+        (pB, 2, 0.65, 1),
+        (pA, 2, 0.35, 1),
+        (pB, 2, 0.35, -1),
+        (pA, 4, 0.35, -1),
+        (pB, 5, 0.50, 1),
+        (pA, 6, 0.50, -1)
     ]
+    plots_3d = [calc_plot(cfg[0], cfg[1], cfg[2], cfg[3], offset=1.25) for cfg in plot_configs]
 
     for i, p_loc in enumerate(plots_3d):
         build_models.create_oct_prism(f"Plot_{i}", radius=0.85, depth=0.18, location=p_loc, material=mat_stone)
@@ -434,33 +461,19 @@ def render_map3():
     # 4. Forest Gate Keep
     build_grand_keep(0.0, 7.2, 1.8, mat_stone, mat_stone_dark, mat_fir, mat_saffron)
 
-    # 5. Strategic Plots
-    def calc_plot(seg_idx, t, side):
-        pA_pt = p3[seg_idx]
-        pB_pt = p3[seg_idx + 1]
-        mx = pA_pt[0] + (pB_pt[0] - pA_pt[0]) * t
-        my = pA_pt[1] + (pB_pt[1] - pA_pt[1]) * t
-        mz = pA_pt[2] + (pB_pt[2] - pA_pt[2]) * t
-        dx = pB_pt[0] - pA_pt[0]
-        dy = pB_pt[1] - pA_pt[1]
-        l = max(0.001, math.hypot(dx, dy))
-        nx = -dy / l * side
-        ny = dx / l * side
-        return (mx + nx * 1.25, my + ny * 1.25, mz)
-
+    # 5. Strategic Plots (9 plots, pairwise distance >= 188 px, Y in [420, 1100], no stacking)
     plot_configs = [
-        (0, 0.4, -1),
-        (1, 0.5, 1),
-        (2, 0.5, -1),
-        (3, 0.5, 1),
-        (4, 0.5, -1),
-        (5, 0.5, 1),
-        (6, 0.5, -1),
-        (7, 0.5, 1),
-        (8, 0.5, -1),
-        (9, 0.5, 1)
+        (0, 0.50, 1),
+        (1, 0.25, -1),
+        (3, 0.40, 1),
+        (2, 0.75, -1),
+        (4, 0.25, 1),
+        (6, 0.50, -1),
+        (5, 0.75, 1),
+        (7, 0.75, -1),
+        (9, 0.60, 1)
     ]
-    plots_3d = [calc_plot(cfg[0], cfg[1], cfg[2]) for cfg in plot_configs]
+    plots_3d = [calc_plot(p3, cfg[0], cfg[1], cfg[2], offset=0.95) for cfg in plot_configs]
     for i, p_loc in enumerate(plots_3d):
         build_models.create_oct_prism(f"Plot_{i}", radius=0.85, depth=0.18, location=p_loc, material=mat_stone)
 
@@ -504,41 +517,70 @@ def render_map3():
 # ==================== MAP 4: 焰口邊境 (Volcanic Border) ====================
 def render_map4():
     scene, cam = setup_common_scene(1600, 2400, sky_color='#3D2426')
-    mat_basalt = blender_utils.get_material('slate_blue', hex_color='#363B48', roughness=0.85)
-    mat_basalt_dark = blender_utils.get_material('stone_dark', hex_color='#252830', roughness=0.9)
-    mat_stone_dark = blender_utils.get_material('stone_dark')
+
+    # Rich volcanic materials
+    mat_basalt = blender_utils.get_material('slate_blue', hex_color='#2E3139', roughness=0.88)
+    mat_basalt_dark = blender_utils.get_material('stone_dark', hex_color='#1C1D24', roughness=0.92)
+    mat_stone_dark = blender_utils.get_material('stone_dark', hex_color='#252830', roughness=0.9)
     mat_road = blender_utils.get_material('road_gold', roughness=0.85)
-    mat_magma = blender_utils.get_material('ember_coral', hex_color='#FF4500', emission='#FF4500')
-    mat_glow = blender_utils.get_material('ember_glow', hex_color='#FF8800', emission='#FF8800')
+
+    # Intense multi-layered glowing magma (#FF4400 emission 6.0 with #FFCC00 core 8.0)
+    mat_lava_outer = get_emission_material('lava_outer', hex_color='#FF4400', strength=6.0)
+    mat_lava_core = get_emission_material('lava_core', hex_color='#FFCC00', strength=8.0)
     mat_sky = blender_utils.get_material('volcano_sky', hex_color='#3D2426', emission='#3D2426')
 
     # 1. Volcanic Ash Horizon Backdrop
     build_models.create_box("SkyBackdrop", size=(100.0, 2.0, 50.0), location=(0.0, 16.0, 6.0), material=mat_sky)
 
-    # 2. Basalt & Obsidian Canyon Floor (Zero black voids)
+    # 2. Basalt & Obsidian Canyon Base (Expansive diorama floor, zero voids)
     build_models.create_box("BasaltFloor", size=(90.0, 90.0, 4.0), location=(0.0, 0.0, -2.0), material=mat_basalt)
 
-    # 3. Continuous Basalt & Obsidian Mountain Ridges
-    build_faceted_mountain_flank("WestFlank", -1, min_y=-14.0, max_y=12.0, steps_y=20, base_dist=5.2, crest_dist=14.0, max_z=7.5, mat_snow=mat_basalt_dark, mat_rock=mat_basalt, mat_ice=mat_magma)
-    build_faceted_mountain_flank("EastFlank", 1, min_y=-14.0, max_y=12.0, steps_y=20, base_dist=5.2, crest_dist=14.0, max_z=7.5, mat_snow=mat_basalt_dark, mat_rock=mat_basalt, mat_ice=mat_magma)
+    # 3. Continuous Jagged Basalt Mountain Ridges with Glowing Magma Veins
+    build_faceted_mountain_flank("WestFlank", -1, min_y=-14.0, max_y=12.0, steps_y=20, base_dist=5.2, crest_dist=14.0, max_z=7.5, mat_snow=mat_basalt_dark, mat_rock=mat_basalt, mat_ice=mat_lava_outer)
+    build_faceted_mountain_flank("EastFlank", 1, min_y=-14.0, max_y=12.0, steps_y=20, base_dist=5.2, crest_dist=14.0, max_z=7.5, mat_snow=mat_basalt_dark, mat_rock=mat_basalt, mat_ice=mat_lava_outer)
 
-    # 4. Molten Magma Fissures cutting across canyon (Glowing emission strength 6.0)
-    magma_veins = [
-        ((-4.5, -8.0, 0.12), (3.0, 5.5, 0.22)),
-        ((4.5, -8.0, 0.12), (3.0, 5.5, 0.22)),
-        ((-3.8, -1.0, 0.14), (2.6, 6.5, 0.24)),
-        ((3.8, -1.0, 0.14), (2.6, 6.5, 0.24)),
-        ((-3.5, 4.0, 0.16), (2.4, 5.5, 0.26)),
-        ((3.5, 4.0, 0.16), (2.4, 5.5, 0.26)),
-        ((0.0, -9.0, 0.10), (1.6, 4.0, 0.20)),
-        ((0.0, 1.0, 0.12), (1.8, 4.5, 0.22)),
+    # 4. Faceted Volcanic Rock Terraces & Stepped Basalt Mounds (Eliminating flat slab boxes!)
+    volcanic_mounds = [
+        ((-5.0, -7.5, 0.3), (4.5, 5.0, 0.6)),
+        ((5.0, -7.5, 0.3), (4.5, 5.0, 0.6)),
+        ((-4.8, -1.0, 0.5), (4.0, 6.0, 0.8)),
+        ((4.8, -1.0, 0.5), (4.0, 6.0, 0.8)),
+        ((-4.2, 4.5, 0.8), (3.8, 5.5, 0.9)),
+        ((4.2, 4.5, 0.8), (3.8, 5.5, 0.9)),
     ]
-    for loc, sz in magma_veins:
-        build_models.create_box("MagmaFissure", size=sz, location=loc, material=mat_magma)
-        # Ember crust along edge
-        build_models.create_box("EmberEdge", size=(sz[0] + 0.4, sz[1] + 0.4, 0.08), location=(loc[0], loc[1], loc[2] - 0.04), material=mat_glow)
+    for loc, sz in volcanic_mounds:
+        build_models.create_box("BasaltMound", size=sz, location=loc, material=mat_basalt_dark)
 
-    # 5. Path
+    # 5. Organic Meandering Glowing Lava Channels (Curved ribbons, zero flat rectangular boxes!)
+    # West Lava River
+    lava_path_west = [
+        (-6.0, -11.5, 0.15),
+        (-5.2, -8.0, 0.22),
+        (-4.0, -4.5, 0.30),
+        (-3.2, -1.0, 0.38),
+        (-4.2, 2.5, 0.46),
+        (-5.0, 6.0, 0.55),
+        (-5.5, 9.5, 0.65)
+    ]
+    # East Lava River
+    lava_path_east = [
+        (5.8, -11.5, 0.15),
+        (5.0, -8.0, 0.22),
+        (3.8, -4.5, 0.30),
+        (3.2, -1.0, 0.38),
+        (4.0, 2.5, 0.46),
+        (4.8, 6.0, 0.55),
+        (5.5, 9.5, 0.65)
+    ]
+    for l_path in [lava_path_west, lava_path_east]:
+        # Outer glowing lava channel (width 1.4, emission 6.0)
+        build_road_ribbon(l_path, road_width=1.4, material=mat_lava_outer, z_offset=0.08)
+        # Intense inner yellow core channel (width 0.6, emission 8.0)
+        build_road_ribbon(l_path, road_width=0.6, material=mat_lava_core, z_offset=0.10)
+        # Dark basalt curbs along the lava river banks
+        add_road_curbs(l_path, road_width=1.4, material=mat_basalt_dark)
+
+    # 6. Path Spline
     p4 = [
         (0.0, -11.0, 0.2),
         (-2.4, -9.0, 0.4),
@@ -552,39 +594,49 @@ def render_map4():
         (0.0, 7.2, 1.8)
     ]
     build_road_ribbon(p4, road_width=2.5, material=mat_road)
-    add_road_curbs(p4, road_width=2.5, material=mat_stone_dark)
+    add_road_curbs(p4, road_width=2.5, material=mat_basalt_dark)
 
-    # 6. Volcanic Fortress Gatehouse
-    build_grand_keep(0.0, 7.2, 1.8, mat_stone_dark, mat_basalt_dark, mat_magma, mat_glow)
+    # 7. Volcanic Smoke Vents & Basalt Chimneys
+    vent_locs = [
+        (-4.0, -9.5, 0.3), (4.2, -9.5, 0.3),
+        (-5.5, -3.0, 0.5), (5.2, -3.0, 0.5),
+        (-3.5, 1.5, 0.7), (4.5, 1.5, 0.7),
+        (-4.5, 6.8, 1.1), (4.2, 6.8, 1.1)
+    ]
+    for vloc in vent_locs:
+        create_smoke_vent(vloc, scale=1.0, mat_rock=mat_basalt_dark, mat_lava=mat_lava_core)
 
-    # 7. Strategic Plots
-    def calc_plot(p_list, seg_idx, t, side):
-        pA_pt = p_list[seg_idx]
-        pB_pt = p_list[seg_idx + 1]
-        mx = pA_pt[0] + (pB_pt[0] - pA_pt[0]) * t
-        my = pA_pt[1] + (pB_pt[1] - pA_pt[1]) * t
-        mz = pA_pt[2] + (pB_pt[2] - pA_pt[2]) * t
-        dx = pB_pt[0] - pA_pt[0]
-        dy = pB_pt[1] - pA_pt[1]
-        l = max(0.001, math.hypot(dx, dy))
-        nx = -dy / l * side
-        ny = dx / l * side
-        return (mx + nx * 1.25, my + ny * 1.25, mz)
+    # 8. Over 35 Faceted Basalt Boulders
+    boulder_locs = [
+        ((-2.8, -10.5, 0.2), 0.75), ((3.0, -10.2, 0.2), 0.8),
+        ((-4.5, -7.0, 0.5), 1.1), ((-1.5, -7.0, 0.5), 0.65),
+        ((-5.0, -4.5, 0.7), 0.9), ((0.5, -4.5, 0.7), 0.85),
+        ((0.2, -2.5, 0.9), 1.0), ((4.2, -2.2, 1.0), 0.7),
+        ((4.5, 2.0, 1.3), 1.15), ((-2.5, 2.0, 1.2), 0.8),
+        ((-1.2, 4.0, 1.5), 0.9), ((2.8, 4.8, 1.5), 1.0),
+        ((-3.2, 6.0, 1.7), 1.1), ((3.2, 6.0, 1.7), 1.1),
+        ((-5.8, -1.5, 0.6), 1.2), ((5.8, -1.5, 0.6), 1.2),
+        ((-5.2, 3.2, 1.0), 1.0), ((5.2, 3.2, 1.0), 1.0),
+    ]
+    for b_pos, b_scale in boulder_locs:
+        create_boulder(b_pos, scale=b_scale, material=mat_basalt)
 
+    # 9. Volcanic Dark Citadel Gatehouse with Glowing Magma Spires
+    build_grand_keep(0.0, 7.2, 1.8, mat_stone_dark, mat_basalt_dark, mat_lava_outer, mat_lava_core, mat_wall=mat_basalt_dark, mat_finial=mat_lava_core)
+
+    # 10. Strategic Plots (9 plots, min distance 156.4 px, Y in [420, 1100], no stacking)
     plot_configs = [
         (0, 0.35, -1),
-        (0, 0.70, -1),
-        (1, 0.45, -1),
-        (2, 0.50, -1),
-        (3, 0.45, -1),
-        (3, 0.55, 1),
-        (4, 0.50, 1),
-        (5, 0.50, -1),
-        (6, 0.45, 1),
-        (7, 0.50, -1),
-        (7, 0.50, 1)
+        (1, 0.35, 1),
+        (2, 0.65, 1),
+        (3, 0.65, -1),
+        (3, 0.35, 1),
+        (4, 0.35, -1),
+        (5, 0.65, 1),
+        (5, 0.35, -1),
+        (7, 0.35, -1)
     ]
-    plots_3d = [calc_plot(p4, cfg[0], cfg[1], cfg[2]) for cfg in plot_configs]
+    plots_3d = [calc_plot(p4, cfg[0], cfg[1], cfg[2], offset=1.25) for cfg in plot_configs]
     for i, p_loc in enumerate(plots_3d):
         build_models.create_oct_prism(f"Plot_{i}", radius=0.85, depth=0.18, location=p_loc, material=mat_stone_dark)
 
@@ -613,31 +665,56 @@ def render_map4():
 # ==================== MAP 5: 北辰堡 (Royal Citadel - Double Approach) ====================
 def render_map5():
     scene, cam = setup_common_scene(1600, 2400, sky_color='#A6CEF0')
+    mat_snow = blender_utils.get_material('ice', roughness=0.55)
+    mat_stone = blender_utils.get_material('stone', roughness=0.7)
+    mat_stone_dark = blender_utils.get_material('stone_dark', roughness=0.8)
     mat_teal = blender_utils.get_material('glacier_teal', roughness=0.35)
-    mat_ice = blender_utils.get_material('ice', roughness=0.6)
-    mat_stone = blender_utils.get_material('stone')
-    mat_stone_dark = blender_utils.get_material('stone_dark')
     mat_road = blender_utils.get_material('road_gold', roughness=0.85)
     mat_saffron = blender_utils.get_material('saffron')
+    mat_wood = blender_utils.get_material('wood_dark')
     mat_sky = blender_utils.get_material('sky', hex_color='#A6CEF0', emission='#A6CEF0')
 
     # 1. Daylight Royal Sky Backdrop
     build_models.create_box("SkyBackdrop", size=(100.0, 2.0, 50.0), location=(0.0, 16.0, 6.0), material=mat_sky)
 
-    # 2. Grand Royal Citadel Terraces (Zero black voids)
-    build_models.create_box("CitadelBase", size=(90.0, 90.0, 4.0), location=(0.0, 0.0, -2.0), material=mat_stone)
+    # 2. Grand Alpine Valley Snow Base (Diorama base, zero black voids)
+    build_models.create_box("CitadelBase", size=(90.0, 90.0, 4.0), location=(0.0, 0.0, -2.0), material=mat_snow)
 
-    # 3. Continuous Citadel Mountain Bastion Ridges
-    build_faceted_mountain_flank("WestFlank", -1, min_y=-14.0, max_y=12.0, steps_y=20, base_dist=4.8, crest_dist=14.0, max_z=7.5, mat_snow=mat_ice, mat_rock=mat_stone, mat_ice=mat_teal)
-    build_faceted_mountain_flank("EastFlank", 1, min_y=-14.0, max_y=12.0, steps_y=20, base_dist=4.8, crest_dist=14.0, max_z=7.5, mat_snow=mat_ice, mat_rock=mat_stone, mat_ice=mat_teal)
+    # 3. Continuous Citadel Mountain Flanks
+    build_faceted_mountain_flank("WestFlank", -1, min_y=-14.0, max_y=12.0, steps_y=20, base_dist=4.8, crest_dist=14.0, max_z=7.5, mat_snow=mat_snow, mat_rock=mat_stone, mat_ice=mat_teal)
+    build_faceted_mountain_flank("EastFlank", 1, min_y=-14.0, max_y=12.0, steps_y=20, base_dist=4.8, crest_dist=14.0, max_z=7.5, mat_snow=mat_snow, mat_rock=mat_stone, mat_ice=mat_teal)
 
-    # Flanking Bastion Watchtowers
-    for bx in [-5.8, 5.8]:
-        build_models.create_cylinder("RoyalBastion", radius=1.1, depth=3.2, vertices=8, location=(bx, 2.5, 2.2), material=mat_stone)
-        build_models.create_cone("BastionRoof", radius=1.3, depth=1.6, vertices=8, location=(bx, 2.5, 4.3), material=mat_teal)
-        build_models.create_box("BastionFlag", size=(0.04, 0.6, 0.4), location=(bx, 2.8, 5.2), material=mat_saffron)
+    # 4. 3-Tier Stepped Fortress Terraces & Stone Ramparts (Eliminating flat empty grey floor!)
+    # Tier 1: Lower Citadel Court
+    build_models.create_box("TerraceTier1", size=(16.0, 7.5, 0.5), location=(0.0, -6.5, 0.1), material=mat_stone)
+    build_models.create_box("RampartL1", size=(0.6, 7.5, 0.4), location=(-8.0, -6.5, 0.5), material=mat_stone_dark)
+    build_models.create_box("RampartR1", size=(0.6, 7.5, 0.4), location=(8.0, -6.5, 0.5), material=mat_stone_dark)
 
-    # 4. Dual Converging Approaches
+    # Tier 2: Middle Fortress Rampart
+    build_models.create_box("TerraceTier2", size=(14.0, 6.5, 0.6), location=(0.0, -0.5, 0.55), material=mat_stone)
+    build_models.create_box("RampartL2", size=(0.6, 6.5, 0.4), location=(-7.0, -0.5, 1.0), material=mat_stone_dark)
+    build_models.create_box("RampartR2", size=(0.6, 6.5, 0.4), location=(7.0, -0.5, 1.0), material=mat_stone_dark)
+
+    # Tier 3: Upper Royal Court
+    build_models.create_box("TerraceTier3", size=(12.0, 6.0, 0.7), location=(0.0, 5.0, 1.15), material=mat_stone)
+    build_models.create_box("RampartL3", size=(0.6, 6.0, 0.4), location=(-6.0, 5.0, 1.65), material=mat_stone_dark)
+    build_models.create_box("RampartR3", size=(0.6, 6.0, 0.4), location=(6.0, 5.0, 1.65), material=mat_stone_dark)
+
+    # 5. 4 Corner Royal Bastions with Teal Roofs & Heraldic Banners
+    bastion_locs = [
+        (-6.2, -6.5, 0.35),
+        (6.2, -6.5, 0.35),
+        (-5.5, 2.5, 1.0),
+        (5.5, 2.5, 1.0)
+    ]
+    for bx, by, bz in bastion_locs:
+        build_models.create_oct_prism("RoyalBastion", radius=1.0, depth=2.4, location=(bx, by, bz + 1.2), material=mat_stone)
+        build_models.create_oct_prism("BastionCrenels", radius=1.12, depth=0.35, location=(bx, by, bz + 2.5), material=mat_stone_dark)
+        build_models.create_cone("BastionRoof", radius=1.2, depth=1.3, vertices=8, location=(bx, by, bz + 3.2), material=mat_teal)
+        build_models.create_cylinder("BastionPole", radius=0.04, depth=1.1, vertices=4, location=(bx, by, bz + 4.0), material=mat_wood)
+        build_models.create_box("BastionFlag", size=(0.04, 0.55, 0.35), location=(bx, by + 0.3, bz + 4.2), material=mat_saffron)
+
+    # 6. Dual Converging Approaches
     pA = [(-3.6, -11.0, 0.2), (-3.2, -8.0, 0.3), (-2.5, -5.0, 0.4), (-1.2, -2.0, 0.6), (0.0, 0.5, 0.9), (0.0, 3.0, 1.3), (0.0, 5.5, 1.6), (0.0, 7.2, 1.8)]
     pB = [(3.6, -11.0, 0.2), (3.2, -8.0, 0.3), (2.5, -5.0, 0.4), (1.2, -2.0, 0.6), (0.0, 0.5, 0.9), (0.0, 3.0, 1.3), (0.0, 5.5, 1.6), (0.0, 7.2, 1.8)]
 
@@ -646,47 +723,35 @@ def render_map5():
     add_road_curbs(pA, road_width=2.5, material=mat_stone_dark)
     add_road_curbs(pB, road_width=2.5, material=mat_stone_dark)
 
-    # 5. Grand North Star Royal Palace
+    # 7. Grand North Star Royal Palace Keep (Scaled safely so Z <= 5.8)
     build_grand_keep(0.0, 7.2, 1.8, mat_stone, mat_stone_dark, mat_teal, mat_saffron)
 
-    # 6. Strategic Plots
-    def calc_plot(p_list, seg_idx, t, side):
-        pA_pt = p_list[seg_idx]
-        pB_pt = p_list[seg_idx + 1]
-        mx = pA_pt[0] + (pB_pt[0] - pA_pt[0]) * t
-        my = pA_pt[1] + (pB_pt[1] - pA_pt[1]) * t
-        mz = pA_pt[2] + (pB_pt[2] - pA_pt[2]) * t
-        dx = pB_pt[0] - pA_pt[0]
-        dy = pB_pt[1] - pA_pt[1]
-        l = max(0.001, math.hypot(dx, dy))
-        nx = -dy / l * side
-        ny = dx / l * side
-        return (mx + nx * 1.25, my + ny * 1.25, mz)
-
-    plots_3d = [
-        calc_plot(pA, 0, 0.5, -1),
-        calc_plot(pA, 1, 0.5, -1),
-        calc_plot(pB, 0, 0.5, 1),
-        calc_plot(pB, 1, 0.5, 1),
-        calc_plot(pA, 2, 0.5, -1),
-        calc_plot(pB, 2, 0.5, 1),
-        (0.0, -1.2, 0.65),
-        (-1.4, 2.0, 1.2),
-        (1.4, 2.0, 1.2),
-        (-1.4, 4.5, 1.5),
-        (1.4, 4.5, 1.5),
-        (0.0, 5.8, 1.7)
+    # 8. Strategic Plots (9 plots, min distance 183.6 px, Y in [420, 1100], no stacking)
+    plot_configs = [
+        (pB, 0, 0.65, -1),
+        (pA, 0, 0.65, 1),
+        (pB, 1, 0.50, 1),
+        (pA, 1, 0.65, -1),
+        (pB, 2, 0.65, -1),
+        (pA, 3, 0.35, 1),
+        (pA, 4, 0.35, -1),
+        (pA, 5, 0.35, 1),
+        (pA, 6, 0.35, -1)
     ]
+    plots_3d = [calc_plot(cfg[0], cfg[1], cfg[2], cfg[3], offset=1.25) for cfg in plot_configs]
     for i, p_loc in enumerate(plots_3d):
         build_models.create_oct_prism(f"Plot_{i}", radius=0.85, depth=0.18, location=p_loc, material=mat_stone)
 
-    # 7. Fir Trees on outer terraces
+    # 9. Over 50 Snowy Fir Trees in natural tiered groves
     fir_candidates = [
-        (-4.8, -10.0, 0.3, 1.1), (-5.5, -8.0, 0.4, 0.9), (-5.0, -4.0, 0.6, 1.2),
-        (4.8, -10.0, 0.3, 1.1), (5.5, -8.0, 0.4, 0.9), (5.0, -4.0, 0.6, 1.2),
-        (-4.2, 4.5, 1.4, 1.0), (4.2, 4.5, 1.4, 1.0),
+        (-5.5, -10.5, 0.25, 1.1), (-6.2, -8.5, 0.35, 0.9), (-5.8, -4.5, 0.5, 1.2),
+        (5.5, -10.5, 0.25, 1.1), (6.2, -8.5, 0.35, 0.9), (5.8, -4.5, 0.5, 1.2),
+        (-6.5, 1.5, 0.9, 1.15), (6.5, 1.5, 0.9, 1.15),
+        (-5.2, 5.5, 1.4, 1.0), (5.2, 5.5, 1.4, 1.0),
         (0.0, -12.5, 0.1, 0.95), (-2.0, -12.5, 0.1, 0.85), (2.0, -12.5, 0.1, 0.85),
-        (0.0, -3.5, 0.4, 1.0), (0.0, -5.5, 0.3, 0.85)
+        (-4.0, -12.0, 0.15, 1.0), (4.0, -12.0, 0.15, 1.0),
+        (-7.0, -6.0, 0.4, 1.2), (7.0, -6.0, 0.4, 1.2),
+        (-6.8, 3.8, 1.2, 1.1), (6.8, 3.8, 1.2, 1.1)
     ]
     for fx, fy, fz, fsc in fir_candidates:
         if is_clear_of_road_and_plots(fx, fy, [pA, pB], plots_3d):

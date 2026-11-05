@@ -114,8 +114,10 @@ export class Camera {
 
         // Expand bounds for grand keep spires (above castle_pos) and enemy spawn mouths (below spawn_pos)
         // so that castle turrets and spawn portals remain 100% visible inside the usable safe frame.
-        if (boundsOrMap.castle_pos) {
-            minY = Math.min(minY, boundsOrMap.castle_pos.y - 140);
+        if (boundsOrMap.keep_tip) {
+            minY = Math.min(minY, boundsOrMap.keep_tip.y);
+        } else if (boundsOrMap.castle_pos) {
+            minY = Math.min(minY, boundsOrMap.castle_pos.y - 280);
         }
         if (boundsOrMap.spawn_pos) {
             maxY = Math.max(maxY, boundsOrMap.spawn_pos.y + 24);

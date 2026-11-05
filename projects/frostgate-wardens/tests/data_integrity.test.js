@@ -31,8 +31,8 @@ export function runDataIntegrityTests() {
         assert(sizeKb <= 450.0, `Map ${r} WebP size ${sizeKb.toFixed(1)} KB exceeds 450 KB limit!`);
 
         const data = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
-        assert.strictEqual(data.width, 1024, `Map ${r} width must be 1024`);
-        assert.strictEqual(data.height, 1536, `Map ${r} height must be 1536`);
+        assert.strictEqual(data.width, 1600, `Map ${r} width must be 1600`);
+        assert.strictEqual(data.height, 2400, `Map ${r} height must be 2400`);
         assert(data.waypoints && data.waypoints.length >= 8, `Map ${r} waypoints must have >= 8 points`);
         assert(data.plots && data.plots.length >= 8, `Map ${r} plots must have >= 8 plots`);
 
@@ -52,6 +52,8 @@ export function runDataIntegrityTests() {
 
         assert(data.castle_pos && typeof data.castle_pos.x === 'number', `Map ${r} missing castle_pos`);
         assert(data.spawn_pos && typeof data.spawn_pos.x === 'number', `Map ${r} missing spawn_pos`);
+        assert(data.keep_tip && typeof data.keep_tip.x === 'number' && typeof data.keep_tip.y === 'number', `Map ${r} missing keep_tip`);
+        assert(data.keep_tip.y >= 200 && data.keep_tip.y <= 300, `Map ${r} keep_tip Y (${data.keep_tip.y}) outside expected apex range [200, 300]`);
     }
     console.log('✓ All 5 region maps, JSON, WebP, waypoints and plots verified');
 

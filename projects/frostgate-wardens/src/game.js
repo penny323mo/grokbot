@@ -6,6 +6,7 @@ export class GameEngine {
     constructor(mapData, wavesData) {
         this.map = mapData;
         this.waves = wavesData;
+        this.scale = (this.map && this.map.width) ? (this.map.width / 1024.0) : 1.0;
 
         this.castleHp = 20;
         this.maxCastleHp = 20;
@@ -34,7 +35,7 @@ export class GameEngine {
             hp: HERO.hp,
             maxHp: HERO.hp,
             atk: HERO.atk,
-            speed: HERO.speed,
+            speed: HERO.speed * this.scale,
             attackRate: HERO.attackRate,
             cooldown: 0,
             target: null,
@@ -184,11 +185,11 @@ export class GameEngine {
             y: wp0.y,
             hp: tpl.hp,
             maxHp: tpl.hp,
-            speed: tpl.speed,
+            speed: tpl.speed * this.scale,
             armor: tpl.armor,
             isAir: tpl.isAir,
             gold: tpl.gold,
-            size: tpl.size,
+            size: tpl.size * this.scale,
             wpIdx: 0,
             distTravelled: 0,
             slowTimer: 0,
@@ -217,7 +218,7 @@ export class GameEngine {
         for (const bell of this.towers) {
             if (bell.type !== 'bell') continue;
             const lvlDef = TOWERS.bell.levels[bell.level];
-            const range = lvlDef.range;
+            const range = lvlDef.range * this.scale;
 
             for (const t of this.towers) {
                 if (t === bell || t.type === 'bell') continue;
@@ -248,14 +249,14 @@ export class GameEngine {
                         type: 'bell_pulse',
                         x: t.x,
                         y: t.y,
-                        radius: lDef.range,
-                        maxRadius: lDef.range,
+                        radius: lDef.range * this.scale,
+                        maxRadius: lDef.range * this.scale,
                         duration: 0.6,
                         timer: 0.6
                     });
                     for (const e of this.enemies) {
                         const d = Math.hypot(e.x - t.x, e.y - t.y);
-                        if (d <= lDef.range) {
+                        if (d <= lDef.range * this.scale) {
                             e.stunTimer = Math.max(e.stunTimer, lDef.stunDuration);
                             if (lDef.shockDmg) {
                                 this.damageEnemy(e, lDef.shockDmg, false);
@@ -281,8 +282,8 @@ export class GameEngine {
                             towerId: t.id,
                             x: t.x,
                             y: t.y,
-                            rallyX: rally.x + (Math.random() - 0.5) * 30,
-                            rallyY: rally.y + (Math.random() - 0.5) * 30,
+                            rallyX: rally.x + (Math.random() - 0.5) * 30 * this.scale,
+                            rallyY: rally.y + (Math.random() - 0.5) * 30 * this.scale,
                             hp: lDef.guardHp,
                             maxHp: lDef.guardHp,
                             atk: lDef.guardAtk,
@@ -301,7 +302,7 @@ export class GameEngine {
             // Offensive towers: Crossbow, Mortar, Frost
             if (t.cooldown > 0) continue;
 
-            const effRange = lDef.range * t.buffRange;
+            const effRange = lDef.range * this.scale * t.buffRange;
             const target = this.findTarget(t.x, t.y, effRange, tDef.targetsAir, tDef.targetsGround);
             if (!target) continue;
 
@@ -314,11 +315,11 @@ export class GameEngine {
                     this.projectiles.push({
                         type: 'bolt',
                         x: t.x,
-                        y: t.y - 20,
+                        y: t.y - 20 * this.scale,
                         tx: target.x,
                         ty: target.y,
                         target: target,
-                        speed: 700,
+                        speed: 700 * this.scale,
                         damage: lDef.damage * t.buffDmg,
                         pierceArmor: lDef.pierceArmor || 0,
                         delay: b * 0.12
@@ -329,17 +330,17 @@ export class GameEngine {
                 this.projectiles.push({
                     type: 'mortar_stone',
                     x: t.x,
-                    y: t.y - 15,
+                    y: t.y - 15 * this.scale,
                     tx: target.x,
                     ty: target.y,
                     startX: t.x,
-                    startY: t.y - 15,
+                    startY: t.y - 15 * this.scale,
                     target: target,
-                    speed: 350,
+                    speed: 350 * this.scale,
                     progress: 0,
                     totalDist: Math.hypot(target.x - t.x, target.y - t.y),
                     damage: lDef.damage * t.buffDmg,
-                    splash: lDef.splash,
+                    splash: (lDef.splash || 0) * this.scale,
                     stun: lDef.stun || 0,
                     clusterCount: lDef.clusterCount || 0,
                     clusterDmg: lDef.clusterDmg || 0
@@ -349,9 +350,9 @@ export class GameEngine {
                 this.projectiles.push({
                     type: 'frost_shard',
                     x: t.x,
-                    y: t.y - 30,
+                    y: t.y - 30 * this.scale,
                     target: target,
-                    speed: 550,
+                    speed: 550 * this.scale,
                     damage: lDef.damage * t.buffDmg,
                     slow: lDef.slow,
                     slowDuration: lDef.slowDuration,
@@ -411,7 +412,7 @@ export class GameEngine {
             if (e.tpl.healRadius && e.hp > 0) {
                 for (const other of this.enemies) {
                     if (other === e || other.hp <= 0 || other.hp >= other.maxHp) continue;
-                    if (Math.hypot(other.x - e.x, other.y - e.y) <= e.tpl.healRadius) {
+                    if (Math.hypot(other.x - e.x, other.y - e.y) <= e.tpl.healRadius * this.scale) {
                         other.hp = Math.min(other.maxHp, other.hp + (e.tpl.healDps || 20) * dt);
                     }
                 }
@@ -431,7 +432,7 @@ export class GameEngine {
             let curSpeed = e.speed * (1.0 - e.slowFactor);
             let moveDist = curSpeed * dt;
 
-            e.animTimer += dt * (curSpeed / 18);
+            e.animTimer += dt * (curSpeed / (18 * this.scale));
             const walkLen = (e.tpl.spriteWalk && e.tpl.spriteWalk.length) || 4;
             e.animFrame = Math.floor(e.animTimer) % walkLen;
 
@@ -529,7 +530,7 @@ export class GameEngine {
                 for (const e of this.enemies) {
                     if (e.isAir || e.hp <= 0) continue;
                     const d = Math.hypot(e.x - g.x, e.y - g.y);
-                    if (d <= 40 && !e.engagedBy) {
+                    if (d <= 40 * this.scale && !e.engagedBy) {
                         g.target = e;
                         e.engagedBy = g;
                         break;
@@ -562,7 +563,7 @@ export class GameEngine {
 
         // Move towards target
         const dTarget = Math.hypot(h.targetX - h.x, h.targetY - h.y);
-        if (dTarget > 6) {
+        if (dTarget > 6 * this.scale) {
             const move = Math.min(dTarget, h.speed * dt);
             h.x += (h.targetX - h.x) / dTarget * move;
             h.y += (h.targetY - h.y) / dTarget * move;
@@ -582,7 +583,7 @@ export class GameEngine {
             for (const e of this.enemies) {
                 if (e.isAir || e.hp <= 0) continue;
                 const d = Math.hypot(e.x - h.x, e.y - h.y);
-                if (d <= HERO.range) {
+                if (d <= HERO.range * this.scale) {
                     h.target = e;
                     e.engagedBy = h;
                     break;
@@ -620,7 +621,7 @@ export class GameEngine {
                 type: 'blizzard',
                 x: targetX,
                 y: targetY,
-                radius: abDef.radius,
+                radius: abDef.radius * this.scale,
                 duration: abDef.duration,
                 timer: abDef.duration,
                 dps: abDef.dps,
@@ -629,7 +630,7 @@ export class GameEngine {
             this.addFloatingText(targetX, targetY, `暴雪降臨!`, '#2F8F9D');
         } else if (abilityId === 'reinforcements') {
             for (let i = 0; i < abDef.guardCount; i++) {
-                const ox = (i - 1) * 24;
+                const ox = (i - 1) * 24 * this.scale;
                 this.guards.push({
                     id: Math.random(),
                     towerId: null,
@@ -653,13 +654,13 @@ export class GameEngine {
                 type: 'beacon_strike',
                 x: targetX,
                 y: targetY,
-                radius: abDef.radius,
+                radius: abDef.radius * this.scale,
                 duration: 1.0,
                 timer: 1.0
             });
             for (const e of this.enemies) {
                 const d = Math.hypot(e.x - targetX, e.y - targetY);
-                if (d <= abDef.radius) {
+                if (d <= abDef.radius * this.scale) {
                     this.damageEnemy(e, abDef.burstDamage, false);
                 }
             }
@@ -686,7 +687,7 @@ export class GameEngine {
                 const dist = Math.hypot(dx, dy);
                 const step = p.speed * dt;
 
-                if (dist <= step || dist < 12) {
+                if (dist <= step || dist < 12 * this.scale) {
                     if (p.target && p.target.hp > 0) {
                         this.damageEnemy(p.target, p.damage, true, p.pierceArmor);
                     }
@@ -725,11 +726,11 @@ export class GameEngine {
                     if (p.clusterCount > 0) {
                         for (let c = 0; c < p.clusterCount; c++) {
                             const ang = (c / p.clusterCount) * Math.PI * 2;
-                            const cx = p.tx + Math.cos(ang) * 45;
-                            const cy = p.ty + Math.sin(ang) * 45;
+                            const cx = p.tx + Math.cos(ang) * 45 * this.scale;
+                            const cy = p.ty + Math.sin(ang) * 45 * this.scale;
                             for (const e of this.enemies) {
                                 if (e.isAir) continue;
-                                if (Math.hypot(e.x - cx, e.y - cy) <= 45) {
+                                if (Math.hypot(e.x - cx, e.y - cy) <= 45 * this.scale) {
                                     this.damageEnemy(e, p.clusterDmg, true);
                                 }
                             }
@@ -745,7 +746,7 @@ export class GameEngine {
                 const dist = Math.hypot(dx, dy);
                 const step = p.speed * dt;
 
-                if (dist <= step || dist < 12) {
+                if (dist <= step || dist < 12 * this.scale) {
                     if (p.target && p.target.hp > 0) {
                         this.damageEnemy(p.target, p.damage, false);
                         p.target.slowFactor = Math.max(p.target.slowFactor, p.slow);
