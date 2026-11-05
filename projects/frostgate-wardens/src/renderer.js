@@ -24,6 +24,11 @@ export class CanvasRenderer {
             imagePaths.push(`assets/hero/hero_${f}.png`);
         }
 
+        // Guard 4-frame walk cycle
+        for (let f = 0; f < 4; f++) {
+            imagePaths.push(`assets/hero/guard_${f}.png`);
+        }
+
         // All 7 regular enemies x 4 frames
         const enemyKeys = ['runner', 'armoured', 'tank', 'flyer', 'healer', 'swarm', 'fast'];
         for (const ek of enemyKeys) {
@@ -470,26 +475,52 @@ export class CanvasRenderer {
 
     drawGuard(ctx, g) {
         const scale = this.currentScale || 1.0;
-        // Guard miniature
+        const frame = Math.floor(performance.now() * 0.005) % 4;
+        const spriteSrc = `assets/hero/guard_${frame}.png`;
+        const img = this.images[spriteSrc] || this.images['assets/hero/guard_0.png'];
+
         ctx.save();
-        // Shadow
-        ctx.fillStyle = 'rgba(20, 24, 58, 0.4)';
+        // Contact Shadow
+        ctx.fillStyle = 'rgba(20, 24, 58, 0.45)';
         ctx.beginPath();
-        ctx.ellipse(g.x, g.y + 2 * scale, 8 * scale, 4 * scale, 0, 0, Math.PI * 2);
+        ctx.ellipse(g.x, g.y + 2 * scale, 12 * scale, 6 * scale, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Mini armored warden guard body
-        ctx.fillStyle = g.isHeroSummon ? PALETTE.saffron : PALETTE.slateBlue;
-        ctx.fillRect(g.x - 5 * scale, g.y - 16 * scale, 10 * scale, 14 * scale);
-        ctx.fillStyle = PALETTE.stone;
-        ctx.fillRect(g.x - 4 * scale, g.y - 21 * scale, 8 * scale, 6 * scale); // helmet
+        // Hero summon golden aura ring
+        if (g.isHeroSummon) {
+            ctx.fillStyle = 'rgba(232, 176, 74, 0.22)';
+            ctx.strokeStyle = PALETTE.saffron;
+            ctx.lineWidth = 1.5 * scale;
+            ctx.beginPath();
+            ctx.ellipse(g.x, g.y + 2 * scale, 18 * scale, 9 * scale, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        // Rendered clay guard miniature (height >= 28 css px at opening zoom)
+        if (img) {
+            ctx.save();
+            const gsz = 90 * scale;
+            if (g.facingLeft) {
+                ctx.translate(g.x, 0);
+                ctx.scale(-1, 1);
+                ctx.drawImage(img, -gsz / 2, g.y - gsz + 15 * scale, gsz, gsz);
+            } else {
+                ctx.drawImage(img, g.x - gsz / 2, g.y - gsz + 15 * scale, gsz, gsz);
+            }
+            ctx.restore();
+        }
 
         // Health bar
         const hpRatio = Math.max(0, g.hp / g.maxHp);
+        const barW = 24 * scale;
+        const barH = 3.5 * scale;
+        const barX = g.x - barW / 2;
+        const barY = g.y - 52 * scale;
         ctx.fillStyle = PALETTE.deepIndigo;
-        ctx.fillRect(g.x - 10 * scale, g.y - 26 * scale, 20 * scale, 3 * scale);
+        ctx.fillRect(barX - 1, barY - 1, barW + 2, barH + 2);
         ctx.fillStyle = PALETTE.glacierTeal;
-        ctx.fillRect(g.x - 9 * scale, g.y - 25 * scale, 18 * scale * hpRatio, 1.8 * scale);
+        ctx.fillRect(barX, barY, barW * hpRatio, barH);
         ctx.restore();
     }
 

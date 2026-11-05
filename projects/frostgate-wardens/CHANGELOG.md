@@ -234,3 +234,28 @@
   - `python3 scripts/verify_road_colors.py`: 100% green across all 5 maps (`ALL 5 MAPS: EVERY WAYPOINT AND PLOT VERIFIED ON/BESIDE THE ROAD!`).
   - `npm test`: 100% green across all 7 test suites (7/7 suites passing).
   - `node scripts/verify_round_8.cjs`: 100% verified on 390×844 and 375×667 with zero letterboxing and zero console errors.
+
+## Round 12 fixes - 2026-11-06 (Macau)
+### Fixed & Improved
+- **Battle Map Complete Re-render & Diorama Terrain Overhaul (CRITICAL #1)**:
+  - Replaced all flat single-quad floor blockouts (`ValleyFloor`, `LakeBed`, `BasaltFloor`, etc.) across `scripts/render_all_maps.py` with multi-frequency 3D faceted terrain meshes (`build_faceted_terrain`), eliminating empty foregrounds and pale snow sheets.
+  - Re-rendered all 5 maps in Blender EEVEE at 1600×2400 resolution with full ambient occlusion (GTAO), directional shadows, roadside props, and rich diorama details matching `assets/art/title_key.webp`:
+    - **Map 1 (霜門前哨)**: Faceted glacial snow & rock terrain, stone-curbed road ribbon, roadside braziers, heraldic frost banners, wooden watchtowers, and 65+ snow-dusted fir trees.
+    - **Map 2 (凍湖冰橋)**: Deep turquoise frozen lakebed with 28+ cracked ice floe slabs, wooden trestle bridge piers and railings spanning causeway chasms, ice crystal clusters, and roadside lanterns.
+    - **Map 3 (冷杉林道)**: Stepped mountain canyon terraces between switchbacks, over 120 fir trees across all elevation tiers, timber retaining curbs, braziers, and banners.
+    - **Map 4 (焰口邊境)**: Faceted volcanic basalt canyon with glowing molten magma fissures featuring high-emission cores and fiery glowing borders, basalt crusts, steam chimneys with glowing magma pits, and obsidian crags.
+    - **Map 5 (北辰堡)**: Multi-tiered paved citadel plazas, stone balustrades, royal bastions with teal conical roofs and saffron banners, grand keep, and ornamental tree planters.
+  - Converted all 5 renders to WebP (`assets/maps/map{1..5}.webp`, 105–147 KB, well within the 450 KB SPEC limit).
+- **Non-Sky Finial Apex Precision for `keep_tip` (MINOR #2)**:
+  - Located the exact topmost non-sky finial apex pixels along column 800 and updated `assets/maps/map{1..5}.json`:
+    - Map 1: `{x: 800, y: 253}`, pixel `(251, 250, 237)`
+    - Map 2: `{x: 800, y: 257}`, pixel `(244, 241, 222)`
+    - Map 3: `{x: 800, y: 250}`, pixel `(244, 230, 194)` (corrected from previous sky white coordinate y=246)
+    - Map 4: `{x: 800, y: 253}`, pixel `(114, 76, 41)`
+    - Map 5: `{x: 800, y: 248}`, pixel `(209, 182, 66)` (corrected from previous sky white coordinate y=239)
+  - Added strict non-sky pixel color assertions in `scripts/verify_road_colors.py` and `tests/data_integrity.test.js` ensuring `keep_tip` never samples sky background.
+- **Automated Verification & Quality Gate Passes**:
+  - `python3 scripts/verify_road_colors.py`: 100% green across all 5 maps (`ALL 5 MAPS: EVERY WAYPOINT AND PLOT VERIFIED ON/BESIDE THE ROAD AND KEEP_TIP VERIFIED NON-SKY!`).
+  - `npm test`: 100% green across all 7 test suites (7/7 passing).
+  - Headless Chrome testing at 390×844 and 375×667 viewports (DPR 2): verified spire tips land at screen Y = 80.0 px (safely clearing 64 px HUD), spawn mouths land at screen Y = 680.0 px (safely clearing 696 px dock), 0 letterboxing, 0 console errors.
+

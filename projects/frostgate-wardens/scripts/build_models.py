@@ -638,3 +638,63 @@ def build_hero(pose=0):
     pennant.parent = root
 
     return root
+
+def build_guard(pose=0):
+    root = bpy.data.objects.new("Guard_Root", None)
+    bpy.context.scene.collection.objects.link(root)
+
+    mat_armor = blender_utils.get_material('slate_blue', hex_color='#46608A', roughness=0.35, metallic=0.4)
+    mat_plate = blender_utils.get_material('iron', hex_color='#94A3B8', roughness=0.3, metallic=0.6)
+    mat_gold = blender_utils.get_material('gold', hex_color='#FBBF24', roughness=0.25, metallic=0.65)
+    mat_saffron = blender_utils.get_material('saffron', hex_color='#F59E0B')
+    mat_wood = blender_utils.get_material('wood_dark')
+    mat_skin = blender_utils.get_material('ivory', roughness=0.8)
+
+    leg_l_angle = math.sin(pose * math.pi / 2.0) * 0.3
+    leg_r_angle = -math.sin(pose * math.pi / 2.0) * 0.3
+
+    # Legs & Boots
+    leg_l = create_box("GLegL", size=(0.18, 0.20, 0.44), location=(-0.14, leg_l_angle * 0.2, 0.22), rotation=(leg_l_angle, 0, 0), material=mat_armor)
+    leg_l.parent = root
+    leg_r = create_box("GLegR", size=(0.18, 0.20, 0.44), location=(0.14, leg_r_angle * 0.2, 0.22), rotation=(leg_r_angle, 0, 0), material=mat_armor)
+    leg_r.parent = root
+
+    # Torso (Armored Warden Tabard)
+    waist = create_box("GWaist", size=(0.42, 0.32, 0.14), location=(0, 0, 0.48), material=mat_wood)
+    waist.parent = root
+    torso = create_box("GTorso", size=(0.46, 0.36, 0.48), location=(0, -0.02, 0.72), material=mat_armor)
+    torso.parent = root
+    sash = create_box("GSash", size=(0.20, 0.38, 0.44), location=(0, -0.01, 0.70), material=mat_saffron)
+    sash.parent = root
+
+    # Pauldrons
+    p_l = create_cone("GPauldronL", radius=0.15, depth=0.18, vertices=5, location=(-0.28, -0.02, 0.90), rotation=(0, math.radians(30), 0), material=mat_plate)
+    p_l.parent = root
+    p_r = create_cone("GPauldronR", radius=0.15, depth=0.18, vertices=5, location=(0.28, -0.02, 0.90), rotation=(0, math.radians(-30), 0), material=mat_plate)
+    p_r.parent = root
+
+    # Head & Iron Warden Kettle Helm with Nasal Guard & Saffron Crest
+    face = create_box("GFace", size=(0.24, 0.22, 0.22), location=(0, -0.06, 1.05), material=mat_skin)
+    face.parent = root
+    helm_crown = create_oct_prism("GHelmCrown", radius=0.22, depth=0.28, location=(0, 0, 1.15), material=mat_plate)
+    helm_crown.parent = root
+    helm_brim = create_cone("GHelmBrim", radius=0.34, depth=0.12, vertices=8, location=(0, 0, 1.10), material=mat_plate)
+    helm_brim.parent = root
+    crest = create_box("GCrest", size=(0.06, 0.30, 0.18), location=(0, 0, 1.30), material=mat_saffron)
+    crest.parent = root
+
+    # Left Hand: Round Warden Shield with Gold Boss
+    shield = create_oct_prism("GShield", radius=0.32, depth=0.08, location=(-0.35, -0.10, 0.68), rotation=(math.radians(15), math.radians(20), math.radians(10)), material=mat_armor)
+    shield.parent = root
+    boss = create_cone("GShieldBoss", radius=0.10, depth=0.08, vertices=6, location=(-0.35, -0.15, 0.68), rotation=(math.radians(90), 0, 0), material=mat_gold)
+    boss.parent = root
+
+    # Right Hand: Warden Spear / Halberd
+    spear_shaft = create_cylinder("GSpearShaft", radius=0.03, depth=1.5, vertices=6, location=(0.35, -0.05, 0.85), rotation=(math.radians(10), 0, math.radians(-10)), material=mat_wood)
+    spear_shaft.parent = root
+    spear_tip = create_cone("GSpearTip", radius=0.09, depth=0.35, vertices=4, location=(0.35, -0.12, 1.62), rotation=(math.radians(10), 0, math.radians(-10)), material=mat_plate)
+    spear_tip.parent = root
+    spear_pennant = create_box("GPennant", size=(0.02, 0.22, 0.15), location=(0.35, 0.05, 1.48), material=mat_saffron)
+    spear_pennant.parent = root
+
+    return root

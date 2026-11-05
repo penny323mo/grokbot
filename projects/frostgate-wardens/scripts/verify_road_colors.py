@@ -77,12 +77,22 @@ def verify_all():
                 print(f"Map {i} plot {idx} ({x}, {y}) center is not within 28px of road gold band!")
                 all_ok = False
 
+        # 3. Check keep_tip: must sample non-sky pixel
+        tip = data.get('keep_tip')
+        if tip:
+            tip_x = int(round(tip['x'] * scale_x))
+            tip_y = int(round(tip['y'] * scale_y))
+            r_tip, g_tip, b_tip = im.getpixel((tip_x, tip_y))
+            if r_tip >= 253 and g_tip >= 253 and b_tip >= 253:
+                print(f"Map {i} keep_tip ({tip_x}, {tip_y}) pixel ({r_tip}, {g_tip}, {b_tip}) is sky white!")
+                all_ok = False
+
     return all_ok
 
 if __name__ == '__main__':
     ok = verify_all()
     if ok:
-        print("ALL 5 MAPS: EVERY WAYPOINT AND PLOT VERIFIED ON/BESIDE THE ROAD!")
+        print("ALL 5 MAPS: EVERY WAYPOINT AND PLOT VERIFIED ON/BESIDE THE ROAD AND KEEP_TIP VERIFIED NON-SKY!")
         sys.exit(0)
     else:
         print("Road verification failed!")

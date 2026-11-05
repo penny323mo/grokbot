@@ -68,6 +68,11 @@ def main():
         out = f"assets/hero/hero_{frame}.png"
         render_sprite(build_models.build_hero, (frame,), out, ortho_scale=2.7, res=256, center=(0, 0, 1.25))
 
+    # 5. Guard: 4 walk/idle frames (256x256 clay Warden Guard miniature)
+    for frame in [0, 1, 2, 3]:
+        out = f"assets/hero/guard_{frame}.png"
+        render_sprite(build_models.build_guard, (frame,), out, ortho_scale=2.7, res=256, center=(0, 0, 0.95))
+
     print("ALL SPRITES RENDERED SUCCESSFULLY!")
 
 if __name__ == "__main__":

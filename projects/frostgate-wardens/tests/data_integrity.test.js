@@ -80,15 +80,18 @@ export function runDataIntegrityTests() {
     }
     console.log('✓ All 8 enemy types and 5 boss sprites verified on disk');
 
-    // 5. Hero Sprites
+    // 5. Hero & Guard Sprites
     assert(fs.existsSync('assets/hero/hero_0.png'), 'Missing hero_0.png');
     assert(fs.existsSync('assets/hero/hero_1.png'), 'Missing hero_1.png');
-    console.log('✓ Hero sprites verified on disk');
+    assert(fs.existsSync('assets/hero/guard_0.png'), 'Missing guard_0.png');
+    assert(fs.existsSync('assets/hero/guard_1.png'), 'Missing guard_1.png');
+    console.log('✓ Hero and guard sprites verified on disk');
 
     // 6. Road Color Sampling Verification across all 5 maps
     const roadVerifOutput = execSync('python3 scripts/verify_road_colors.py', { encoding: 'utf8' });
     assert(roadVerifOutput.includes('ALL 5 MAPS: EVERY WAYPOINT AND PLOT VERIFIED'), 'Road color verification must pass');
-    console.log('✓ Road color sampling: All waypoints & plots verified on/beside the road');
+    assert(roadVerifOutput.includes('KEEP_TIP VERIFIED NON-SKY'), 'Keep tip non-sky verification must pass');
+    console.log('✓ Road color sampling & keep_tip non-sky verified across all 5 maps');
 
     return true;
 }

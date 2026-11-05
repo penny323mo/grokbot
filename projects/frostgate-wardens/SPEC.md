@@ -87,3 +87,8 @@ No new features. Orchestrator rounds fix-7 → review-8 → fix-8 → review-9 �
 5. Spot-check audio, win screen, Endless if time.
 
 Evidence: `review/coder-review.md`, `review/coder2/*.png`, `reviews/orch-r6-grok.md`, live https://penny323mo.github.io/grokbot/projects/frostgate-wardens/
+
+# CONTINUATION NIGHT 2026-11-06 — FEATURE FREEZE, LOOP ART + PLOT OVERLAP (round 3 of the same fix)
+Penny (2026-11-05): 「繼續修」「放塔地方有重疊」「美術風格唔合格too」「繼續looping修」. Fix-10 was published (live) but never reviewed by grok; review-10 judged the pre-fix-10 state. Rounds: review-11 → fix-11 → review-12 → fix-12 (fix-12 = regression/CRITICAL-only), then publish. Variety rule N/A. No new features.
+Priority unchanged: (1) art vs `assets/art/title_key.webp` full Blender pass — maps 1-5 (dense, finished, no empty foreground, ≥1600px wide), towers, enemies, hero, pads, HUD icons; (2) plot spacing ≥110 world px with unit test and 390px screenshot of two adjacent towers; (3) spawn/dock/HUD/hero legibility; (4) `npm test` green before commit/publish; never weaken tests; per-map `keep_tip` exported from each scene and asserted by pixel sample.
+Grok reviewers: you MAY run headless Chromium/Playwright (if installed) to take 390x844 DPR2 screenshots of the opening camera of every region and compare to title_key; save them under review/send/ (not reviews/). VERDICT: SHIP only if the art and plot spacing meet the commercial bar. Never return an empty review.
