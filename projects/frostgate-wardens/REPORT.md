@@ -1,8 +1,8 @@
 # 霜門守望 — orchestrator report
 
-- Generated: 2026-11-06 01:10 (Macau, UTC+8)
+- Generated: 2026-11-06 03:46 (Macau, UTC+8)
 - Live: https://penny323mo.github.io/grokbot/projects/frostgate-wardens/ (HTTP 200)
-- Rounds: 0  ·  Started: 2026-11-04T01:17:03+08:00
+- Rounds: 12  ·  Started: 2026-11-04T01:17:03+08:00
 
 ## Phases
 - build finished 2026-11-04T02:03:19+08:00
@@ -31,14 +31,24 @@
 - review-10 finished 2026-11-05T15:17:55+08:00
 - fix-10 finished 2026-11-05T16:27:53+08:00
 - publish finished 2026-11-06T01:10:22+08:00
+- report finished 2026-11-06T01:10:22+08:00
+- continuation-reset finished 2026-11-06T01:15:00+08:00
+- review-11 finished 2026-11-06T01:26:32+08:00
+- fix-11 finished 2026-11-06T02:59:34+08:00
+- review-12 finished 2026-11-06T03:02:16+08:00
+- fix-12 finished 2026-11-06T03:46:37+08:00
+- publish finished 2026-11-06T03:46:48+08:00
 
 ## Timeouts
+- fix-11 gave up (agent never wrote sentinel)
 - fix-7 gave up (agent never wrote sentinel)
 - fix-9 gave up (agent never wrote sentinel)
 
 ## Reviews
 - orch-r1-grok.md: VERDICT: NOT READY
 - orch-r10-grok.md: VERDICT: NOT READY
+- orch-r11-grok.md: VERDICT: NOT READY
+- orch-r12-grok.md: VERDICT: NOT READY
 - orch-r2-grok.md: VERDICT: NOT READY
 - orch-r3-grok.md: VERDICT: NOT READY
 - orch-r5-grok.md: VERDICT: NOT READY
@@ -70,6 +80,28 @@
 ====================================================
 ```
 ### tests-fix-10
+```
+✓ Map 4 (焰口邊境): 9 plots verified, minimum pairwise distance = 184.0 px (closest: Plot 6 & Plot 7)
+✓ Map 5 (北辰堡): 9 plots verified, minimum pairwise distance = 232.7 px (closest: Plot 7 & Plot 8)
+✓ All 5 maps passed plot spacing separation requirements (all >= 110 px)
+[PASS 7/7] Plot Spacing & Non-Overlapping Verification
+
+====================================================
+✅ ALL TESTS PASSED: 7/7 SUITES SUCCESSFUL
+====================================================
+```
+### tests-fix-11
+```
+✓ Map 4 (焰口邊境): 9 plots verified, minimum pairwise distance = 184.0 px (closest: Plot 6 & Plot 7)
+✓ Map 5 (北辰堡): 9 plots verified, minimum pairwise distance = 232.7 px (closest: Plot 7 & Plot 8)
+✓ All 5 maps passed plot spacing separation requirements (all >= 110 px)
+[PASS 7/7] Plot Spacing & Non-Overlapping Verification
+
+====================================================
+✅ ALL TESTS PASSED: 7/7 SUITES SUCCESSFUL
+====================================================
+```
+### tests-fix-12
 ```
 ✓ Map 4 (焰口邊境): 9 plots verified, minimum pairwise distance = 184.0 px (closest: Plot 6 & Plot 7)
 ✓ Map 5 (北辰堡): 9 plots verified, minimum pairwise distance = 232.7 px (closest: Plot 7 & Plot 8)
@@ -185,28 +217,28 @@
 - screenshots/orch/live-390.png
 
 ## Changelog (tail)
-  - Captured Puppeteer mobile verification screenshots (`screenshots/review-round-8/`) at DPR 2 on both 390×844 and 375×667, confirming clean tower separation with zero pad stacking, zero console errors, and full card visibility.
 
-## Round 10 fixes - 2026-11-05 (Macau)
+## Round 12 fixes - 2026-11-06 (Macau)
 ### Fixed & Improved
-- **High-Resolution (1600×2400) Battle Map Art & Full Frame Diorama Density (CRITICAL #1)**:
-  - Re-rendered all 5 battle maps directly in Blender at 1600×2400 px, matching the density, ambient occlusion (GTAO), and commercial visual quality of `title_key.webp`.
-  - Flanks extended continuously to `min_y = -20.0, max_y = 14.0`, completely filling the frame without empty foreground thirds.
-  - Roads extended continuously through spawn gateways and castle gates (`Y = 7.8, 8.0`) with stone curbs.
-  - Converted all 5 maps to crisp WebP (`assets/maps/map{1..5}.webp`, 90–118 KB, well below the 450 KB SPEC limit).
-  - Unified metadata: all 5 JSON files (`assets/maps/map{1..5}.json`) now specify `width: 1600, height: 2400` matching the 1600×2400 images 1:1.
-  - Updated `src/game.js` and `src/renderer.js` to dynamic scale `scale = mapData.width / 1024.0` across all speeds, ranges, projectiles, guard rally radiuses, hero movement, and rendering.
-- **Volcanic Border Magma Fissures & Emission Shading (CRITICAL #1 - Map 4)**:
-  - Switched Map 4 emission materials to dedicated `ShaderNodeEmission` with standard view transform (`view_transform = 'Standard'`), preventing AgX desaturation and blue-channel blowout.
-  - Modeled glowing volcanic magma ribbons, cascade falls along flanks, volcanic smoke vents with glowing magma pits, and flank magma fissures.
-  - Magma fissure scan on `assets/maps/map4.webp` verified with **961,037 pixels** matching emissive orange/red predicate ($r > 180$ and $b < 80$).
-- **Region 5 Scripted 350-Gold Clear Margin (MINOR #2)**:
-  - Repositioned hero to the citadel confluence waypoint `(800, 1075)` and optimized initial tower deployment: Crossbow on Plot 6 (100g), Crossbow on Plot 7 (100g), and Mortar on Plot 5 (125g) for early swarm suppression.
-  - Increased clear margin to **13/20 HP** (up from 6/20 HP) with 1,889 gold remaining at level finish.
-- **Distinct Scene-Exported `keep_tip` & Spire Clearance (MINOR #3)**:
-  - Exported exact 2D camera coordinates for each castle keep's finial apex from its own 3D scene geometry in each `map{r}.json`: Map 1 `{800, 253}`, Map 2 `{800, 259}`, Map 3 `{800, 246}`, Map 4 `{800, 253}`, Map 5 `{800, 239}` (eliminating copied `{512, 170}`).
-  - Verified that `keep_tip` marks the topmost non-sky pixel clearing the HUD (`keepTop.y >= 64px`) across all mobile viewports (390×844 and 375×667).
-- **Quality Gate Tests & Road Color Sampling**:
-  - `python3 scripts/verify_road_colors.py`: 100% green across all 5 maps (`ALL 5 MAPS: EVERY WAYPOINT AND PLOT VERIFIED ON/BESIDE THE ROAD!`).
-  - `npm test`: 100% green across all 7 test suites (7/7 suites passing).
-  - `node scripts/verify_round_8.cjs`: 100% verified on 390×844 and 375×667 with zero letterboxing and zero console errors.
+- **Battle Map Complete Re-render & Diorama Terrain Overhaul (CRITICAL #1)**:
+  - Replaced all flat single-quad floor blockouts (`ValleyFloor`, `LakeBed`, `BasaltFloor`, etc.) across `scripts/render_all_maps.py` with multi-frequency 3D faceted terrain meshes (`build_faceted_terrain`), eliminating empty foregrounds and pale snow sheets.
+  - Re-rendered all 5 maps in Blender EEVEE at 1600×2400 resolution with full ambient occlusion (GTAO), directional shadows, roadside props, and rich diorama details matching `assets/art/title_key.webp`:
+    - **Map 1 (霜門前哨)**: Faceted glacial snow & rock terrain, stone-curbed road ribbon, roadside braziers, heraldic frost banners, wooden watchtowers, and 65+ snow-dusted fir trees.
+    - **Map 2 (凍湖冰橋)**: Deep turquoise frozen lakebed with 28+ cracked ice floe slabs, wooden trestle bridge piers and railings spanning causeway chasms, ice crystal clusters, and roadside lanterns.
+    - **Map 3 (冷杉林道)**: Stepped mountain canyon terraces between switchbacks, over 120 fir trees across all elevation tiers, timber retaining curbs, braziers, and banners.
+    - **Map 4 (焰口邊境)**: Faceted volcanic basalt canyon with glowing molten magma fissures featuring high-emission cores and fiery glowing borders, basalt crusts, steam chimneys with glowing magma pits, and obsidian crags.
+    - **Map 5 (北辰堡)**: Multi-tiered paved citadel plazas, stone balustrades, royal bastions with teal conical roofs and saffron banners, grand keep, and ornamental tree planters.
+  - Converted all 5 renders to WebP (`assets/maps/map{1..5}.webp`, 105–147 KB, well within the 450 KB SPEC limit).
+- **Non-Sky Finial Apex Precision for `keep_tip` (MINOR #2)**:
+  - Located the exact topmost non-sky finial apex pixels along column 800 and updated `assets/maps/map{1..5}.json`:
+    - Map 1: `{x: 800, y: 253}`, pixel `(251, 250, 237)`
+    - Map 2: `{x: 800, y: 257}`, pixel `(244, 241, 222)`
+    - Map 3: `{x: 800, y: 250}`, pixel `(244, 230, 194)` (corrected from previous sky white coordinate y=246)
+    - Map 4: `{x: 800, y: 253}`, pixel `(114, 76, 41)`
+    - Map 5: `{x: 800, y: 248}`, pixel `(209, 182, 66)` (corrected from previous sky white coordinate y=239)
+  - Added strict non-sky pixel color assertions in `scripts/verify_road_colors.py` and `tests/data_integrity.test.js` ensuring `keep_tip` never samples sky background.
+- **Automated Verification & Quality Gate Passes**:
+  - `python3 scripts/verify_road_colors.py`: 100% green across all 5 maps (`ALL 5 MAPS: EVERY WAYPOINT AND PLOT VERIFIED ON/BESIDE THE ROAD AND KEEP_TIP VERIFIED NON-SKY!`).
+  - `npm test`: 100% green across all 7 test suites (7/7 passing).
+  - Headless Chrome testing at 390×844 and 375×667 viewports (DPR 2): verified spire tips land at screen Y = 80.0 px (safely clearing 64 px HUD), spawn mouths land at screen Y = 680.0 px (safely clearing 696 px dock), 0 letterboxing, 0 console errors.
+

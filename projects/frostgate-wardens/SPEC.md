@@ -92,3 +92,23 @@ Evidence: `review/coder-review.md`, `review/coder2/*.png`, `reviews/orch-r6-grok
 Penny (2026-11-05): 「繼續修」「放塔地方有重疊」「美術風格唔合格too」「繼續looping修」. Fix-10 was published (live) but never reviewed by grok; review-10 judged the pre-fix-10 state. Rounds: review-11 → fix-11 → review-12 → fix-12 (fix-12 = regression/CRITICAL-only), then publish. Variety rule N/A. No new features.
 Priority unchanged: (1) art vs `assets/art/title_key.webp` full Blender pass — maps 1-5 (dense, finished, no empty foreground, ≥1600px wide), towers, enemies, hero, pads, HUD icons; (2) plot spacing ≥110 world px with unit test and 390px screenshot of two adjacent towers; (3) spawn/dock/HUD/hero legibility; (4) `npm test` green before commit/publish; never weaken tests; per-map `keep_tip` exported from each scene and asserted by pixel sample.
 Grok reviewers: you MAY run headless Chromium/Playwright (if installed) to take 390x844 DPR2 screenshots of the opening camera of every region and compare to title_key; save them under review/send/ (not reviews/). VERDICT: SHIP only if the art and plot spacing meet the commercial bar. Never return an empty review.
+
+# CONTINUATION 2026-11-06 DAY — FULL ART STYLE REDO (Penny P0)
+Penny (2026-11-06 08:49 Macau), after the morning delivery: 「你咁樣就叫改咗，唔撚係呀嘛，乜嘢都唔改有啲咩分別喎，我係講成隻game美術風格，同埋圖，所有嘢都問題，咁咪繼續做。」
+She rejected incremental tweaks. The WHOLE game art style fails — every map, tower, enemy, boss, hero, plot pad, HUD icon, title chrome that appears in play. Feature freeze on gameplay systems; unrestricted visual replacement.
+
+## Non-negotiable visual bar
+- Side-by-side with `assets/art/title_key.webp` and `assets/art/style_board.webp` at every step. If a battle screenshot could be mistaken for yesterday's build, it FAILS.
+- Target look: commercial mobile TD — Bad North / Kingdom Rush readability + dense matte low-poly clay diorama. Every screen area filled with deliberate facets, props, trees, cliffs, banners; no empty slabs, no black voids, no sparse orange/grey blocks (R4/R5 especially).
+- Replace ALL playable art assets via Blender headless renders (maps 1–5, every tower level/branch, every enemy + boss + walk frames, hero, plot pads, clay HUD icons). Do not "touch up" old webps.
+- Enemies readable from wave-start (not tiny for first 10s). Hero clearly a knight miniature matching title_key, not a dark slab.
+- Plot spacing stays ≥110 world px (unit test). Spawn not under dock; keep under HUD; 390/375 framing.
+- npm test green before publish; keep asset payload slim enough for GitHub Pages (prefer webp budgets; never fat-push timeout). Final fix must be followed by a grok review.
+- Grok SHIP forbidden unless art vs title_key passes a commercial bar AND screenshots look clearly different from pre-redo live.
+
+Orchestrator: fix-13 → review-14 → fix-14 → review-15 → fix-15 → review-16 → fix-16 (rounds=16).
+
+# CONTINUATION NIGHT 2026-11-10 — FULL ART STYLE REDO (still looping)
+Penny standing order (2026-11-06 08:49): whole-game art style and every image still fail; keep looping. Grok review-16 VERDICT NOT READY: battle maps still overhead slabs vs `assets/art/title_key.webp`; hero still block knight; runner horns detached. Feature freeze on systems. Variety rule N/A.
+
+Orchestrator: fix-17 → review-18 → fix-18 → review-19 → fix-19 (rounds=19), then publish (require-green). Priorities unchanged from FULL ART STYLE REDO: replace ALL maps/towers/enemies/bosses/hero/pads/HUD icons via Blender headless; battle must look unmistakably different and match title_key density; plot ≥110; green tests; grok after last fix; slim webp for Pages.

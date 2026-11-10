@@ -1,9 +1,9 @@
 import subprocess
 import sys
 
-maps_to_render = ["2", "3", "4", "5"]
+maps_to_render = ["1", "2", "3", "4", "5"]
 if len(sys.argv) > 1 and sys.argv[1] != "all":
-    maps_to_render = [sys.argv[1]]
+    maps_to_render = sys.argv[1:]
 
 for m in maps_to_render:
     print(f"\n==========================================")

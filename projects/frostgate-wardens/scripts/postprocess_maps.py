@@ -1,30 +1,24 @@
 import os
 import sys
 import json
+import math
 import numpy as np
 from PIL import Image
 
 def detect_keep_tip_exact(r, img_path):
     im = Image.open(img_path).convert('RGB')
     x = 800
-    if r in [1, 2, 3]:
-        for y in range(240, 270):
-            pr, pg, pb = im.getpixel((x, y))
-            # Finial begins where pixel is not pure sky white
-            if not (pr >= 254 and pg >= 254 and pb >= 254):
-                return {"x": x, "y": y}
-    elif r == 4:
-        for y in range(240, 270):
-            pr, pg, pb = im.getpixel((x, y))
-            # Finial begins where amber/gold tip appears (r > 100, g > 75)
-            if pr > 100 and pg > 75:
-                return {"x": x, "y": y}
-    elif r == 5:
-        for y in range(240, 270):
-            pr, pg, pb = im.getpixel((x, y))
-            # Finial begins where gold tip appears (r > 180 and pb < 100)
-            if pr > 180 and pb < 100:
-                return {"x": x, "y": y}
+    # Sample sky background at y=150 (above mountains)
+    sky_sample = im.getpixel((x, 150))
+
+    # Scan downward along central finial axis from y=240 to y=280
+    for y in range(240, 280):
+        pr, pg, pb = im.getpixel((x, y))
+        diff = math.hypot(pr - sky_sample[0], pg - sky_sample[1], pb - sky_sample[2])
+        # Finial apex is distinct from sky (golden or warm tone)
+        if diff > 35 and (pr > 120 or pg > 100):
+            return {"x": x, "y": y}
+
     return {"x": x, "y": 250}
 
 def edge_energy(im_path, target_size=(360, 540)):
@@ -57,8 +51,13 @@ def process_map(r):
     with open(json_path, 'w', encoding='utf-8') as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)
 
-    # 2. Convert to WebP
-    im.save(webp_path, "WEBP", quality=82, method=6)
+    # 2. Clay diorama contrast tuning to match title_key.webp matte clay visual contrast
+    from PIL import ImageEnhance
+    im = ImageEnhance.Contrast(im).enhance(1.045 if r == 4 else 1.025)
+    im.save(png_path)
+
+    # 3. Convert to WebP
+    im.save(webp_path, "WEBP", quality=84, method=6)
     size_kb = os.path.getsize(webp_path) / 1024.0
     assert size_kb <= 450.0, f"Map {r} WebP size {size_kb:.1f} KB exceeds 450 KB limit!"
 

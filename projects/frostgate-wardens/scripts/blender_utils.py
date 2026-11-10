@@ -2,26 +2,29 @@ import bpy
 import math
 
 PALETTE = {
-    'ice': '#DDEBF2',
-    'glacier_teal': '#2F8F9D',
-    'deep_indigo': '#1B2447',
-    'slate_blue': '#46608A',
-    'fir_green': '#2D5A4A',
-    'stone': '#B9AE9C',
-    'stone_dark': '#8E8575',
-    'road_gold': '#D9B87A',
-    'road_edge': '#C4A362',
-    'saffron': '#E8B04A',
-    'ember_coral': '#E2563A',
-    'ember_glow': '#FF7A45',
-    'ember_dark': '#7A1C16',
-    'ivory': '#F4EFE2',
-    'ink': '#14183A',
-    'wood': '#785338',
-    'wood_dark': '#4F3521',
-    'iron': '#5B626C',
-    'gold': '#E5B138',
-    'bronze': '#BA7D38',
+    'ice': '#BDC3C8',           # Soft matte clay snow matching title_key.webp (not blown-out white)
+    'ice_bright': '#DDEBF2',    # Peak snow highlight
+    'glacier_teal': '#2F8F9D',  # Glacier teal spire roofs & frost crystals
+    'deep_indigo': '#1B2447',   # Deep brand indigo
+    'alpine_sky': '#12233D',    # Deep alpine twilight sky matching title_key.webp
+    'slate_blue': '#46608A',    # Rock faces and shadow tones
+    'slate_dark': '#303E54',    # Dark rock crevices
+    'fir_green': '#244B3E',     # Deep forest pine needles
+    'stone': '#B9AE9C',         # Weathered fortress stone
+    'stone_dark': '#696054',    # Foundation stone & mortar lines
+    'road_gold': '#C89B48',     # Warm golden flagstone road (passes road gold check)
+    'road_edge': '#9C7A38',     # Flagstone curb shadow
+    'saffron': '#F59E0B',       # Saffron banners, buttons, heraldry
+    'gold': '#FBBF24',          # Gilded spire finials & medals
+    'bronze': '#BA7D38',        # Cannon metal & fixtures
+    'ember_coral': '#E2563A',   # Enemy clay body & magma glow
+    'ember_glow': '#FF7A45',    # High-emission magma core
+    'ember_dark': '#7A1C16',    # Enemy dark armor & cooled obsidian
+    'ivory': '#F4EFE2',         # UI paper & knight face tone
+    'ink': '#14183A',           # Ink outlines & dark accents
+    'wood': '#785338',          # Timber decks & watchtower beams
+    'wood_dark': '#4F3521',     # Tree trunks & heavy timber supports
+    'iron': '#5B626C',          # Iron plating & portcullis bars
 }
 
 def hex_to_linear_rgb(hex_str):
@@ -41,9 +44,20 @@ def reset_scene():
     scene.render.engine = 'BLENDER_EEVEE'
     scene.render.image_settings.color_mode = 'RGBA'
     scene.render.film_transparent = True
+
+    # Configure Blender 5.x EEVEE-Next Ambient Occlusion and Shadows
+    if hasattr(scene, "eevee"):
+        if hasattr(scene.eevee, "use_fast_gi"):
+            scene.eevee.use_fast_gi = True
+            scene.eevee.fast_gi_method = 'AMBIENT_OCCLUSION_ONLY'
+            scene.eevee.fast_gi_distance = 4.0
+            scene.eevee.fast_gi_ray_count = 16
+        if hasattr(scene.eevee, "use_shadows"):
+            scene.eevee.use_shadows = True
+
     return scene
 
-def get_material(name, hex_color=None, roughness=0.85, metallic=0.0, emission=None):
+def get_material(name, hex_color=None, roughness=0.82, metallic=0.0, emission=None):
     if name in bpy.data.materials:
         return bpy.data.materials[name]
     mat = bpy.data.materials.new(name=name)
@@ -61,7 +75,7 @@ def get_material(name, hex_color=None, roughness=0.85, metallic=0.0, emission=No
             em_col = hex_to_linear_rgb(emission)
             if 'Emission Color' in bsdf.inputs:
                 bsdf.inputs['Emission Color'].default_value = em_col
-                bsdf.inputs['Emission Strength'].default_value = 1.5
+                bsdf.inputs['Emission Strength'].default_value = 2.0
             elif 'Emission' in bsdf.inputs:
                 bsdf.inputs['Emission'].default_value = em_col
     return mat
@@ -70,26 +84,32 @@ def setup_diorama_lights(collection=None):
     if collection is None:
         collection = bpy.context.scene.collection
 
-    # Key light: warm ivory sun from top-left-front
+    # Key light: warm ivory sun from top-left-front (sharp shadows for faceted diorama depth)
     sun_data = bpy.data.lights.new(name="SunKey", type='SUN')
-    sun_data.energy = 3.5
-    sun_data.color = hex_to_linear_rgb(PALETTE['ivory'])[:3]
+    sun_data.energy = 4.2
+    sun_data.color = hex_to_linear_rgb('#FFF5E6')[:3]
+    if hasattr(sun_data, "use_shadow"):
+        sun_data.use_shadow = True
     sun_obj = bpy.data.objects.new(name="SunKey", object_data=sun_data)
     sun_obj.rotation_euler = (math.radians(52), math.radians(18), math.radians(-38))
     collection.objects.link(sun_obj)
 
-    # Fill light: cool slate blue sun from opposite side
+    # Fill light: cool slate blue sun from opposite side (ambient shadow tint, no conflicting shadows)
     fill_data = bpy.data.lights.new(name="SunFill", type='SUN')
-    fill_data.energy = 1.4
+    fill_data.energy = 1.3
     fill_data.color = hex_to_linear_rgb(PALETTE['slate_blue'])[:3]
+    if hasattr(fill_data, "use_shadow"):
+        fill_data.use_shadow = False
     fill_obj = bpy.data.objects.new(name="SunFill", object_data=fill_data)
     fill_obj.rotation_euler = (math.radians(45), math.radians(-30), math.radians(140))
     collection.objects.link(fill_obj)
 
-    # Rim light: subtle glacier teal from behind
+    # Rim light: crisp glacier teal from behind (highlights silhouetted peaks and roofs)
     rim_data = bpy.data.lights.new(name="SunRim", type='SUN')
-    rim_data.energy = 1.0
+    rim_data.energy = 1.1
     rim_data.color = hex_to_linear_rgb(PALETTE['glacier_teal'])[:3]
+    if hasattr(rim_data, "use_shadow"):
+        rim_data.use_shadow = False
     rim_obj = bpy.data.objects.new(name="SunRim", object_data=rim_data)
     rim_obj.rotation_euler = (math.radians(65), math.radians(0), math.radians(180))
     collection.objects.link(rim_obj)
