@@ -1,6 +1,17 @@
 {
   "projects": [
     {
+      "id": "jauhgan",
+      "title": "就近",
+      "subtitle": "生活設施導航",
+      "category": "實用工具",
+      "description": "打開就睇到附近公廁、停車場、飲水點、藥房同 AED，行路幾遠即時計到。澳門為先，定位唔到就由議事亭前地起步；用開源地圖同公開數據，唔造假數字。",
+      "accent": "#C6532A",
+      "path": "projects/jauhgan/",
+      "added": "2026-11-11",
+      "cover": "projects/jauhgan/cover/cover.webp"
+    },
+    {
       "id": "frostgate-wardens",
       "title": "霜門守望",
       "subtitle": "Frostgate Wardens",

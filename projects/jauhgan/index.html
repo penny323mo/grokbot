@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>就近</title>
+  
+  <meta name="description" content="澳門與香港就近公共設施便民導航：公廁、停車場、飲水、藥房、AED、診所。">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="就近">
+  <meta name="theme-color" content="#F3EFE6">
+
+  <!-- Relative paths for GitHub Pages / sub-path deployment -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+
+  <!-- Vendored MapLibre GL CSS -->
+  <link rel="stylesheet" href="vendor/maplibre-gl/maplibre-gl.css">
+  <!-- Application CSS -->
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Bar: Title, Conditions Strip & Origin -->
+    <header class="top-bar">
+      <div class="top-bar-inner">
+        <div class="app-title-group">
+          <h1 class="app-title">就近</h1>
+        </div>
+        <button type="button" class="btn-locate" id="btn-locate" aria-label="使用我嘅位置做起點">
+          <span class="btn-locate-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="7" />
+              <path d="M12 2V5" />
+              <path d="M12 19V22" />
+              <path d="M2 12H5" />
+              <path d="M19 12H22" />
+              <circle cx="12" cy="12" r="2" fill="currentColor" />
+            </svg>
+          </span>
+          <span class="btn-locate-text">用我嘅位置</span>
+        </button>
+      </div>
+
+      <!-- Slim Conditions Strip (yr.no typographic honest line, 2-line wrap) -->
+      <div class="weather-strip" id="weather-strip" aria-live="polite">
+        讀取緊即時天氣…
+      </div>
+
+      <!-- Origin line -->
+      <div class="origin-strip">
+        <span class="origin-strip-dot" aria-hidden="true"></span>
+        <span id="origin-label">而家用議事亭前地做起點（未開定位）</span>
+      </div>
+    </header>
+
+    <!-- Category Rail (horizontal chips, SBB / Citymapper calm) -->
+    <nav class="category-rail-container" aria-label="設施分類選擇">
+      <div class="category-rail" id="category-rail" role="tablist">
+        <!-- Generated dynamically via app.js -->
+      </div>
+    </nav>
+
+    <!-- Full-bleed Map Viewport -->
+    <main class="map-viewport">
+      <div id="map-container" aria-label="地圖"></div>
+      <div class="map-fallback" id="map-fallback" role="alert"></div>
+
+      <!-- Recenter Target button (≥44px, safe-area clear, reactive to sheet) -->
+      <button type="button" class="btn-floating-recenter" id="btn-recenter" aria-label="返返我嘅位置" title="返返我嘅位置">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="7" />
+          <path d="M12 2V5" />
+          <path d="M12 19V22" />
+          <path d="M2 12H5" />
+          <path d="M19 12H22" />
+          <circle cx="12" cy="12" r="2.5" fill="currentColor" />
+        </svg>
+      </button>
+    </main>
+
+    <!-- Bottom Sheet: Place list or Detail view -->
+    <section class="bottom-sheet" id="bottom-sheet" data-state="peek" aria-label="附近設施清單及詳情">
+      <div class="sheet-handle-bar" id="sheet-handle" role="button" aria-label="展開或摺疊清單" tabindex="0">
+        <div class="sheet-handle-pill"></div>
+      </div>
+
+      <div class="sheet-body">
+        <!-- List View -->
+        <div class="place-list-container" id="place-list-container">
+          <div class="place-list" id="place-list" role="feed" aria-busy="false">
+            <!-- Place rows rendered here -->
+          </div>
+        </div>
+
+        <!-- Detail View -->
+        <div class="place-detail" id="place-detail" role="region" aria-label="設施詳情">
+          <div class="detail-top-nav">
+            <button type="button" class="btn-detail-back" id="btn-detail-back">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="19" y1="12" x2="5" y2="12" />
+                <polyline points="12 19 5 12 12 5" />
+              </svg>
+              <span>返回列表</span>
+            </button>
+          </div>
+          <div id="detail-content">
+            <!-- Place details rendered here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Civic Footer Notice -->
+      <footer class="footer-notice" id="data-source-notice">
+        載入中…
+      </footer>
+    </section>
+  </div>
+
+  <!-- Vendored MapLibre GL JS (No CDN dependency) -->
+  <script src="vendor/maplibre-gl/maplibre-gl.js"></script>
+  <!-- Application ES Module -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "name": "jauhgan",
+  "version": "1.0.0",
+  "description": "就近 · Just Around - Macau & Hong Kong nearby facilities utility",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "keywords": [
+    "macau",
+    "nearby",
+    "facilities",
+    "civic",
+    "map"
+  ],
+  "author": "",
+  "license": "ODbL-1.0",
+  "devDependencies": {
+    "osm-pbf-parser": "^2.3.0"
+  }
+}
