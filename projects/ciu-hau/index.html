@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>潮候 · 潮汐同海況</title>
+  <meta name="description" content="澳門與香港潮汐及海況簡報。實時水位、下一潮時間、海浪高度、海水水溫與風力。">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#F4F6F8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+  <link rel="stylesheet" href="css/fonts.css">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Header & Station Briefing -->
+    <header class="app-header">
+      <div class="header-top-row">
+        <div class="brand-group">
+          <span class="brand-wordmark">潮候</span>
+          <span class="brand-sub">潮汐同海況</span>
+        </div>
+        <button type="button" class="btn-locate" id="btn-locate" aria-label="使用我嘅位置做起點">
+          <svg class="icon-locate" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="7" />
+            <path d="M12 2V5" />
+            <path d="M12 19V22" />
+            <path d="M2 12H5" />
+            <path d="M19 12H22" />
+            <circle cx="12" cy="12" r="2" fill="currentColor" />
+          </svg>
+          <span class="btn-locate-text">用我嘅位置</span>
+        </button>
+      </div>
+
+      <!-- Station Title & Metadata Strip -->
+      <div class="station-meta-strip">
+        <div class="station-title-row">
+          <h1 class="station-name-title" id="station-name-title">澳門內港</h1>
+          <span class="station-territory-badge" id="station-territory-badge">澳門</span>
+          <span class="station-datum-tag" id="station-datum-tag">平均海平面（MSL）</span>
+        </div>
+        <div class="origin-strip" id="origin-strip">
+          <span class="origin-strip-dot" aria-hidden="true"></span>
+          <span id="origin-label">而家用澳門內港做起點（未開定位）</span>
+        </div>
+      </div>
+
+      <!-- Offline Notice Banner (honest, non-pretending) -->
+      <div class="offline-banner" id="offline-banner" role="status" style="display: none;"></div>
+    </header>
+
+    <!-- Main Harbour Briefing Stage -->
+    <main class="briefing-stage">
+      <!-- Hero Readout (Large Typography, Swiss Grid) -->
+      <section class="hero-section" aria-label="現時潮位">
+        <div class="hero-height-row">
+          <div class="hero-digits-wrap">
+            <span class="hero-height-value" id="hero-height-value">--</span>
+            <span class="hero-height-unit" id="hero-height-unit">m</span>
+          </div>
+          <div class="hero-status-wrap">
+            <span class="status-badge status-slack" id="hero-tendency-badge">計算中</span>
+            <span class="hero-datum-badge" id="hero-datum-badge">平均海平面以上（MSL）</span>
+          </div>
+        </div>
+        <div class="hero-next-extreme" id="hero-next-extreme">
+          讀取緊潮位資料…
+        </div>
+      </section>
+
+      <!-- Today's Extremes (Compact Typographic Row) -->
+      <section class="extremes-section" aria-label="今日潮位極值">
+        <h2 class="section-micro-heading">今日高低潮</h2>
+        <div class="extremes-row-scroll">
+          <div class="extremes-list" id="extremes-list">
+            <span class="empty-note">讀取緊今日潮位極值…</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 48-Hour Interactive Tide Curve (The Stage) -->
+      <section class="chart-section" aria-label="48小時潮汐曲線">
+        <div class="chart-header-row">
+          <h2 class="section-micro-heading">48小時潮汐走勢</h2>
+          <span class="chart-scrub-hint">輕按或滑動查閱時間</span>
+        </div>
+        <div class="chart-subtitle" id="chart-subtitle">Open-Meteo 模式預測（非官方潮汐表）</div>
+        <div class="chart-container" id="chart-container">
+          <!-- TideChart SVG rendered here dynamically -->
+        </div>
+      </section>
+
+      <!-- Station Switcher (Clean Horizontal Rail) -->
+      <section class="station-section" aria-label="潮位觀測站選擇">
+        <h2 class="section-micro-heading">觀測及預報站</h2>
+        <div class="station-rail" id="station-rail">
+          <!-- Dynamically generated station chips -->
+        </div>
+      </section>
+
+      <!-- Marine Conditions Strip (Wave, SST, Wind, Sun) -->
+      <section class="marine-section" aria-label="海況簡報">
+        <h2 class="section-micro-heading">即時海況及氣象</h2>
+        <div class="marine-strip" id="marine-strip">
+          <span class="empty-note">海況數據讀取中…</span>
+        </div>
+      </section>
+    </main>
+
+    <!-- Commercial Editorial Footer & Authority Disclaimers -->
+    <footer class="app-footer">
+      <div class="footer-disclaimer-box">
+        <p class="footer-disclaimer-text">
+          <strong>航行警示：</strong>資料唔適用於航行，亦唔可以代替官方潮汐表。海面作業及航行請以海事當局官方發布為準。
+        </p>
+      </div>
+
+      <div class="footer-meta-block">
+        <div class="footer-credit-line" id="footer-source-credit">
+          預報來源：Open-Meteo 數值模式預測（CC-BY 4.0）
+        </div>
+        <div class="footer-official-links" id="footer-official-links">
+          澳門官方潮汐：<a href="https://www.smg.gov.mo/zh/subpage/73/tide" target="_blank" rel="noopener">地球物理氣象局實時潮汐</a> ·
+          <a href="https://www.marine.gov.mo/tide_search.aspx" target="_blank" rel="noopener">海事及水務局潮汐查詢</a>
+        </div>
+        <div class="footer-update-time" id="footer-update-time">
+          -- 更新（澳門時間）
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

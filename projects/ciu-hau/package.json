@@ -1,0 +1,17 @@
+{
+  "name": "ciu-hau",
+  "version": "1.0.0",
+  "description": "潮候 · Ciu Hau — Practical everyday tide and marine briefing",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "keywords": [
+    "tide",
+    "marine",
+    "macau",
+    "hongkong"
+  ],
+  "author": "",
+  "license": "ISC"
+}
