@@ -82,3 +82,24 @@
 
 - **MINOR 3: 香港即時查詢進行中空狀態提示 (Hong Kong pending live Overpass empty state)**
   - 於 `App` 類別加入 `isLiveOsmPending` 狀態旗標。當起點設定為香港且即時 Overpass 查詢仍在進行中時，空狀態副標題顯示「搵緊附近設施…」，避免在查詢完成前過早顯示「即時查詢未成功」。
+
+## Location flow fix
+
+- **MAJOR 1: WebKit / iOS Safari 用戶手勢標記保護 (Preserve user gesture activation)**
+  - 修復 `requestGeolocation()` 在呼叫 `navigator.geolocation.getCurrentPosition()` 前同步將按鈕設為 `disabled = true` 導致 iOS WebKit 取消使用者操作手勢標記（User Activation Token）而無法彈出權限請求的問題。
+  - 改用 `aria-busy="true"` 狀態樣式及內部 `isLocating` 防重入旗標，保留按鈕的即時手勢鏈，並在定位完成或失敗後可靠重設。
+- **MAJOR 2: 真確區分定位錯誤類型與移除虛假指控 (Honest error categorization & eliminate false denial blames)**
+  - 徹底移除舊代碼將所有定位錯誤（代碼 1、2、3）一概指控為「定位未獲授權」的錯誤邏輯（尤其在室內環境常觸發 GPS 逾時，但用戶從未拒絕授權）。
+  - 精確區分四種情境並以純粵語真確呈現：
+    1. 拒絕授權（`code: 1`）：提示「定位未獲授權，你可以重試，或用議事亭前地做起點」。
+    2. 無法獲取（`code: 2`）：提示「暫時未能獲取位置（訊號未能定位），你可以重試，或用議事亭前地做起點」。
+    3. 連線逾時（`code: 3`）：提示「定位逾時（訊號較弱），你可以重試，或用議事亭前地做起點」。
+    4. 瀏覽器不支援：提示「瀏覽器未支援定位功能，現正使用議事亭前地做起點」。
+- **MAJOR 3: 高精度逾時自動降級 (High-accuracy GPS timeout fallback to low-accuracy)**
+  - 手機瀏覽器開啟 `enableHighAccuracy: true` 在室內經常因搜尋衛星信號而直接逾時；新增自動降級邏輯，若高精度嘗試逾時，自動嘗試一次標準精度定位（WiFi／基地台信號），提升定位成功率。
+- **MAJOR 4: 失敗後重試與保留預設起點選項 (Reliable retry & default origin selection)**
+  - 定位失敗後按鈕不鎖定，用戶隨時可再次點擊重試；同時在標籤及界面提供點擊重設為議事亭前地預設起點之連結。
+- **MAJOR 5: 預設起點可見觸控控制項與測試事件接合 (Wired visible default-origin control & genuine tap tests)**
+  - 修復定位錯誤文案中「或用議事亭前地做起點」雖存在但界面未綁定實際點擊事件的問題。
+  - 在定位失敗提示中將「議事亭前地」包裝為可見且具備完整點擊區域之 `<button id="btn-default-origin">`；在定位成功（或起點變更）後亦於起點列提供可見之「用議事亭前地」按鈕，讓用戶隨時能一鍵點擊切換回預設起點（議事亭前地 22.1937, 113.5406）。
+  - 修復瀏覽器自動化測試 Test 6 原先透過 `page.evaluate("window.app.resetToDefaultOrigin()")` 調用內部方法而非真實使用者點擊的問題，全面改以真實 Playwright `page.click("#btn-default-origin")` 測試失敗後點擊與成功後點擊重設起點之行為。

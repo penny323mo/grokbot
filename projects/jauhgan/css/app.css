@@ -195,6 +195,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 4px;
+  flex-wrap: wrap;
 }
 
 .origin-strip-dot {
@@ -204,6 +205,33 @@ html, body {
   background-color: var(--color-persimmon);
   display: inline-block;
   flex-shrink: 0;
+}
+
+.btn-default-origin {
+  background: none;
+  border: none;
+  padding: 0 2px;
+  margin: 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-olive);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  line-height: 1.3;
+  vertical-align: baseline;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-default-origin:hover,
+.btn-default-origin:focus-visible {
+  color: var(--color-ink);
+  outline: none;
+  text-decoration-thickness: 2px;
 }
 
 /* Category Rail (horizontal chips, Citymapper / SBB calm) */

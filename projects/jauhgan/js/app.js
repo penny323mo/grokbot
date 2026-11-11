@@ -11,10 +11,20 @@ import { joinHkCarparks, formatHkTime } from './hk-parking.js';
 import { getIconSvg } from './icons.js';
 import { AppMap } from './map.js';
 
-class App {
+export const LOCATION_ERROR_MESSAGES = {
+  PERMISSION_DENIED: '定位未獲授權，你可以重試，或用議事亭前地做起點',
+  POSITION_UNAVAILABLE: '暫時未能獲取位置（訊號未能定位），你可以重試，或用議事亭前地做起點',
+  TIMEOUT: '定位逾時（訊號較弱），你可以重試，或用議事亭前地做起點',
+  UNSUPPORTED: '瀏覽器未支援定位功能，已預設用議事亭前地做起點',
+  INSECURE_CONTEXT: '需在安全連線（HTTPS）下使用定位，已預設用議事亭前地做起點',
+  UNKNOWN: '暫時未能獲取位置，你可以重試，或用議事亭前地做起點'
+};
+
+export class App {
   constructor() {
     this.currentOrigin = { ...DEFAULT_ORIGIN };
     this.userGpsLocation = null;
+    this.isLocating = false;
     this.activeCategory = 'all';
     this.allPlaces = [];
     this.filteredPlaces = [];
@@ -82,6 +92,17 @@ class App {
   initEventListeners() {
     // Locate button (Item 12: Preserve icon)
     this.dom.btnLocate.addEventListener('click', () => this.requestGeolocation());
+
+    // Delegated click for default origin button in origin line
+    if (this.dom.originLabel) {
+      this.dom.originLabel.addEventListener('click', (e) => {
+        const btn = e.target && (e.target.id === 'btn-default-origin' || (e.target.closest && e.target.closest('#btn-default-origin, .btn-default-origin')));
+        if (btn) {
+          if (e.preventDefault) e.preventDefault();
+          this.resetToDefaultOrigin();
+        }
+      });
+    }
 
     // Recenter button
     this.dom.btnRecenter.addEventListener('click', () => {
@@ -180,6 +201,9 @@ class App {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 6000);
+        if (typeof timeoutId?.unref === 'function') {
+          timeoutId.unref();
+        }
 
         const res = await fetch(ep, {
           method: 'POST',
@@ -308,62 +332,157 @@ class App {
     }
   }
 
-  requestGeolocation() {
-    // Item 19: Inline error message instead of alert
-    if (!navigator.geolocation) {
-      this.dom.originLabel.textContent = '瀏覽器未支援定位功能';
+  requestGeolocation(options = {}) {
+    if (this.isLocating) {
+      return; // prevent duplicate clicks while request in flight
+    }
+
+    // Insecure context check
+    if (typeof window !== 'undefined' && window.isSecureContext === false) {
+      this.handleLocationError({ code: 'INSECURE_CONTEXT' });
       return;
     }
 
-    // Item 12: Set text on inner span, keeping SVG intact
+    // Check navigator.geolocation
+    const navGeo = options.geolocation || (typeof navigator !== 'undefined' ? navigator.geolocation : null);
+    if (!navGeo || typeof navGeo.getCurrentPosition !== 'function') {
+      this.handleLocationError({ code: 'UNSUPPORTED' });
+      return;
+    }
+
+    this.isLocating = true;
     if (this.dom.btnLocateText) {
       this.dom.btnLocateText.textContent = '讀取緊…';
     }
-    this.dom.btnLocate.disabled = true;
+    if (this.dom.btnLocate) {
+      this.dom.btnLocate.setAttribute('aria-busy', 'true');
+    }
+    if (this.dom.originLabel) {
+      this.dom.originLabel.textContent = '正在獲取你嘅位置…';
+    }
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        if (this.dom.btnLocateText) {
-          this.dom.btnLocateText.textContent = '用我嘅位置';
-        }
-        this.dom.btnLocate.disabled = false;
-        const lat = Number(pos.coords.latitude.toFixed(6));
-        const lon = Number(pos.coords.longitude.toFixed(6));
+    const highAccuracyOptions = {
+      enableHighAccuracy: true,
+      timeout: options.timeout || 10000,
+      maximumAge: options.maximumAge !== undefined ? options.maximumAge : 30000
+    };
 
-        this.userGpsLocation = {
-          lat,
-          lon,
-          name: '你嘅位置',
-          isDefault: false,
-          description: '以你嘅實際定位為起點'
-        };
-
-        this.setOrigin(this.userGpsLocation);
-        if (this.map) {
-          this.map.centerOn(lat, lon, 16);
-        }
-      },
-      (err) => {
-        if (this.dom.btnLocateText) {
-          this.dom.btnLocateText.textContent = '用我嘅位置';
-        }
-        this.dom.btnLocate.disabled = false;
-        console.warn('Geolocation error:', err.message);
-        this.dom.originLabel.textContent = '定位未獲授權，而家用議事亭前地做起點';
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 30000
+    const handleSuccess = (pos) => {
+      this.isLocating = false;
+      if (this.dom.btnLocateText) {
+        this.dom.btnLocateText.textContent = '用我嘅位置';
       }
-    );
+      if (this.dom.btnLocate) {
+        this.dom.btnLocate.removeAttribute('aria-busy');
+        this.dom.btnLocate.disabled = false;
+      }
+
+      const lat = Number(pos.coords.latitude.toFixed(6));
+      const lon = Number(pos.coords.longitude.toFixed(6));
+
+      this.userGpsLocation = {
+        lat,
+        lon,
+        name: '你嘅位置',
+        isDefault: false,
+        description: '以你嘅實際定位為起點'
+      };
+
+      this.setOrigin(this.userGpsLocation);
+      if (this.map) {
+        this.map.centerOn(lat, lon, 16);
+      }
+    };
+
+    const handleError = (err) => {
+      // If high accuracy timed out and fallback not attempted yet, try low accuracy (cell/wifi)
+      if (err && err.code === 3 && highAccuracyOptions.enableHighAccuracy && !options.disableFallback) {
+        console.warn('High accuracy geolocation timed out, trying standard accuracy fallback...');
+        navGeo.getCurrentPosition(
+          handleSuccess,
+          (fallbackErr) => {
+            this.handleLocationError(fallbackErr);
+          },
+          {
+            enableHighAccuracy: false,
+            timeout: 8000,
+            maximumAge: 60000
+          }
+        );
+        return;
+      }
+
+      this.handleLocationError(err);
+    };
+
+    // Invoke directly from user gesture without dropping gesture context
+    navGeo.getCurrentPosition(handleSuccess, handleError, highAccuracyOptions);
+  }
+
+  handleLocationError(err) {
+    this.isLocating = false;
+    if (this.dom.btnLocateText) {
+      this.dom.btnLocateText.textContent = '用我嘅位置';
+    }
+    if (this.dom.btnLocate) {
+      this.dom.btnLocate.removeAttribute('aria-busy');
+      this.dom.btnLocate.disabled = false;
+    }
+
+    let errorKey = 'UNKNOWN';
+    if (err) {
+      if (err.code === 1 || err.code === 'PERMISSION_DENIED') {
+        errorKey = 'PERMISSION_DENIED';
+      } else if (err.code === 2 || err.code === 'POSITION_UNAVAILABLE') {
+        errorKey = 'POSITION_UNAVAILABLE';
+      } else if (err.code === 3 || err.code === 'TIMEOUT') {
+        errorKey = 'TIMEOUT';
+      } else if (err.code === 'UNSUPPORTED') {
+        errorKey = 'UNSUPPORTED';
+      } else if (err.code === 'INSECURE_CONTEXT') {
+        errorKey = 'INSECURE_CONTEXT';
+      }
+    }
+
+    const rawMessage = LOCATION_ERROR_MESSAGES[errorKey] || LOCATION_ERROR_MESSAGES.UNKNOWN;
+    if (this.dom.originLabel) {
+      if (rawMessage.includes('議事亭前地')) {
+        const html = rawMessage.replace(
+          '議事亭前地',
+          '<button type="button" class="btn-default-origin" id="btn-default-origin" aria-label="用議事亭前地做起點">議事亭前地</button>'
+        );
+        this.dom.originLabel.innerHTML = html;
+      } else {
+        this.dom.originLabel.textContent = rawMessage;
+      }
+    }
+
+    // Default origin fallback remains active/available
+    if (!this.currentOrigin) {
+      this.setOrigin(DEFAULT_ORIGIN);
+    }
+  }
+
+  resetToDefaultOrigin() {
+    this.userGpsLocation = null;
+    this.setOrigin(DEFAULT_ORIGIN);
+    if (this.map) {
+      this.map.centerOn(DEFAULT_ORIGIN.lat, DEFAULT_ORIGIN.lon, 15.5);
+    }
   }
 
   setOrigin(origin) {
     this.currentOrigin = origin;
     this.liveOsmFailed = false;
     this.isLiveOsmPending = true;
-    this.dom.originLabel.textContent = origin.description || origin.name;
+    if (this.dom.originLabel) {
+      if (origin.isDefault) {
+        this.dom.originLabel.textContent = origin.description || origin.name;
+      } else {
+        const desc = origin.description || origin.name;
+        this.dom.originLabel.innerHTML = `${desc} · <button type="button" class="btn-default-origin" id="btn-default-origin" aria-label="返回議事亭前地">用議事亭前地</button>`;
+      }
+    }
     if (this.map) {
       this.map.updateOriginMarker(origin);
     }
@@ -710,7 +829,9 @@ function escapeHtml(str) {
 }
 
 // Bootstrap on DOM ready
-document.addEventListener('DOMContentLoaded', () => {
-  window.app = new App();
-  window.app.init();
-});
+if (typeof document !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', () => {
+    window.app = new App();
+    window.app.init();
+  });
+}
