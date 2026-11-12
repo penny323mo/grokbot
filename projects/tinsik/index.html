@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>天色 · Tin Sik</title>
+  <meta name="description" content="澳門及鄰近地區即時天氣簡報及預報，排印優先、嚴謹實用。">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="天色">
+  <meta name="theme-color" content="#F7F1E8">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+  <link rel="stylesheet" href="css/fonts.css">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="header-top-row">
+        <h1 class="brand-title">天色</h1>
+        <div class="header-actions">
+          <button type="button" id="btn-locate" class="action-btn" aria-label="尋找附近位置" title="尋找附近位置">
+            <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+              <circle cx="12" cy="12" r="7" stroke-dasharray="2 2"/>
+            </svg>
+            <span class="action-text">定位</span>
+          </button>
+          <button type="button" id="btn-refresh" class="action-btn" aria-label="更新預報" title="更新預報">
+            <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21.5 2v6h-6M2.5 22v-6h6"/>
+              <path d="M21.05 13A9 9 0 0 0 5.64 5.64L2.5 8.78M2.95 11a9 9 0 0 0 15.41 7.36l3.14-3.14"/>
+            </svg>
+            <span class="action-text">更新</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="place-notice" class="place-notice" role="status">
+        而家用澳門半島做起點（未開定位）
+      </div>
+
+      <nav id="place-rail" class="place-rail" aria-label="地點選擇"></nav>
+    </header>
+
+    <main class="app-main">
+      <!-- Active Official Warnings Banner -->
+      <section id="warning-banner" class="warning-banner" hidden></section>
+
+      <!-- Hero Temperature & Current Conditions -->
+      <section id="hero-section" class="hero-section" aria-live="polite">
+        <div class="hero-stage">
+          <div class="hero-temp-row">
+            <span class="hero-temp">--°</span>
+            <div class="hero-sky-badge">
+              <span class="hero-sky-word">載入中…</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2-Hour Rain Ribbon -->
+      <section id="rain-ribbon-section" class="rain-ribbon-section" hidden></section>
+
+      <!-- 24-Hour Swipeable Filmstrip -->
+      <section id="filmstrip-section" class="filmstrip-section" aria-label="24小時預報" hidden>
+        <div class="section-header">
+          <h2 class="section-title">24 小時預報</h2>
+          <span class="section-hint">向左滑動 · 點按可鎖定時段</span>
+        </div>
+        <div id="hourly-pinned-box" class="hourly-pinned-box" hidden></div>
+        <div class="hourly-scroll-container">
+          <div id="hourly-track" class="hourly-track"></div>
+        </div>
+      </section>
+
+      <!-- 7-Day Forecast with Accordion -->
+      <section id="seven-day-section" class="seven-day-section" aria-label="七日預報" hidden>
+        <div class="section-header">
+          <h2 class="section-title">七日預報</h2>
+          <span class="section-hint">點按展開詳細</span>
+        </div>
+        <ul id="seven-day-list" class="seven-day-list"></ul>
+      </section>
+
+      <!-- UV and Air Quality Line -->
+      <section id="uv-air-section" class="uv-air-section" hidden></section>
+    </main>
+
+    <footer class="app-footer">
+      <div id="footer-meta" class="footer-meta"></div>
+    </footer>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

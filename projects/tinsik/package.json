@@ -1,0 +1,17 @@
+{
+  "name": "tinsik",
+  "version": "1.0.0",
+  "description": "天色 · Tin Sik — Everyday live weather tool for Macau and Hong Kong",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "keywords": [
+    "weather",
+    "macau",
+    "hongkong",
+    "cantonese"
+  ],
+  "author": "",
+  "license": "ISC"
+}

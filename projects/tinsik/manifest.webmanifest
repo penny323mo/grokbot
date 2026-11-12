@@ -1,0 +1,21 @@
+{
+  "name": "天色 · Tin Sik",
+  "short_name": "天色",
+  "description": "澳門及鄰近地區即時天氣簡報及預測",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F7F1E8",
+  "theme_color": "#F7F1E8",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

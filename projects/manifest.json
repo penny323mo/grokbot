@@ -1,6 +1,17 @@
 {
   "projects": [
     {
+      "id": "tinsik",
+      "title": "天色",
+      "subtitle": "Tin Sik",
+      "category": "實用工具",
+      "description": "澳門為先嘅即時天氣：而家幾度、天色點、未來兩小時會唔會落雨、七日預報，同埋有官方警告先出橫額。資料來自 Open-Meteo 同香港天文台開放數據，唔使用任何收費服務或者密鑰。",
+      "accent": "#C4841A",
+      "path": "projects/tinsik/",
+      "added": "2026-11-13",
+      "cover": "projects/tinsik/cover/cover.webp"
+    },
+    {
       "id": "ciu-hau",
       "title": "潮候",
       "subtitle": "潮汐同海況",

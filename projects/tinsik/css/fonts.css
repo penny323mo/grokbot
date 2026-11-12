@@ -1,0 +1,31 @@
+@font-face {
+  font-family: 'Noto Sans TC';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('../assets/fonts/noto/NotoSansTC-Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Source Sans Pro';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../assets/fonts/sourcesans/SourceSansPro-Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Source Sans Pro';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../assets/fonts/sourcesans/SourceSansPro-Semibold.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Source Sans Pro';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../assets/fonts/sourcesans/SourceSansPro-Bold.ttf') format('truetype');
+}
