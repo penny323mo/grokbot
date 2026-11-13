@@ -1,6 +1,17 @@
 {
   "projects": [
     {
+      "id": "dei-sai",
+      "title": "地勢",
+      "subtitle": "Dei Sai",
+      "category": "實用工具",
+      "description": "立體睇澳門地勢：山丘、橋樑同樓宇高度，轉一轉就睇到東望洋到路環有幾高。",
+      "accent": "#7A3E2B",
+      "path": "projects/dei-sai/",
+      "added": "2026-11-14",
+      "cover": "projects/dei-sai/cover/cover.webp"
+    },
+    {
       "id": "tinsik",
       "title": "天色",
       "subtitle": "Tin Sik",

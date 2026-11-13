@@ -1,0 +1,22 @@
+{
+  "name": "地勢 · Dei Sai",
+  "short_name": "地勢",
+  "description": "立體睇澳門地勢：山丘、橋樑同樓宇高度，轉一轉就睇到東望洋到路環有幾高。",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#E8E6E1",
+  "theme_color": "#E8E6E1",
+  "icons": [
+    {
+      "src": "./assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

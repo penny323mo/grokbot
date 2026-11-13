@@ -1,0 +1,11 @@
+{
+  "name": "dei-sai",
+  "version": "1.0.0",
+  "description": "3D terrain map of present-day Macau",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "keywords": ["macau", "terrain", "3d", "maplibre", "cartography"],
+  "license": "ODbL-1.0"
+}
