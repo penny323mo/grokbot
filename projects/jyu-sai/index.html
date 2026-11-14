@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <title>雨勢 · Jyu Sai — 澳門即時雨情與降雨計時</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="雨勢">
+  <meta name="theme-color" content="#E4E9ED">
+  <meta name="description" content="澳門即時雨勢雷達圖與未來兩小時降雨計時，為口袋中的手機而設。">
+
+  <!-- Icons and PWA Assets -->
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
+  <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
+  <link rel="manifest" href="./manifest.webmanifest">
+
+  <!-- Local Styles -->
+  <link rel="stylesheet" href="./vendor/maplibre-gl.css">
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+  <!-- Full-bleed Map Canvas -->
+  <div id="map" role="region" aria-label="澳門即時降雨雷達地圖"></div>
+
+  <!-- Fallback container if WebGL unavailable -->
+  <div id="map-fallback" class="map-fallback" style="display: none;" role="region" aria-label="靜態雨情資訊">
+    <div class="map-fallback-title">地圖圖層未能顯示</div>
+    <div class="map-fallback-desc">瀏覽器未支援 WebGL 硬體加速，已切換至文字雨勢預報。下方依然提供模式降雨計時與官方氣象連結。</div>
+  </div>
+
+  <!-- UI Overlay Viewport -->
+  <div class="app-viewport">
+    <!-- Top Bar -->
+    <header class="top-bar">
+      <div class="top-bar-inner">
+        <div class="brand-section">
+          <h1 class="brand-title">雨勢</h1>
+          <span class="brand-subtitle">Jyu Sai · 澳門即時雨情</span>
+        </div>
+        <div class="top-controls">
+          <button id="btn-refresh" class="btn-icon" aria-label="重新整理數據" title="重新整理">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+            </svg>
+          </button>
+          <button id="btn-info" class="btn-icon" aria-label="資料來源與條款" title="資料來源">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="16" x2="12" y2="12"/>
+              <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Place Switcher -->
+    <nav class="place-bar" aria-label="觀測地點選擇">
+      <button class="btn-place active" data-district="peninsula" aria-pressed="true">澳門半島</button>
+      <button class="btn-place" data-district="taipa" aria-pressed="false">氹仔</button>
+      <button class="btn-place" data-district="coloane" aria-pressed="false">路環</button>
+      <button id="btn-locate" class="btn-place" data-district="locate" aria-pressed="false">
+        <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; fill: none;" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+        </svg>
+        定位
+      </button>
+    </nav>
+
+    <!-- Rain Legend Chip -->
+    <aside class="rain-legend-chip" aria-label="雷達雨強圖例">
+      <div class="legend-title">雷達雨強（相對強度）</div>
+      <div class="legend-scale">
+        <div class="legend-step"><span class="legend-color legend-light" aria-hidden="true"></span>弱</div>
+        <div class="legend-step"><span class="legend-color legend-mod" aria-hidden="true"></span>中</div>
+        <div class="legend-step"><span class="legend-color legend-heavy" aria-hidden="true"></span>強</div>
+      </div>
+    </aside>
+
+    <!-- Notification / Warning Banner -->
+    <div id="banner-notice" class="banner-notice" role="status" aria-live="polite">
+      <span id="banner-text"></span>
+      <button id="banner-close" class="banner-close" aria-label="關閉提示">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Bottom Docked Panel -->
+    <main class="bottom-panel">
+      <!-- Cantonese Hero Sentence -->
+      <section class="hero-section">
+        <div id="hero-sentence" class="hero-sentence" aria-live="polite">載入中...</div>
+        <div id="hero-subtext" class="hero-subtext">正在讀取即時雷達與氣象資料</div>
+      </section>
+
+      <!-- 15-Minute 2-Hour Timeline Strip -->
+      <section class="timeline-strip-container" aria-label="未來兩小時模式預測時間軸">
+        <div class="timeline-strip-header">
+          <span id="timeline-model-label">Open-Meteo 模式預測（非官方觀測）</span>
+          <span id="timeline-origin-label" class="tabular-nums">澳門半島 · 預測</span>
+        </div>
+        <div id="timeline-strip" class="timeline-strip tabular-nums" role="list">
+          <!-- 8 x 15min steps dynamically rendered -->
+        </div>
+      </section>
+
+      <!-- Radar Animation Scrubber -->
+      <section class="scrubber-section" aria-label="雷達時間軸控制器">
+        <button id="btn-play" class="btn-play" aria-label="播放雷達動畫" title="播放 / 暫停">
+          <svg id="icon-play" viewBox="0 0 24 24" aria-hidden="true">
+            <polygon points="6,4 20,12 6,20"/>
+          </svg>
+          <svg id="icon-pause" viewBox="0 0 24 24" style="display: none;" aria-hidden="true">
+            <rect x="6" y="4" width="4" height="16"/>
+            <rect x="14" y="4" width="4" height="16"/>
+          </svg>
+        </button>
+
+        <div class="scrubber-track-wrap">
+          <div class="scrubber-info">
+            <span id="scrubber-badge" class="scrubber-badge">實況</span>
+            <span id="scrubber-time" class="scrubber-time tabular-nums">--:--</span>
+          </div>
+          <input type="range" id="scrubber-slider" class="scrubber-slider" min="0" max="0" value="0" step="1" aria-label="拖曳雷達幀時間">
+          <div id="scrubber-nowcast-msg" class="scrubber-nowcast-msg" style="display: none;">呢個來源暫時未有未來雨勢預測</div>
+        </div>
+      </section>
+
+      <!-- Honest SMG CORS Notice Line -->
+      <div id="smg-cors-line" class="smg-cors-line" style="display: none;">
+        <span>澳門地球物理氣象局官方雨量未能喺瀏覽器讀取（來源無開放跨域）</span>
+        <a href="https://www.smg.gov.mo/" target="_blank" rel="noopener noreferrer">前往官網 ↗</a>
+      </div>
+
+      <!-- Source and Expiry Metadata Row -->
+      <footer class="panel-meta-row">
+        <div class="meta-source-label">
+          <span id="meta-radar-time" class="tabular-nums">RainViewer 雷達拼圖（非官方）</span>
+          <span id="meta-stale-tag" class="stale-warning" style="display: none;">資料可能已過時</span>
+        </div>
+        <button id="btn-details" class="btn-details">來源詳情</button>
+      </footer>
+    </main>
+
+    <!-- Attribution and Details Sheet -->
+    <div id="info-sheet" class="info-sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+      <div class="info-header">
+        <h3 id="sheet-title" class="info-title">氣象資料來源與條款</h3>
+        <button id="sheet-close" class="sheet-close-btn" aria-label="關閉詳情">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="info-content">
+        <div class="info-section">
+          <h4>1. RainViewer 雷達拼圖（非澳門氣象局官方圖）</h4>
+          <p>雷達回波拼圖由 RainViewer 提供，每約 5 分鐘更新一次。色階採用 Universal Blue 階梯雨量圖式（非視頻遊戲彩虹色階）。若資料時間超過 20 分鐘，系統會提示資料可能已過時。</p>
+          <p id="rainviewer-status-text" class="source-status-text tabular-nums">讀取中...</p>
+          <p><a href="https://www.rainviewer.com/api.html" target="_blank" rel="noopener noreferrer">RainViewer API 條款</a> · <a href="https://www.rainviewer.com" target="_blank" rel="noopener noreferrer">rainviewer.com</a></p>
+        </div>
+
+        <div class="info-section">
+          <h4>2. Open-Meteo 模式預測（非官方觀測）</h4>
+          <p>未來兩小時點位降雨預報（8 個 15 分鐘步長）來自 Open-Meteo 氣象數值預測模式。本工具僅將其用作推算降雨開始或停止之時間參考，絕非澳門地球物理氣象局官方實況觀測。</p>
+          <p id="openmeteo-status-text" class="source-status-text tabular-nums">讀取中...</p>
+          <p><a href="https://open-meteo.com" target="_blank" rel="noopener noreferrer">Open-Meteo 條款與授權</a></p>
+        </div>
+
+        <div class="info-section">
+          <h4>3. 澳門地球物理氣象局 (SMG) 官方觀測</h4>
+          <p>嘗試直接讀取氣象局官方 XML 實況雨量（c_actualweather.xml）。該端點若未開放跨域資源共享（CORS），現代瀏覽器基於同源安全政策無法直接讀取。若讀取失敗，本應用坦白說明「澳門地球物理氣象局官方雨量未能喺瀏覽器讀取（來源無開放跨域）」，絕不捏造虛假官方 0 毫米數據。</p>
+          <p id="smg-status-text" class="source-status-text tabular-nums">嘗試讀取中...</p>
+          <p><a href="https://www.smg.gov.mo/" target="_blank" rel="noopener noreferrer">澳門地球物理氣象局官方網站 (smg.gov.mo)</a></p>
+        </div>
+
+        <div class="info-section">
+          <h4>4. 香港天文台 (HKO) 官方雨量</h4>
+          <p>鄰近香港站（如離島區 / 屯門）雨量來自香港天文台開放數據，透過 DATA.GOV.HK 條款使用，僅供珠江口東岸參考（非澳門觀測）。</p>
+          <p id="hko-status-text" class="source-status-text tabular-nums">讀取中...</p>
+          <p><a href="https://data.gov.hk/en/terms-and-conditions" target="_blank" rel="noopener noreferrer">DATA.GOV.HK 條款</a> · <a href="https://www.hko.gov.hk/" target="_blank" rel="noopener noreferrer">香港天文台 (hko.gov.hk)</a></p>
+        </div>
+
+        <div class="info-section">
+          <h4>5. 底圖與字體</h4>
+          <p>底圖資料 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> 貢獻者（ODbL），向量瓦片樣式由 OpenFreeMap 提供。中文字體採用 Google Noto Sans TC，數字採用 Source Sans 3 等寬排版（Tabular Figures）。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Local Vendored Libraries & Application Code -->
+  <script src="./vendor/maplibre-gl.js"></script>
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

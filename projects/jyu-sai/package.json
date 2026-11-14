@@ -1,0 +1,11 @@
+{
+  "name": "jyu-sai",
+  "version": "1.0.0",
+  "description": "Macau-first rain field and timing tool",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "keywords": ["macau", "rain", "radar", "nowcast", "weather"],
+  "license": "ODbL-1.0"
+}

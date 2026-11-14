@@ -1,6 +1,17 @@
 {
   "projects": [
     {
+      "id": "jyu-sai",
+      "title": "雨勢",
+      "subtitle": "Jyu Sai",
+      "category": "實用工具",
+      "description": "而家澳門落唔落雨、再過一陣會唔會落：雨勢圖可以倒帶同快轉，來源同更新時間寫清楚。",
+      "accent": "#7A3D62",
+      "path": "projects/jyu-sai/",
+      "added": "2026-11-15",
+      "cover": "projects/jyu-sai/cover/cover.webp"
+    },
+    {
       "id": "dei-sai",
       "title": "地勢",
       "subtitle": "Dei Sai",

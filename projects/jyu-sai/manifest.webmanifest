@@ -1,0 +1,22 @@
+{
+  "name": "雨勢 · Jyu Sai",
+  "short_name": "雨勢",
+  "description": "而家澳門落唔落雨、再過一陣會唔會落：雨勢圖可以倒帶同快轉，來源同更新時間寫清楚。",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#E4E9ED",
+  "theme_color": "#E4E9ED",
+  "icons": [
+    {
+      "src": "./assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

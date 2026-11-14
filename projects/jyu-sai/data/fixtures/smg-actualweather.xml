@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ActualWeather>
+  <System>
+    <SysPubdate>2026-11-15 01:15</SysPubdate>
+  </System>
+  <Custom>
+    <WeatherStationInfo>
+      <Location><Code>FM</Code><Name>澳門</Name></Location>
+      <Location><Code>TG</Code><Name>氹仔</Name></Location>
+      <Location><Code>DC</Code><Name>路環</Name></Location>
+    </WeatherStationInfo>
+    <WeatherReport>
+      <station code="FM">
+        <stationname>大炮台</stationname>
+        <Rainfall><Type>3</Type><Value>0.0</Value></Rainfall>
+        <Rainfall><Type>4</Type><Value>3.2</Value></Rainfall>
+        <Rainfall><Type>5</Type><Value>12.6</Value></Rainfall>
+      </station>
+    </WeatherReport>
+    <WeatherReport>
+      <station code="TG">
+        <stationname>大潭山</stationname>
+        <Rainfall><Type>3</Type><Value>0.0</Value></Rainfall>
+        <Rainfall><Type>4</Type><Value>0.0</Value></Rainfall>
+        <Rainfall><Type>5</Type><Value>5.4</Value></Rainfall>
+      </station>
+    </WeatherReport>
+    <WeatherReport>
+      <station code="DC">
+        <stationname>路環</stationname>
+        <Rainfall><Type>3</Type><Value>0.5</Value></Rainfall>
+        <Rainfall><Type>4</Type><Value>1.0</Value></Rainfall>
+        <Rainfall><Type>5</Type><Value>8.2</Value></Rainfall>
+      </station>
+    </WeatherReport>
+  </Custom>
+</ActualWeather>
