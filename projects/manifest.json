@@ -1,6 +1,17 @@
 {
   "projects": [
     {
+      "id": "ce-lou",
+      "title": "斜路",
+      "subtitle": "Ce Lou",
+      "category": "實用工具",
+      "description": "去嗰度要行幾斜：真實行人路線同高度剖面，睇到爬升、斜度同樓梯；有第條較平或者較短嘅行法就一齊比較，唔會用直線距離估時間。",
+      "accent": "#B44A2A",
+      "path": "projects/ce-lou/",
+      "added": "2026-11-17",
+      "cover": "projects/ce-lou/cover/cover.webp"
+    },
+    {
       "id": "dim-heoi",
       "title": "點去",
       "subtitle": "Dim Heoi",

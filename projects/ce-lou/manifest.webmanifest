@@ -1,0 +1,21 @@
+{
+  "name": "斜路 · 澳門步道坡度剖面",
+  "short_name": "斜路",
+  "description": "澳門步道坡度與爬升高度分析工具。真實行人路徑剖面、累計爬升與階梯路段決策。",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F4EFE6",
+  "theme_color": "#F4EFE6",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

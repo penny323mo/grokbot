@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-MO">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>斜路 Ce Lou · 澳門步道坡度與爬升剖面</title>
+  <meta name="description" content="澳門步道坡度與爬升高度分析工具。真實行人路徑剖面、累計爬升與階梯路段決策。">
+  <meta name="theme-color" content="#F4EFE6">
+
+  <!-- iOS PWA Meta -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="斜路">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="斜路 Ce Lou · 澳門步道坡度與爬升剖面">
+  <meta property="og:description" content="澳門步道坡度與爬升高度分析工具。真實行人路徑剖面、累計爬升與階梯路段決策。">
+  <meta property="og:image" content="assets/icon-512.png">
+  <meta property="og:locale" content="zh_TW">
+
+  <!-- PWA & Favicon -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+
+  <!-- Vendor CSS -->
+  <link rel="stylesheet" href="vendor/maplibre-gl.css">
+
+  <!-- App Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand-wrap">
+        <h1 class="brand-title">斜路</h1>
+        <span class="brand-tagline">Ce Lou · 步道坡度與爬升</span>
+      </div>
+      <span class="header-badge">澳門</span>
+    </header>
+
+    <!-- Rain Hint Chip (Dynamic) -->
+    <div id="rain-chip-container" class="rain-chip-container" style="display: none;">
+      <div class="rain-chip">
+        <svg class="rain-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path>
+          <path d="M8 19v2"></path>
+          <path d="M8 13v2"></path>
+          <path d="M12 21v2"></path>
+          <path d="M12 15v2"></path>
+          <path d="M16 19v2"></path>
+          <path d="M16 13v2"></path>
+        </svg>
+        <span id="rain-chip-text">--</span>
+      </div>
+    </div>
+
+    <!-- Origin & Destination Inputs -->
+    <section class="planner-card">
+      <div class="route-inputs">
+        <!-- Origin -->
+        <div class="input-row">
+          <span class="point-dot origin" title="起點"></span>
+          <input type="text" id="input-origin" class="input-field" placeholder="起點（搜尋或點選）" autocomplete="off" list="macau-curated-list" />
+          <button type="button" id="btn-locate" class="input-btn" title="使用我現時位置" aria-label="使用我現時位置">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polygon points="12 2 15 9 22 12 15 15 12 22 9 15 2 12 9 9 12 2"></polygon>
+            </svg>
+          </button>
+        </div>
+        <div id="origin-hint" class="input-subtext">而家用議事亭前地做起點（未開定位）</div>
+
+        <!-- Swap Button -->
+        <div class="swap-btn-wrap">
+          <button type="button" id="btn-swap" class="btn-swap" aria-label="對調起點與目的地">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+              <polyline points="17 14 12 9 7 14"></polyline>
+              <line x1="12" y1="9" x2="12" y2="21"></line>
+            </svg>
+            對調
+          </button>
+        </div>
+
+        <!-- Destination -->
+        <div class="input-row">
+          <span class="point-dot destination" title="目的地"></span>
+          <input type="text" id="input-destination" class="input-field" placeholder="目的地（搜尋或點選）" autocomplete="off" list="macau-curated-list" />
+          <button type="button" id="btn-clear-dest" class="input-btn" title="清除" aria-label="清除目的地" style="display: none;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Datalist for Places -->
+        <datalist id="macau-curated-list"></datalist>
+      </div>
+
+      <!-- Quick Pick Curated Places -->
+      <div class="quick-picks">
+        <span class="quick-label">熱門地點</span>
+        <div id="quick-chips" class="chips-scroll">
+          <!-- Dynamically populated from CURATED_PLACES -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Status Banner -->
+    <div id="status-banner" class="state-banner loading" style="display: none;">
+      <span class="spinner"></span>
+      <span id="status-message">計算步道剖面中...</span>
+    </div>
+
+    <!-- Typographic Section Hero Card -->
+    <section class="hero-card">
+      <!-- Route Options Switcher (較平 vs 較短) -->
+      <div id="options-tabs-container" class="options-tabs" style="display: none;">
+        <!-- Populated dynamically when alternative exists -->
+      </div>
+      <div id="single-path-note" class="single-path-note" style="display: none;">去呢度主要得呢條行人路</div>
+
+      <!-- Primary Metrics -->
+      <div class="metric-row">
+        <div class="metric-climb-wrap">
+          <div class="metric-climb num" id="hero-climb">爬升 -- <span class="metric-unit">米</span></div>
+        </div>
+        <div class="metric-time" id="hero-time">
+          大約行 <span class="time-val num" id="hero-minutes">--</span> 分鐘
+        </div>
+      </div>
+
+      <!-- Secondary Stats Strip -->
+      <div class="stats-strip">
+        <div class="stat-chip" id="chip-dist">
+          <span>距離</span>
+          <strong class="num" id="stat-dist">--</strong>
+        </div>
+        <div class="stat-chip" id="chip-descent">
+          <span>下降</span>
+          <strong class="num" id="stat-descent">-- 米</strong>
+        </div>
+        <div class="stat-chip" id="chip-stairs">
+          <span>途經</span>
+          <strong id="stat-stairs">-- 處樓梯</strong>
+        </div>
+        <div class="stat-chip" id="chip-elev-range">
+          <span>海拔</span>
+          <strong class="num" id="stat-elev-range">--m → --m</strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- Elevation Profile Section -->
+    <section class="profile-card">
+      <div class="profile-header">
+        <span class="profile-title">高度剖面</span>
+        <span class="profile-hint">左右滑動檢視坡度</span>
+      </div>
+      <div id="profile-container">
+        <!-- SVG Section Drawing injected here -->
+      </div>
+    </section>
+
+    <!-- Natural Cantonese Summary Callout -->
+    <div class="summary-callout" id="summary-callout">
+      <div class="callout-icon">📐</div>
+      <div class="callout-body">
+        <div class="callout-title" id="callout-title">步程分析</div>
+        <div class="callout-text" id="callout-text">計算路線中...</div>
+      </div>
+    </div>
+
+    <!-- Supporting 2D Map Section -->
+    <section class="map-section">
+      <div class="map-header">
+        <span class="map-title">步道路線地圖</span>
+        <div class="map-toggles">
+          <button type="button" id="btn-fit-map" class="map-toggle-btn" title="置中路線">
+            置中
+          </button>
+        </div>
+      </div>
+
+      <div class="map-wrapper">
+        <div id="map-canvas"></div>
+        <div class="map-legend">
+          <span class="legend-item"><span class="legend-line climb" id="legend-line-indicator"></span> 步行路線</span>
+          <span style="font-size: 0.7rem; color: var(--color-ink-subtle);">點擊地圖可選地點</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer Attributions -->
+    <footer class="app-footer">
+      <div class="footer-section">
+        <span class="footer-strong" id="footer-router-meta">步道與高度剖面：<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" class="footer-link">OpenStreetMap</a> / <a href="https://valhalla1.openstreetmap.de" target="_blank" rel="noopener" class="footer-link">FOSSGIS Valhalla Pedestrian</a>（開源路網模型）</span>
+      </div>
+      <div class="footer-section">
+        <span id="footer-rain-meta">天氣預報：<a href="https://open-meteo.com" target="_blank" rel="noopener" class="footer-link">Open-Meteo</a> 15 分鐘降雨即時預報（模式預測）</span>
+        <span>底圖樣式：<a href="https://openfreemap.org" target="_blank" rel="noopener" class="footer-link">OpenFreeMap</a> Positron (#F4EFE6 暖水筆地圖)</span>
+      </div>
+      <div class="footer-section" style="margin-top: 4px; color: var(--color-ink-subtle);">
+        <span>本應用程式為澳門公共步道坡度參考工具。爬升、坡度及階梯計算自開源地圖模型，非地籍測繪，亦不作路面狀況保證。</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Vendor JS -->
+  <script src="vendor/maplibre-gl.js"></script>
+
+  <!-- Application Main Script -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

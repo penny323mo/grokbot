@@ -1,0 +1,122 @@
+/**
+ * 斜路 (Ce Lou) - Rain Hint Service (Open-Meteo)
+ * Strictly used for an optional one-line rain hint when wet.
+ * Never a general weather briefing, temperature, UV, or forecast strip.
+ */
+
+import { formatMacauTime } from './utils.js';
+
+export function buildOpenMeteoRainUrl(lat = 22.1938, lon = 113.5400) {
+  return `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&minutely_15=precipitation,precipitation_probability&forecast_minutely_15=8&forecast_days=1&timezone=Asia%2FMacau`;
+}
+
+/**
+ * Parse Open-Meteo 15-minute precipitation steps
+ */
+export function parseRainHint(json) {
+  if (!json || !json.minutely_15 || !Array.isArray(json.minutely_15.time)) {
+    return {
+      available: false,
+      hasRain: false,
+      isRaining: false,
+      message: '',
+      note: '暫時未能讀到落雨預測'
+    };
+  }
+
+  const times = json.minutely_15.time;
+  const precips = json.minutely_15.precipitation || [];
+
+  if (times.length === 0) {
+    return {
+      available: false,
+      hasRain: false,
+      isRaining: false,
+      message: '',
+      note: '暫時未能讀到落雨預測'
+    };
+  }
+
+  const RAIN_THRESHOLD = 0.05; // mm / 15min
+  const isRainingNow = precips[0] != null && Number(precips[0]) >= RAIN_THRESHOLD;
+
+  let willRainSoon = false;
+  let rainStartTime = null;
+
+  // Check next 2 hours (8 x 15-min intervals)
+  const maxLookahead = Math.min(precips.length, 8);
+  if (!isRainingNow) {
+    for (let i = 1; i < maxLookahead; i++) {
+      if (precips[i] != null && Number(precips[i]) >= RAIN_THRESHOLD) {
+        willRainSoon = true;
+        rainStartTime = times[i];
+        break;
+      }
+    }
+  }
+
+  const firstTime = times[0];
+  const firstTimeStr = formatMacauTime(firstTime, 'time');
+
+  let hintText = null;
+
+  if (isRainingNow) {
+    hintText = '而家落緊雨，斜路梯級會濕滑';
+  } else if (willRainSoon && rainStartTime) {
+    const startStr = formatMacauTime(rainStartTime, 'time');
+    hintText = `大約 ${startStr} 可能開始有雨`;
+  } else {
+    // Dry for next 2 hours: remain silent per SPEC
+    hintText = null;
+  }
+
+  const hasRain = hintText !== null;
+
+  return {
+    available: true,
+    hasRain,
+    isRaining: isRainingNow,
+    message: hintText || '',
+    modelTime: firstTime,
+    modelTimeStr: firstTimeStr,
+    sourceName: 'Open-Meteo 數值模式預測',
+    sourceUrl: 'https://open-meteo.com'
+  };
+}
+
+/**
+ * Fetch rain hint for coordinates
+ */
+export async function fetchRainHint(lat = 22.1938, lon = 113.5400, fetchFn = fetch, timeoutMs = 6000) {
+  const url = buildOpenMeteoRainUrl(lat, lon);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetchFn(url, {
+      signal: controller.signal,
+      headers: { 'Accept': 'application/json' }
+    });
+    clearTimeout(timer);
+    if (!res || !res.ok) {
+      return {
+        available: false,
+        hasRain: false,
+        isRaining: false,
+        message: '',
+        note: '暫時未能讀到落雨預測'
+      };
+    }
+    const json = await res.json();
+    return parseRainHint(json);
+  } catch (err) {
+    clearTimeout(timer);
+    return {
+      available: false,
+      hasRain: false,
+      isRaining: false,
+      message: '',
+      note: '暫時未能讀到落雨預測'
+    };
+  }
+}
