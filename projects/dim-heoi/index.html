@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-MO">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>點去 Dim Heoi · 澳門行路定搭巴士</title>
+  <meta name="description" content="澳門即時步行與巴士路線決策工具。真實步行耗時比較、交通事務局巴士路線與站點資料。">
+  <meta name="theme-color" content="#EEF1F4">
+
+  <!-- Open Graph / Meta -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="點去 Dim Heoi · 澳門行路定搭巴士">
+  <meta property="og:description" content="澳門即時步行與巴士路線決策工具。真實步行耗時比較、交通事務局巴士路線與站點資料。">
+  <meta property="og:image" content="assets/icon-512.png">
+  <meta property="og:locale" content="zh_TW">
+
+  <!-- PWA & Favicon -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+
+  <!-- Vendor CSS -->
+  <link rel="stylesheet" href="vendor/maplibre-gl.css">
+
+  <!-- App Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand-wrap">
+        <h1 class="brand-title">點去</h1>
+        <span class="brand-tagline">Dim Heoi · 行路定搭巴士</span>
+      </div>
+      <span class="header-badge">澳門</span>
+    </header>
+
+    <!-- Rain Hint Chip (Dynamic) -->
+    <div id="rain-chip-container" class="rain-chip-container" style="display: none;">
+      <div class="rain-chip">
+        <svg class="rain-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path>
+          <path d="M8 19v2"></path>
+          <path d="M8 13v2"></path>
+          <path d="M12 21v2"></path>
+          <path d="M12 15v2"></path>
+          <path d="M16 19v2"></path>
+          <path d="M16 13v2"></path>
+        </svg>
+        <span id="rain-chip-text">--</span>
+      </div>
+    </div>
+
+    <!-- Origin & Destination Card -->
+    <section class="planner-card">
+      <div class="route-inputs">
+        <!-- Origin -->
+        <div class="input-row">
+          <span class="point-dot origin" title="出發點"></span>
+          <input type="text" id="input-origin" class="input-field" placeholder="出發地（搜尋或點選）" autocomplete="off" list="macau-stops-list" />
+          <button type="button" id="btn-locate" class="input-btn" title="使用我現時位置" aria-label="使用我現時位置">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polygon points="12 2 15 9 22 12 15 15 12 22 9 15 2 12 9 9 12 2"></polygon>
+            </svg>
+          </button>
+        </div>
+        <div id="origin-hint" class="input-subtext">而家用澳門半島做起點（未開定位）</div>
+
+        <!-- Swap Button -->
+        <div class="swap-btn-wrap">
+          <button type="button" id="btn-swap" class="btn-swap" aria-label="對調起點與目的地">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+              <polyline points="17 14 12 9 7 14"></polyline>
+              <line x1="12" y1="9" x2="12" y2="21"></line>
+            </svg>
+            對調
+          </button>
+        </div>
+
+        <!-- Destination -->
+        <div class="input-row">
+          <span class="point-dot destination" title="目的地"></span>
+          <input type="text" id="input-destination" class="input-field" placeholder="目的地（搜尋或點選）" autocomplete="off" list="macau-stops-list" />
+          <button type="button" id="btn-clear-dest" class="input-btn" title="清除" aria-label="清除目的地" style="display: none;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Datalist for Stop Auto-Suggest -->
+        <datalist id="macau-stops-list"></datalist>
+      </div>
+
+      <!-- Quick Pick Curated Places -->
+      <div class="quick-picks">
+        <span class="quick-label">熱門地點</span>
+        <div id="quick-chips" class="chips-scroll">
+          <!-- Dynamically populated or curated fallback -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Status banner for loading / errors -->
+    <div id="status-banner" class="state-banner loading" style="display: none;">
+      <span class="spinner"></span>
+      <span id="status-message">計算路線中...</span>
+    </div>
+
+    <!-- Comparison Hero Cards -->
+    <section class="comparison-grid">
+      <!-- Walk Card -->
+      <article class="plan-card walk-card" id="card-walk">
+        <div class="plan-header">
+          <span class="plan-tag">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="13" cy="4" r="2"></circle>
+              <path d="m9 20 3-6 3 2 3 6"></path>
+              <path d="m6 17 4-3 3-5-2-2-4 2"></path>
+            </svg>
+            行路
+          </span>
+        </div>
+        <div class="plan-metric">
+          <div class="metric-primary num" id="walk-time">-- <span class="metric-unit">分鐘</span></div>
+          <div class="metric-secondary num" id="walk-distance">-- 公里</div>
+        </div>
+        <div class="plan-meta" id="walk-meta">
+          FOSSGIS 步行導航計算
+        </div>
+      </article>
+
+      <!-- Bus Card -->
+      <article class="plan-card bus-card" id="card-bus">
+        <div class="plan-header">
+          <span class="plan-tag">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="16" rx="2"></rect>
+              <path d="M3 11h18"></path>
+              <path d="M19 19v2"></path>
+              <path d="M5 19v2"></path>
+            </svg>
+            巴士
+          </span>
+          <span id="bus-route-badge" class="header-badge" style="background: var(--color-bus-soft); color: var(--color-bus);">--</span>
+        </div>
+        <div class="plan-metric">
+          <div class="metric-primary num" id="bus-primary">搭 -- <span class="metric-unit">個站</span></div>
+          <div class="metric-secondary num" id="bus-secondary">步行接駁 -- 米</div>
+        </div>
+        <div class="plan-meta" id="bus-meta">
+          交通事務局常規路線
+        </div>
+      </article>
+    </section>
+
+    <!-- Bus Route Selection Tabs (if multiple routes available) -->
+    <div id="bus-variants-container" class="bus-variants" style="display: none;">
+      <!-- Populated dynamically -->
+    </div>
+
+    <!-- Cantonese Decision Callout -->
+    <div class="decision-callout" id="decision-callout">
+      <div class="callout-icon">💡</div>
+      <div class="callout-body">
+        <div class="callout-title" id="decision-title">出行建議</div>
+        <div class="callout-text" id="decision-text">載入路線資料中...</div>
+      </div>
+    </div>
+
+    <!-- Bus Journey Details Card -->
+    <section class="bus-steps-card" id="bus-steps-card" style="display: none;">
+      <div class="steps-title">
+        <span>搭車途徑</span>
+        <span id="badge-metro" class="badge-lrt" style="display: none;">輕軌接駁</span>
+      </div>
+
+      <div class="steps-timeline" id="steps-timeline">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Live Bus Position Status -->
+      <div class="live-status-box" id="live-status-box">
+        <span class="live-pulse dim" id="live-pulse"></span>
+        <span id="live-bus-text">檢查即時班次...</span>
+      </div>
+    </section>
+
+    <!-- Map Section -->
+    <section class="map-section">
+      <div class="map-header">
+        <span class="map-title">路線地圖</span>
+        <div class="map-toggles">
+          <button type="button" id="toggle-walk-line" class="map-toggle-btn active-walk" aria-pressed="true">
+            步行線
+          </button>
+          <button type="button" id="toggle-bus-line" class="map-toggle-btn active-bus" aria-pressed="true">
+            巴士線
+          </button>
+          <button type="button" id="btn-fit-map" class="map-toggle-btn" title="重設地圖視角">
+            置中
+          </button>
+        </div>
+      </div>
+
+      <div class="map-wrapper">
+        <div id="map-canvas"></div>
+        <div class="map-legend">
+          <span class="legend-item"><span class="legend-line walk"></span> 步行路線</span>
+          <span class="legend-item"><span class="legend-line bus"></span> 巴士路線</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer Attributions -->
+    <footer class="app-footer">
+      <div class="footer-section">
+        <span class="footer-strong" id="footer-snapshot-meta">路線同站位：澳門交通事務局 (DSAT) 公開查詢資料（唔係即時到站）</span>
+      </div>
+      <div class="footer-section">
+        <span>步行路線：FOSSGIS OSRM / Valhalla Pedestrian Routing (OpenStreetMap contributors)</span>
+        <span>天氣預報：Open-Meteo 15 分鐘降雨即時預報</span>
+        <span>底圖樣式：OpenFreeMap Positron (#EEF1F4 霧灰底圖)</span>
+      </div>
+      <div class="footer-section" style="margin-top: 4px; color: var(--color-ink-subtle);">
+        <span>本程式為澳門公共出行決策輔助工具，資料僅供參考。即時巴士位置受官方伺服器跨域限制。</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Vendor JS -->
+  <script src="vendor/maplibre-gl.js"></script>
+
+  <!-- Application Main Script -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

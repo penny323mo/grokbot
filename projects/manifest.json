@@ -1,6 +1,17 @@
 {
   "projects": [
     {
+      "id": "dim-heoi",
+      "title": "點去",
+      "subtitle": "Dim Heoi",
+      "category": "實用工具",
+      "description": "由呢度去嗰度，行路定搭巴士比較清楚：步行路線用真實行人路徑計算，巴士路線同站位寫明來源同時間，唔會用直線距離估行路時間。",
+      "accent": "#C8102E",
+      "path": "projects/dim-heoi/",
+      "added": "2026-11-16",
+      "cover": "projects/dim-heoi/cover/cover.webp"
+    },
+    {
       "id": "jyu-sai",
       "title": "雨勢",
       "subtitle": "Jyu Sai",

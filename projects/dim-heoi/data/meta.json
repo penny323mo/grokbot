@@ -1,0 +1,9 @@
+{
+  "fetchedAt": "2026-11-16T01:01:58.396804+08:00",
+  "source": "澳門交通事務局 (DSAT) 公開巴士查詢",
+  "sourceUrl": "https://bis.dsat.gov.mo/macauweb/",
+  "routesCount": 111,
+  "stopsCount": 599,
+  "stopsWithCoords": 587,
+  "licenceNote": "資料來源為澳門特別行政區政府交通事務局公開巴士查詢系統。本應用程式作公共出行決策比較用途，非官方即時到站系統。"
+}

@@ -1,0 +1,33 @@
+{
+  "code": "Ok",
+  "routes": [
+    {
+      "geometry": {
+        "coordinates": [
+          [113.5439, 22.1987],
+          [113.5442, 22.1995],
+          [113.5460, 22.2050],
+          [113.54882, 22.215282]
+        ],
+        "type": "LineString"
+      },
+      "legs": [
+        {
+          "summary": "",
+          "weight": 2671.6,
+          "duration": 2671.6,
+          "steps": [],
+          "distance": 3329.9
+        }
+      ],
+      "weight_name": "routability",
+      "weight": 2671.6,
+      "duration": 2671.6,
+      "distance": 3329.9
+    }
+  ],
+  "waypoints": [
+    { "name": "澳門半島", "location": [113.5439, 22.1987] },
+    { "name": "關閘總站", "location": [113.54882, 22.215282] }
+  ]
+}

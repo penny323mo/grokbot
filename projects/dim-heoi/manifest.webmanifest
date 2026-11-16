@@ -1,0 +1,21 @@
+{
+  "name": "點去 · 澳門行路定搭巴士",
+  "short_name": "點去",
+  "description": "澳門即時步行與巴士路線決策工具。真實步行耗時比較、交通事務局巴士路線與站點資料。",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#EEF1F4",
+  "theme_color": "#EEF1F4",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

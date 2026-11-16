@@ -1,0 +1,12 @@
+{
+  "name": "dim-heoi",
+  "version": "1.0.0",
+  "description": "Macau Walk vs Bus trip decision tool",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "keywords": ["macau", "transit", "walk", "bus", "routing"],
+  "author": "",
+  "license": "MIT"
+}

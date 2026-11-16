@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#EEF1F4" stroke="#16181D" stroke-width="2"/>
+  <!-- Bus Path -->
+  <path d="M18 44 Q30 24 46 20" fill="none" stroke="#C8102E" stroke-width="4" stroke-linecap="round"/>
+  <!-- Walk Path -->
+  <path d="M18 44 Q26 48 40 40 T46 20" fill="none" stroke="#0B6E6A" stroke-width="3" stroke-dasharray="4 3" stroke-linecap="round"/>
+  <!-- Destination Dot -->
+  <circle cx="46" cy="20" r="3.5" fill="#C8102E" stroke="#FFFFFF" stroke-width="1.5"/>
+  <!-- Origin Dot -->
+  <circle cx="18" cy="44" r="3.5" fill="#16181D" stroke="#FFFFFF" stroke-width="1.5"/>
+</svg>
