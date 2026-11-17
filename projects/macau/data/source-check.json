@@ -1,0 +1,51 @@
+{
+  "checkedAt": "2026-11-17T01:26:52Z",
+  "timezone": "Asia/Macau",
+  "notes": "Server-side probes from this integration. The page does not treat these as live in-browser readings.",
+  "smg": {
+    "directory": "https://xml.smg.gov.mo/",
+    "directoryHttp": 200,
+    "sample": "https://xml.smg.gov.mo/c_actualweather.xml",
+    "sampleHttp": 200,
+    "sampleLastModified": "Tue, 17 Nov 2026 01:24:11 GMT",
+    "samplePubdate": "2026-11-17 09:25",
+    "accessControlAllowOrigin": null,
+    "browser": "unavailable_no_cors_no_proxy"
+  },
+  "openMeteo": {
+    "url": "https://api.open-meteo.com/v1/forecast",
+    "http": 200,
+    "accessControlAllowOrigin": "*",
+    "role": "optional_model_hint"
+  },
+  "dsat": {
+    "url": "https://bis.dsat.gov.mo/macauweb/getRouteAndCompanyList.html?lang=zh-tw",
+    "probeHttp": 403,
+    "accessControlAllowOrigin": null,
+    "snapshotRetrievedAt": "2026-11-16T01:01:58.396804+08:00",
+    "snapshotFile": "../dim-heoi/data/",
+    "liveArrivals": false
+  },
+  "osrmFoot": {
+    "url": "https://routing.openstreetmap.de/routed-foot/",
+    "pair": "Senado to Guia",
+    "http": 200,
+    "cors": "*",
+    "metres": 1461.5,
+    "seconds": 1169.5,
+    "kmh": 4.5
+  },
+  "projectOsrmFoot": {
+    "url": "https://router.project-osrm.org/route/v1/foot/",
+    "metres": 1471.8,
+    "seconds": 224.9,
+    "kmh": 23.56,
+    "used": false
+  },
+  "valhalla": {
+    "url": "https://valhalla1.openstreetmap.de/route",
+    "cors": "*",
+    "default": { "km": 1.646, "seconds": 1363.545, "climbMetres": 109.3, "stairs": 2, "kmh": 4.35 },
+    "useHills1": { "km": 1.432, "minutes": 22, "climbMetres": 111.4, "stairs": 1, "kmh": 3.91 }
+  }
+}

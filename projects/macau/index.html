@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-MO">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>行澳門 · 同一程行路同巴士</title>
+  <meta name="description" content="同一個起點同終點，比較澳門行人路徑（較平、較短、高度同樓梯）同交通事務局下載嘅巴士路線。計劃網址係 GitHub Pages 嘅 projects/macau/，呢份頁未當已經上線。">
+  <meta name="theme-color" content="#F6F1E8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="行澳門">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../ce-lou/vendor/maplibre-gl.css">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div id="app" class="app" data-sheet="peek" data-mode="walk">
+    <div id="map" class="map" role="application" aria-label="澳門地圖"></div>
+    <div class="brand">
+      <h1>行澳門</h1>
+      <p>同一程 · 行路同巴士</p>
+    </div>
+    <p id="map-legend" class="legend">地圖未有路線之前，只標起點同終點。</p>
+
+    <section id="sheet" class="sheet" aria-label="呢一程">
+      <div class="sheet-bar">
+        <p id="summary-ends" class="ends">議事亭前地 → 東望洋燈塔</p>
+        <div id="modes" class="modes" role="radiogroup" aria-label="行路定搭巴士">
+          <button type="button" id="mode-walk" class="mode" role="radio" aria-checked="true">
+            <span>行路</span>
+            <strong id="walk-min" class="num">計緊</strong>
+          </button>
+          <button type="button" id="mode-bus" class="mode" role="radio" aria-checked="false">
+            <span>巴士</span>
+            <strong id="bus-min" class="num">計緊</strong>
+          </button>
+        </div>
+        <div class="bar-actions">
+          <button type="button" id="btn-map" class="text-btn">放大地圖</button>
+          <button type="button" id="btn-detail" class="text-btn" aria-expanded="false">詳情</button>
+        </div>
+      </div>
+
+      <div id="sheet-body" class="sheet-body">
+        <p id="demo-banner" class="demo" hidden>示範：而家模擬來源失敗，下面唔係真實路況。</p>
+        <p id="status" class="note">計緊呢一程…</p>
+
+        <div id="walk-block">
+          <div id="variants" class="variants"></div>
+          <p id="walk-detail" class="note"></p>
+          <div id="profile" class="profile"></div>
+        </div>
+
+        <div id="bus-block" hidden>
+          <div id="bus-options" class="variants"></div>
+          <p id="bus-note" class="note"></p>
+          <p id="bus-stops" class="stops"></p>
+          <p id="live-bus" class="note"></p>
+        </div>
+
+        <p id="rain-line" class="note" hidden></p>
+
+        <div class="details">
+        <p id="geo-status" class="note">而家用議事亭前地做起點（未開定位）</p>
+
+        <div class="fields">
+          <label class="field">
+            <span>起點</span>
+            <input id="input-origin" type="text" list="place-list" autocomplete="off" enterkeyhint="done" value="議事亭前地">
+          </label>
+          <button type="button" id="btn-locate" class="icon-btn">定位</button>
+          <button type="button" id="btn-swap" class="icon-btn">對調</button>
+          <label class="field">
+            <span>終點</span>
+            <input id="input-destination" type="text" list="place-list" autocomplete="off" enterkeyhint="done" value="東望洋燈塔">
+          </label>
+          <datalist id="place-list"></datalist>
+        </div>
+
+        <fieldset class="picks">
+          <legend>點地圖改邊個</legend>
+          <label><input id="pick-destination" type="radio" name="map-pick" value="destination" checked>終點</label>
+          <label><input id="pick-origin" type="radio" name="map-pick" value="origin">起點</label>
+        </fieldset>
+
+        <div id="chips" class="chips"></div>
+        </div>
+
+        <footer class="sources">
+          <p id="source-walk" class="source">行人路徑：<a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>／<a href="https://valhalla1.openstreetmap.de">FOSSGIS Valhalla</a></p>
+          <p id="source-bus" class="source">巴士路線：<a href="https://bis.dsat.gov.mo/macauweb/">交通事務局公開巴士查詢</a>（下載，唔係即時到站）</p>
+          <p id="source-smg" class="source">官方天氣讀唔到（無 CORS）：<a href="https://xml.smg.gov.mo/">地球物理氣象局 XML</a></p>
+          <p id="source-rain" class="source">可選模式：<a href="https://open-meteo.com/">Open-Meteo</a>（非官方觀測）</p>
+          <p class="source">底圖：<a href="https://openfreemap.org/">OpenFreeMap</a>。計劃放喺 <span class="url">https://penny323mo.github.io/grokbot/projects/macau/</span>，而家未當已上線。</p>
+        </footer>
+      </div>
+    </section>
+  </div>
+  <script src="../ce-lou/vendor/maplibre-gl.js"></script>
+  <script type="module" src="./js/app.js"></script>
+  <script src="../_shared/back.js" defer></script>
+</body>
+</html>

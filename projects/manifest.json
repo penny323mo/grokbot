@@ -1,6 +1,17 @@
 {
   "projects": [
     {
+      "id": "macau",
+      "title": "行澳門",
+      "subtitle": "同一程",
+      "category": "實用工具",
+      "description": "同一個起點同終點：行路比較較平同較短，有高度剖面同樓梯指示；巴士用交通事務局下載嘅路線站位，唔當即時到站。步行時間係開源行人路徑估算，唔係官方測量。",
+      "accent": "#8E3B2A",
+      "path": "projects/macau/",
+      "added": "2026-11-17",
+      "cover": "projects/macau/cover/thumb.webp"
+    },
+    {
       "id": "ce-lou",
       "title": "斜路",
       "subtitle": "Ce Lou",
