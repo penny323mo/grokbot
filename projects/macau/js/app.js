@@ -1,11 +1,11 @@
 import { formatDistance, formatElevation, formatMinutes } from '../../ce-lou/js/utils.js';
 import { planLive, routeBusAccess } from './bus.js';
 import { FACILITY_FILTERS, loadFacilities, rankFacilities } from './nearby.js';
-import { loadMarine, loadModelWeather, OFFICIAL_TIDE, officialWeatherLine } from './conditions.js';
+import { loadHkoHighLow, loadMarine, loadModelWeather, OFFICIAL_TIDE, officialWeatherLine } from './conditions.js';
 import { MODULES } from './inventory.js';
 import { loadParks, rankParks } from './park.js';
 import { loadRadar } from './radar.js';
-import { loadLandmarks, nearestLandmarks } from './terrain.js';
+import { loadLandmarks, nearestLandmarks, terrainViewPlan } from './terrain.js';
 import { applyGeoToTrip, readGeolocation } from './geo.js';
 import { loadPlans } from './plans.js';
 import { evaluateCoordinate, findPlace, PLACES } from './places.js';
@@ -34,6 +34,9 @@ let weatherView = null;
 let radarView = null;
 let tideView = null;
 let landmarkPack = null;
+let hkoTide = null;
+let terrainMode = 'flat';
+let terrainNote = '';
 let parkPack = null;
 const extraMarkers = [];
 let map = null;
@@ -191,7 +194,7 @@ function renderExtra(state) {
     }
     const rows = rankFacilities(facilityPack.places, state.origin, facilityFilter, 5);
     const lines = [
-      `內容時間 ${facilityPack.contentTime || '未知'}，下載時間 ${facilityPack.retrievedAt || '未知'}。${facilityPack.completeness}`,
+      ...(facilityPack.honesty?.lines || ['設施時間說明讀唔到。']),
       ...rows.map((row) => `${row.categoryLabel} · ${row.name} · 直線約 ${row.rankMetres} 米（唔係行路時間）`)
     ];
     if (!rows.length) lines.push('呢個分類喺擷取入面搵唔到。');
@@ -213,8 +216,21 @@ function renderExtra(state) {
     return;
   }
   if (panel === 'weather') {
-    const model = weatherView?.message || '天氣模式讀緊…';
-    fillExtra('天氣', [officialWeatherLine().text, model]);
+    const official = officialWeatherLine();
+    fillExtra('天氣', [official.text, weatherView?.message || '天氣模式讀緊…']);
+    const links = document.createElement('p');
+    links.className = 'note';
+    links.appendChild(document.createTextNode('官方警告檔（瀏覽器讀唔到）：'));
+    for (const file of official.warnings) {
+      const anchor = document.createElement('a');
+      anchor.href = file.href;
+      anchor.target = '_blank';
+      anchor.rel = 'noopener';
+      anchor.textContent = file.name;
+      links.appendChild(document.createTextNode(' '));
+      links.appendChild(anchor);
+    }
+    $('panel-extra').appendChild(links);
     return;
   }
   if (panel === 'rain') {
@@ -222,7 +238,11 @@ function renderExtra(state) {
     return;
   }
   if (panel === 'tide') {
-    fillExtra('潮候', [OFFICIAL_TIDE.text, tideView?.message || '水位模式讀緊…']);
+    fillExtra('潮候', [
+      OFFICIAL_TIDE.text,
+      hkoTide?.message || '香港天文台高低潮讀緊…',
+      tideView?.message || '水位模式讀緊…'
+    ]);
     return;
   }
   if (panel === 'terrain') {
@@ -231,7 +251,17 @@ function renderExtra(state) {
       return;
     }
     const rows = nearestLandmarks(landmarkPack.items, state.origin, 5);
-    fillExtra('地勢', [landmarkPack.note, ...rows.map((row) => `${row.name} · ${row.kind} · ${row.heightText}`)], rows);
+    const plan = terrainViewPlan(webglOk());
+    fillExtra('地勢', [plan.message, terrainNote, landmarkPack.note, ...rows.map((row) => `${row.name} · ${row.kind} · ${row.heightText}`)].filter(Boolean), rows);
+    const tilt = document.createElement('button');
+    tilt.type = 'button';
+    tilt.className = 'text-btn';
+    tilt.textContent = terrainMode === 'tilt' ? '放平' : '傾斜睇';
+    tilt.addEventListener('click', () => {
+      applyTilt(terrainMode !== 'tilt');
+      render();
+    });
+    $('panel-extra').appendChild(tilt);
     return;
   }
   if (panel === 'park') {
@@ -305,7 +335,10 @@ async function loadPanel(state) {
     if (panel === 'nearby' && !facilityPack) facilityPack = await loadFacilities();
     if (panel === 'weather') weatherView = await loadModelWeather(state.origin.lat, state.origin.lon);
     if (panel === 'rain') radarView = await loadRadar();
-    if (panel === 'tide') tideView = await loadMarine(state.origin.lat, state.origin.lon);
+    if (panel === 'tide') {
+      tideView = await loadMarine(state.origin.lat, state.origin.lon);
+      hkoTide = await loadHkoHighLow();
+    }
     if (panel === 'terrain' && !landmarkPack) landmarkPack = await loadLandmarks();
     if (panel === 'park') {
       if (!parkPack) parkPack = await loadParks();
@@ -323,7 +356,7 @@ async function loadPanel(state) {
       }
     }
   } catch {
-    if (panel === 'nearby') facilityPack = { places: [], contentTime: null, retrievedAt: null, completeness: '設施擷取讀唔到。' };
+    if (panel === 'nearby') facilityPack = { places: [], honesty: { lines: ['設施擷取讀唔到。'] } };
     if (panel === 'terrain') landmarkPack = { items: [], note: '地標讀唔到。' };
     if (panel === 'park') parkPack = { parks: [], retrievedAt: null };
   }
@@ -476,6 +509,7 @@ function render() {
   else if (plans?.bus?.status === 'failed') $('bus-min').textContent = '讀唔到';
   else $('bus-min').textContent = '計緊';
   $('demo-banner').hidden = !forceFail;
+  if ((state.panel || 'trip') !== 'terrain' && terrainMode === 'tilt') applyTilt(false);
   const tripPanel = (state.panel || 'trip') === 'trip';
   renderVariants(state);
   renderBus(state);
@@ -584,6 +618,41 @@ function bind() {
   });
 }
 
+function applyTilt(on) {
+  const plan = terrainViewPlan(webglOk());
+  if (!on) {
+    terrainMode = 'flat';
+    if (map) {
+      try { map.setTerrain(null); } catch { /* flat already */ }
+      map.easeTo({ pitch: 0, bearing: 0, duration: 0 });
+    }
+    return;
+  }
+  if (!map || plan.mode !== 'tilt') {
+    terrainMode = 'flat';
+    terrainNote = plan.message;
+    return;
+  }
+  terrainMode = 'tilt';
+  terrainNote = '';
+  map.easeTo({ pitch: plan.pitch, bearing: plan.bearing, duration: 0 });
+  try {
+    if (!map.getSource('terrain-dem')) {
+      map.addSource('terrain-dem', {
+        type: 'raster-dem',
+        tiles: [plan.demTile],
+        encoding: 'terrarium',
+        tileSize: 256,
+        maxzoom: 15
+      });
+    }
+    map.setTerrain({ source: 'terrain-dem', exaggeration: plan.exaggeration });
+  } catch {
+    try { map.setTerrain(null); } catch { /* ignore */ }
+    terrainNote = '立體地勢載入唔到。而家只係傾斜平面圖。地標高度仍然係 OSM 或 DEM 標籤，唔係官方測量。';
+  }
+}
+
 function initMap() {
   const container = $('map');
   if (!webglOk() || typeof maplibregl === 'undefined') {
@@ -599,7 +668,18 @@ function initMap() {
     center: [113.545, 22.195],
     zoom: 14.2,
     maxBounds: [[113.48, 22.06], [113.65, 22.23]],
-    attributionControl: { compact: true }
+    attributionControl: { compact: true },
+    maxPitch: 60,
+    pitchWithRotate: true
+  });
+  map.on('error', (event) => {
+    const message = event?.error?.message || '';
+    if (!/terrain|elevation|dem/i.test(message)) return;
+    try { map.setTerrain(null); } catch { /* already cleared */ }
+    const next = '地形高程圖磚讀唔到。而家只係傾斜平面圖。地標高度仍然係 OSM 或 DEM 標籤，唔係官方測量。';
+    if (terrainNote === next) return;
+    terrainNote = next;
+    render();
   });
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
   map.on('load', () => {

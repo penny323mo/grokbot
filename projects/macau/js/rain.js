@@ -21,7 +21,7 @@ export const SMG = {
 export function smgLine() {
   return {
     status: 'unavailable',
-    text: '地球物理氣象局公開 XML 喺 2026-11-18 再探目錄同實況檔係 HTTP 200，但回應無 CORS，呢頁讀唔到，亦唔經代理，所以唔顯示氣溫。',
+    text: '2026-11-19 01:01（澳門時間）再探，實況 XML 係 HTTP 200，發報時間 2026-11-19 00:50，Last-Modified 2026-11-18 16:54:09 GMT，但無 CORS。呢頁讀唔到，亦唔經代理，所以唔顯示官方氣溫或警告。',
     href: SMG.directoryUrl,
     linkText: '地球物理氣象局 XML'
   };

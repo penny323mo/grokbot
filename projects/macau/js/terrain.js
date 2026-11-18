@@ -34,6 +34,26 @@ export function nearestLandmarks(items, origin, limit = 6) {
     .slice(0, limit);
 }
 
+export function terrainViewPlan(webglAvailable) {
+  if (!webglAvailable) {
+    return {
+      mode: 'heights-only',
+      pitch: 0,
+      dem: false,
+      message: '呢部機畫唔到 WebGL，所以冇傾斜。下面係地標高度。'
+    };
+  }
+  return {
+    mode: 'tilt',
+    pitch: 50,
+    bearing: -15,
+    exaggeration: 1.3,
+    dem: 'attempt',
+    demTile: 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png',
+    message: '傾斜用 WebGL。地形高程圖磚 2026-11-19 再探係 HTTP 200 但無 CORS，讀唔到就只係傾斜平面圖。高度係 OSM 或 DEM 標籤，唔係官方測量，亦唔保證無障礙。'
+  };
+}
+
 export async function loadLandmarks(fetchFn = fetch) {
   const res = await fetchFn(LANDMARK_URL);
   if (!res?.ok) throw new Error('landmarks');

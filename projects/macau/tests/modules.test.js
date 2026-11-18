@@ -1,13 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { parseOverpassOrSnapshot } from '../../jauhgan/js/places.js';
 import { createTrip } from '../js/trip.js';
 import { DEFAULT_DESTINATION, DEFAULT_ORIGIN } from '../js/places.js';
 import { LEFT_OUT, MODULES } from '../js/inventory.js';
-import { rankFacilities } from '../js/nearby.js';
+import { describeFacilitySnapshot, rankFacilities } from '../js/nearby.js';
 import { parkDisplayName, rankParks } from '../js/park.js';
 import { RAINVIEWER_NATIVE_MAX_ZOOM, presentRadar, radarSourceSpec } from '../js/radar.js';
-import { OFFICIAL_TIDE, presentMarine, presentModelWeather } from '../js/conditions.js';
-import { nearestLandmarks, presentLandmark } from '../js/terrain.js';
+import { OFFICIAL_TIDE, presentHkoHighLow, presentMarine, presentModelWeather, SMG_PROBE, WARNING_FILES } from '../js/conditions.js';
+import { nearestLandmarks, presentLandmark, terrainViewPlan } from '../js/terrain.js';
 import { presentWalkLeg, routeBusAccess } from '../js/bus.js';
 
 test('switching panels keeps the same origin and destination', () => {
@@ -118,4 +120,50 @@ test('terrain omits a missing height and bus access uses the pedestrian result o
   }, '去上車站');
   assert.equal(routed.minutes, 6);
   assert.match(routed.text, /6 分鐘/);
+});
+
+test('the facility file does not prove two clocks, and AED is not an official register', async () => {
+  const raw = JSON.parse(await readFile(new URL('../../jauhgan/data/snapshot-macau.json', import.meta.url), 'utf8'));
+  const parsed = parseOverpassOrSnapshot(raw, true);
+  const note = describeFacilitySnapshot(raw, parsed.places);
+  assert.equal(raw.osm3s.timestamp_osm_base, raw.fetched_at);
+  assert.equal(note.clocksDistinct, false);
+  assert.equal(note.contentCutoffVerified, null);
+  assert.equal(note.auditVerifiedFromFile, false);
+  assert.equal(note.aedCount, 3);
+  assert.equal(note.officialRegister, false);
+  const text = note.lines.join('\n');
+  assert.match(text, /分唔開/);
+  assert.match(text, /05:22/);
+  assert.match(text, /冇再核實/);
+  assert.match(text, /唔係完整官方名冊/);
+  assert.doesNotMatch(text, /內容時間 .+下載時間/);
+});
+
+test('official weather stays unavailable and Hong Kong tide is not Macau water', () => {
+  assert.equal(SMG_PROBE.http, 200);
+  assert.equal(SMG_PROBE.accessControlAllowOrigin, null);
+  assert.equal(SMG_PROBE.pubdate, '2026-11-19 00:50');
+  assert.ok(WARNING_FILES.some((file) => file.href.endsWith('c_typhoon.xml')));
+  const tide = presentHkoHighLow({
+    data: [['11', '19', '0334', '1.96', '1055', '1.06']]
+  }, { year: 2026, stationName: '大澳' });
+  assert.equal(tide.official, true);
+  assert.equal(tide.datum, 'CD');
+  assert.equal(tide.territory, 'hongkong');
+  assert.match(tide.message, /唔係澳門水位/);
+  assert.match(tide.message, /唔係而家水位/);
+  assert.doesNotMatch(tide.message, /安全|危險/);
+  assert.equal(OFFICIAL_TIDE.status, 'unavailable');
+});
+
+test('terrain tilt uses canvas WebGL availability and does not pretend DEM loaded', () => {
+  const blocked = terrainViewPlan(false);
+  assert.equal(blocked.mode, 'heights-only');
+  assert.equal(blocked.dem, false);
+  const ready = terrainViewPlan(true);
+  assert.equal(ready.mode, 'tilt');
+  assert.equal(ready.dem, 'attempt');
+  assert.match(ready.message, /無 CORS/);
+  assert.match(ready.message, /唔係官方測量/);
 });

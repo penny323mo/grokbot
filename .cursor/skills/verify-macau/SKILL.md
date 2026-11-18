@@ -40,11 +40,11 @@ Confirm:
 - Default ends are 議事亭前地 and 東望洋燈塔, and they stay the same on 行程、就近、天氣、雨勢、潮候、地勢、泊車.
 - 行路 shows 較平 and 較短 (or an honest single path), a profile, and stair copy.
 - 巴士 shows a dated route, no invented ETA, and pedestrian access times only when the router returns them.
-- 就近 lists facilities with the extract time and does not show a walking minute from straight-line distance.
-- 天氣 says SMG XML is unreadable without CORS, and any temperature is labelled Open-Meteo.
+- 就近 does not print the snapshot's identical strings as both a content cutoff and a download time. It says the file does not separate the clocks, keeps the 2026-11-11 audit cutoff as unverified from the JSON, and says the AED count is not an official register.
+- 天氣 says the 2026-11-19 SMG probe was HTTP 200 without CORS, links the warning XML files, and labels any temperature as Open-Meteo.
 - 雨勢 uses a RainViewer raster source whose maxzoom is 7.
-- 潮候 splits mean sea level from chart datum and does not judge safety.
-- 地勢 shows OSM or DEM heights, or 高度不詳, and does not call `maplibregl.supported()`.
+- 潮候 splits Macau mean-sea-level model data from Hong Kong chart-datum extremes, and does not call the Hong Kong list the current Macau water level or a safety judgement.
+- 地勢 can tilt when canvas WebGL exists, does not call `maplibregl.supported()`, and says DEM tiles lacked CORS on the 2026-11-19 probe. Heights stay OSM or DEM, or 高度不詳.
 - 泊車 shows the 2026-11-18 extract time, no vacancy, and unnamed parks stay unnamed.
 - Source anchors stay real links. The back button does not cover the module or mode buttons.
 - `?fail=1` shows the labelled failure demo and no invented minutes.

@@ -3,11 +3,42 @@
   "timezone": "Asia/Macau",
   "notes": "Server-side probes from this integration. The page does not treat these as live in-browser readings.",
   "smgRechecked": {
-    "checkedAt": "2026-11-18T06:26:00Z",
+    "checkedAt": "2026-11-18T17:01:01Z",
+    "checkedAtMacau": "2026-11-19 01:01",
     "sample": "https://xml.smg.gov.mo/c_actualweather.xml",
     "http": 200,
+    "pubdate": "2026-11-19 00:50",
     "accessControlAllowOrigin": null,
-    "lastModified": "Wed, 18 Nov 2026 06:24:10 GMT"
+    "lastModified": "Wed, 18 Nov 2026 16:54:09 GMT",
+    "warningsHttp": 200,
+    "warningsCors": false
+  },
+  "hkoTide": {
+    "checkedAt": "2026-11-18T17:01:01Z",
+    "url": "https://data.weather.gov.hk/weatherAPI/opendata/opendata.php?dataType=HLT&rformat=json&station=TAO",
+    "http": 200,
+    "cors": "*",
+    "datum": "chart datum",
+    "territory": "hongkong",
+    "notMacauWaterLevel": true
+  },
+  "dsatRecheck": {
+    "checkedAt": "2026-11-18T17:01:01Z",
+    "routeListHttp": 403,
+    "liveBusHttp": 403,
+    "cors": false
+  },
+  "terrainTiles": {
+    "checkedAt": "2026-11-18T17:01:41Z",
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png",
+    "http": 200,
+    "accessControlAllowOrigin": null
+  },
+  "dataGovMo": {
+    "checkedAt": "2026-11-18T17:01:01Z",
+    "homepageHttp": 200,
+    "homepageCorsReflectsOrigin": true,
+    "documentedWeatherJsonFound": false
   },
   "rainviewer": {
     "checkedAt": "2026-11-18T06:26:00Z",

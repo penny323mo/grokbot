@@ -23,7 +23,7 @@ export const MODULES = [
     title: '天氣',
     from: ['tinsik'],
     status: 'partial',
-    note: 'Open-Meteo 模式可以讀。地球物理氣象局 XML 無 CORS，頁面唔代理。'
+    note: 'Open-Meteo 模式可以讀。地球物理氣象局實況同警告 XML 2026-11-19 再探係 HTTP 200 但無 CORS。data.gov.mo 首頁有 CORS，但搵唔到文件化、瀏覽器可讀嘅天氣 JSON。'
   },
   {
     id: 'rain',
@@ -37,14 +37,14 @@ export const MODULES = [
     title: '潮候',
     from: ['ciu-hau'],
     status: 'partial',
-    note: '澳門水位用 Open-Meteo 平均海平面模式。官方潮汐無 CORS。唔用潮高判斷去唔去得。'
+    note: '澳門水位用 Open-Meteo 平均海平面。澳門官方潮汐無 CORS。香港天文台高低潮係另一個基準同地點，唔當澳門而家水位。'
   },
   {
     id: 'terrain',
     title: '地勢',
     from: ['dei-sai'],
     status: 'included',
-    note: '同一張平面地圖標山丘同地標高度。高度來自 OSM 或 DEM，唔係官方測量，亦冇載入立體地圖嘅 supported()。'
+    note: '同一張地圖可以傾斜。地形高程圖磚無 CORS 時只係傾斜平面圖。高度來自 OSM 或 DEM，唔係官方測量。'
   },
   {
     id: 'park',
@@ -79,7 +79,7 @@ export const LEFT_OUT = [
   {
     id: 'dei-sai-3d',
     status: 'not-imported',
-    note: '地勢原頁用咗一個 MapLibre 4.7 已經冇嘅 WebGL 檢查，呼叫之後會當每部機都畫唔到。立體傾斜冇搬過嚟。'
+    note: '地勢原頁用咗一個 MapLibre 4.7 已經冇嘅 WebGL 檢查。行澳門改用 canvas 檢查，冇搬嗰個呼叫。'
   },
   {
     id: 'games',

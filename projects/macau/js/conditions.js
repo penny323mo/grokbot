@@ -4,16 +4,29 @@
  * Open-Meteo numbers are model output. Tide height is not a safety judgement.
  */
 
+import { parseHkoHlt } from '../../ciu-hau/js/hko.js';
 import { parseOpenMeteoMarine } from '../../ciu-hau/js/openmeteo.js';
 import { smgLine } from './rain.js';
 import { getWeatherCondition } from '../../tinsik/js/weather-codes.js';
 
 export const SMG_PROBE = {
-  checkedAt: '2026-11-18T06:26:00Z',
+  checkedAt: '2026-11-18T17:01:01Z',
+  checkedAtMacau: '2026-11-19 01:01',
   sampleUrl: 'https://xml.smg.gov.mo/c_actualweather.xml',
-  directoryHttp: 200,
+  directoryUrl: 'https://xml.smg.gov.mo/',
+  http: 200,
+  pubdate: '2026-11-19 00:50',
+  lastModified: 'Wed, 18 Nov 2026 16:54:09 GMT',
   accessControlAllowOrigin: null
 };
+
+export const WARNING_FILES = [
+  { id: 'typhoon', name: '熱帶氣旋', href: 'https://xml.smg.gov.mo/c_typhoon.xml' },
+  { id: 'rainstorm', name: '暴雨', href: 'https://xml.smg.gov.mo/c_rainstorm.xml' },
+  { id: 'thunderstorm', name: '雷暴', href: 'https://xml.smg.gov.mo/c_thunderstorm.xml' },
+  { id: 'stormsurge', name: '風暴潮', href: 'https://xml.smg.gov.mo/c_stormsurge.xml' },
+  { id: 'tsunami', name: '海嘯', href: 'https://xml.smg.gov.mo/c_tsunami.xml' }
+];
 
 export function presentModelWeather(json, retrievedAt = Date.now()) {
   const current = json?.current;
@@ -44,7 +57,7 @@ export const OFFICIAL_TIDE = {
   status: 'unavailable',
   href: 'https://www.smg.gov.mo/zh/subpage/73/tide',
   linkText: '地球物理氣象局潮汐',
-  text: '澳門官方潮汐喺氣象局網頁。2026-11-18 探過 XML 目錄係 HTTP 200，但無 CORS，呢頁讀唔到，亦唔經代理。'
+  text: '澳門官方潮汐喺氣象局網頁。2026-11-19 01:01（澳門時間）再探 XML 係 HTTP 200，但無 CORS，呢頁讀唔到，亦唔經代理。'
 };
 
 export function presentMarine(json, retrievedAt = Date.now()) {
@@ -75,7 +88,64 @@ export function presentMarine(json, retrievedAt = Date.now()) {
 }
 
 export function officialWeatherLine() {
-  return smgLine();
+  const line = smgLine();
+  return {
+    ...line,
+    warnings: WARNING_FILES,
+    probe: SMG_PROBE
+  };
+}
+
+export function hkoTideUrl(station, year, month, day, dataType = 'HLT') {
+  const m = String(month).padStart(2, '0');
+  const d = String(day).padStart(2, '0');
+  return `https://data.weather.gov.hk/weatherAPI/opendata/opendata.php?dataType=${dataType}&rformat=json&station=${station}&year=${year}&month=${m}&day=${d}`;
+}
+
+export function presentHkoHighLow(json, meta) {
+  const extremes = parseHkoHlt(json, meta.year);
+  if (!extremes.length) {
+    return {
+      available: false,
+      official: false,
+      message: '香港天文台高低潮暫時讀唔到。'
+    };
+  }
+  const pairs = extremes.map((item) => {
+    const hh = String(item.hour).padStart(2, '0');
+    const mm = String(item.minute).padStart(2, '0');
+    return `${hh}:${mm} ${item.height} 米`;
+  });
+  return {
+    available: true,
+    official: true,
+    territory: 'hongkong',
+    datum: 'CD',
+    station: meta.stationName,
+    pairs,
+    message: `香港天文台${meta.stationName}高低潮（海圖基準面）：${pairs.join('、')}。呢個係香港站，唔係澳門水位，亦唔係而家水位。`
+  };
+}
+
+export async function loadHkoHighLow(fetchFn = fetch, now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Macau',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(now);
+  const pick = (type) => Number(parts.find((part) => part.type === type)?.value);
+  const year = pick('year');
+  const month = pick('month');
+  const day = pick('day');
+  const meta = { year, month, day, station: 'TAO', stationName: '大澳' };
+  try {
+    const res = await fetchFn(hkoTideUrl('TAO', year, month, day));
+    if (!res?.ok) return presentHkoHighLow(null, meta);
+    return presentHkoHighLow(await res.json(), meta);
+  } catch {
+    return presentHkoHighLow(null, meta);
+  }
 }
 
 export async function loadModelWeather(lat, lon, fetchFn = fetch) {
