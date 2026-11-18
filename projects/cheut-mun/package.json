@@ -1,0 +1,19 @@
+{
+  "name": "cheut-mun",
+  "version": "1.0.0",
+  "description": "Macau unified going-out decision tool (walk, bus, park-then-walk)",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "keywords": [
+    "macau",
+    "transit",
+    "walking",
+    "bus",
+    "parking",
+    "valhalla",
+    "dsat"
+  ],
+  "license": "MIT"
+}

@@ -1,0 +1,33 @@
+{
+  "trip": {
+    "locations": [
+      { "lat": 22.1987, "lon": 113.5439, "type": "break" },
+      { "lat": 22.215282, "lon": 113.54882, "type": "break" }
+    ],
+    "legs": [
+      {
+        "maneuvers": [
+          { "type": 1, "instruction": "Walk north on Rua de Ferreira do Amaral" }
+        ],
+        "summary": {
+          "time": 2761.5,
+          "length": 3.486,
+          "min_lat": 22.198,
+          "max_lat": 22.216,
+          "min_lon": 113.543,
+          "max_lon": 113.549
+        }
+      }
+    ],
+    "summary": {
+      "time": 2761.5,
+      "length": 3.486,
+      "min_lat": 22.198,
+      "max_lat": 22.216,
+      "min_lon": 113.543,
+      "max_lon": 113.549
+    },
+    "status": 0,
+    "units": "kilometers"
+  }
+}
