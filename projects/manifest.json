@@ -1,11 +1,22 @@
 {
   "projects": [
     {
+      "id": "cheut-mun",
+      "title": "出門",
+      "subtitle": "Cheut Mun",
+      "category": "實用工具",
+      "description": "出門之前先睇清楚：行路定搭巴士，會一齊計到落雨同斜路；如果揸車，可以先搵停車場再行去目的地。路線同分鐘都用真實資料，唔會用直線距離估時間。",
+      "accent": "#2143A8",
+      "path": "projects/cheut-mun/",
+      "added": "2026-11-18",
+      "cover": "projects/cheut-mun/cover/cover.webp"
+    },
+    {
       "id": "macau",
       "title": "行澳門",
       "subtitle": "同一程",
       "category": "實用工具",
-      "description": "同一個起點同終點：行路比較較平同較短，有高度剖面同樓梯指示；巴士用交通事務局下載嘅路線站位，唔當即時到站。步行時間係開源行人路徑估算，唔係官方測量。",
+      "description": "同一個起點同終點：行路同斜路、巴士、就近設施、天氣、雨勢、潮候同地勢都喺同一張地圖。官方讀唔到會寫明，唔會用直線距離估行路時間。",
       "accent": "#8E3B2A",
       "path": "projects/macau/",
       "added": "2026-11-17",

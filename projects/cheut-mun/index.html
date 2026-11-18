@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-MO">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>出門 Cheut Mun · 澳門出行整合決策</title>
+  <meta name="description" content="澳門出行整合決策工具：行路、巴士、泊車再行，路網坡度與落雨預報。">
+  <meta name="theme-color" content="#F2F3F7">
+
+  <!-- iOS PWA Meta -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="出門">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="出門 Cheut Mun · 澳門出行整合決策">
+  <meta property="og:description" content="澳門出行整合決策工具：行路、巴士、泊車再行，路網坡度與落雨預報。">
+  <meta property="og:image" content="assets/icon-512.png">
+  <meta property="og:locale" content="zh_TW">
+
+  <!-- PWA & Favicon -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+
+  <!-- Vendor CSS -->
+  <link rel="stylesheet" href="vendor/maplibre-gl.css">
+
+  <!-- App Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand-wrap">
+        <h1 class="brand-title">出門</h1>
+        <span class="brand-tagline">Cheut Mun · 澳門出行決策</span>
+      </div>
+      <span class="header-badge">澳門</span>
+    </header>
+
+    <!-- Rain Hint Chip (Dynamic) -->
+    <div id="rain-chip-container" class="rain-chip-container" style="display: none;">
+      <div class="rain-chip">
+        <svg class="rain-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 16.2A4.5 4.5 0 0 0 17.5 8h-1.8A7 7 0 1 0 4 14.9"></path>
+          <path d="M16 14v6"></path>
+          <path d="M8 14v6"></path>
+          <path d="M12 16v6"></path>
+        </svg>
+        <span id="rain-chip-text">--</span>
+      </div>
+    </div>
+
+    <!-- Editorial Decision Sentence Hero Card -->
+    <section class="decision-card">
+      <div class="decision-label">出行判斷 · DECISION BRIEF</div>
+      <div class="decision-sentence" id="editorial-decision-sentence">
+        計算出行方案中...
+      </div>
+    </section>
+
+    <!-- Route Planner Inputs -->
+    <section class="planner-card">
+      <div class="route-inputs">
+        <!-- Origin Input Row -->
+        <div class="input-row">
+          <span class="point-dot origin"></span>
+          <input
+            type="text"
+            id="input-origin"
+            class="input-field"
+            placeholder="出發地點（預設議事亭前地）"
+            autocomplete="off"
+            list="macau-curated-list"
+          >
+          <button type="button" id="btn-locate" class="input-btn" title="定位我現時位置">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <circle cx="12" cy="12" r="3"></circle>
+              <line x1="12" y1="2" x2="12" y2="5"></line>
+              <line x1="12" y1="19" x2="12" y2="22"></line>
+              <line x1="2" y1="12" x2="5" y2="12"></line>
+              <line x1="19" y1="12" x2="22" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Hint & Swap Row -->
+        <div class="input-hint-row">
+          <span class="input-hint-text" id="origin-hint">而家用議事亭前地做起點（未開定位）</span>
+          <button type="button" id="btn-swap" class="btn-swap" title="對調起訖點">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            對調
+          </button>
+        </div>
+
+        <!-- Destination Input Row -->
+        <div class="input-row">
+          <span class="point-dot dest"></span>
+          <input
+            type="text"
+            id="input-destination"
+            class="input-field"
+            placeholder="前往地點（預設關閘總站）"
+            autocomplete="off"
+            list="macau-curated-list"
+          >
+        </div>
+
+        <datalist id="macau-curated-list"></datalist>
+      </div>
+
+      <!-- Quick Pick Curated Places -->
+      <div class="quick-picks">
+        <span class="quick-label">熱門地點</span>
+        <div id="quick-chips" class="chips-scroll"></div>
+      </div>
+    </section>
+
+    <!-- Status Banner -->
+    <div id="status-banner" class="status-banner loading" style="display: none;">
+      <span class="spinner"></span>
+      <span id="status-message">計算出行方案中...</span>
+    </div>
+
+    <!-- Unified Options Broadsheet (行路, 巴士, 泊車再行) -->
+    <section class="options-broadsheet">
+      <div class="mode-tabs">
+        <button type="button" id="tab-mode-walk" class="mode-tab-btn active">
+          行路
+        </button>
+        <button type="button" id="tab-mode-bus" class="mode-tab-btn">
+          巴士
+        </button>
+        <button type="button" id="tab-mode-park" class="mode-tab-btn">
+          泊車再行
+        </button>
+      </div>
+
+      <!-- Mode 1: Walk Pane -->
+      <div id="mode-pane-walk" class="mode-pane">
+        <!-- Flatter vs Shorter Alternative Selector -->
+        <div id="walk-alts-container" class="alt-tabs-wrap" style="display: none;"></div>
+
+        <!-- Hero Metric -->
+        <div class="mode-hero-wrap" id="walk-summary-text">
+          <span class="mode-hero-num">--</span>
+          <span class="mode-hero-unit">分鐘</span>
+        </div>
+
+        <!-- Secondary Stats Strip -->
+        <div class="stats-strip" id="walk-stats-strip">
+          <div class="stat-chip">
+            <span>距離</span>
+            <strong id="stat-walk-dist">--</strong>
+          </div>
+          <div class="stat-chip">
+            <span>爬升</span>
+            <strong id="stat-walk-climb">--</strong>
+          </div>
+          <div class="stat-chip">
+            <span>下降</span>
+            <strong id="stat-walk-descent">--</strong>
+          </div>
+          <div class="stat-chip">
+            <span>途經</span>
+            <strong id="stat-walk-stairs">--</strong>
+          </div>
+        </div>
+
+        <!-- Compact SVG Profile -->
+        <div class="profile-wrap">
+          <div class="profile-header-row">
+            <span class="profile-title">高度剖面</span>
+            <span class="profile-hint">左右滑動檢視坡度（模型樣本估算）</span>
+          </div>
+          <div id="profile-container"></div>
+        </div>
+      </div>
+
+      <!-- Mode 2: Bus Pane -->
+      <div id="mode-pane-bus" class="mode-pane" style="display: none;">
+        <div id="bus-option-content">
+          <div class="option-empty-state">讀取巴士方案中...</div>
+        </div>
+      </div>
+
+      <!-- Mode 3: Park then Walk Pane -->
+      <div id="mode-pane-park" class="mode-pane" style="display: none;">
+        <div id="parking-option-content">
+          <div class="option-empty-state">讀取停車場方案中...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Supporting 2D Map Section -->
+    <section class="map-section">
+      <div class="map-header">
+        <span class="map-title">出行路線圖</span>
+        <button type="button" id="btn-fit-map" class="map-toggle-btn" title="置中路線">
+          置中
+        </button>
+      </div>
+
+      <div class="map-wrapper">
+        <div id="map-canvas"></div>
+      </div>
+    </section>
+
+    <!-- Footer Attributions -->
+    <footer class="app-footer">
+      <div>
+        <strong id="footer-meta-info">路線同站位：交通事務局公開巴士查詢（2026-11-16 下載；唔係即時到站）</strong>
+      </div>
+      <div>
+        <span>步行路線：<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" class="footer-link">OpenStreetMap</a> / <a href="https://valhalla1.openstreetmap.de" target="_blank" rel="noopener" class="footer-link">FOSSGIS Valhalla Pedestrian</a>（開源路網模型）</span>
+      </div>
+      <div>
+        <span>巴士查詢：<a href="https://bis.dsat.gov.mo/macauweb/" target="_blank" rel="noopener" class="footer-link">澳門交通事務局公開巴士查詢</a></span> ·
+        <span>停車場：<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" class="footer-link">OpenStreetMap (ODbL)</a></span>
+      </div>
+      <div>
+        <span>天氣預報：<a href="https://open-meteo.com" target="_blank" rel="noopener" class="footer-link">Open-Meteo</a> 15 分鐘降雨即時預報（數值模式預測）</span> ·
+        <span>底圖：<a href="https://openfreemap.org" target="_blank" rel="noopener" class="footer-link">OpenFreeMap</a> Positron</span>
+      </div>
+      <div style="margin-top: 4px; color: var(--color-ink-subtle);">
+        <span>本應用程式為澳門公共出行綜合決策工具。路線計算自開源地圖與官方查詢快照，非地籍測繪，亦不作路面狀況保證。</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Vendor JS -->
+  <script src="vendor/maplibre-gl.js"></script>
+
+  <!-- Application Main Script -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
