@@ -15,6 +15,7 @@ export function createTrip(seed = {}) {
     origin: { ...DEFAULT_ORIGIN, ...(seed.origin || {}) },
     destination: { ...DEFAULT_DESTINATION, ...(seed.destination || {}) },
     mode: seed.mode === 'bus' ? 'bus' : 'walk',
+    panel: seed.panel || 'trip',
     walkIndex: Number.isInteger(seed.walkIndex) ? seed.walkIndex : 0,
     busIndex: Number.isInteger(seed.busIndex) ? seed.busIndex : 0,
     mapPick: seed.mapPick === 'origin' ? 'origin' : 'destination',
@@ -54,6 +55,9 @@ export function createTrip(seed = {}) {
         throw new Error(`unknown mode ${mode}`);
       }
       commit({ mode });
+    },
+    setPanel(panel) {
+      commit({ panel });
     },
     setWalkIndex(index) {
       commit({ walkIndex: index });

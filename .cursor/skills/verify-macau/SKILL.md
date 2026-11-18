@@ -1,6 +1,6 @@
 ---
 name: verify-macau
-description: Verify 行澳門 shared trip state, walk and bus modes, provenance, and the 390px layout.
+description: Verify 行澳門 shared location, every civic module, provenance, and the 390px layout.
 ---
 
 # verify-macau
@@ -37,13 +37,20 @@ Open `http://127.0.0.1:8765/projects/macau/` at 390×844.
 Confirm:
 
 - Map is the large top surface; 放大地圖 collapses the sheet.
-- Default ends are 議事亭前地 and 東望洋燈塔.
+- Default ends are 議事亭前地 and 東望洋燈塔, and they stay the same on 行程、就近、天氣、雨勢、潮候、地勢、泊車.
 - 行路 shows 較平 and 較短 (or an honest single path), a profile, and stair copy.
-- 巴士 shows a dated route and says the road path is not drawn.
-- Source anchors for OpenStreetMap, Valhalla, DSAT and SMG stay real links.
+- 巴士 shows a dated route, no invented ETA, and pedestrian access times only when the router returns them.
+- 就近 lists facilities with the extract time and does not show a walking minute from straight-line distance.
+- 天氣 says SMG XML is unreadable without CORS, and any temperature is labelled Open-Meteo.
+- 雨勢 uses a RainViewer raster source whose maxzoom is 7.
+- 潮候 splits mean sea level from chart datum and does not judge safety.
+- 地勢 shows OSM or DEM heights, or 高度不詳, and does not call `maplibregl.supported()`.
+- 泊車 shows the 2026-11-18 extract time, no vacancy, and unnamed parks stay unnamed.
+- Source anchors stay real links. The back button does not cover the module or mode buttons.
 - `?fail=1` shows the labelled failure demo and no invented minutes.
 - `document.documentElement.scrollWidth` is not greater than the viewport.
-- Console and network failures are recorded. A DSAT 403 or CORS failure is an expected unavailable state, not a live arrival.
+- Console and network failures are recorded. A DSAT CORS failure is an expected unavailable state, not a live arrival.
+- Say that the browser is desktop Chrome at 390×844, not iPhone Safari.
 
 ## 4. Evidence
 

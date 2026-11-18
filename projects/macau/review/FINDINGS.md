@@ -1,29 +1,22 @@
-# 行澳門 verification · 2026-11-17
+# 行澳門 verification · 2026-11-18
 
-Desktop Chrome at a 390×844 viewport. This is not iPhone Safari.
+Desktop Chrome at 390×844. Not iPhone Safari. Not a deployment.
 
-## Unit
+## Tests
 
-`npm test --prefix projects/macau`: 20 passed, 0 failed.
-`node tests/check_manifest.mjs`: OK 20 projects.
+`npm test --prefix projects/macau`: 27 passed, 0 failed.
 
 ## Browser
 
-Default 議事亭前地 → 東望洋燈塔, after Valhalla returned:
+Shared ends stayed 議事亭前地 → 東望洋燈塔 across 行程、就近、天氣、雨勢、潮候、地勢、泊車.
+`scrollWidth` was 390. Map height about 456px. The back button did not overlap the module, mode, or route buttons.
 
-- 較平 · 23 分鐘 · 爬升 109 米 · 1.6 公里 · 導航指示有 2 處樓梯 · 估算時速約 4.3 公里
-- 較短 · 22 分鐘 · 爬升 111 米 · 1.4 公里
-- 巴士路線 7、8、2 from the 2026-11-16 DSAT snapshot. No in-vehicle minutes. Map marks stops only.
-- `documentElement.scrollWidth` was 390. No element crossed the viewport.
-- Source anchors stayed on OpenStreetMap, Valhalla, DSAT, SMG XML, and Open-Meteo.
-- `?fail=1` shows 未能計 / 讀唔到 and the labelled demo banner.
-- Locate with permission denied: 「你未允許定位，起點保持議事亭前地」.
-- Locate with a Macau geolocation: origin becomes 「我而家嘅位置」, destination stays 東望洋燈塔.
+- 行程: 較平 23 分鐘 / 爬升 109 米 / 1.6 公里 / 2 處樓梯, and 較短 22 分鐘 / 111 米 / 1.4 公里.
+- 就近: OSM extract content and download time 2026-11-10. Straight-line metres labelled as not a walking time. No vacancy.
+- 天氣: SMG XML HTTP 200 without CORS. Open-Meteo about 25.2 degrees at model time 2026-11-18T14:30.
+- 雨勢: RainViewer 14:30, no nowcast, not official. Raster maxzoom is 7.
+- 潮候: 0.51 m above mean sea level, not chart datum. Official tide unavailable. No safety judgement.
+- 地勢: OSM or DEM heights, or 高度不詳.
+- 泊車: extract 2026-11-18T00:51. Unnamed parks stay unnamed. One pedestrian leg about 14 minutes. No vacancy.
 
-## Console
-
-One expected error: the browser blocks `bis.dsat.gov.mo` live positions (no CORS). The sheet says the position could not be read and is not an official empty arrival. Map tiles loaded.
-
-## Not claimed
-
-GitHub Pages is not deployed by this check. Official SMG weather is linked and not shown, because the XML has no CORS and this app does not proxy it.
+Console: the expected DSAT live-position CORS error only.

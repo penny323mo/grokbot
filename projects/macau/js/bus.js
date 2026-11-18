@@ -198,6 +198,41 @@ export function presentLive(result, retrievedAt = Date.now()) {
   };
 }
 
+export function presentWalkLeg(plan, label) {
+  const route = plan?.ok ? plan.options?.[0] : null;
+  if (!route || route.durationMinutes == null) {
+    return {
+      status: 'unavailable',
+      minutes: null,
+      metres: null,
+      text: `${label}嘅行人時間暫時計唔到`
+    };
+  }
+  return {
+    status: 'routed',
+    minutes: route.durationMinutes,
+    metres: route.distanceMeters,
+    text: `${label}行人路徑約 ${route.durationMinutes} 分鐘`
+  };
+}
+
+export async function routeBusAccess(origin, destination, option, walkFn) {
+  if (!option?.board?.lat || !option?.alight?.lat || typeof walkFn !== 'function') {
+    return {
+      toBoard: presentWalkLeg(null, '去上車站'),
+      fromAlight: presentWalkLeg(null, '落車之後')
+    };
+  }
+  const [toBoard, fromAlight] = await Promise.all([
+    walkFn(origin, { lat: option.board.lat, lon: option.board.lon }),
+    walkFn({ lat: option.alight.lat, lon: option.alight.lon }, destination)
+  ]);
+  return {
+    toBoard: presentWalkLeg(toBoard, '去上車站'),
+    fromAlight: presentWalkLeg(fromAlight, '落車之後')
+  };
+}
+
 export async function planLive(routeName, dir, fetchFn = fetch) {
   const result = await fetchLiveBus(routeName, dir, fetchFn);
   return presentLive(result, Date.now());

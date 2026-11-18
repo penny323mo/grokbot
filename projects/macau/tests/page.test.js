@@ -21,6 +21,7 @@ test('the page is one app, keeps the back link, and does not hub or iframe the o
   assert.doesNotMatch(html, /<iframe/i);
   assert.doesNotMatch(html, /projects\/dim-heoi\/index|projects\/ce-lou\/index/);
   assert.doesNotMatch(all, /project-osrm\.org/);
+  assert.doesNotMatch(all, /maplibregl\.supported\(/);
   assert.doesNotMatch(all, /ApiKey|APPCODE|password/i);
   assert.doesNotMatch(all, /濕滑|好安全|危險/);
 });

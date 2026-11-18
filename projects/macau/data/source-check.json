@@ -2,6 +2,20 @@
   "checkedAt": "2026-11-17T01:26:52Z",
   "timezone": "Asia/Macau",
   "notes": "Server-side probes from this integration. The page does not treat these as live in-browser readings.",
+  "smgRechecked": {
+    "checkedAt": "2026-11-18T06:26:00Z",
+    "sample": "https://xml.smg.gov.mo/c_actualweather.xml",
+    "http": 200,
+    "accessControlAllowOrigin": null,
+    "lastModified": "Wed, 18 Nov 2026 06:24:10 GMT"
+  },
+  "rainviewer": {
+    "checkedAt": "2026-11-18T06:26:00Z",
+    "http": 200,
+    "cors": "*",
+    "nativeMaxZoom": 7,
+    "nowcast": 0
+  },
   "smg": {
     "directory": "https://xml.smg.gov.mo/",
     "directoryHttp": 200,

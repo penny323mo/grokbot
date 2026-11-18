@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>行澳門 · 同一程行路同巴士</title>
-  <meta name="description" content="同一個起點同終點，比較澳門行人路徑（較平、較短、高度同樓梯）同交通事務局下載嘅巴士路線。計劃網址係 GitHub Pages 嘅 projects/macau/，呢份頁未當已經上線。">
+  <title>行澳門 · 同一張地圖</title>
+  <meta name="description" content="同一個起點同終點：行路、巴士、就近設施、天氣、雨勢、潮候、地勢同泊車。官方讀唔到會寫明。計劃網址係 GitHub Pages 嘅 projects/macau/，呢份頁未當已經上線。">
   <meta name="theme-color" content="#F6F1E8">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="行澳門">
@@ -18,13 +18,14 @@
     <div id="map" class="map" role="application" aria-label="澳門地圖"></div>
     <div class="brand">
       <h1>行澳門</h1>
-      <p>同一程 · 行路同巴士</p>
+      <p>同一張地圖</p>
     </div>
     <p id="map-legend" class="legend">地圖未有路線之前，只標起點同終點。</p>
 
     <section id="sheet" class="sheet" aria-label="呢一程">
       <div class="sheet-bar">
         <p id="summary-ends" class="ends">議事亭前地 → 東望洋燈塔</p>
+        <div id="panels" class="panels" role="radiogroup" aria-label="功能"></div>
         <div id="modes" class="modes" role="radiogroup" aria-label="行路定搭巴士">
           <button type="button" id="mode-walk" class="mode" role="radio" aria-checked="true">
             <span>行路</span>
@@ -59,6 +60,7 @@
         </div>
 
         <p id="rain-line" class="note" hidden></p>
+        <div id="panel-extra" hidden></div>
 
         <div class="details">
         <p id="geo-status" class="note">而家用議事亭前地做起點（未開定位）</p>
@@ -91,6 +93,7 @@
           <p id="source-bus" class="source">巴士路線：<a href="https://bis.dsat.gov.mo/macauweb/">交通事務局公開巴士查詢</a>（下載，唔係即時到站）</p>
           <p id="source-smg" class="source">官方天氣讀唔到（無 CORS）：<a href="https://xml.smg.gov.mo/">地球物理氣象局 XML</a></p>
           <p id="source-rain" class="source">可選模式：<a href="https://open-meteo.com/">Open-Meteo</a>（非官方觀測）</p>
+          <p id="source-module" class="source"></p>
           <p class="source">底圖：<a href="https://openfreemap.org/">OpenFreeMap</a>。計劃放喺 <span class="url">https://penny323mo.github.io/grokbot/projects/macau/</span>，而家未當已上線。</p>
         </footer>
       </div>
