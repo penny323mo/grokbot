@@ -1,15 +1,15 @@
 {
   "status": "warning",
-  "checked_at": "2026-11-20T23:40:05Z",
+  "checked_at": "2026-11-21T22:45:32Z",
   "issues": [
-    "Missing Cantonese team names (1): Deportivo A Coruna"
+    "Missing Cantonese team names (1): LASK Linz"
   ],
   "sources": {
     "macau_slot": {
       "status": "healthy",
-      "last_fetch": "2026-11-20T23:40:05Z",
-      "events_count": 45,
-      "message": "Fetched 45 events"
+      "last_fetch": "2026-11-21T22:45:32Z",
+      "events_count": 28,
+      "message": "Fetched 28 events"
     },
     "the_odds_api": {
       "status": "warning",
