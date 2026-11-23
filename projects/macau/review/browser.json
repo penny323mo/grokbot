@@ -1,0 +1,176 @@
+{
+  "walkState": {
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "wide": [],
+    "ends": "議事亭前地 → 東望洋燈塔",
+    "walk": "23 分鐘",
+    "bus": "7",
+    "detail": "導航指示有 2 處樓梯 · 估算時速約 4.3 公里",
+    "sheet": "peek",
+    "mode": "walk",
+    "mapH": 439,
+    "links": [
+      {
+        "text": "OpenStreetMap",
+        "href": "https://www.openstreetmap.org/copyright"
+      },
+      {
+        "text": "FOSSGIS Valhalla",
+        "href": "https://valhalla1.openstreetmap.de/"
+      },
+      {
+        "text": "交通事務局公開巴士查詢",
+        "href": "https://bis.dsat.gov.mo/macauweb/"
+      },
+      {
+        "text": "地球物理氣象局 XML",
+        "href": "https://xml.smg.gov.mo/"
+      },
+      {
+        "text": "Open-Meteo",
+        "href": "https://open-meteo.com/"
+      }
+    ],
+    "profile": true,
+    "variants": [
+      "較平 · 23 分鐘 · 爬升 109 米 · 1.6 公里",
+      "較短 · 22 分鐘 · 爬升 111 米 · 1.4 公里"
+    ],
+    "busOptions": [
+      "路線 7，上「水坑尾/高可寧大宅」，落「高美士中葡中學」，中間過 1 個站。行車要幾耐，資料冇寫，唔估。",
+      "路線 8，上「水坑尾/高可寧大宅」，落「高美士中葡中學」，中間過 1 個站。行車要幾耐，資料冇寫，唔估。",
+      "路線 2，上「南灣大馬路/時代」，落「盧廉若公園」，中間過 2 個站。行車要幾耐，資料冇寫，唔估。"
+    ]
+  },
+  "busState": {
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "wide": [],
+    "ends": "議事亭前地 → 東望洋燈塔",
+    "walk": "23 分鐘",
+    "bus": "7",
+    "detail": "導航指示有 2 處樓梯 · 估算時速約 4.3 公里",
+    "sheet": "peek",
+    "mode": "bus",
+    "mapH": 439,
+    "links": [
+      {
+        "text": "OpenStreetMap",
+        "href": "https://www.openstreetmap.org/copyright"
+      },
+      {
+        "text": "FOSSGIS Valhalla",
+        "href": "https://valhalla1.openstreetmap.de/"
+      },
+      {
+        "text": "交通事務局公開巴士查詢",
+        "href": "https://bis.dsat.gov.mo/macauweb/"
+      },
+      {
+        "text": "地球物理氣象局 XML",
+        "href": "https://xml.smg.gov.mo/"
+      },
+      {
+        "text": "Open-Meteo",
+        "href": "https://open-meteo.com/"
+      }
+    ],
+    "profile": true,
+    "variants": [
+      "較平 · 23 分鐘 · 爬升 109 米 · 1.6 公里",
+      "較短 · 22 分鐘 · 爬升 111 米 · 1.4 公里"
+    ],
+    "busOptions": [
+      "路線 7，上「水坑尾/高可寧大宅」，落「高美士中葡中學」，中間過 1 個站。行車要幾耐，資料冇寫，唔估。",
+      "路線 8，上「水坑尾/高可寧大宅」，落「高美士中葡中學」，中間過 1 個站。行車要幾耐，資料冇寫，唔估。",
+      "路線 2，上「南灣大馬路/時代」，落「盧廉若公園」，中間過 2 個站。行車要幾耐，資料冇寫，唔估。"
+    ]
+  },
+  "mapState": {
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "wide": [],
+    "ends": "議事亭前地 → 東望洋燈塔",
+    "walk": "23 分鐘",
+    "bus": "7",
+    "detail": "導航指示有 2 處樓梯 · 估算時速約 4.3 公里",
+    "sheet": "map",
+    "mode": "bus",
+    "mapH": 648,
+    "links": [
+      {
+        "text": "OpenStreetMap",
+        "href": "https://www.openstreetmap.org/copyright"
+      },
+      {
+        "text": "FOSSGIS Valhalla",
+        "href": "https://valhalla1.openstreetmap.de/"
+      },
+      {
+        "text": "交通事務局公開巴士查詢",
+        "href": "https://bis.dsat.gov.mo/macauweb/"
+      },
+      {
+        "text": "地球物理氣象局 XML",
+        "href": "https://xml.smg.gov.mo/"
+      },
+      {
+        "text": "Open-Meteo",
+        "href": "https://open-meteo.com/"
+      }
+    ],
+    "profile": true,
+    "variants": [
+      "較平 · 23 分鐘 · 爬升 109 米 · 1.6 公里",
+      "較短 · 22 分鐘 · 爬升 111 米 · 1.4 公里"
+    ],
+    "busOptions": [
+      "路線 7，上「水坑尾/高可寧大宅」，落「高美士中葡中學」，中間過 1 個站。行車要幾耐，資料冇寫，唔估。",
+      "路線 8，上「水坑尾/高可寧大宅」，落「高美士中葡中學」，中間過 1 個站。行車要幾耐，資料冇寫，唔估。",
+      "路線 2，上「南灣大馬路/時代」，落「盧廉若公園」，中間過 2 個站。行車要幾耐，資料冇寫，唔估。"
+    ]
+  },
+  "failState": {
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "wide": [],
+    "ends": "議事亭前地 → 東望洋燈塔",
+    "walk": "未能計",
+    "bus": "讀唔到",
+    "detail": "示範：行人路徑服務當咗失敗",
+    "sheet": "peek",
+    "mode": "walk",
+    "mapH": 439,
+    "links": [
+      {
+        "text": "FOSSGIS Valhalla",
+        "href": "https://valhalla1.openstreetmap.de/"
+      },
+      {
+        "text": "交通事務局公開巴士查詢",
+        "href": "https://bis.dsat.gov.mo/macauweb/"
+      },
+      {
+        "text": "地球物理氣象局 XML",
+        "href": "https://xml.smg.gov.mo/"
+      },
+      {
+        "text": "Open-Meteo",
+        "href": "https://open-meteo.com/"
+      }
+    ],
+    "profile": false,
+    "variants": [],
+    "busOptions": []
+  },
+  "logs": [
+    "error: Access to fetch at 'https://bis.dsat.gov.mo/macauweb/routestation/bus?routeName=7&dir=1' from origin 'http://127.0.0.1:8765' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+    "error: Failed to load resource: net::ERR_FAILED"
+  ],
+  "failed": [
+    "net::ERR_FAILED https://bis.dsat.gov.mo/macauweb/routestation/bus?routeName=7&dir=1"
+  ],
+  "failLogs": [],
+  "failNet": []
+}

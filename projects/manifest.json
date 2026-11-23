@@ -12,6 +12,17 @@
       "cover": "projects/cheut-mun/cover/cover.webp"
     },
     {
+      "id": "macau",
+      "title": "行澳門",
+      "subtitle": "同一程",
+      "category": "實用工具",
+      "description": "同一個起點同終點：行路同斜路、巴士、就近設施、天氣、雨勢、潮候同地勢都喺同一張地圖。官方讀唔到會寫明，唔會用直線距離估行路時間。",
+      "accent": "#8E3B2A",
+      "path": "projects/macau/",
+      "added": "2026-11-17",
+      "cover": "projects/macau/cover/thumb.webp"
+    },
+    {
       "id": "ce-lou",
       "title": "斜路",
       "subtitle": "Ce Lou",
